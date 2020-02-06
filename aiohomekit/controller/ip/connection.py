@@ -18,12 +18,12 @@ import asyncio
 import json
 import logging
 
-from homekit.crypto.chacha20poly1305 import chacha20_aead_decrypt, chacha20_aead_encrypt
-from homekit.exceptions import AccessoryDisconnectedError
-from homekit.http_impl import HttpContentTypes
-from homekit.http_impl.response import HttpResponse
-from homekit.protocol import get_session_keys
-from homekit.protocol.tlv import TLV
+from ..crypto.chacha20poly1305 import chacha20_aead_decrypt, chacha20_aead_encrypt
+from ..exceptions import AccessoryDisconnectedError
+from ..http import HttpContentTypes
+from ..http.response import HttpResponse
+from ..protocol import get_session_keys
+from ..protocol.tlv import TLV
 
 logger = logging.getLogger(__name__)
 

@@ -43,8 +43,8 @@ __all__ = [
     "UnpairedError",
 ]
 
-from homekit.controller import Controller
-from homekit.exceptions import (
+from .controller import Controller
+from .exceptions import (
     AccessoryDisconnectedError,
     AccessoryNotFoundError,
     AlreadyPairedError,

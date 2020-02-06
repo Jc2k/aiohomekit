@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from homekit.exceptions import HttpException
+from aiohomekit.exceptions import HttpException
 
 
 class HttpResponse(object):

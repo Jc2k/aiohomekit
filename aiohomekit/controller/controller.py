@@ -19,14 +19,14 @@ from json.decoder import JSONDecodeError
 import logging
 import re
 
-from homekit.exceptions import (
+from ..const import BLE_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
+from ..exceptions import (
     AccessoryNotFoundError,
     ConfigLoadingError,
     ConfigSavingError,
     MalformedPinError,
     TransportNotSupportedError,
 )
-from homekit.tools import BLE_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
 
 if IP_TRANSPORT_SUPPORTED:
     from .ip import IpDiscovery, IpPairing
@@ -46,7 +46,7 @@ class Controller(object):
         """
         self.pairings = {}
         self.ble_adapter = ble_adapter
-        self.logger = logging.getLogger("homekit.controller.Controller")
+        self.logger = logging.getLogger(__name__)
 
     async def discover_ip(self, max_seconds=10):
         """

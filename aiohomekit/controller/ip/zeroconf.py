@@ -28,7 +28,7 @@ This also means we don't need to add any extra dependencies.
 import asyncio
 from functools import partial
 
-from homekit.zeroconf_impl import discover_homekit_devices
+from aiohomekit.zeroconf import discover_homekit_devices
 
 
 async def async_discover_homekit_devices(max_seconds=10):

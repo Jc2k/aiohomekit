@@ -17,9 +17,9 @@
 import asyncio
 import uuid
 
-from homekit.exceptions import AlreadyPairedError
-from homekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
-from homekit.protocol.statuscodes import HapStatusCodes
+from aiohomekit.exceptions import AlreadyPairedError
+from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
+from aiohomekit.protocol.statuscodes import HapStatusCodes
 
 from .connection import HomeKitConnection
 from .pairing import IpPairing

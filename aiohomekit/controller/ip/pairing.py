@@ -17,19 +17,19 @@
 import asyncio
 import logging
 
-from homekit.aio.controller.pairing import AbstractPairing
-from homekit.controller.tools import check_convert_value
-from homekit.exceptions import (
+from aiohomekit.controller.pairing import AbstractPairing
+from aiohomekit.controller.tools import check_convert_value
+from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
     UnknownError,
     UnpairedError,
 )
-from homekit.model.characteristics import CharacteristicsTypes
-from homekit.model.services import ServicesTypes
-from homekit.protocol import error_handler
-from homekit.protocol.statuscodes import HapStatusCodes
-from homekit.protocol.tlv import TLV
+from aiohomekit.model.characteristics import CharacteristicsTypes
+from aiohomekit.model.services import ServicesTypes
+from aiohomekit.protocol import error_handler
+from aiohomekit.protocol.statuscodes import HapStatusCodes
+from aiohomekit.protocol.tlv import TLV
 
 from .connection import SecureHomeKitConnection
 

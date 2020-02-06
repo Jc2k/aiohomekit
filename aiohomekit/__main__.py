@@ -21,35 +21,36 @@ import locale
 import logging
 import sys
 
-from homekit.log_support import add_log_arguments, setup_logging
-from homekit.model.characteristics import CharacteristicsTypes
-from homekit.model.services import ServicesTypes
-from homekit.pair import pin_from_keyboard, pin_from_parameter
-
 from .controller import Controller
+from .model.characteristics import CharacteristicsTypes
+from .model.services import ServicesTypes
+from .pair import pin_from_keyboard, pin_from_parameter
 
 logger = logging.getLogger(__name__)
 
 
-def _cancel_all_tasks(loop):
-    to_cancel = asyncio.all_tasks(loop)
-    if not to_cancel:
-        return
-
-    for task in to_cancel:
-        task.cancel()
-
-    loop.run_until_complete(
-        asyncio.gather(*to_cancel, loop=loop, return_exceptions=True)
+def setup_logging(level):
+    """
+    Set up the logging to use a decent format and the log level given as parameter.
+    :param level: the log level used for the root logger
+    """
+    logging.basicConfig(
+        format="%(asctime)s %(filename)s:%(lineno)04d %(levelname)s %(message)s"
     )
+    if level:
+        getattr(logging, level.upper())
+        numeric_level = getattr(logging, level.upper(), None)
+        if not isinstance(numeric_level, int):
+            raise ValueError("Invalid log level: %s" % level)
+        logging.getLogger().setLevel(numeric_level)
 
-    for task in to_cancel:
-        if task.cancelled():
-            continue
-        try:
-            task.result()
-        except Exception:
-            logging.exception("Error during shutdown")
+
+def add_log_arguments(parser):
+    """
+    Adds command line arguments to control logging behaviour.
+    :param parser: The argparse.ArgumentParser object to add to.
+    """
+    parser.add_argument("--log", action="store", dest="loglevel")
 
 
 def prepare_string(input_string):

@@ -29,50 +29,19 @@ __all__ = [
 
 import json
 
-from homekit.model.categories import Categories
-from homekit.model.characteristics import (
-    CharacteristicFormats,
-    CharacteristicPermissions,
-    IdentifyCharacteristic,
-)
-from homekit.model.feature_flags import FeatureFlags
-from homekit.model.mixin import ToDictMixin, get_id
-from homekit.model.services import (
-    AccessoryInformationService,
-    BHSLightBulbService,
-    FanService,
-    LightBulbService,
-    ThermostatService,
-)
+from .model.categories import Categories
+from .model.characteristics import CharacteristicFormats, CharacteristicPermissions
+from .model.feature_flags import FeatureFlags
+from .model.mixin import ToDictMixin, get_id
 
 
 class Accessory(ToDictMixin):
     def __init__(self, name, manufacturer, model, serial_number, firmware_revision):
         self.aid = get_id()
-        self.services = [
-            AccessoryInformationService(
-                name, manufacturer, model, serial_number, firmware_revision
-            )
-        ]
+        self.services = []
 
     def add_service(self, service):
         self.services.append(service)
-
-    def set_identify_callback(self, func):
-        """
-        Set the callback function for this accessory. This function will be called on paired calls to identify.
-
-        :param func: a function without any parameters and without return type.
-        """
-
-        def tmp(x):
-            func()
-
-        for service in self.services:
-            if isinstance(service, AccessoryInformationService):
-                for characteristic in service.characteristics:
-                    if isinstance(characteristic, IdentifyCharacteristic):
-                        characteristic.set_set_value_callback(tmp)
 
     def to_accessory_and_service_list(self):
         services_list = []

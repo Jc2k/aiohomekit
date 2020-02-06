@@ -14,7 +14,14 @@
 # limitations under the License.
 #
 
-__all__ = ["chacha20_aead_decrypt", "chacha20_aead_encrypt", "SrpClient", "SrpServer"]
+try:
+    __import__("aioble")
+    BLE_TRANSPORT_SUPPORTED = True
+except ModuleNotFoundError:
+    BLE_TRANSPORT_SUPPORTED = False
 
-from .chacha20poly1305 import chacha20_aead_decrypt, chacha20_aead_encrypt
-from .srp import SrpClient, SrpServer
+try:
+    __import__("zeroconf")
+    IP_TRANSPORT_SUPPORTED = True
+except ModuleNotFoundError:
+    IP_TRANSPORT_SUPPORTED = False
