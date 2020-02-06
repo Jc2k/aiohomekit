@@ -15,7 +15,7 @@
 #
 import logging
 
-logger = logging.getLogger("homekit.protocol.tlv")
+logger = logging.getLogger(__name__)
 
 
 class TLV:
