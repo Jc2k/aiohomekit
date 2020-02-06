@@ -28,21 +28,22 @@ __all__ = [
 ]
 
 import json
+
+from homekit.model.categories import Categories
+from homekit.model.characteristics import (
+    CharacteristicFormats,
+    CharacteristicPermissions,
+    IdentifyCharacteristic,
+)
+from homekit.model.feature_flags import FeatureFlags
 from homekit.model.mixin import ToDictMixin, get_id
 from homekit.model.services import (
     AccessoryInformationService,
-    LightBulbService,
-    FanService,
     BHSLightBulbService,
+    FanService,
+    LightBulbService,
     ThermostatService,
 )
-from homekit.model.categories import Categories
-from homekit.model.characteristics import (
-    CharacteristicPermissions,
-    CharacteristicFormats,
-)
-from homekit.model.feature_flags import FeatureFlags
-from homekit.model.characteristics import IdentifyCharacteristic
 
 
 class Accessory(ToDictMixin):

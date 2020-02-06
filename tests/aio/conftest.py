@@ -5,14 +5,12 @@ import threading
 import time
 from unittest import mock
 
-import pytest
-
 from homekit import AccessoryServer
-from homekit.model import Accessory
-from homekit.model.services import LightBulbService
-from homekit.model import mixin as model_mixin
 from homekit.controller import Controller
 from homekit.controller.ip import IpPairing
+from homekit.model import Accessory, mixin as model_mixin
+from homekit.model.services import LightBulbService
+import pytest
 
 
 def port_ready(port):

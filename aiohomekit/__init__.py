@@ -45,12 +45,12 @@ __all__ = [
 
 from homekit.controller import Controller
 from homekit.exceptions import (
-    BluetoothAdapterError,
     AccessoryDisconnectedError,
     AccessoryNotFoundError,
     AlreadyPairedError,
     AuthenticationError,
     BackoffError,
+    BluetoothAdapterError,
     BusyError,
     CharacteristicPermissionError,
     ConfigLoadingError,

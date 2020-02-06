@@ -14,11 +14,11 @@
 # limitations under the License.
 #
 
-import unittest
 import json
+import tempfile
+import unittest
 
 from homekit.accessoryserver import AccessoryServerData
-import tempfile
 
 
 class TestServerData(unittest.TestCase):

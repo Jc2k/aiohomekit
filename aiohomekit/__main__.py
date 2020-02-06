@@ -21,13 +21,12 @@ import locale
 import logging
 import sys
 
-from homekit.log_support import setup_logging, add_log_arguments
+from homekit.log_support import add_log_arguments, setup_logging
 from homekit.model.characteristics import CharacteristicsTypes
 from homekit.model.services import ServicesTypes
 from homekit.pair import pin_from_keyboard, pin_from_parameter
 
 from .controller import Controller
-
 
 logger = logging.getLogger(__name__)
 

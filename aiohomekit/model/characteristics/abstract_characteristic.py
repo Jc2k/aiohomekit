@@ -14,20 +14,20 @@
 # limitations under the License.
 #
 
-from distutils.util import strtobool
 import base64
 import binascii
 from decimal import Decimal
+from distutils.util import strtobool
 import struct
 
-from homekit.model.mixin import ToDictMixin
+from homekit.exceptions import CharacteristicPermissionError, FormatError
 from homekit.model.characteristics import (
-    CharacteristicsTypes,
     CharacteristicFormats,
     CharacteristicPermissions,
+    CharacteristicsTypes,
 )
+from homekit.model.mixin import ToDictMixin
 from homekit.protocol.statuscodes import HapStatusCodes
-from homekit.exceptions import CharacteristicPermissionError, FormatError
 
 
 class AbstractCharacteristic(ToDictMixin):

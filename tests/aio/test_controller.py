@@ -1,7 +1,5 @@
-import pytest
-
 from homekit.exceptions import AuthenticationError
-
+import pytest
 
 # Without this line you would have to mark your async tests with @pytest.mark.asyncio
 pytestmark = pytest.mark.asyncio

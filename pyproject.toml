@@ -1,3 +1,27 @@
+[tool.poetry]
+name = "aiohomekit"
+version = "0.1.0"
+description = "An asyncio HomeKit client"
+authors = ["John Carr <john.carr@unrouted.co.uk>"]
+license = "Apache-2.0"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+cryptography = "^2.8"
+
+[tool.poetry.dev-dependencies]
+isort = "^4.3.21"
+mypy = "^0.761"
+black = "^19.10b0"
+flake8 = "^3.7.9"
+pytest = "^5.3.5"
+pytest-asyncio = "^0.10.0"
+coverage = "^5.0.3"
+codecov = "^2.0.15"
+
 [tool.black]
 target-version = ["py37", "py38"]
 
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

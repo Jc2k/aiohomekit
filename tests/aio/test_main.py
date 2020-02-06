@@ -3,10 +3,8 @@
 import json
 from unittest import mock
 
-import pytest
-
 from homekit.aio.__main__ import main
-
+import pytest
 
 # Without this line you would have to mark your async tests with @pytest.mark.asyncio
 pytestmark = pytest.mark.asyncio

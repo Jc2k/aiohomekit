@@ -14,31 +14,29 @@
 # limitations under the License.
 #
 
-import hashlib
-import ed25519
-import hkdf
 from binascii import hexlify
+import hashlib
 import logging
 
-from cryptography.hazmat.primitives.asymmetric import x25519
 from cryptography.hazmat.primitives import serialization
-
-from homekit.protocol.tlv import TLV
+from cryptography.hazmat.primitives.asymmetric import x25519
+import ed25519
+import hkdf
+from homekit.crypto import SrpClient, chacha20_aead_decrypt, chacha20_aead_encrypt
+import homekit.exceptions
 from homekit.exceptions import (
+    AuthenticationError,
+    BackoffError,
+    BusyError,
     IncorrectPairingIdError,
     InvalidAuthTagError,
-    InvalidSignatureError,
-    UnavailableError,
-    AuthenticationError,
     InvalidError,
-    BusyError,
-    MaxTriesError,
+    InvalidSignatureError,
     MaxPeersError,
-    BackoffError,
+    MaxTriesError,
+    UnavailableError,
 )
-
-import homekit.exceptions
-from homekit.crypto import chacha20_aead_decrypt, chacha20_aead_encrypt, SrpClient
+from homekit.protocol.tlv import TLV
 
 
 def error_handler(error, stage):

@@ -16,7 +16,7 @@
 
 import unittest
 
-from homekit.crypto.srp import SrpServer, SrpClient
+from homekit.crypto.srp import SrpClient, SrpServer
 
 
 class TestSrp(unittest.TestCase):

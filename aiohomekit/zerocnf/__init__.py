@@ -14,15 +14,14 @@
 # limitations under the License.
 #
 
-from time import sleep
-import logging
-from zeroconf import Zeroconf, ServiceBrowser
 from _socket import inet_ntoa
-
+import logging
+from time import sleep
 
 from homekit.model import Categories
 from homekit.model.feature_flags import FeatureFlags
 from homekit.model.status_flags import IpStatusFlags
+from zeroconf import ServiceBrowser, Zeroconf
 
 
 class CollectingListener(object):

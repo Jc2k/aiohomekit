@@ -17,23 +17,21 @@
 import asyncio
 import logging
 
+from homekit.aio.controller.pairing import AbstractPairing
 from homekit.controller.tools import check_convert_value
-from homekit.protocol.statuscodes import HapStatusCodes
 from homekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
     UnknownError,
     UnpairedError,
 )
-from homekit.protocol import error_handler
-from homekit.protocol.tlv import TLV
 from homekit.model.characteristics import CharacteristicsTypes
 from homekit.model.services import ServicesTypes
-
-from homekit.aio.controller.pairing import AbstractPairing
+from homekit.protocol import error_handler
+from homekit.protocol.statuscodes import HapStatusCodes
+from homekit.protocol.tlv import TLV
 
 from .connection import SecureHomeKitConnection
-
 
 logger = logging.getLogger(__name__)
 

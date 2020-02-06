@@ -21,8 +21,8 @@ Implements the Secure Remote Password (SRP) algorithm. More information can be f
 https://tools.ietf.org/html/rfc5054. See HomeKit spec page 36 for adjustments imposed by Apple.
 """
 import crypt
-import math
 import hashlib
+import math
 
 
 class Srp:

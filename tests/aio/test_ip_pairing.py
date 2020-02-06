@@ -3,17 +3,14 @@ import tempfile
 import threading
 import time
 
-import pytest
-
 from homekit import AccessoryServer
-from homekit.exceptions import AccessoryDisconnectedError
-from homekit.model import Accessory
-from homekit.model.services import LightBulbService
-from homekit.model import mixin as model_mixin
-from homekit.protocol.tlv import TLV
 from homekit.aio.controller import Controller
 from homekit.aio.controller.ip import IpPairing
-
+from homekit.exceptions import AccessoryDisconnectedError
+from homekit.model import Accessory, mixin as model_mixin
+from homekit.model.services import LightBulbService
+from homekit.protocol.tlv import TLV
+import pytest
 
 # Without this line you would have to mark your async tests with @pytest.mark.asyncio
 pytestmark = pytest.mark.asyncio

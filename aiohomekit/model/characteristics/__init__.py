@@ -53,29 +53,28 @@ __all__ = [
     "VolumeCharacteristicMixin",
 ]
 
-from homekit.model.characteristics.characteristic_permissions import (
-    CharacteristicPermissions,
-)
-from homekit.model.characteristics.characteristic_types import CharacteristicsTypes
-from homekit.model.characteristics.characteristic_units import CharacteristicUnits
-from homekit.model.characteristics.characteristic_formats import CharacteristicFormats
-
 from homekit.model.characteristics.abstract_characteristic import AbstractCharacteristic
 from homekit.model.characteristics.battery_level import (
     BatteryLevelCharacteristic,
     BatteryLevelCharacteristicMixin,
 )
 from homekit.model.characteristics.brightness import (
-    BrightnessCharacteristicMixin,
     BrightnessCharacteristic,
+    BrightnessCharacteristicMixin,
 )
+from homekit.model.characteristics.characteristic_formats import CharacteristicFormats
+from homekit.model.characteristics.characteristic_permissions import (
+    CharacteristicPermissions,
+)
+from homekit.model.characteristics.characteristic_types import CharacteristicsTypes
+from homekit.model.characteristics.characteristic_units import CharacteristicUnits
 from homekit.model.characteristics.current_heating_cooling_state import (
-    CurrentHeatingCoolingStateCharacteristicMixin,
     CurrentHeatingCoolingStateCharacteristic,
+    CurrentHeatingCoolingStateCharacteristicMixin,
 )
 from homekit.model.characteristics.current_temperature import (
-    CurrentTemperatureCharacteristicMixin,
     CurrentTemperatureCharacteristic,
+    CurrentTemperatureCharacteristicMixin,
 )
 from homekit.model.characteristics.firmware_revision import (
     FirmwareRevisionCharacteristic,
@@ -83,19 +82,19 @@ from homekit.model.characteristics.firmware_revision import (
 from homekit.model.characteristics.hardware_revision import (
     HardwareRevisionCharacteristic,
 )
-from homekit.model.characteristics.hue import HueCharacteristicMixin, HueCharacteristic
+from homekit.model.characteristics.hue import HueCharacteristic, HueCharacteristicMixin
 from homekit.model.characteristics.identify import IdentifyCharacteristic
 from homekit.model.characteristics.manufacturer import ManufacturerCharacteristic
 from homekit.model.characteristics.model import ModelCharacteristic
 from homekit.model.characteristics.name import NameCharacteristic
-from homekit.model.characteristics.on import OnCharacteristicMixin, OnCharacteristic
+from homekit.model.characteristics.on import OnCharacteristic, OnCharacteristicMixin
 from homekit.model.characteristics.outlet_in_use import (
     OutletInUseCharacteristic,
     OutletInUseCharacteristicMixin,
 )
 from homekit.model.characteristics.saturation import (
-    SaturationCharacteristicMixin,
     SaturationCharacteristic,
+    SaturationCharacteristicMixin,
 )
 from homekit.model.characteristics.serialnumber import SerialNumberCharacteristic
 from homekit.model.characteristics.target_heating_cooling_state import (
@@ -103,12 +102,12 @@ from homekit.model.characteristics.target_heating_cooling_state import (
     TargetHeatingCoolingStateCharacteristicMixin,
 )
 from homekit.model.characteristics.target_temperature import (
-    TargetTemperatureCharacteristicMixin,
     TargetTemperatureCharacteristic,
+    TargetTemperatureCharacteristicMixin,
 )
 from homekit.model.characteristics.temperature_display_unit import (
-    TemperatureDisplayUnitsMixin,
     TemperatureDisplayUnitCharacteristic,
+    TemperatureDisplayUnitsMixin,
 )
 from homekit.model.characteristics.volume import (
     VolumeCharacteristic,

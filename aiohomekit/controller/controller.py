@@ -23,10 +23,10 @@ from homekit.exceptions import (
     AccessoryNotFoundError,
     ConfigLoadingError,
     ConfigSavingError,
-    TransportNotSupportedError,
     MalformedPinError,
+    TransportNotSupportedError,
 )
-from homekit.tools import IP_TRANSPORT_SUPPORTED, BLE_TRANSPORT_SUPPORTED
+from homekit.tools import BLE_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
 
 if IP_TRANSPORT_SUPPORTED:
     from .ip import IpDiscovery, IpPairing

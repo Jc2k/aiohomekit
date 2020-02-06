@@ -1,23 +1,28 @@
 language: python
+
 matrix:
-    include:
-        - os: linux
-          dist: xenial
-          python: 3.5
-        - os: linux
-          dist: xenial
-          python: 3.6
-        - os: linux
-          dist: xenial
-          python: 3.7
-        - os: osx
-          language: generic
-          env: PYTHON=3.5.6
+  include:
+  - os: linux
+    dist: xenial
+    python: 3.7
+  - os: linux
+    dist: xenial
+    python: 3.8
+  - os: osx
+    language: generic
 
 before_install:
-    - ./.travis/install.sh
+- pip install poetry
+
+install:
+- poetry install
+
 script:
-    - flake8 homekit
-    - coverage run -m pytest tests/
+- poetry run isort -rc -c --diff aiohomekit tests
+- poetry run black aiohomekit tests --check --diff
+- poetry run flake8 aiohomekit
+- poetry run mypy aiohomekit
+- poetry run coverage run -m pytest tests/
+
 after_success:
-    - coveralls
+- poetry run codecov
