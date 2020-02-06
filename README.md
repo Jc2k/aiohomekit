@@ -1,5 +1,7 @@
 # aiohomekit
 
+[![Build Status](https://travis-ci.com/Jc2k/aiohomekit.svg?branch=master)](https://travis-ci.com/Jc2k/aiohomekit)  | [![codecov](https://codecov.io/gh/Jc2k/aiohomekit/branch/master/graph/badge.svg)](https://codecov.io/gh/Jc2k/aiohomekit)
+
 This library implements the HomeKit protocol for controlling Homekit accessories using asyncio.
 
 It's primary use is for with Home Assistant. We target the same versions of python as them and try to follow their code standards.
