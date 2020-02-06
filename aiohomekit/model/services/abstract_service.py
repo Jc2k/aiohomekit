@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from homekit.model import ToDictMixin
+from aiohomekit.model import ToDictMixin
 
 
 class AbstractService(ToDictMixin):

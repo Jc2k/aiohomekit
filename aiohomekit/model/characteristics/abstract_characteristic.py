@@ -20,14 +20,14 @@ from decimal import Decimal
 from distutils.util import strtobool
 import struct
 
-from homekit.exceptions import CharacteristicPermissionError, FormatError
-from homekit.model.characteristics import (
+from aiohomekit.exceptions import CharacteristicPermissionError, FormatError
+from aiohomekit.model.characteristics import (
     CharacteristicFormats,
     CharacteristicPermissions,
     CharacteristicsTypes,
 )
-from homekit.model.mixin import ToDictMixin
-from homekit.protocol.statuscodes import HapStatusCodes
+from aiohomekit.model.mixin import ToDictMixin
+from aiohomekit.protocol.statuscodes import HapStatusCodes
 
 
 class AbstractCharacteristic(ToDictMixin):

@@ -22,9 +22,10 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import x25519
 import ed25519
 import hkdf
-from homekit.crypto import SrpClient, chacha20_aead_decrypt, chacha20_aead_encrypt
-import homekit.exceptions
-from homekit.exceptions import (
+
+from aiohomekit.crypto import SrpClient, chacha20_aead_decrypt, chacha20_aead_encrypt
+import aiohomekit.exceptions
+from aiohomekit.exceptions import (
     AuthenticationError,
     BackoffError,
     BusyError,
@@ -36,7 +37,7 @@ from homekit.exceptions import (
     MaxTriesError,
     UnavailableError,
 )
-from homekit.protocol.tlv import TLV
+from aiohomekit.protocol.tlv import TLV
 
 
 def error_handler(error, stage):

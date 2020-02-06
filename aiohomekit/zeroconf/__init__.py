@@ -18,10 +18,11 @@ from _socket import inet_ntoa
 import logging
 from time import sleep
 
-from homekit.model import Categories
-from homekit.model.feature_flags import FeatureFlags
-from homekit.model.status_flags import IpStatusFlags
 from zeroconf import ServiceBrowser, Zeroconf
+
+from aiohomekit.model import Categories
+from aiohomekit.model.feature_flags import FeatureFlags
+from aiohomekit.model.status_flags import IpStatusFlags
 
 
 class CollectingListener(object):
