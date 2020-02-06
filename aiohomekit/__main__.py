@@ -52,27 +52,6 @@ def _cancel_all_tasks(loop):
             logging.exception("Error during shutdown")
 
 
-def run(main, debug=False):
-    """Runs a coroutine and returns the result.
-
-    asyncio.run was added in python 3.7. This is broadly the same and can be
-    removed when we no longer support 3.6.
-    """
-
-    loop = asyncio.new_event_loop()
-    try:
-        asyncio.set_event_loop(loop)
-        loop.set_debug(debug)
-        return loop.run_until_complete(main)
-    finally:
-        try:
-            _cancel_all_tasks(loop)
-            loop.run_until_complete(loop.shutdown_asyncgens())
-        finally:
-            asyncio.set_event_loop(None)
-            loop.close()
-
-
 def prepare_string(input_string):
     """
     Make a string save for printing in a terminal. The string get recoded using the terminals preferred locale and
@@ -579,6 +558,6 @@ async def main(argv=None):
 
 if __name__ == "__main__":
     try:
-        run(main())
+        asyncio.run(main())
     except KeyboardInterrupt:
         pass
