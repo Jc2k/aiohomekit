@@ -8,6 +8,8 @@ license = "Apache-2.0"
 [tool.poetry.dependencies]
 python = "^3.7"
 cryptography = "^2.8"
+hkdf = "^0.0.3"
+ed25519 = "^1.5"
 
 [tool.poetry.dev-dependencies]
 isort = "^4.3.21"
