@@ -15,6 +15,7 @@ before_install:
 - pip install poetry
 
 install:
+- poetry check
 - poetry install
 
 script:
@@ -23,6 +24,17 @@ script:
 - poetry run flake8 aiohomekit
 - poetry run mypy aiohomekit
 - poetry run coverage run -m pytest tests/
+- poetry build
 
 after_success:
 - poetry run codecov
+
+deploy:
+  provider: script
+  script: poetry publish
+  on:
+    tags: true
+
+env:
+  global:
+    secure: f6+wxomxvhJUDa17hknAs0ALMi8ZM8I6+qVQocIO7Rf+z6vR8I0/rsACH3U2DEy5OebbEzkz7RDPMGpytS81AmvwbgCABV9v2RMkxjtlVRN6ELUJh0vVSN1JftTxheEiZRpDFFcW4N2k72SMDF5bBqaXwfzRtYZNygufPOFrYez/HFOIbHqcf8gXErVHDlp4GIy9RmHTYntw6LnoXTKG8g4EULF45d9ut95Pq/TmVdqxsCi68oZ2jzIAPlfsQLqZUh7QethxqQwfWEnsEzYMiChjHgD/b/ecB0zzVZuoJEkxOE5uczmQ0oDggp7ya5MCzDm1cvEHJHMT7ZwWH9t5hWvPB56dC9z0mWJIkkYkIFz3lKmyxRrsUa+HttQK89tJ/YBkfNAM1fY5BWK7MBnvnfxe+9dp7ud30xWxm1E84/JrYjxjYEThrWAbzjvllDtBemGh5pJR1urF2WHtZ0wZ/6Y4O8cZyHH6lY+Grn5Vv3j7j5RGY9QrwIPO4mlppzK9bioroOejn+UoOLs54QDmdOF+a+KimDLXiau7+ezHGKdLOov1OBCF2dU73kNOn9a+Ym7sQyRCumqad+uzWqEuMwTiCrIPyls1Ot1MCaVyo/bKP+G09PYaOJJuZMdTIP+UNhM/5QR4AduHc4slDLxldkoroInzHyrk9Xwjq1dYaVE=

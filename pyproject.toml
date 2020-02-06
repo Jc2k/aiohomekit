@@ -4,6 +4,18 @@ version = "0.1.0"
 description = "An asyncio HomeKit client"
 authors = ["John Carr <john.carr@unrouted.co.uk>"]
 license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/Jc2k/aiohomekit"
+repository = "https://github.com/Jc2k/aiohomekit"
+keywords = ["HomeKit", "home", "automation"]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Home Automation",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8"
+]
 
 [tool.poetry.dependencies]
 python = "^3.7"
