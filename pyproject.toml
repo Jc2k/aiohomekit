@@ -23,7 +23,6 @@ cryptography = "^2.8"
 hkdf = "^0.0.3"
 ed25519 = "^1.5"
 zeroconf = {version = "^0.24.4", extras = ["IP"]}
-aioble = {version = "^0.0.1", extras = ["BLE"]}
 
 [tool.poetry.dev-dependencies]
 isort = "^4.3.21"
