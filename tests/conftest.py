@@ -6,13 +6,55 @@ import threading
 import time
 from unittest import mock
 
-from homekit import AccessoryServer
-from homekit.model import Accessory, mixin as model_mixin
-from homekit.model.services import LightBulbService
 import pytest
 
 from aiohomekit import Controller
 from aiohomekit.controller.ip import IpPairing
+from aiohomekit.model import Accessory, mixin as model_mixin
+from aiohomekit.model.characteristics import (
+    AbstractCharacteristic,
+    CharacteristicFormats,
+    CharacteristicPermissions,
+    CharacteristicsTypes,
+)
+from aiohomekit.model.services import AbstractService, ServicesTypes
+
+from tests.accessoryserver import AccessoryServer
+
+
+class IdentifyCharacteristic(AbstractCharacteristic):
+    def __init__(self):
+        AbstractCharacteristic.__init__(
+            self, 3, CharacteristicsTypes.IDENTIFY, CharacteristicFormats.bool
+        )
+        self.description = "Identify"
+        self.perms = [
+            CharacteristicPermissions.paired_write,
+        ]
+        self.value = False
+
+
+class OnCharacteristic(AbstractCharacteristic):
+    def __init__(self):
+        AbstractCharacteristic.__init__(
+            self, 10, CharacteristicsTypes.ON, CharacteristicFormats.bool
+        )
+        self.description = "Switch state (on/off)"
+        self.perms = [
+            CharacteristicPermissions.paired_write,
+            CharacteristicPermissions.paired_read,
+            CharacteristicPermissions.events,
+        ]
+        self.value = False
+
+
+class LightBulbService(AbstractService):
+    def __init__(self):
+        AbstractService.__init__(
+            self, ServicesTypes.get_uuid("public.hap.service.lightbulb"), 2
+        )
+        self.characteristics.append(IdentifyCharacteristic())
+        self.characteristics.append(OnCharacteristic())
 
 
 def port_ready(port):

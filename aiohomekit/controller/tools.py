@@ -19,9 +19,9 @@ import base64
 import binascii
 from distutils.util import strtobool
 
-from homekit.exceptions import FormatError
-from homekit.model.characteristics import CharacteristicFormats
-from homekit.protocol.tlv import TLV, TlvParseException
+from aiohomekit.exceptions import FormatError
+from aiohomekit.model.characteristics import CharacteristicFormats
+from aiohomekit.protocol.tlv import TLV, TlvParseException
 
 
 def check_convert_value(val, target_type):
