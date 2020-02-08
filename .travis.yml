@@ -43,7 +43,9 @@ jobs:
     deploy:
       - provider: script
         skip_cleanup: true
-        script: poetry publish
+        script:
+        - poetry config pypi-token.pypi $POETRY_PYPI_TOKEN_PYPI
+        - poetry publish
         on:
           repo: Jc2k/aiohomekit
           tags: true
@@ -60,4 +62,4 @@ jobs:
 
 env:
   global:
-    secure: f6+wxomxvhJUDa17hknAs0ALMi8ZM8I6+qVQocIO7Rf+z6vR8I0/rsACH3U2DEy5OebbEzkz7RDPMGpytS81AmvwbgCABV9v2RMkxjtlVRN6ELUJh0vVSN1JftTxheEiZRpDFFcW4N2k72SMDF5bBqaXwfzRtYZNygufPOFrYez/HFOIbHqcf8gXErVHDlp4GIy9RmHTYntw6LnoXTKG8g4EULF45d9ut95Pq/TmVdqxsCi68oZ2jzIAPlfsQLqZUh7QethxqQwfWEnsEzYMiChjHgD/b/ecB0zzVZuoJEkxOE5uczmQ0oDggp7ya5MCzDm1cvEHJHMT7ZwWH9t5hWvPB56dC9z0mWJIkkYkIFz3lKmyxRrsUa+HttQK89tJ/YBkfNAM1fY5BWK7MBnvnfxe+9dp7ud30xWxm1E84/JrYjxjYEThrWAbzjvllDtBemGh5pJR1urF2WHtZ0wZ/6Y4O8cZyHH6lY+Grn5Vv3j7j5RGY9QrwIPO4mlppzK9bioroOejn+UoOLs54QDmdOF+a+KimDLXiau7+ezHGKdLOov1OBCF2dU73kNOn9a+Ym7sQyRCumqad+uzWqEuMwTiCrIPyls1Ot1MCaVyo/bKP+G09PYaOJJuZMdTIP+UNhM/5QR4AduHc4slDLxldkoroInzHyrk9Xwjq1dYaVE=
+    secure: VkjRPOfBiI0pJ+H6B6HEeDog1kJ/mSUgdM8c6VWxUFuqMIPAikSq7Y/nDJ5hB+5VA7coKw6cqaXfgqbt0VUMF291upJ7sllTXVrtAqbyQajq3OuG6xoeYjlwJH9at6KXKctEvNVPFIos/3G7xh3OpkpYVC+QsLxI56QTL/dTIUErNwttKK/fypEmIac0WvdvDrpRSjC8MIeRO60x93fDAR88nBRxOpNGuKviCWIXEpXs538x85D5lL/uk4yx0WnKjfmwAm6oKfsDjzijSG/PfrtDWVtnBM1VbbL22K4Qv5Xucgp15cnYwyNjHT+t6y8b773oD547XisIsIm1XX4M3i1FS7swcFUH3m1KXtYapWLDtK2DTVOUR/H0V5k4WpgQs0C8dloVWeg9EgXMwDIW+boWDafh7ermkp34/iy8wimNlhwbX0WUvK9LWEpTozdRWKxMmcEjf03Y6COBJ0xpEnaSairFHDiCX8PYUQX9SbzK3Xi6BWg3KcKpFJbzLZ/a40shzEJ1HH0buTbHFrCFCvgCIybR/4nMWBZKq3IW/UXZEVJbIudE1S3KTmicITEx8eG27/TG5xlLHAffYOEVO7jl3xyUW5XrnYlTZ/v6TqDCfszmSTOqJ2aMk6caeHQyWCcuKgUIHC1MmTQxgtyMKv8DAnwTelT5RlsRBbPfIIQ=
