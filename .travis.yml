@@ -36,6 +36,8 @@ jobs:
     language: generic
 
   - stage: deploy
+    dist: xenial
+    python: 3.7
     script: poetry build
     after_success: "true"
     deploy:
