@@ -16,7 +16,7 @@
 
 import unittest
 
-from homekit.model.characteristics.characteristic_units import BleCharacteristicUnits
+from aiohomekit.model.characteristics.characteristic_units import BleCharacteristicUnits
 
 
 class BleCharacteristicUnitsTest(unittest.TestCase):

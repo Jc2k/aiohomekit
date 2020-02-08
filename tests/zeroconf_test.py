@@ -17,12 +17,13 @@
 import socket
 import unittest
 
-from homekit.zeroconf_impl import (
+from zeroconf import ServiceInfo, Zeroconf
+
+from aiohomekit.zeroconf import (
     discover_homekit_devices,
     find_device_ip_and_port,
     get_from_properties,
 )
-from zeroconf import ServiceInfo, Zeroconf
 
 
 class TestZeroconf(unittest.TestCase):

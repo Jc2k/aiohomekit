@@ -19,14 +19,31 @@ import asyncio
 import json
 import locale
 import logging
+import re
 import sys
 
 from .controller import Controller
 from .model.characteristics import CharacteristicsTypes
 from .model.services import ServicesTypes
-from .pair import pin_from_keyboard, pin_from_parameter
 
 logger = logging.getLogger(__name__)
+
+
+def pin_from_parameter(number):
+    def tmp():
+        return number
+
+    return tmp
+
+
+def pin_from_keyboard():
+    def tmp():
+        read_pin = ""
+        while re.match(r"^\d{3}-\d{2}-\d{3}$", read_pin) is None:
+            read_pin = input("Enter device pin (XXX-YY-ZZZ): ")
+        return read_pin
+
+    return tmp
 
 
 def setup_logging(level):

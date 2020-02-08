@@ -1,5 +1,6 @@
-from homekit.exceptions import AuthenticationError
 import pytest
+
+from aiohomekit.exceptions import AuthenticationError
 
 # Without this line you would have to mark your async tests with @pytest.mark.asyncio
 pytestmark = pytest.mark.asyncio

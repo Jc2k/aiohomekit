@@ -16,7 +16,7 @@
 
 import unittest
 
-from homekit.protocol.tlv import TLV, TlvParseException
+from aiohomekit.protocol.tlv import TLV, TlvParseException
 
 
 class TestTLV(unittest.TestCase):

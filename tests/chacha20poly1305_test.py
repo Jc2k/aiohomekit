@@ -16,7 +16,7 @@
 
 import unittest
 
-from homekit.crypto.chacha20poly1305 import (
+from aiohomekit.crypto.chacha20poly1305 import (
     calc_r,
     calc_s,
     chacha20_aead_decrypt,

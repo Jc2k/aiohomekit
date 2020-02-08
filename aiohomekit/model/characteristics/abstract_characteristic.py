@@ -21,13 +21,12 @@ from distutils.util import strtobool
 import struct
 
 from aiohomekit.exceptions import CharacteristicPermissionError, FormatError
-from aiohomekit.model.characteristics import (
-    CharacteristicFormats,
-    CharacteristicPermissions,
-    CharacteristicsTypes,
-)
 from aiohomekit.model.mixin import ToDictMixin
 from aiohomekit.protocol.statuscodes import HapStatusCodes
+
+from .characteristic_formats import CharacteristicFormats
+from .characteristic_permissions import CharacteristicPermissions
+from .characteristic_types import CharacteristicsTypes
 
 
 class AbstractCharacteristic(ToDictMixin):

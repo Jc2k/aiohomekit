@@ -16,7 +16,7 @@
 import json
 import unittest
 
-from homekit.http_impl.response import HttpResponse
+from aiohomekit.http.response import HttpResponse
 
 
 class TestHttpResponse(unittest.TestCase):

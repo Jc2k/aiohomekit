@@ -3,8 +3,9 @@
 import json
 from unittest import mock
 
-from homekit.aio.__main__ import main
 import pytest
+
+from aiohomekit.__main__ import main
 
 # Without this line you would have to mark your async tests with @pytest.mark.asyncio
 pytestmark = pytest.mark.asyncio
@@ -61,7 +62,7 @@ async def test_put_characteristic(pairing):
             ]
         )
 
-    characteristics = await pairing.get_characteristics([(1, 10),])
+    characteristics = await pairing.get_characteristics([(1, 10)])
     assert characteristics[(1, 10)] == {"value": True}
 
 

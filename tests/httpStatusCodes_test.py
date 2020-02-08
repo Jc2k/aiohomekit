@@ -16,7 +16,7 @@
 
 import unittest
 
-from homekit.http_impl import HttpStatusCodes
+from aiohomekit.http import HttpStatusCodes
 
 
 class TestHttpStatusCodes(unittest.TestCase):

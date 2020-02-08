@@ -16,7 +16,7 @@
 
 import unittest
 
-from homekit.model.characteristics import CharacteristicsTypes
+from aiohomekit.model.characteristics import CharacteristicsTypes
 
 
 class TestCharacteristicsTypes(unittest.TestCase):

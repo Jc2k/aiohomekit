@@ -16,7 +16,7 @@
 
 import unittest
 
-from homekit.model.services import ServicesTypes
+from aiohomekit.model.services import ServicesTypes
 
 
 class TestServiceTypes(unittest.TestCase):

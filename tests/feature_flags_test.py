@@ -16,7 +16,7 @@
 
 import unittest
 
-from homekit.model.feature_flags import FeatureFlags
+from aiohomekit.model.feature_flags import FeatureFlags
 
 
 class TestFeatureFlags(unittest.TestCase):

@@ -175,6 +175,23 @@ version = "0.0.3"
 
 [[package]]
 category = "dev"
+description = "Python code to interface HomeKit Accessories and Controllers"
+name = "homekit"
+optional = false
+python-versions = "*"
+version = "0.15.0"
+
+[package.dependencies]
+cryptography = ">=2.5"
+ed25519 = "*"
+hkdf = "*"
+
+[package.extras]
+BLE = ["dbus-python", "gatt", "pygobject"]
+IP = ["zeroconf"]
+
+[[package]]
+category = "dev"
 description = "Internationalized Domain Names in Applications (IDNA)"
 name = "idna"
 optional = false
@@ -479,7 +496,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools"]
 
 [metadata]
-content-hash = "07a71318da0289a880d5c286a77ba3d9edf90673c10bae4f57c714d4b0e374e3"
+content-hash = "f1a0128ea687576070eedf2635d98690f8fb08e656088f041f3b50e5220b2294"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -623,6 +640,9 @@ flake8 = [
 ]
 hkdf = [
     {file = "hkdf-0.0.3.tar.gz", hash = "sha256:622a31c634bc185581530a4b44ffb731ed208acf4614f9c795bdd70e77991dca"},
+]
+homekit = [
+    {file = "homekit-0.15.0.tar.gz", hash = "sha256:fa9737504f152ca285d867764b25e3ce2d1f6c24687f22681d2d77f24b8ff359"},
 ]
 idna = [
     {file = "idna-2.8-py2.py3-none-any.whl", hash = "sha256:ea8b7f6188e6fa117537c3df7da9fc686d485087abf6ac197f9c46432f7e4a3c"},

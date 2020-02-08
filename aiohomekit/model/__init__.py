@@ -29,10 +29,10 @@ __all__ = [
 
 import json
 
-from .model.categories import Categories
-from .model.characteristics import CharacteristicFormats, CharacteristicPermissions
-from .model.feature_flags import FeatureFlags
-from .model.mixin import ToDictMixin, get_id
+from .categories import Categories
+from .characteristics import CharacteristicFormats, CharacteristicPermissions
+from .feature_flags import FeatureFlags
+from .mixin import ToDictMixin, get_id
 
 
 class Accessory(ToDictMixin):
