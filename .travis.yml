@@ -1,3 +1,7 @@
+stages:
+- test
+- deploy
+
 language: python
 
 matrix:
@@ -29,11 +33,15 @@ script:
 after_success:
 - poetry run codecov
 
-deploy:
-  provider: script
-  script: poetry publish
-  on:
-    tags: true
+jobs:
+  include:
+  - stage: deploy
+    script: none
+    deploy:
+      provider: script
+      script: poetry publish
+      on:
+        tags: true
 
 env:
   global:
