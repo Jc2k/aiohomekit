@@ -14,22 +14,18 @@
 # limitations under the License.
 #
 
-import unittest
 
 from aiohomekit.model.feature_flags import FeatureFlags
 
 
-class TestFeatureFlags(unittest.TestCase):
-    def test_no_support_hap_pairing(self):
-        self.assertEqual(FeatureFlags[0], "No support for HAP Pairing")
-
-    def test_support_hap_pairing(self):
-        self.assertEqual(FeatureFlags[1], "Supports HAP Pairing")
-
-    def test_bug_143(self):
-        # 0b10 -> 2 means no hap pairing support?
-        self.assertEqual(FeatureFlags[2], "No support for HAP Pairing")
+def test_no_support_hap_pairing():
+    assert FeatureFlags[0] == "No support for HAP Pairing"
 
 
-#    def test_unknown_code(self):
-#        self.assertRaises(KeyError, FeatureFlags.__getitem__, 99)
+def test_support_hap_pairing():
+    assert FeatureFlags[1] == "Supports HAP Pairing"
+
+
+def test_bug_143():
+    # 0b10 -> 2 means no hap pairing support?
+    assert FeatureFlags[2] == "No support for HAP Pairing"

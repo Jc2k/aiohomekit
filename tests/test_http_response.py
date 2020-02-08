@@ -39,12 +39,12 @@ def test_example1():
         ),
         bytearray(b"0\r\n\r\n"),
     ]
-    res = TestHttpResponse.parse(parts)
+    res = parse(parts)
     assert res.code == 200
     assert res.get_http_name() == "HTTP"
     assert (
         res.body
-        == b'{"characteristics":[{"aid":1,"iid":10,"value":35},{"aid":1,"iid":13,"value":36.0999984741211}]}',
+        == b'{"characteristics":[{"aid":1,"iid":10,"value":35},{"aid":1,"iid":13,"value":36.0999984741211}]}'
     )
     json.loads(res.body.decode())
 
@@ -60,12 +60,12 @@ def test_example2():
         ),
         bytearray(b"0\r\n\r\n"),
     ]
-    res = TestHttpResponse.parse(parts)
+    res = parse(parts)
     assert res.code == 200
     assert res.get_http_name() == "EVENT"
     assert (
         res.body
-        == b'{"characteristics":[{"aid":1,"iid":10,"value":35},{"aid":1,"iid":13,"value":33.2000007629395}]}',
+        == b'{"characteristics":[{"aid":1,"iid":10,"value":35},{"aid":1,"iid":13,"value":33.2000007629395}]}'
     )
     j = json.loads(res.body.decode())
     assert j["characteristics"][1]["value"] == 33.2000007629395
@@ -127,7 +127,7 @@ def test_example3():
             b'"iid": 22}], "aid": 14}]}'
         ),
     ]
-    res = TestHttpResponse.parse(parts)
+    res = parse(parts)
     assert res.code == 200
     assert res.get_http_name() == "HTTP"
     json.loads(res.body.decode())
@@ -190,7 +190,7 @@ def test_example4():
             b'"type": "00000023-0000-1000-8000-0026BB765291", "maxDataLen": 2097152}], "iid": 22}]}]}'
         ),
     ]
-    res = TestHttpResponse.parse(parts)
+    res = parse(parts)
     assert res.code == 200
     assert res.get_http_name() == "HTTP"
     json.loads(res.body.decode())

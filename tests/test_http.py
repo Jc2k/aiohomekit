@@ -22,7 +22,7 @@ from aiohomekit.http import HttpStatusCodes
 def test_1():
     assert (
         HttpStatusCodes[HttpStatusCodes.INTERNAL_SERVER_ERROR]
-        == "Internal Server Error",
+        == "Internal Server Error"
     )
 
 

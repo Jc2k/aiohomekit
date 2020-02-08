@@ -14,54 +14,56 @@
 # limitations under the License.
 #
 
-import unittest
+import pytest
 
 from aiohomekit.model.services import ServicesTypes
 
 
-class TestServiceTypes(unittest.TestCase):
-    def test_getitem_forward(self):
-        self.assertEqual(
-            ServicesTypes["3E"], "public.hap.service.accessory-information"
-        )
+def test_getitem_forward():
+    assert ServicesTypes["3E"] == "public.hap.service.accessory-information"
 
-    def test_getitem_reverse(self):
-        self.assertEqual(
-            ServicesTypes["public.hap.service.accessory-information"], "3E"
-        )
 
-    def test_getitem_notfound(self):
-        self.assertEqual(ServicesTypes["1337"], "Unknown Service: 1337")
+def test_getitem_reverse():
+    assert ServicesTypes["public.hap.service.accessory-information"] == "3E"
 
-    def test_get_short(self):
-        self.assertEqual(
-            ServicesTypes.get_short("00000086-0000-1000-8000-0026BB765291"), "occupancy"
-        )
 
-    def test_get_short_lowercase(self):
-        self.assertEqual(
-            ServicesTypes.get_short("00000086-0000-1000-8000-0026bb765291"), "occupancy"
-        )
+def test_getitem_notfound():
+    assert ServicesTypes["1337"] == "Unknown Service: 1337"
 
-    def test_get_short_no_baseid(self):
-        self.assertEqual(
-            ServicesTypes.get_short("00000023-0000-1000-8000-NOTBASEID"),
-            "Unknown Service: 00000023-0000-1000-8000-NOTBASEID",
-        )
 
-    def test_get_short_no_service(self):
-        self.assertEqual(
-            ServicesTypes.get_short("00000023-0000-1000-8000-0026BB765291"),
-            "Unknown Service: 00000023-0000-1000-8000-0026BB765291",
-        )
+def test_get_short():
+    assert (
+        ServicesTypes.get_short("00000086-0000-1000-8000-0026BB765291") == "occupancy"
+    )
 
-    def test_get_uuid(self):
-        self.assertEqual(
-            ServicesTypes.get_uuid("public.hap.service.doorbell"),
-            "00000121-0000-1000-8000-0026BB765291",
-        )
 
-    def test_get_uuid_no_service(self):
-        self.assertRaises(
-            Exception, ServicesTypes.get_uuid, "public.hap.service.NO_A_SERVICE"
-        )
+def test_get_short_lowercase():
+    assert (
+        ServicesTypes.get_short("00000086-0000-1000-8000-0026bb765291") == "occupancy"
+    )
+
+
+def test_get_short_no_baseid():
+    assert (
+        ServicesTypes.get_short("00000023-0000-1000-8000-NOTBASEID")
+        == "Unknown Service: 00000023-0000-1000-8000-NOTBASEID"
+    )
+
+
+def test_get_short_no_service():
+    assert (
+        ServicesTypes.get_short("00000023-0000-1000-8000-0026BB765291")
+        == "Unknown Service: 00000023-0000-1000-8000-0026BB765291"
+    )
+
+
+def test_get_uuid():
+    assert (
+        ServicesTypes.get_uuid("public.hap.service.doorbell")
+        == "00000121-0000-1000-8000-0026BB765291"
+    )
+
+
+def test_get_uuid_no_service():
+    with pytest.raises(Exception):
+        ServicesTypes.get_uuid("public.hap.service.NO_A_SERVICE")
