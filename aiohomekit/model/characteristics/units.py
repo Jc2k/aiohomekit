@@ -14,14 +14,27 @@
 # limitations under the License.
 #
 
-import unittest
 
-from aiohomekit.model.characteristics.characteristic_units import BleCharacteristicUnits
+class CharacteristicUnits:
+    """
+    See table 5-6 page 68
+    """
+
+    celsius = "celsius"
+    percentage = "percentage"
+    arcdegrees = "arcdegrees"
+    lux = "lux"
+    seconds = "seconds"
 
 
-class BleCharacteristicUnitsTest(unittest.TestCase):
-    def test_get_unknown_key(self):
-        self.assertEqual("unknown", BleCharacteristicUnits.get(-0xC0FFEE, "unknown"))
+class BleCharacteristicUnits:
+    """
+    Mapping taken from Table 6-37 page 130 and https://www.bluetooth.com/specifications/assigned-numbers/units
+    """
 
-    def test_get_known_key(self):
-        self.assertEqual("celsius", BleCharacteristicUnits.get(0x272F, "unknown"))
+    celsius = 0x272F
+    arcdegrees = 0x2763
+    percentage = 0x27AD
+    unitless = 0x2700
+    lux = 0x2731
+    seconds = 0x2703

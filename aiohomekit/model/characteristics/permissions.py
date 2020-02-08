@@ -15,7 +15,7 @@
 #
 
 
-class CharacteristicPermissions(object):
+class CharacteristicPermissions:
     """
     See table 5-4 page 67
     """

@@ -24,6 +24,6 @@ __all__ = [
 
 from .abstract_characteristic import AbstractCharacteristic
 from .characteristic_formats import CharacteristicFormats
-from .characteristic_permissions import CharacteristicPermissions
 from .characteristic_types import CharacteristicsTypes
-from .characteristic_units import CharacteristicUnits
+from .permissions import CharacteristicPermissions
+from .units import CharacteristicUnits

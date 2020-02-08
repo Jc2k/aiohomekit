@@ -25,8 +25,8 @@ from aiohomekit.model.mixin import ToDictMixin
 from aiohomekit.protocol.statuscodes import HapStatusCodes
 
 from .characteristic_formats import CharacteristicFormats
-from .characteristic_permissions import CharacteristicPermissions
 from .characteristic_types import CharacteristicsTypes
+from .permissions import CharacteristicPermissions
 
 
 class AbstractCharacteristic(ToDictMixin):
