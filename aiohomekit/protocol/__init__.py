@@ -24,11 +24,11 @@ import ed25519
 import hkdf
 
 from aiohomekit.crypto import SrpClient, chacha20_aead_decrypt, chacha20_aead_encrypt
-import aiohomekit.exceptions
 from aiohomekit.exceptions import (
     AuthenticationError,
     BackoffError,
     BusyError,
+    IllegalData,
     IncorrectPairingIdError,
     InvalidAuthTagError,
     InvalidError,
@@ -267,7 +267,7 @@ def perform_pair_setup_part2(pin, ios_pairing_id, salt, server_public_key):
         response_tlv[1][1],
     )
     if decrypted_data is False:
-        raise homekit.exception.IllegalData("step 7")
+        raise IllegalData("step 7")
 
     response_tlv = TLV.decode_bytearray(decrypted_data)
     response_tlv = TLV.reorder(

@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-import abc
 import base64
 import binascii
 from distutils.util import strtobool
