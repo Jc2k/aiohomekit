@@ -38,14 +38,14 @@ jobs:
   - stage: deploy
     dist: xenial
     python: 3.7
-    script: poetry build
+    script:
+      - poetry config pypi-token.pypi $POETRY_PYPI_TOKEN_PYPI
+      - poetry build
     after_success: "true"
     deploy:
       - provider: script
         skip_cleanup: true
-        script:
-        - poetry config pypi-token.pypi $POETRY_PYPI_TOKEN_PYPI
-        - poetry publish
+        script: poetry publish
         on:
           repo: Jc2k/aiohomekit
           tags: true
