@@ -14,17 +14,18 @@
 # limitations under the License.
 #
 
-import unittest
+import pytest
 
 from aiohomekit.http import HttpStatusCodes
 
 
-class TestHttpStatusCodes(unittest.TestCase):
-    def test_1(self):
-        self.assertEqual(
-            HttpStatusCodes[HttpStatusCodes.INTERNAL_SERVER_ERROR],
-            "Internal Server Error",
-        )
+def test_1():
+    assert (
+        HttpStatusCodes[HttpStatusCodes.INTERNAL_SERVER_ERROR]
+        == "Internal Server Error",
+    )
 
-    def test_unknown_code(self):
-        self.assertRaises(KeyError, HttpStatusCodes.__getitem__, 99)
+
+def test_unknown_code():
+    with pytest.raises(KeyError):
+        HttpStatusCodes[99]
