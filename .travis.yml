@@ -5,22 +5,22 @@ stages:
 language: python
 
 before_install:
-  - pip install poetry
+- pip install poetry
 
-  install:
-  - poetry check
-  - poetry install
+install:
+- poetry check
+- poetry install
 
-  script:
-  - poetry run isort -rc -c --diff aiohomekit tests
-  - poetry run black aiohomekit tests --check --diff
-  - poetry run flake8 aiohomekit
-  - poetry run mypy aiohomekit
-  - poetry run coverage run -m pytest tests/
-  - poetry build
+script:
+- poetry run isort -rc -c --diff aiohomekit tests
+- poetry run black aiohomekit tests --check --diff
+- poetry run flake8 aiohomekit
+- poetry run mypy aiohomekit
+- poetry run coverage run -m pytest tests/
+- poetry build
 
-  after_success:
-  - poetry run codecov
+after_success:
+- poetry run codecov
 
 jobs:
   include:
