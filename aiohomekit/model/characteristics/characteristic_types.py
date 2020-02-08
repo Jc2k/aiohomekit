@@ -23,7 +23,8 @@ class _CharacteristicsTypes(object):
     E.g:
         "6D" becomes "0000006D-0000-1000-8000-0026BB765291" and translates to
         "public.hap.characteristic.position.current" or "position.current"
-    Data is taken from chapter 8 of the specification (page 144ff)
+    Data is taken from chapter 8 of the R1 specification (page 144ff) or chapter 9 of the
+    R2 specification (page 158ff).
     """
 
     ACCESSORY_PROPERTIES = "A6"
@@ -46,16 +47,24 @@ class _CharacteristicsTypes(object):
     CARBON_MONOXIDE_LEVEL = "90"
     CARBON_MONOXIDE_PEAK_LEVEL = "91"
     CHARGING_STATE = "8F"
+    # derived from https://github.com/KhaosT/HAP-NodeJS/blob/master/src/lib/gen/HomeKit-TV.ts
+    CLOSED_CAPTIONS = "DD"
     COLOR_TEMPERATURE = "CE"
+    # derived from https://github.com/KhaosT/HAP-NodeJS/blob/master/src/lib/gen/HomeKit-TV.ts
+    CONFIGURED_NAME = "E3"
     CONTACT_STATE = "6A"
     CURRENT_HEATER_COOLER_STATE = "B1"
     CURRENT_HUMIDIFIER_DEHUMIDIFIER_STATE = "B3"
+    # derived from https://github.com/KhaosT/HAP-NodeJS/blob/master/src/lib/gen/HomeKit-TV.ts
+    CURRENT_MEDIA_STATE = "E0"
     DENSITY_NO2 = "C4"
     DENSITY_OZONE = "C3"
     DENSITY_PM10 = "C7"
     DENSITY_PM25 = "C6"
     DENSITY_SO2 = "C5"
     DENSITY_VOC = "C8"
+    # derived from https://github.com/KhaosT/HAP-NodeJS/blob/master/src/lib/gen/HomeKit-TV.ts
+    DISPLAY_ORDER = "136"
     DOOR_STATE_CURRENT = "E"
     DOOR_STATE_TARGET = "32"
     FAN_STATE_CURRENT = "AF"
@@ -99,16 +108,22 @@ class _CharacteristicsTypes(object):
     PAIR_VERIFY = "4E"  # new for BLE, homekit spec page 57
     PAIRING_FEATURES = "4F"  # new for BLE, homekit spec page 58
     PAIRING_PAIRINGS = "50"  # new for BLE, homekit spec page 58
+    # derived from https://github.com/KhaosT/HAP-NodeJS/blob/master/src/lib/gen/HomeKit-TV.ts
+    PICTURE_MODE = "E2"
     POSITION_CURRENT = "6D"
     POSITION_HOLD = "6F"
     POSITION_STATE = "72"
     POSITION_TARGET = "7C"
+    # derived from https://github.com/KhaosT/HAP-NodeJS/blob/master/src/lib/gen/HomeKit-TV.ts
+    POWER_MODE_SELECTION = "E2"
     PROGRAM_MODE = "D1"
     RELATIVE_HUMIDITY_DEHUMIDIFIER_THRESHOLD = "C9"
     RELATIVE_HUMIDITY_HUMIDIFIER_THRESHOLD = "CA"
     RELATIVE_HUMIDITY_CURRENT = "10"
     RELATIVE_HUMIDITY_TARGET = "34"
     REMAINING_DURATION = "D4"
+    # derived from https://github.com/KhaosT/HAP-NodeJS/blob/master/src/lib/gen/HomeKit-TV.ts
+    REMOTE_KEY = "E1"
     ROTATION_DIRECTION = "28"
     ROTATION_SPEED = "29"
     SATURATION = "2F"
@@ -129,6 +144,8 @@ class _CharacteristicsTypes(object):
     SETUP_ENDPOINTS = "118"
     SIRI_INPUT_TYPE = "132"
     SLAT_STATE_CURRENT = "AA"
+    # derived from https://github.com/KhaosT/HAP-NodeJS/blob/master/src/lib/gen/HomeKit-TV.ts
+    SLEEP_DISCOVERY_MODE = "E8"
     SMOKE_DETECTED = "76"
     STATUS_ACTIVE = "75"
     STATUS_FAULT = "77"
@@ -144,6 +161,8 @@ class _CharacteristicsTypes(object):
     TARGET_CONTROL_SUPPORTED_CONFIGURATION = "123"
     TARGET_CONTROL_LIST = "124"
     TARGET_HUMIDIFIER_DEHUMIDIFIER_STATE = "B4"
+    # derived from https://github.com/KhaosT/HAP-NodeJS/blob/master/src/lib/gen/HomeKit-TV.ts
+    TARGET_MEDIA_STATE = "137"
     TEMPERATURE_COOLING_THRESHOLD = "D"
     TEMPERATURE_CURRENT = "11"
     TEMPERATURE_HEATING_THRESHOLD = "12"
@@ -276,7 +295,14 @@ class _CharacteristicsTypes(object):
             "D4": "public.hap.characteristic.remaining-duration",
             "D5": "public.hap.characteristic.valve-type",
             "D6": "public.hap.characteristic.is-configured",
+            "DD": "public.hap.characteristic.closed-captions",
+            "DF": "public.hap.characteristic.power-mode-selection",
+            "E0": "public.hap.characteristic.current-media-state",
+            "E1": "public.hap.characteristic.remote-key",
+            "E2": "public.hap.characteristic.picture-mode",
+            "E3": "public.hap.characteristic.configured-name",
             "E7": "public.hap.characteristic.active-identifier",
+            "E8": "public.hap.characteristic.sleep-discovery-mode",
             "114": "public.hap.characteristic.supported-video-stream-configuration",
             "115": "public.hap.characteristic.supported-audio-configuration",
             "116": "public.hap.characteristic.supported-rtp-configuration",
@@ -297,6 +323,8 @@ class _CharacteristicsTypes(object):
             "130": "public.hap.characteristic.supported-data-stream-transport-configuration",
             "131": "public.hap.characteristic.setup-data-stream-transport",
             "132": "public.hap.characteristic.siri-input-type",
+            "136": "public.hap.characteristic.display-order",
+            "137": "public.hap.characteristic.target-media-state",
         }
 
         self._characteristics_rev = {
