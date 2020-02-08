@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+"""Helpers for detecing homekit devices via zeroconf."""
+
 from _socket import inet_ntoa
 import logging
 from time import sleep
@@ -25,7 +27,7 @@ from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import IpStatusFlags
 
 
-class CollectingListener(object):
+class CollectingListener:
     """
     Helper class to collect all zeroconf announcements.
     """
@@ -34,10 +36,12 @@ class CollectingListener(object):
         self.data = []
 
     def remove_service(self, zeroconf, zeroconf_type, name):
+        """A device is no longer visible via zeroconf."""
         # this is ignored since not interested in disappearing stuff
         pass
 
     def add_service(self, zeroconf, zeroconf_type, name):
+        """A device became visible via zeroconf."""
         info = zeroconf.get_service_info(zeroconf_type, name)
         if info is not None:
             self.data.append(info)
@@ -71,9 +75,10 @@ def get_from_properties(props, key, default=None, case_sensitive=True):
 
     if tmp_key in tmp_props:
         return tmp_props[tmp_key]
-    else:
-        if default:
-            return str(default)
+
+    if default:
+        return str(default)
+
     return None
 
 
