@@ -163,28 +163,29 @@ class IpPairing(AbstractPairing):
 
         if not (data[0][0] == TLV.kTLVType_State and data[0][1] == TLV.M2):
             raise UnknownError("unexpected data received: " + str(data))
-        elif (
+
+        if (
             data[1][0] == TLV.kTLVType_Error
             and data[1][1] == TLV.kTLVError_Authentication
         ):
             raise UnpairedError("Must be paired")
-        else:
-            tmp = []
-            r = {}
-            for d in data[1:]:
-                if d[0] == TLV.kTLVType_Identifier:
-                    r = {}
-                    tmp.append(r)
-                    r["pairingId"] = d[1].decode()
-                if d[0] == TLV.kTLVType_PublicKey:
-                    r["publicKey"] = d[1].hex()
-                if d[0] == TLV.kTLVType_Permissions:
-                    controller_type = "regular"
-                    if d[1] == b"\x01":
-                        controller_type = "admin"
-                    r["permissions"] = int.from_bytes(d[1], byteorder="little")
-                    r["controllerType"] = controller_type
-            return tmp
+
+        tmp = []
+        r = {}
+        for d in data[1:]:
+            if d[0] == TLV.kTLVType_Identifier:
+                r = {}
+                tmp.append(r)
+                r["pairingId"] = d[1].decode()
+            if d[0] == TLV.kTLVType_PublicKey:
+                r["publicKey"] = d[1].hex()
+            if d[0] == TLV.kTLVType_Permissions:
+                controller_type = "regular"
+                if d[1] == b"\x01":
+                    controller_type = "admin"
+                r["permissions"] = int.from_bytes(d[1], byteorder="little")
+                r["controllerType"] = controller_type
+        return tmp
 
     async def get_characteristics(
         self,
@@ -445,7 +446,7 @@ class IpPairing(AbstractPairing):
         if len(data) == 1 and data[0][0] == TLV.kTLVType_State and data[0][1] == TLV.M2:
             return True
 
-        self.transport.close()
+        self.connection.transport.close()
 
         if (
             data[1][0] == TLV.kTLVType_Error
