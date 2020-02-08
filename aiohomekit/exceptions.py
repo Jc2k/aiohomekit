@@ -122,6 +122,10 @@ class InvalidError(ProtocolError):
     pass
 
 
+class IllegalData(ProtocolError):
+    pass
+
+
 class HttpException(Exception):
     """
     Used within the HTTP Parser.
