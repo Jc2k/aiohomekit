@@ -57,6 +57,57 @@ class Accessory(ToDictMixin):
             CharacteristicsTypes.FIRMWARE_REVISION, value=firmware_revision
         )
 
+    @classmethod
+    def setup_accessories_from_file(cls, path):
+        with open(path, "r") as fp:
+            accessories_json = json.load(fp)
+        return cls.setup_accessories_from_list(accessories_json)
+
+    @classmethod
+    def setup_accessories_from_list(cls, data):
+        accessories = []
+        for accessory_data in data:
+            accessories.append(cls.setup_from_dict(accessory_data))
+        return accessories
+
+    @classmethod
+    def setup_from_dict(cls, data) -> "Accessory":
+        accessory = cls("Name", "Mfr", "Model", "0001", "0.1")
+        accessory.services = []
+        accessory.aid = data["aid"]
+
+        for service_data in data["services"]:
+            service = accessory.add_service(service_data["type"])
+            service.iid = service_data["iid"]
+
+            for char_data in service_data["characteristics"]:
+                kwargs = {
+                    "perms": char_data["perms"],
+                    "format": char_data["format"],
+                }
+
+                if "description" in char_data:
+                    kwargs["description"] = char_data["description"]
+                if "value" in char_data:
+                    kwargs["value"] = char_data["value"]
+                if "minValue" in char_data:
+                    kwargs["min_value"] = char_data["minValue"]
+                if "maxValue" in char_data:
+                    kwargs["max_value"] = char_data["maxValue"]
+                if "valid-values" in char_data:
+                    kwargs["valid_values"] = char_data["valid-values"]
+                if "unit" in char_data:
+                    kwargs["unit"] = char_data["unit"]
+                if "minStep" in char_data:
+                    kwargs["min_step"] = char_data["minStep"]
+                if "maxLen" in char_data:
+                    kwargs["max_len"] = char_data["maxLen"]
+
+                char = service.add_char(char_data["type"], **kwargs)
+                char.iid = char_data["iid"]
+
+        return accessory
+
     def get_next_id(self):
         self._next_id += 1
         return self._next_id

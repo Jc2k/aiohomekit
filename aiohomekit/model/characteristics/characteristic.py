@@ -34,7 +34,11 @@ class Characteristic(ToDictMixin):
     def __init__(self, service, characteristic_type: str, **kwargs):
         self.service = service
         self.iid = service.accessory.get_next_id()
-        self.type = CharacteristicsTypes.get_uuid(characteristic_type)
+        try:
+            self.type = CharacteristicsTypes.get_uuid(characteristic_type)
+        except KeyError:
+            self.type = characteristic_type
+
         self.perms = self._get_configuration(
             kwargs, "perms", [CharacteristicPermissions.paired_read]
         )
@@ -243,5 +247,6 @@ class Characteristic(ToDictMixin):
             d["minStep"] = self.minStep
         if self.maxLen and self.format in [CharacteristicFormats.string]:
             d["maxLen"] = self.maxLen
-
+        if self.valid_values:
+            d["valid-values"] = self.valid_values
         return d
