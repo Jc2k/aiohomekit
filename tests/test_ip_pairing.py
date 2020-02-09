@@ -11,81 +11,82 @@ pytestmark = pytest.mark.asyncio
 async def test_list_accessories(pairing):
     accessories = await pairing.list_accessories_and_characteristics()
     assert accessories[0]["aid"] == 1
-    assert accessories[0]["services"][0]["iid"] == 2
+    assert accessories[0]["services"][0]["iid"] == 1
 
     char = accessories[0]["services"][0]["characteristics"][0]
-    assert char["iid"] == 3
+    print(char)
+    assert char["description"] == "Identify"
+    assert char["iid"] == 2
     assert char["format"] == "bool"
     assert char["perms"] == ["pw"]
-    assert char["description"] == "Identify"
     assert char["type"] == "00000014-0000-1000-8000-0026BB765291"
 
 
 async def test_get_characteristics(pairing):
-    characteristics = await pairing.get_characteristics([(1, 10)])
+    characteristics = await pairing.get_characteristics([(1, 9)])
 
-    assert characteristics[(1, 10)] == {"value": False}
+    assert characteristics[(1, 9)] == {"value": False}
 
 
 async def test_get_characteristics_after_failure(pairing):
-    characteristics = await pairing.get_characteristics([(1, 10)])
+    characteristics = await pairing.get_characteristics([(1, 9)])
 
-    assert characteristics[(1, 10)] == {"value": False}
+    assert characteristics[(1, 9)] == {"value": False}
 
     pairing.connection.transport.close()
 
     # The connection is closed but the reconnection mechanism hasn't kicked in yet.
     # Attempts to use the connection should fail.
     with pytest.raises(AccessoryDisconnectedError):
-        characteristics = await pairing.get_characteristics([(1, 10)])
+        characteristics = await pairing.get_characteristics([(1, 9)])
 
     # We can't await a close - this lets the coroutine fall into the 'reactor'
     # and process queued work which will include the real transport.close work.
     await asyncio.sleep(0)
 
-    characteristics = await pairing.get_characteristics([(1, 10)])
+    characteristics = await pairing.get_characteristics([(1, 9)])
 
-    assert characteristics[(1, 10)] == {"value": False}
+    assert characteristics[(1, 9)] == {"value": False}
 
 
 async def test_put_characteristics(pairing):
-    characteristics = await pairing.put_characteristics([(1, 10, True)])
+    characteristics = await pairing.put_characteristics([(1, 9, True)])
 
     assert characteristics == {}
 
-    characteristics = await pairing.get_characteristics([(1, 10)])
+    characteristics = await pairing.get_characteristics([(1, 9)])
 
-    assert characteristics[(1, 10)] == {"value": True}
+    assert characteristics[(1, 9)] == {"value": True}
 
 
 async def test_subscribe(pairing):
     assert pairing.subscriptions == set()
 
-    await pairing.subscribe([(1, 10)])
+    await pairing.subscribe([(1, 9)])
 
-    assert pairing.subscriptions == set(((1, 10),))
+    assert pairing.subscriptions == set(((1, 9),))
 
-    characteristics = await pairing.get_characteristics([(1, 10)], include_events=True)
+    characteristics = await pairing.get_characteristics([(1, 9)], include_events=True)
 
-    assert characteristics == {(1, 10): {"ev": True, "value": False}}
+    assert characteristics == {(1, 9): {"ev": True, "value": False}}
 
 
 async def test_unsubscribe(pairing):
-    await pairing.subscribe([(1, 10)])
+    await pairing.subscribe([(1, 9)])
 
-    assert pairing.subscriptions == set(((1, 10),))
+    assert pairing.subscriptions == set(((1, 9),))
 
-    characteristics = await pairing.get_characteristics([(1, 10)], include_events=True)
+    characteristics = await pairing.get_characteristics([(1, 9)], include_events=True)
 
-    assert characteristics == {(1, 10): {"ev": True, "value": False}}
+    assert characteristics == {(1, 9): {"ev": True, "value": False}}
 
-    await pairing.unsubscribe([(1, 10)])
+    await pairing.unsubscribe([(1, 9)])
 
     assert pairing.subscriptions == set()
 
-    characteristics = await pairing.get_characteristics([(1, 10)], include_events=True)
+    characteristics = await pairing.get_characteristics([(1, 9)], include_events=True)
 
-    assert characteristics == {(1, 10): {"ev": False, "value": False}}
+    assert characteristics == {(1, 9): {"ev": False, "value": False}}
 
 
 async def test_dispatcher_connect(pairing):
@@ -126,15 +127,15 @@ async def test_receiving_events(pairings):
     right.dispatcher_connect(handler)
 
     # Set what events to get
-    await right.subscribe([(1, 10)])
+    await right.subscribe([(1, 9)])
 
     # Trigger an event by writing a change on the other connection
-    await left.put_characteristics([(1, 10, True)])
+    await left.put_characteristics([(1, 9, True)])
 
     # Wait for event to be received for up to 5s
     await asyncio.wait_for(ev.wait(), 5)
 
-    assert event_value == {(1, 10): {"value": True}}
+    assert event_value == {(1, 9): {"value": True}}
 
 
 async def test_list_pairings(pairing):

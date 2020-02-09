@@ -15,14 +15,14 @@
 #
 
 __all__ = [
-    "AbstractCharacteristic",
+    "Characteristic",
     "CharacteristicFormats",
     "CharacteristicPermissions",
     "CharacteristicsTypes",
     "CharacteristicUnits",
 ]
 
-from .abstract_characteristic import AbstractCharacteristic
+from .characteristic import Characteristic
 from .characteristic_formats import CharacteristicFormats
 from .characteristic_types import CharacteristicsTypes
 from .permissions import CharacteristicPermissions

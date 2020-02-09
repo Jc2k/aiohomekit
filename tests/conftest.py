@@ -11,50 +11,10 @@ import pytest
 from aiohomekit import Controller
 from aiohomekit.controller.ip import IpPairing
 from aiohomekit.model import Accessory, mixin as model_mixin
-from aiohomekit.model.characteristics import (
-    AbstractCharacteristic,
-    CharacteristicFormats,
-    CharacteristicPermissions,
-    CharacteristicsTypes,
-)
-from aiohomekit.model.services import AbstractService, ServicesTypes
+from aiohomekit.model.characteristics import CharacteristicsTypes
+from aiohomekit.model.services import ServicesTypes
 
 from tests.accessoryserver import AccessoryServer
-
-
-class IdentifyCharacteristic(AbstractCharacteristic):
-    def __init__(self):
-        AbstractCharacteristic.__init__(
-            self, 3, CharacteristicsTypes.IDENTIFY, CharacteristicFormats.bool
-        )
-        self.description = "Identify"
-        self.perms = [
-            CharacteristicPermissions.paired_write,
-        ]
-        self.value = False
-
-
-class OnCharacteristic(AbstractCharacteristic):
-    def __init__(self):
-        AbstractCharacteristic.__init__(
-            self, 10, CharacteristicsTypes.ON, CharacteristicFormats.bool
-        )
-        self.description = "Switch state (on/off)"
-        self.perms = [
-            CharacteristicPermissions.paired_write,
-            CharacteristicPermissions.paired_read,
-            CharacteristicPermissions.events,
-        ]
-        self.value = False
-
-
-class LightBulbService(AbstractService):
-    def __init__(self):
-        AbstractService.__init__(
-            self, ServicesTypes.get_uuid("public.hap.service.lightbulb"), 2
-        )
-        self.characteristics.append(IdentifyCharacteristic())
-        self.characteristics.append(OnCharacteristic())
 
 
 def port_ready(port):
@@ -95,8 +55,8 @@ def controller_and_unpaired_accessory(request, event_loop):
 
     httpd = AccessoryServer(config_file.name, None)
     accessory = Accessory("Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1")
-    lightBulbService = LightBulbService()
-    accessory.services.append(lightBulbService)
+    lightBulbService = accessory.add_service(ServicesTypes.LIGHTBULB)
+    lightBulbService.add_char(CharacteristicsTypes.ON, value=False)
     httpd.add_accessory(accessory)
 
     t = threading.Thread(target=httpd.serve_forever)
@@ -159,8 +119,8 @@ def controller_and_paired_accessory(request, event_loop):
 
     httpd = AccessoryServer(config_file.name, None)
     accessory = Accessory("Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1")
-    lightBulbService = LightBulbService()
-    accessory.services.append(lightBulbService)
+    lightBulbService = accessory.add_service(ServicesTypes.LIGHTBULB)
+    lightBulbService.add_char(CharacteristicsTypes.ON, value=False)
     httpd.add_accessory(accessory)
 
     t = threading.Thread(target=httpd.serve_forever)

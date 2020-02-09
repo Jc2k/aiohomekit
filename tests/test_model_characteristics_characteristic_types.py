@@ -91,7 +91,7 @@ def test_get_uuid_name():
     )
 
 
-def test_get_uuid_unknown():
+def test_get_uuid_unknown_2():
     with pytest.raises(KeyError):
         CharacteristicsTypes.get_uuid("UNKNOWN")
 
@@ -146,6 +146,6 @@ def test_getitem_name():
     assert "6D" == CharacteristicsTypes["public.hap.characteristic.position.current"]
 
 
-def test_getitem_unknown():
+def test_getitem_unknown_2():
     with pytest.raises(KeyError):
         CharacteristicsTypes["UNKNOWN"]

@@ -26,42 +26,43 @@ from aiohomekit.protocol.statuscodes import HapStatusCodes
 
 from .characteristic_formats import CharacteristicFormats
 from .characteristic_types import CharacteristicsTypes
+from .data import characteristics
 from .permissions import CharacteristicPermissions
 
 
-class AbstractCharacteristic(ToDictMixin):
-    def __init__(self, iid: int, characteristic_type: str, characteristic_format: str):
-        self.type = CharacteristicsTypes.get_uuid(
-            characteristic_type
-        )  # page 65, see ServicesTypes
-        self.iid = iid  # page 65, unique instance id
-        self.perms = [
-            CharacteristicPermissions.paired_read
-        ]  # page 65, array of values from CharacteristicPermissions
-        self.format = characteristic_format  # page 66, one of CharacteristicsTypes
-        self.value = None  # page 65, required but depends on format
+class Characteristic(ToDictMixin):
+    def __init__(self, service, characteristic_type: str, **kwargs):
+        self.service = service
+        self.iid = service.accessory.get_next_id()
+        self.type = CharacteristicsTypes.get_uuid(characteristic_type)
+        self.perms = self._get_configuration(
+            kwargs, "perms", [CharacteristicPermissions.paired_read]
+        )
+        self.format = self._get_configuration(kwargs, "format", None)
+        self.value = kwargs.pop("value", None)
 
-        self.ev = None  # boolean, not required, page 65
-        self.description = None  # string, not required, page 65
-        self.unit = None  # string, not required,page 66, valid values are in CharacteristicUnits
-        self.minValue = (
-            None  # number, not required, page 66, used if format is int* or float
-        )
-        self.maxValue = (
-            None  # number, not required, page 66, used if format is int* or float
-        )
-        self.minStep = (
-            None  # number, not required, page 66, used if format is int* or float
-        )
-        self.maxLen = 64  # number, not required, page 66, used if format is string
-        self.maxDataLen = (
-            2097152  # number, not required, page 66, used if format is data
-        )
-        self.valid_values = None  # array, not required, see page 67, all numeric entries are allowed values
-        self.valid_values_range = None  # 2 element array, not required, see page 67
+        self.ev = None
+        self.description = self._get_configuration(kwargs, "description", None)
+        self.unit = self._get_configuration(kwargs, "unit", None)
+        self.minValue = self._get_configuration(kwargs, "min_value", None)
+        self.maxValue = self._get_configuration(kwargs, "max_value", None)
+        self.minStep = self._get_configuration(kwargs, "min_step", None)
+        self.maxLen = 64
+        self.maxDataLen = 2097152
+        self.valid_values = None
+        self.valid_values_range = None
 
         self._set_value_callback = None
         self._get_value_callback = None
+
+    def _get_configuration(self, kwargs, key, default):
+        if key in kwargs:
+            return kwargs[key]
+        if self.type not in characteristics:
+            return default
+        if key not in characteristics[self.type]:
+            return default
+        return characteristics[self.type][key]
 
     def set_set_value_callback(self, callback):
         self._set_value_callback = callback

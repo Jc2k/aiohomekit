@@ -14,7 +14,7 @@ install:
 script:
 - poetry run isort -rc -c --diff aiohomekit tests
 - poetry run black aiohomekit tests --check --diff
-- poetry run flake8 aiohomekit
+- poetry run flake8 aiohomekit tests
 - poetry run mypy aiohomekit
 - poetry run coverage run -m pytest tests/
 - poetry build

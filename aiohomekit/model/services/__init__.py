@@ -15,9 +15,9 @@
 #
 
 __all__ = [
-    "AbstractService",
+    "Service",
     "ServicesTypes",
 ]
 
-from .abstract_service import AbstractService
+from .service import Service
 from .service_types import ServicesTypes

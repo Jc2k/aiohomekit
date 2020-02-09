@@ -30,6 +30,8 @@ class CharacteristicFormats(object):
     string = "string"
     tlv8 = "tlv8"
     data = "data"
+    array = "array"
+    dict = "dict"
 
 
 class _BleCharacteristicFormats(object):

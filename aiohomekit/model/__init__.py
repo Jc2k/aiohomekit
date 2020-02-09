@@ -30,9 +30,14 @@ __all__ = [
 import json
 
 from .categories import Categories
-from .characteristics import CharacteristicFormats, CharacteristicPermissions
+from .characteristics import (
+    CharacteristicFormats,
+    CharacteristicPermissions,
+    CharacteristicsTypes,
+)
 from .feature_flags import FeatureFlags
 from .mixin import ToDictMixin, get_id
+from .services import Service, ServicesTypes
 
 
 class Accessory(ToDictMixin):
@@ -40,8 +45,26 @@ class Accessory(ToDictMixin):
         self.aid = get_id()
         self.services = []
 
-    def add_service(self, service):
+        self._next_id = 0
+
+        accessory_info = self.add_service(ServicesTypes.ACCESSORY_INFORMATION_SERVICE)
+        accessory_info.add_char(CharacteristicsTypes.IDENTIFY, description="Identify")
+        accessory_info.add_char(CharacteristicsTypes.NAME, value=name)
+        accessory_info.add_char(CharacteristicsTypes.MANUFACTURER, value=manufacturer)
+        accessory_info.add_char(CharacteristicsTypes.MODEL, value=model)
+        accessory_info.add_char(CharacteristicsTypes.SERIAL_NUMBER, value=serial_number)
+        accessory_info.add_char(
+            CharacteristicsTypes.FIRMWARE_REVISION, value=firmware_revision
+        )
+
+    def get_next_id(self):
+        self._next_id += 1
+        return self._next_id
+
+    def add_service(self, service_type):
+        service = Service(self, service_type)
         self.services.append(service)
+        return service
 
     def to_accessory_and_service_list(self):
         services_list = []

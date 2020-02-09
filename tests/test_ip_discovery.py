@@ -16,8 +16,8 @@ async def test_pair(controller_and_unpaired_accessory):
 
     assert isinstance(pairing, IpPairing)
 
-    assert await pairing.get_characteristics([(1, 10)]) == {
-        (1, 10): {"value": False},
+    assert await pairing.get_characteristics([(1, 9)]) == {
+        (1, 9): {"value": False},
     }
 
 

@@ -15,25 +15,20 @@
 #
 
 from aiohomekit.model import ToDictMixin
+from aiohomekit.model.characteristics import Characteristic
 
 
-class AbstractService(ToDictMixin):
-    def __init__(self, service_type: str, iid: int):
-        if type(self) is AbstractService:
-            raise Exception(
-                "AbstractService is an abstract class and cannot be instantiated directly"
-            )
+class Service(ToDictMixin):
+    def __init__(self, accessory, service_type: str):
         self.type = service_type
-        self.iid = iid
+        self.accessory = accessory
+        self.iid = accessory.get_next_id()
         self.characteristics = []
 
-    def append_characteristic(self, characteristic):
-        """
-        Append the given characteristic to the service.
-
-        :param characteristic: a subclass of AbstractCharacteristic
-        """
-        self.characteristics.append(characteristic)
+    def add_char(self, char_type, **kwargs):
+        char = Characteristic(self, char_type, **kwargs)
+        self.characteristics.append(char)
+        return char
 
     def to_accessory_and_service_list(self):
         characteristics_list = []
