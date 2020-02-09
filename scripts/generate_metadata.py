@@ -56,3 +56,11 @@ with open("aiohomekit/model/characteristics/data.py", "w") as fp:
     """).strip())
     fp.write(" " + json.dumps(characteristics, indent=4))
     fp.write("\n")
+
+
+from aiohomekit.model.services import ServicesTypes
+
+for serv in data.get('Services', []):
+    name = serv['Name'].replace(" ", "_").upper()
+    short = ServicesTypes.get_short_uuid(serv['UUID'])
+    print(f'{name} = "{short}"')

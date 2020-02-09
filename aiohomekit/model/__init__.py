@@ -47,7 +47,7 @@ class Accessory(ToDictMixin):
 
         self._next_id = 0
 
-        accessory_info = self.add_service(ServicesTypes.ACCESSORY_INFORMATION_SERVICE)
+        accessory_info = self.add_service(ServicesTypes.ACCESSORY_INFORMATION)
         accessory_info.add_char(CharacteristicsTypes.IDENTIFY, description="Identify")
         accessory_info.add_char(CharacteristicsTypes.NAME, value=name)
         accessory_info.add_char(CharacteristicsTypes.MANUFACTURER, value=manufacturer)
