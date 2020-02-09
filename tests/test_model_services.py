@@ -67,3 +67,11 @@ def test_get_uuid():
 def test_get_uuid_no_service():
     with pytest.raises(Exception):
         ServicesTypes.get_uuid("public.hap.service.NO_A_SERVICE")
+
+
+def test_get_short_uuid_from_uuid():
+    assert ServicesTypes.get_short_uuid("00000086-0000-1000-8000-0026BB765291") == "86"
+
+
+def test_get_short_uuid_from_name():
+    assert ServicesTypes.get_short_uuid("public.hap.service.doorbell") == "121"

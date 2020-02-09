@@ -183,11 +183,12 @@ class _ServicesTypes(object):
         :return: the short UUID (e.g. "6D" instead of "0000006D-0000-1000-8000-0026BB765291")
         :raises KeyError: if the input is neither a UUID nor a type name. Specific error is given in the message.
         """
-        orig_item = item_name
-        if item_name.upper().endswith(self.baseUUID):
-            item_name = item_name.upper()
-            item_name = item_name.split("-", 1)[0]
-            return item_name.lstrip("0")
+        uuid = self.get_uuid(item_name)
+        if uuid.upper().endswith(self.baseUUID):
+            uuid = uuid.upper()
+            uuid = uuid.split("-", 1)[0]
+            return uuid.lstrip("0")
+        raise uuid
 
 
 #
