@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 
 class Characteristic(ToDictMixin):
-    def __init__(self, service: 'Service', characteristic_type: str, **kwargs) -> None:
+    def __init__(self, service: "Service", characteristic_type: str, **kwargs) -> None:
         self.service = service
         self.iid = service.accessory.get_next_id()
         try:

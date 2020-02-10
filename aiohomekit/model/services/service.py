@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class Service(ToDictMixin):
-    def __init__(self, accessory: 'Accessory', service_type: str) -> None:
+    def __init__(self, accessory: "Accessory", service_type: str) -> None:
         self.type = service_type
         self.accessory = accessory
         self.iid = accessory.get_next_id()
