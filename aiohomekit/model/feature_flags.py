@@ -20,10 +20,10 @@ class _FeatureFlags(object):
     Data taken form table 5-8 Bonjour TXT Record Feature Flags on page 69.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._data = {0: "No support for HAP Pairing", 1: "Supports HAP Pairing"}
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> str:
         bit_value = item & 0x01
         if bit_value in self._data:
             return self._data[bit_value]

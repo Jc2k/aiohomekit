@@ -17,6 +17,7 @@
 from binascii import hexlify
 import hashlib
 import logging
+from typing import Any, Dict, Generator, List, Tuple, Union
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import x25519
@@ -40,7 +41,7 @@ from aiohomekit.exceptions import (
 from aiohomekit.protocol.tlv import TLV
 
 
-def error_handler(error, stage):
+def error_handler(error: bytearray, stage: str):
     """
     Transform the various error messages defined in table 4-5 page 60 into exceptions
 
@@ -96,7 +97,9 @@ def create_ip_pair_verify_write(connection):
     return write_http
 
 
-def perform_pair_setup_part1():
+def perform_pair_setup_part1() -> Generator[
+    Tuple[List[Tuple[int, bytearray]], List[int]], None, Tuple[bytearray, bytearray]
+]:
     """
     Performs a pair setup operation as described in chapter 4.7 page 39 ff.
 
@@ -147,7 +150,9 @@ def perform_pair_setup_part1():
     return response_tlv[2][1], response_tlv[1][1]
 
 
-def perform_pair_setup_part2(pin, ios_pairing_id, salt, server_public_key):
+def perform_pair_setup_part2(
+    pin: str, ios_pairing_id: str, salt: bytearray, server_public_key: bytearray
+) -> Generator[Tuple[List[Tuple[int, bytearray]], List[int]], None, Dict[str, str]]:
     """
     Performs a pair setup operation as described in chapter 4.7 page 39 ff.
 
@@ -314,7 +319,16 @@ def perform_pair_setup_part2(pin, ios_pairing_id, salt, server_public_key):
     }
 
 
-def get_session_keys(pairing_data):
+def get_session_keys(
+    pairing_data: Dict[str, Union[str, int, List[Any]]]
+) -> Generator[
+    Union[
+        Tuple[List[Union[Tuple[int, bytearray], Tuple[int, bytes]]], List[int]],
+        Tuple[List[Tuple[int, bytearray]], List[int]],
+    ],
+    None,
+    Tuple[bytes, bytes],
+]:
     """
     HomeKit Controller state machine to perform a pair verify operation as described in chapter 4.8 page 47 ff.
     :param pairing_data: the paring data as returned by perform_pair_setup

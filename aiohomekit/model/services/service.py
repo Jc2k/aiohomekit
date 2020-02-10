@@ -14,18 +14,23 @@
 # limitations under the License.
 #
 
+from typing import TYPE_CHECKING
+
 from aiohomekit.model import ToDictMixin
 from aiohomekit.model.characteristics import Characteristic
 
+if TYPE_CHECKING:
+    from aiohomekit.model import Accessory
+
 
 class Service(ToDictMixin):
-    def __init__(self, accessory, service_type: str):
+    def __init__(self, accessory: 'Accessory', service_type: str) -> None:
         self.type = service_type
         self.accessory = accessory
         self.iid = accessory.get_next_id()
         self.characteristics = []
 
-    def add_char(self, char_type, **kwargs):
+    def add_char(self, char_type: str, **kwargs) -> Characteristic:
         char = Characteristic(self, char_type, **kwargs)
         self.characteristics.append(char)
         return char

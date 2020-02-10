@@ -21,7 +21,7 @@ class HomeKitException(Exception):
         stage: the stage that the exception occurred at
     """
 
-    def __init__(self, stage):
+    def __init__(self, stage: str) -> None:
         self.stage = stage
 
     pass
@@ -213,7 +213,7 @@ class AccessoryDisconnectedError(HomeKitException):
     It may be possible to reconnect and retry the request.
     """
 
-    def __init__(self, message):
+    def __init__(self, message: str) -> None:
         Exception.__init__(self, message)
 
 

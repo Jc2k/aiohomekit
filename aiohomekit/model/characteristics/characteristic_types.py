@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+from typing import Union
 import uuid
 
 
@@ -180,7 +181,7 @@ class _CharacteristicsTypes(object):
     ZOOM_DIGITAL = "11D"
     ZOOM_OPTICAL = "11C"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.baseUUID = "-0000-1000-8000-0026BB765291"
         self._characteristics = {
             "1": "public.hap.characteristic.administrator-only-access",
@@ -331,7 +332,7 @@ class _CharacteristicsTypes(object):
             self._characteristics[k]: k for k in self._characteristics.keys()
         }
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Union[str, int]) -> str:
         if item in self._characteristics:
             return self._characteristics[item]
 
@@ -341,7 +342,7 @@ class _CharacteristicsTypes(object):
         # https://docs.python.org/3.5/reference/datamodel.html#object.__getitem__ say, KeyError should be raised
         raise KeyError("Unknown Characteristic {i}?".format(i=item))
 
-    def get_short(self, uuid: str):
+    def get_short(self, uuid: str) -> str:
         """
         Returns the short type for a given UUID. That means that "0000006D-0000-1000-8000-0026BB765291" and "6D" both
         translates to "position.current" (after looking up "public.hap.characteristic.position.current").
@@ -362,7 +363,7 @@ class _CharacteristicsTypes(object):
 
         return "Unknown Characteristic {i}".format(i=orig_item)
 
-    def get_short_uuid(self, item_name):
+    def get_short_uuid(self, item_name: str) -> str:
         """
         Returns the short UUID for either a full UUID or textual characteristic type name. For information on
         full and short UUID consult chapter 5.6.1 page 72 of the specification. It also supports to pass through full
@@ -393,7 +394,7 @@ class _CharacteristicsTypes(object):
         except ValueError:
             raise KeyError("No short UUID found for Item {item}".format(item=orig_item))
 
-    def get_uuid(self, item_name):
+    def get_uuid(self, item_name: str) -> str:
         """
         Returns the full length UUID for either a shorted UUID or textual characteristic type name. For information on
         full and short UUID consult chapter 5.6.1 page 72 of the specification. It also supports to pass through full

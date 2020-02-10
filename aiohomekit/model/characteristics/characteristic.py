@@ -19,6 +19,7 @@ import binascii
 from decimal import Decimal
 from distutils.util import strtobool
 import struct
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from aiohomekit.exceptions import CharacteristicPermissionError, FormatError
 from aiohomekit.model.mixin import ToDictMixin
@@ -29,9 +30,12 @@ from .characteristic_types import CharacteristicsTypes
 from .data import characteristics
 from .permissions import CharacteristicPermissions
 
+if TYPE_CHECKING:
+    from aiohomekit.model.service import Service
+
 
 class Characteristic(ToDictMixin):
-    def __init__(self, service, characteristic_type: str, **kwargs):
+    def __init__(self, service: 'Service', characteristic_type: str, **kwargs) -> None:
         self.service = service
         self.iid = service.accessory.get_next_id()
         try:
@@ -59,7 +63,9 @@ class Characteristic(ToDictMixin):
         self._set_value_callback = None
         self._get_value_callback = None
 
-    def _get_configuration(self, kwargs, key, default):
+    def _get_configuration(
+        self, kwargs: Dict[str, Any], key: str, default: Optional[Any] = None,
+    ) -> Optional[Any]:
         if key in kwargs:
             return kwargs[key]
         if self.type not in characteristics:

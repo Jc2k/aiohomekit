@@ -15,10 +15,11 @@
 #
 
 import abc
+from typing import Any, Dict
 
 
 class AbstractPairing(abc.ABC):
-    def _get_pairing_data(self):
+    def _get_pairing_data(self) -> Dict[str, Any]:
         """
         This method returns the internal pairing data. DO NOT mess around with it.
 

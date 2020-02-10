@@ -38,7 +38,7 @@ class _HttpStatusCodes:
     CONNECTION_AUTHORIZATION_REQUIRED = 470
     INTERNAL_SERVER_ERROR = 500
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._codes = {
             _HttpStatusCodes.OK: "OK",
             _HttpStatusCodes.NO_CONTENT: "No Content",
@@ -51,7 +51,7 @@ class _HttpStatusCodes:
         }
         self._categories_rev = {self._codes[k]: k for k in self._codes.keys()}
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> str:
         if item in self._codes:
             return self._codes[item]
 

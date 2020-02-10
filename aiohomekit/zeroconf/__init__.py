@@ -19,8 +19,9 @@
 from _socket import inet_ntoa
 import logging
 from time import sleep
+from typing import Any, Dict, List, Optional, Union
 
-from zeroconf import ServiceBrowser, Zeroconf
+from zeroconf import ServiceBrowser, ServiceInfo, Zeroconf
 
 from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
@@ -32,7 +33,7 @@ class CollectingListener:
     Helper class to collect all zeroconf announcements.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.data = []
 
     def remove_service(self, zeroconf, zeroconf_type, name):
@@ -46,7 +47,7 @@ class CollectingListener:
         if info is not None:
             self.data.append(info)
 
-    def get_data(self):
+    def get_data(self) -> List[ServiceInfo]:
         """
         Use this method to get the data of the collected announcements.
 
@@ -55,7 +56,12 @@ class CollectingListener:
         return self.data
 
 
-def get_from_properties(props, key, default=None, case_sensitive=True):
+def get_from_properties(
+    props: Dict[str, str],
+    key: str,
+    default: Optional[Union[int, str]] = None,
+    case_sensitive: bool = True,
+) -> Optional[str]:
     """
     This function looks up the key in the given zeroconf service information properties. Those are a dict between bytes.
     The key to lookup is therefore also of type bytes.
@@ -82,7 +88,7 @@ def get_from_properties(props, key, default=None, case_sensitive=True):
     return None
 
 
-def discover_homekit_devices(max_seconds=10):
+def discover_homekit_devices(max_seconds: int = 10) -> List[Any]:
     """
     This method discovers all HomeKit Accessories. It browses for devices in the _hap._tcp.local. domain and checks if
     all required fields are set in the text record. It one field is missing, it will be excluded from the result list.
@@ -118,7 +124,7 @@ def discover_homekit_devices(max_seconds=10):
     return tmp
 
 
-def decode_discovery_properties(props):
+def decode_discovery_properties(props: Dict[bytes, bytes]) -> Dict[str, str]:
     """
     This method decodes unicode bytes in _hap._tcp Bonjour TXT record keys to python strings.
 
@@ -132,7 +138,7 @@ def decode_discovery_properties(props):
     return out
 
 
-def parse_discovery_properties(props):
+def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, int]]:
     """
     This method normalizes and parses _hap._tcp Bonjour TXT record keys.
 
@@ -191,7 +197,9 @@ def parse_discovery_properties(props):
     return data
 
 
-def find_device_ip_and_port(device_id: str, max_seconds=10):
+def find_device_ip_and_port(
+    device_id: str, max_seconds: int = 10
+) -> Optional[Dict[str, Union[str, int]]]:
     """
     Try to find a HomeKit Accessory via Bonjour. The process is time boxed by the second parameter which sets an upper
     limit of `max_seconds` before it times out. The runtime of the function may be longer because of the Bonjour

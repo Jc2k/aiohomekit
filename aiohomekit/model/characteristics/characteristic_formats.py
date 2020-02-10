@@ -40,7 +40,7 @@ class _BleCharacteristicFormats(object):
     https://developer.nordicsemi.com/nRF5_SDK/nRF51_SDK_v4.x.x/doc/html/group___b_l_e___g_a_t_t___c_p_f___f_o_r_m_a_t_s.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._formats = {
             0x01: "bool",
             0x04: "uint8",

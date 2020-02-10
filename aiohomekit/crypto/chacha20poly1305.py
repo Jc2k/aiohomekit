@@ -21,6 +21,7 @@ Implements the ChaCha20 stream cipher and the Poly1350 authenticator. More infor
 https://tools.ietf.org/html/rfc7539. See HomeKit spec page 51.
 """
 from math import ceil
+from typing import Tuple, Union
 
 
 def rotate_left(num: int, num_size: int, shift_bits: int) -> int:
@@ -40,7 +41,7 @@ def rotate_left(num: int, num_size: int, shift_bits: int) -> int:
     return num
 
 
-def chacha20_quarter_round(s: list, a: int, b: int, c: int, d: int):
+def chacha20_quarter_round(s: list, a: int, b: int, c: int, d: int) -> None:
     """
     Computes a chacha20 quarter round on the given state s as describe in RFC7539 Chapter 2.1. The state gets updated
     inplace.
@@ -120,7 +121,7 @@ def chacha20_create_initial_state(key: bytes, nonce: bytes, counter: int) -> lis
     return state
 
 
-def chacha20_inner_block(state: list):
+def chacha20_inner_block(state: list) -> None:
     """
     The function to perform the inner quarter rounds as described in RFC7539 chapter 2.3.1. The state is updated
     inplace.
@@ -253,7 +254,7 @@ def pad16(x: bytes) -> bytes:
 
 def chacha20_aead_verify_tag(
     aad: bytes, key: bytes, iv: bytes, constant: bytes, ciphertext: bytes
-):
+) -> bool:
     digest = ciphertext[-16:]
     ciphertext = ciphertext[:-16]
 
@@ -272,7 +273,7 @@ def chacha20_aead_verify_tag(
 
 def chacha20_aead_encrypt(
     aad: bytes, key: bytes, iv: bytes, constant: bytes, plaintext: bytes
-):
+) -> Tuple[bytearray, bytes]:
     """
     The encrypt method for chacha20 aead as required by the Apple specification. The 96-bit nonce from RFC7539 is
     formed from the constant and the initialisation vector.
@@ -307,7 +308,7 @@ def chacha20_aead_encrypt(
 
 def chacha20_aead_decrypt(
     aad: bytes, key: bytes, iv: bytes, constant: bytes, ciphertext: bytes
-):
+) -> Union[bool, bytearray]:
     """
     The decrypt method for chacha20 aead as required by the Apple specification. The 96-bit nonce from RFC7539 is
     formed from the constant and the initialisation vector.

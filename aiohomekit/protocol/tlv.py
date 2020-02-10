@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import logging
+from typing import Any, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -92,11 +93,13 @@ class TLV:
     kTLVHAPParamHAPValidValuesRangeDescriptor = 0x12
 
     @staticmethod
-    def decode_bytes(bs, expected=None) -> list:
+    def decode_bytes(
+        bs: Union[bytearray, bytes], expected: Optional[List[int]] = None
+    ) -> list:
         return TLV.decode_bytearray(bytearray(bs), expected)
 
     @staticmethod
-    def decode_bytearray(ba: bytearray, expected=None) -> list:
+    def decode_bytearray(ba: bytearray, expected: Optional[List[int]] = None) -> list:
         result = []
         # do not influence caller!
         tail = ba.copy()
@@ -167,7 +170,7 @@ class TLV:
         return result
 
     @staticmethod
-    def to_string(d) -> str:
+    def to_string(d: Any) -> str:
         def entry_to_string(entry_key, entry_value) -> str:
             if isinstance(entry_value, bytearray):
                 return "  {k}: ({len} bytes/{t}) 0x{v}\n".format(
@@ -193,7 +196,16 @@ class TLV:
         return res
 
     @staticmethod
-    def reorder(tlv_array, preferred_order):
+    def reorder(
+        tlv_array: Union[
+            List[Union[List[Union[int, bytearray]], List[Union[int, bytes]]]],
+            List[List[Union[int, bytearray]]],
+        ],
+        preferred_order: List[int],
+    ) -> Union[
+        List[Union[List[Union[int, bytearray]], List[Union[int, bytes]]]],
+        List[List[Union[int, bytearray]]],
+    ]:
         """
         This function is used to reorder the key value pairs of a TLV list according to a preferred order. If key from
         the preferred_order list is not found, it is ignored. If a pair's key is not in the preferred order list it is

@@ -23,10 +23,11 @@ https://tools.ietf.org/html/rfc5054. See HomeKit spec page 36 for adjustments im
 import crypt
 import hashlib
 import math
+from typing import Union
 
 
 class Srp:
-    def __init__(self):
+    def __init__(self) -> None:
         # generator as defined by 3072bit group of RFC 5054
         self.g = int(b"5", 16)
         # modulus as defined by 3072bit group of RFC 5054
@@ -57,7 +58,7 @@ E0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF""",
         self.password = None
 
     @staticmethod
-    def generate_private_key():
+    def generate_private_key() -> int:
         """
         Static function to generate a 16 byte random key.
 
@@ -120,7 +121,7 @@ class SrpClient(Srp):
     Implements all functions that are required to simulate an iOS HomeKit controller
     """
 
-    def __init__(self, username: str, password: str):
+    def __init__(self, username: str, password: str) -> None:
         Srp.__init__(self)
         self.username = username
         self.password = password
@@ -129,22 +130,22 @@ class SrpClient(Srp):
         self.A = pow(self.g, self.a, self.n)
         self.B = None
 
-    def set_salt(self, salt):
+    def set_salt(self, salt: Union[int, bytearray]) -> None:
         if isinstance(salt, bytearray):
             self.salt = int.from_bytes(salt, "big")
         else:
             self.salt = salt
 
-    def get_public_key(self):
+    def get_public_key(self) -> int:
         return pow(self.g, self.a, self.n)
 
-    def set_server_public_key(self, B):
+    def set_server_public_key(self, B: Union[int, bytearray]) -> None:
         if isinstance(B, bytearray):
             self.B = int.from_bytes(B, "big")
         else:
             self.B = B
 
-    def get_shared_secret(self):
+    def get_shared_secret(self) -> int:
         if self.B is None:
             raise RuntimeError("Server's public key is missing")
         u = self._calculate_u()
@@ -155,7 +156,7 @@ class SrpClient(Srp):
         S = pow(tmp1, tmp2, self.n)
         return S
 
-    def get_proof(self):
+    def get_proof(self) -> int:
         if self.B is None:
             raise RuntimeError("Server's public key is missing")
 
@@ -185,7 +186,7 @@ class SrpClient(Srp):
         hash_instance.update(K)
         return int.from_bytes(hash_instance.digest(), "big")
 
-    def verify_servers_proof(self, M):
+    def verify_servers_proof(self, M: Union[int, bytearray]) -> bool:
         if isinstance(M, bytearray):
             tmp = int.from_bytes(M, "big")
         else:
@@ -202,7 +203,7 @@ class SrpServer(Srp):
     Implements all functions that are required to simulate an iOS HomeKit accessory
     """
 
-    def __init__(self, username, password):
+    def __init__(self, username: str, password: str) -> None:
         Srp.__init__(self)
         self.username = username
         self.salt = SrpServer._create_salt()
@@ -227,24 +228,24 @@ class SrpServer(Srp):
         v = pow(self.g, hash_value, self.n)
         return v
 
-    def set_client_public_key(self, A):
+    def set_client_public_key(self, A: int) -> None:
         self.A = A
 
-    def get_salt(self):
+    def get_salt(self) -> int:
         return self.salt
 
-    def get_public_key(self):
+    def get_public_key(self) -> int:
         k = self._calculate_k()
         return (k * self.verifier + pow(self.g, self.b, self.n)) % self.n
 
-    def get_shared_secret(self):
+    def get_shared_secret(self) -> int:
         if self.A is None:
             raise RuntimeError("Client's public key is missing")
 
         tmp1 = self.A * pow(self.verifier, self._calculate_u(), self.n)
         return pow(tmp1, self.b, self.n)
 
-    def verify_clients_proof(self, m) -> bool:
+    def verify_clients_proof(self, m: int) -> bool:
         if self.B is None:
             raise RuntimeError("Server's public key is missing")
 
@@ -274,7 +275,7 @@ class SrpServer(Srp):
         hash_instance.update(K)
         return m == int.from_bytes(hash_instance.digest(), "big")
 
-    def get_proof(self, m) -> int:
+    def get_proof(self, m: int) -> int:
         hash_instance = self.h()
         hash_instance.update(Srp.to_byte_array(self.A))
         hash_instance.update(Srp.to_byte_array(m))

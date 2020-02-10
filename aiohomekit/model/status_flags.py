@@ -20,7 +20,7 @@ class _IpStatusFlags(object):
     Data taken form table 5-9 page 70
     """
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> str:
         i = int(item)
         result = []
         if i & 0x01:

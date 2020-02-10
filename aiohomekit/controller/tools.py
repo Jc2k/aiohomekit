@@ -23,7 +23,7 @@ from aiohomekit.model.characteristics import CharacteristicFormats
 from aiohomekit.protocol.tlv import TLV, TlvParseException
 
 
-def check_convert_value(val, target_type):
+def check_convert_value(val: str, target_type: str) -> int:
     """
     Checks if the given value is of the given type or is convertible into the type. If the value is not convertible, a
     HomeKitTypeException is thrown.

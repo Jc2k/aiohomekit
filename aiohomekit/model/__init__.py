@@ -14,20 +14,8 @@
 # limitations under the License.
 #
 
-__all__ = [
-    "AccessoryInformationService",
-    "BHSLightBulbService",
-    "FanService",
-    "LightBulbService",
-    "ThermostatService",
-    "Categories",
-    "CharacteristicPermissions",
-    "CharacteristicFormats",
-    "FeatureFlags",
-    "Accessory",
-]
-
 import json
+from typing import Any, Dict, List
 
 from .categories import Categories
 from .characteristics import (
@@ -39,9 +27,24 @@ from .feature_flags import FeatureFlags
 from .mixin import ToDictMixin, get_id
 from .services import Service, ServicesTypes
 
+__all__ = [
+    "Categories",
+    "CharacteristicPermissions",
+    "CharacteristicFormats",
+    "FeatureFlags",
+    "Accessory",
+]
+
 
 class Accessory(ToDictMixin):
-    def __init__(self, name, manufacturer, model, serial_number, firmware_revision):
+    def __init__(
+        self,
+        name: str,
+        manufacturer: str,
+        model: str,
+        serial_number: str,
+        firmware_revision: str,
+    ) -> None:
         self.aid = get_id()
         self.services = []
 
@@ -58,20 +61,22 @@ class Accessory(ToDictMixin):
         )
 
     @classmethod
-    def setup_accessories_from_file(cls, path):
+    def setup_accessories_from_file(cls, path: str) -> List["Accessory"]:
         with open(path, "r") as fp:
             accessories_json = json.load(fp)
         return cls.setup_accessories_from_list(accessories_json)
 
     @classmethod
-    def setup_accessories_from_list(cls, data):
+    def setup_accessories_from_list(
+        cls, data: List[Dict[str, Any]]
+    ) -> List["Accessory"]:
         accessories = []
         for accessory_data in data:
             accessories.append(cls.setup_from_dict(accessory_data))
         return accessories
 
     @classmethod
-    def setup_from_dict(cls, data) -> "Accessory":
+    def setup_from_dict(cls, data: Dict[str, Any]) -> "Accessory":
         accessory = cls("Name", "Mfr", "Model", "0001", "0.1")
         accessory.services = []
         accessory.aid = data["aid"]
@@ -108,11 +113,11 @@ class Accessory(ToDictMixin):
 
         return accessory
 
-    def get_next_id(self):
+    def get_next_id(self) -> int:
         self._next_id += 1
         return self._next_id
 
-    def add_service(self, service_type):
+    def add_service(self, service_type: str) -> Service:
         service = Service(self, service_type)
         self.services.append(service)
         return service
@@ -126,10 +131,10 @@ class Accessory(ToDictMixin):
 
 
 class Accessories(ToDictMixin):
-    def __init__(self):
+    def __init__(self) -> None:
         self.accessories = []
 
-    def add_accessory(self, accessory: Accessory):
+    def add_accessory(self, accessory: Accessory) -> None:
         self.accessories.append(accessory)
 
     def to_accessory_and_service_list(self):

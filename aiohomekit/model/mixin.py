@@ -19,7 +19,7 @@ import json
 id_counter = 0
 
 
-def get_id():
+def get_id() -> int:
     global id_counter
     id_counter += 1
     return id_counter

@@ -52,7 +52,7 @@ class _Categories(object):
     TV = 31
     REMOTE = 32
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._categories = {
             _Categories.OTHER: "Other",
             _Categories.BRIDGE: "Bridge",
@@ -95,7 +95,7 @@ class _Categories(object):
 
         return False
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> str:
         if item in self._categories:
             return self._categories[item]
 

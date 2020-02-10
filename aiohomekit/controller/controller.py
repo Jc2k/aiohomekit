@@ -18,6 +18,7 @@ import json
 from json.decoder import JSONDecodeError
 import logging
 import re
+from typing import Dict
 
 from ..const import BLE_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
 from ..exceptions import (
@@ -38,7 +39,7 @@ class Controller(object):
     This class represents a HomeKit controller (normally your iPhone or iPad).
     """
 
-    def __init__(self, ble_adapter="hci0"):
+    def __init__(self, ble_adapter: str = "hci0") -> None:
         """
         Initialize an empty controller. Use 'load_data()' to load the pairing data.
 
@@ -112,14 +113,14 @@ class Controller(object):
         """
         raise TransportNotSupportedError("BLE")
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """
         Shuts down the controller by closing all connections that might be held open by the pairings of the controller.
         """
         for p in self.pairings:
             await self.pairings[p].close()
 
-    def get_pairings(self):
+    def get_pairings(self) -> Dict[str, IpPairing]:
         """
         Returns a dict containing all pairings known to the controller.
 
@@ -127,7 +128,7 @@ class Controller(object):
         """
         return self.pairings
 
-    def load_data(self, filename):
+    def load_data(self, filename: str) -> None:
         """
         Loads the pairing data of the controller from a file.
 
@@ -177,7 +178,7 @@ class Controller(object):
                 'Could not open "{f}" because it does not exist'.format(f=filename)
             )
 
-    def save_data(self, filename):
+    def save_data(self, filename: str) -> None:
         """
         Saves the pairing data of the controller to a file.
 
@@ -203,7 +204,7 @@ class Controller(object):
             )
 
     @staticmethod
-    def check_pin_format(pin):
+    def check_pin_format(pin: str) -> None:
         """
         Checks the format of the given pin: XXX-XX-XXX with X being a digit from 0 to 9
 
@@ -214,7 +215,7 @@ class Controller(object):
                 "The pin must be of the following XXX-XX-XXX where X is a digit between 0 and 9."
             )
 
-    async def remove_pairing(self, alias):
+    async def remove_pairing(self, alias: str) -> None:
         """
         Remove a pairing between the controller and the accessory. The pairing data is delete on both ends, on the
         accessory and the controller.

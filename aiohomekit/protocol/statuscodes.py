@@ -33,7 +33,7 @@ class _HapStatusCodes(object):
     INVALID_VALUE = -70410
     INSUFFICIENT_AUTH = -70411
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._codes = {
             _HapStatusCodes.SUCCESS: "This specifies a success for the request.",
             _HapStatusCodes.INSUFFICIENT_PRIVILEGES: "Request denied due to insufficient privileges.",
@@ -71,7 +71,7 @@ class _HapBleStatusCodes(object):
     INSUFFICIENT_AUTHENTICATION = 0x05
     INVALID_REQUEST = 0x06
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._codes = {
             _HapBleStatusCodes.SUCCESS: "The request was successful.",
             _HapBleStatusCodes.UNSUPPORTED_PDU: "The request failed as the HAP PDU was not recognized or supported.",

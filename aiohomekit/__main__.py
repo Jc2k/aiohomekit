@@ -15,12 +15,14 @@
 #
 
 import argparse
+from argparse import ArgumentParser, Namespace
 import asyncio
 import json
 import locale
 import logging
 import re
 import sys
+from typing import List, Optional
 
 from .controller import Controller
 from .model.characteristics import CharacteristicsTypes
@@ -46,7 +48,7 @@ def pin_from_keyboard():
     return tmp
 
 
-def setup_logging(level):
+def setup_logging(level: None) -> None:
     """
     Set up the logging to use a decent format and the log level given as parameter.
     :param level: the log level used for the root logger
@@ -62,7 +64,7 @@ def setup_logging(level):
         logging.getLogger().setLevel(numeric_level)
 
 
-def add_log_arguments(parser):
+def add_log_arguments(parser: ArgumentParser) -> None:
     """
     Adds command line arguments to control logging behaviour.
     :param parser: The argparse.ArgumentParser object to add to.
@@ -152,7 +154,7 @@ async def pair_ip(args):
     return True
 
 
-async def get_accessories(args):
+async def get_accessories(args: Namespace) -> bool:
     controller = Controller()
 
     try:
@@ -208,7 +210,7 @@ async def get_accessories(args):
     return True
 
 
-async def get_characteristics(args):
+async def get_characteristics(args: Namespace) -> bool:
     controller = Controller()
 
     controller.load_data(args.file)
@@ -246,7 +248,7 @@ async def get_characteristics(args):
     return True
 
 
-async def put_characteristics(args):
+async def put_characteristics(args: Namespace) -> bool:
     controller = Controller(args.adapter)
     try:
         controller.load_data(args.file)
@@ -289,7 +291,7 @@ async def put_characteristics(args):
     return True
 
 
-async def list_pairings(args):
+async def list_pairings(args: Namespace) -> bool:
     controller = Controller(args.adapter)
     controller.load_data(args.file)
     if args.alias not in controller.get_pairings():
@@ -398,7 +400,7 @@ async def get_events(args):
     return True
 
 
-def setup_parser_for_pairing(parser):
+def setup_parser_for_pairing(parser: ArgumentParser) -> None:
     parser.add_argument(
         "-f",
         action="store",
@@ -411,7 +413,7 @@ def setup_parser_for_pairing(parser):
     )
 
 
-async def main(argv=None):
+async def main(argv: Optional[List[str]] = None) -> None:
     argv = argv or sys.argv[1:]
 
     parser = argparse.ArgumentParser()

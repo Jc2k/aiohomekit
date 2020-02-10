@@ -61,7 +61,7 @@ class _ServicesTypes(object):
     WINDOW = "8B"
     WINDOW_COVERING = "8C"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.baseUUID = "-0000-1000-8000-0026BB765291"
         self._services = {
             "3E": "public.hap.service.accessory-information",
@@ -115,7 +115,7 @@ class _ServicesTypes(object):
 
         self._services_rev = {self._services[k]: k for k in self._services.keys()}
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> str:
         if item in self._services:
             return self._services[item]
 
@@ -125,7 +125,7 @@ class _ServicesTypes(object):
         # raise KeyError('Item {item} not found'.format_map(item=item))
         return "Unknown Service: {i}".format(i=item)
 
-    def get_short(self, item):
+    def get_short(self, item: str) -> str:
         """
         get the short version of the service name (aka the last segment of the name) or if this is not in the list of
         services it returns 'Unknown Service: XX'.
@@ -143,7 +143,7 @@ class _ServicesTypes(object):
             return self._services[item].split(".")[-1]
         return "Unknown Service: {i}".format(i=orig_item)
 
-    def get_uuid(self, item_name):
+    def get_uuid(self, item_name: str) -> str:
         """
         Returns the full length UUID for either a shorted UUID or textual characteristic type name. For information on
         full and short UUID consult chapter 5.6.1 page 72 of the specification. It also supports to pass through full
@@ -172,7 +172,7 @@ class _ServicesTypes(object):
         long = medium + self.baseUUID
         return long
 
-    def get_short_uuid(self, item_name):
+    def get_short_uuid(self, item_name: str) -> str:
         """
         Returns the short UUID for either a full UUID or textual service type name. For information on
         full and short UUID consult chapter 5.6.1 page 72 of the specification. It also supports to pass through full

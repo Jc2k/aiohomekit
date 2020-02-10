@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+from typing import Union
+
 from aiohomekit.exceptions import HttpException
 
 
@@ -23,7 +25,7 @@ class HttpResponse(object):
     STATE_BODY = 2
     STATE_DONE = 3
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._state = HttpResponse.STATE_PRE_STATUS
         self._raw_response = bytearray()
         self._is_ready = False
@@ -36,7 +38,7 @@ class HttpResponse(object):
         self.headers = []
         self.body = bytearray()
 
-    def parse(self, part):
+    def parse(self, part: Union[bytearray, bytes]) -> bytearray:
         self._raw_response += part
         pos = self._raw_response.find(b"\r\n")
         while pos != -1:
@@ -110,7 +112,7 @@ class HttpResponse(object):
         """
         return self.body
 
-    def is_read_completely(self):
+    def is_read_completely(self) -> bool:
         if self._is_chunked:
             return self._had_empty_chunk
         if self.code == 204:
@@ -124,7 +126,7 @@ class HttpResponse(object):
             return False
         raise HttpException("Could not determine if HTTP data was read completely")
 
-    def get_http_name(self):
+    def get_http_name(self) -> str:
         """
         Returns the HTTP name (e.g. HTTP or EVENT).
 
