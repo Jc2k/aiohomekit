@@ -134,12 +134,25 @@ class Accessories(ToDictMixin):
     def __init__(self) -> None:
         self.accessories = []
 
+    def __iter__(self):
+        return iter(self.accessories)
+
+    @classmethod
+    def from_file(cls, path):
+        self = cls()
+        for accessory in Accessory.setup_accessories_from_file(path):
+            self.add_accessory(accessory)
+        return self
+
     def add_accessory(self, accessory: Accessory) -> None:
         self.accessories.append(accessory)
 
-    def to_accessory_and_service_list(self):
+    def serialize(self):
         accessories_list = []
         for a in self.accessories:
             accessories_list.append(a.to_accessory_and_service_list())
-        d = {"accessories": accessories_list}
+        return accessories_list
+
+    def to_accessory_and_service_list(self):
+        d = {"accessories": self.serialize()}
         return json.dumps(d)
