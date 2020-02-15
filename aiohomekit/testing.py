@@ -16,6 +16,7 @@
 
 from aiohomekit.controller import Controller
 from aiohomekit.controller.pairing import AbstractPairing
+from aiohomekit import exceptions
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Accessories
 
@@ -27,6 +28,8 @@ class FakeDiscovery(object):
         self.controller = controller
         self.device_id = device_id
         self.accessories = accessories
+
+        self.pairing_code = "111-11-111"
 
     @property
     def info(self):
@@ -49,7 +52,12 @@ class FakeDiscovery(object):
         return await finish_pairing(pin)
 
     async def start_pairing(self, alias: str):
-        async def finish_pairing(pin):
+        if self.device_id in self.controller.pairings:
+            raise exceptions.AlreadyPairedError()
+
+        async def finish_pairing(pairing_code):
+            if pairing_code != self.pairing_code:
+                raise exceptions.AuthenticationError("M4")
             pairing_data = {}
             pairing_data["AccessoryIP"] = self.info["address"]
             pairing_data["AccessoryPort"] = self.info["port"]
@@ -147,12 +155,12 @@ class FakeController(Controller):
         )
         return discovery
 
-    async def add_paired_device(self, accessories, alias=None):
+    async def add_paired_device(self, accessories: Accessories, alias: str = None):
         discovery = self.add_device(accessories)
         finish_pairing = await discovery.start_pairing(alias or discovery.device_id)
         return await finish_pairing("111-11-111")
 
-    async def discover_ip(self, max_seconds=10):
+    async def discover_ip(self, max_seconds: int = 10):
         return self.discoveries.values()
 
     async def find_ip_by_device_id(self, device_id, max_seconds=10):
