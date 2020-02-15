@@ -14,7 +14,7 @@ async def test_pairing():
 
     discovery = await controller.find_ip_by_device_id(device.device_id)
     finish_pairing = await discovery.start_pairing("alias")
-    pairing = await finish_pairing("111-11-111")
+    pairing = await finish_pairing("111-22-333")
 
     chars_and_services = await pairing.list_accessories_and_characteristics()
     assert isinstance(chars_and_services, list)
@@ -27,7 +27,7 @@ async def test_get_and_set():
 
     discovery = await controller.find_ip_by_device_id(device.device_id)
     finish_pairing = await discovery.start_pairing("alias")
-    pairing = await finish_pairing("111-11-111")
+    pairing = await finish_pairing("111-22-333")
 
     chars = await pairing.get_characteristics([(1, 10)])
     assert chars == {(1, 10): {"value": 0}}
