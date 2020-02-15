@@ -29,7 +29,7 @@ class FakeDiscovery(object):
         self.device_id = device_id
         self.accessories = accessories
 
-        self.pairing_code = "111-11-111"
+        self.pairing_code = "111-22-333"
 
     @property
     def info(self):
