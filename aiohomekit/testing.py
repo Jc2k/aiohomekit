@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 
+from aiohomekit import exceptions
 from aiohomekit.controller import Controller
 from aiohomekit.controller.pairing import AbstractPairing
-from aiohomekit import exceptions
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Accessories
 
