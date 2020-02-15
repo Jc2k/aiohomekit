@@ -34,6 +34,20 @@ if TYPE_CHECKING:
     from aiohomekit.model.service import Service
 
 
+DEFAULT_FOR_TYPE = {
+    CharacteristicFormats.bool: False,
+    CharacteristicFormats.uint8: 0,
+    CharacteristicFormats.uint16: 0,
+    CharacteristicFormats.uint32: 0,
+    CharacteristicFormats.uint64: 0,
+    CharacteristicFormats.int: 0,
+    CharacteristicFormats.float: 0.0,
+    CharacteristicFormats.string: "",
+    CharacteristicFormats.array: [],
+    CharacteristicFormats.dict: {},
+}
+
+
 class Characteristic(ToDictMixin):
     def __init__(self, service: "Service", characteristic_type: str, **kwargs) -> None:
         self.service = service
@@ -47,7 +61,6 @@ class Characteristic(ToDictMixin):
             kwargs, "perms", [CharacteristicPermissions.paired_read]
         )
         self.format = self._get_configuration(kwargs, "format", None)
-        self.value = kwargs.pop("value", None)
 
         self.ev = None
         self.description = self._get_configuration(kwargs, "description", None)
@@ -60,8 +73,26 @@ class Characteristic(ToDictMixin):
         self.valid_values = None
         self.valid_values_range = None
 
-        self._set_value_callback = None
-        self._get_value_callback = None
+        self.value = None
+
+        if CharacteristicPermissions.paired_read not in self.perms:
+            return
+
+        if "value" in kwargs:
+            self.value = kwargs["value"]
+            return
+
+        if self.valid_values:
+            self.value = self.valid_values[0]
+            return
+
+        self.value = DEFAULT_FOR_TYPE.get(self.format, None)
+
+        if self.minValue:
+            self.value = max(self.value, self.minValue)
+
+        if self.maxValue:
+            self.value = min(self.value, self.maxValue)
 
     def _get_configuration(
         self, kwargs: Dict[str, Any], key: str, default: Optional[Any] = None,
@@ -73,12 +104,6 @@ class Characteristic(ToDictMixin):
         if key not in characteristics[self.type]:
             return default
         return characteristics[self.type][key]
-
-    def set_set_value_callback(self, callback):
-        self._set_value_callback = callback
-
-    def set_get_value_callback(self, callback):
-        self._get_value_callback = callback
 
     def set_events(self, new_val):
         self.ev = new_val
@@ -155,8 +180,6 @@ class Characteristic(ToDictMixin):
                 raise FormatError(HapStatusCodes.INVALID_VALUE)
 
         self.value = new_val
-        if self._set_value_callback:
-            self._set_value_callback(new_val)
 
     def set_value_from_ble(self, value):
         if self.format == CharacteristicFormats.bool:
@@ -191,8 +214,6 @@ class Characteristic(ToDictMixin):
         """
         if CharacteristicPermissions.paired_read not in self.perms:
             raise CharacteristicPermissionError(HapStatusCodes.CANT_READ_WRITE_ONLY)
-        if self._get_value_callback:
-            return self._get_value_callback()
         return self.value
 
     def get_value_for_ble(self):
