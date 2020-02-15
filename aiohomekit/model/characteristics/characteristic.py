@@ -89,9 +89,13 @@ class Characteristic(ToDictMixin):
         self.value = DEFAULT_FOR_TYPE.get(self.format, None)
 
         if self.minValue:
+            if not self.value:
+                self.value = self.minValue
             self.value = max(self.value, self.minValue)
 
         if self.maxValue:
+            if not self.value:
+                self.value = self.maxValue
             self.value = min(self.value, self.maxValue)
 
     def _get_configuration(
