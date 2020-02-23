@@ -277,7 +277,7 @@ class IpPairing(AbstractPairing):
                     "status": d["status"],
                     "description": HapStatusCodes[d["status"]],
                 }
-                for d in response
+                for d in response["characteristics"]
             }
             return data
 

@@ -235,15 +235,16 @@ class HomeKitConnection:
             target, json.dumps(body).encode("utf-8"), content_type=HttpContentTypes.TLV,
         )
 
-        if response.code != 204:
-            # FIXME: ...
-            pass
-
-        decoded = response.body.decode("utf-8")
-
-        if not decoded:
-            # FIXME: Verify this is correct
+        if response.code == 204:
             return {}
+
+        try:
+            decoded = response.body.decode("utf-8")
+        except UnicodeDecodeError:
+            self.transport.close()
+            raise AccessoryDisconnectedError(
+                "Session closed after receiving non-utf8 response"
+            )
 
         try:
             parsed = json.loads(decoded)
