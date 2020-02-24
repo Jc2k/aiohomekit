@@ -164,7 +164,7 @@ class FakeController(Controller):
     async def add_paired_device(self, accessories: Accessories, alias: str = None):
         discovery = self.add_device(accessories)
         finish_pairing = await discovery.start_pairing(alias or discovery.device_id)
-        return await finish_pairing("111-11-111")
+        return await finish_pairing(discovery.pairing_code)
 
     async def discover_ip(self, max_seconds: int = 10):
         return self.discoveries.values()
