@@ -33,6 +33,12 @@ class FakeDiscovery(object):
 
     @property
     def info(self):
+        sf = 0
+
+        # Is accessory unpaired?
+        if self.device_id not in self.controller.pairings:
+            sf = sf | 0x01
+
         return {
             "name": "TestDevice",
             "address": "127.0.0.1",
@@ -44,7 +50,7 @@ class FakeDiscovery(object):
             "s#": 1,
             "ff": 0,
             "ci": 0,
-            "sf": self.device_id in self.controller.pairings,
+            "sf": sf,
         }
 
     async def perform_pairing(self, alias: str, pin):
