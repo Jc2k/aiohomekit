@@ -28,6 +28,7 @@ from ..exceptions import (
     MalformedPinError,
     TransportNotSupportedError,
 )
+from .pairing import AbstractPairing
 
 if IP_TRANSPORT_SUPPORTED:
     from .ip import IpDiscovery, IpPairing
@@ -120,6 +121,26 @@ class Controller(object):
         for p in self.pairings:
             await self.pairings[p].close()
 
+    def load_pairing(self, alias: str, pairing_data: Dict[str, str]) -> AbstractPairing:
+        """
+        Loads a pairing instance from a pairing data dict.
+        """
+        if "Connection" not in pairing_data:
+            pairing_data["Connection"] = "IP"
+
+        if pairing_data["Connection"] == "IP":
+            if not IP_TRANSPORT_SUPPORTED:
+                raise TransportNotSupportedError("IP")
+            pairing = self.pairings[alias] = IpPairing(pairing_data)
+            return pairing
+
+        if pairing_data["Connection"] == "BLE":
+            if not BLE_TRANSPORT_SUPPORTED:
+                raise TransportNotSupportedError("BLE")
+
+        connection_type = pairing_data["Connection"]
+        raise NotImplementedError(f"{connection_type} support")
+
     def get_pairings(self) -> Dict[str, IpPairing]:
         """
         Returns a dict containing all pairings known to the controller.
@@ -139,32 +160,7 @@ class Controller(object):
             with open(filename, "r") as input_fp:
                 data = json.load(input_fp)
                 for pairing_id in data:
-
-                    if "Connection" not in data[pairing_id]:
-                        # This is a pre BLE entry in the file with the pairing data, hence it is for an IP based
-                        # accessory. So we set the connection type (in case save data is used everything will be fine)
-                        # and also issue a warning
-                        data[pairing_id]["Connection"] = "IP"
-                        self.logger.warning(
-                            "Loaded pairing for %s with missing connection type. Assume this is IP based.",
-                            pairing_id,
-                        )
-
-                    if data[pairing_id]["Connection"] == "IP":
-                        if not IP_TRANSPORT_SUPPORTED:
-                            raise TransportNotSupportedError("IP")
-                        self.pairings[pairing_id] = IpPairing(data[pairing_id])
-                    elif data[pairing_id]["Connection"] == "BLE":
-                        if not BLE_TRANSPORT_SUPPORTED:
-                            raise TransportNotSupportedError("BLE")
-                        raise NotImplementedError("BLE support")
-                    else:
-                        # ignore anything else, issue warning
-                        self.logger.warning(
-                            'could not load pairing %s of type "%s"',
-                            pairing_id,
-                            data[pairing_id]["Connection"],
-                        )
+                    self.load_pairing(pairing_id, data[pairing_id])
         except PermissionError:
             raise ConfigLoadingError(
                 'Could not open "{f}" due to missing permissions'.format(f=filename)
