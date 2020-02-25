@@ -200,7 +200,7 @@ class HomeKitConnection:
         connection = cls(*args, **kwargs)
 
         if connection.auto_reconnect:
-            await connection._reconnect()
+            asyncio.ensure_future(connection._reconnect())
         else:
             await connection._connect_once()
 
@@ -398,7 +398,7 @@ class HomeKitConnection:
                 await self._connect_once()
             except OSError:
                 interval = self._retry_interval = min(60, 1.5 * self._retry_interval)
-                logger.info(
+                logger.debug(
                     "Connecting to accessory failed. Retrying in %i seconds", interval
                 )
                 await asyncio.sleep(interval)

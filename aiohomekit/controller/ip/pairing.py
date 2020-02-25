@@ -94,7 +94,12 @@ class IpPairing(AbstractPairing):
                         self, self.pairing_data
                     )
 
-        await self.connection.when_connected
+        try:
+            await asyncio.wait_for(self.connection.when_connected, 10)
+        except asyncio.TimeoutError:
+            raise AccessoryDisconnectedError(
+                "Timeout while waiting for connection to device"
+            )
 
     async def close(self):
         """
