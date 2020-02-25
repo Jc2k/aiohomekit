@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from aiohomekit.model import Accessories
@@ -37,3 +39,17 @@ async def test_get_and_set():
 
     chars = await pairing.get_characteristics([(1, 10)])
     assert chars == {(1, 10): {"value": 1}}
+
+
+async def test_events():
+    accessories = Accessories.from_file("tests/fixtures/koogeek_ls1.json")
+    controller = FakeController()
+    pairing = await controller.add_paired_device(accessories, "alias")
+
+    callback = mock.Mock()
+    await pairing.subscribe([(1, 10)])
+    pairing.dispatcher_connect(callback)
+
+    await pairing.testing.put([(1, 10, 1)])
+
+    assert callback.call_args_list == [mock.call([(1, 10, 1)])]

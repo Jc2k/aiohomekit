@@ -63,12 +63,11 @@ class IpPairing(AbstractPairing):
 
         :param pairing_data:
         """
+        super().__init__()
+
         self.pairing_data = pairing_data
         self.connection = None
         self.connect_lock = asyncio.Lock()
-        self.subscriptions = set()
-
-        self.listeners = set()
 
     def event_received(self, event):
         event = format_characteristic_list(event)
@@ -290,7 +289,8 @@ class IpPairing(AbstractPairing):
 
     async def subscribe(self, characteristics):
         await self._ensure_connected()
-        self.subscriptions.update(set(characteristics))
+
+        await super().subscribe(set(characteristics))
 
         data = []
         for (aid, iid) in characteristics:
@@ -338,25 +338,9 @@ class IpPairing(AbstractPairing):
                 }
                 char_set.discard(id_tuple)
 
-        self.subscriptions.difference_update(char_set)
+        await super().unsubscribe(char_set)
 
         return tmp
-
-    def dispatcher_connect(self, callback):
-        """
-        Register an event handler to be called when a characteristic (or multiple characteristics) change.
-
-        This function returns immediately. It returns a callable you can use to cancel the subscription.
-
-        The callback is called in the event loop, but should not be a coroutine.
-        """
-
-        self.listeners.add(callback)
-
-        def stop_listening():
-            self.listeners.discard(callback)
-
-        return stop_listening
 
     async def identify(self):
         """

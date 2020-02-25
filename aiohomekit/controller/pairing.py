@@ -19,6 +19,10 @@ from typing import Any, Dict
 
 
 class AbstractPairing(abc.ABC):
+    def __init__(self):
+        self.listeners = set()
+        self.subscriptions = set()
+
     def _get_pairing_data(self) -> Dict[str, Any]:
         """
         This method returns the internal pairing data. DO NOT mess around with it.
@@ -133,3 +137,25 @@ class AbstractPairing(abc.ABC):
         :raises UnknownError: on unknown errors
         """
         pass
+
+    async def subscribe(self, characteristics):
+        self.subscriptions.update(set(characteristics))
+
+    async def unsubscribe(self, characteristics):
+        self.subscriptions.difference_update(set(characteristics))
+
+    def dispatcher_connect(self, callback):
+        """
+        Register an event handler to be called when a characteristic (or multiple characteristics) change.
+
+        This function returns immediately. It returns a callable you can use to cancel the subscription.
+
+        The callback is called in the event loop, but should not be a coroutine.
+        """
+
+        self.listeners.add(callback)
+
+        def stop_listening():
+            self.listeners.discard(callback)
+
+        return stop_listening

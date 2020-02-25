@@ -14,11 +14,15 @@
 # limitations under the License.
 #
 
+import logging
+
 from aiohomekit import exceptions
 from aiohomekit.controller import Controller
 from aiohomekit.controller.pairing import AbstractPairing
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Accessories
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class FakeDiscovery(object):
@@ -80,6 +84,25 @@ class FakeDiscovery(object):
         return True
 
 
+class PairingTester:
+    """
+    A holding class for test-only helpers.
+
+    This is done to minimize the difference between a FakePairing and a real pairing.
+    """
+
+    def __init__(self, pairing):
+        self.pairing = pairing
+
+    async def put(self, characteristics):
+        await self.pairing.put_characteristics(characteristics)
+        for listener in self.pairing.listeners:
+            try:
+                listener(characteristics)
+            except Exception:
+                _LOGGER.exception("Unhandled error when processing event")
+
+
 class FakePairing(AbstractPairing):
     """
     A test fake that pretends to be a paired HomeKit accessory.
@@ -90,9 +113,13 @@ class FakePairing(AbstractPairing):
 
     def __init__(self, pairing_data, accessories: Accessories):
         """Create a fake pairing from an accessory model."""
+        super().__init__()
+
         self.accessories = accessories
         self.pairing_data = {}
         self.available = True
+
+        self.testing = PairingTester(self)
 
     def close(self):
         pass
