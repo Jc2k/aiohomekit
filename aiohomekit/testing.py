@@ -21,6 +21,7 @@ from aiohomekit.controller import Controller
 from aiohomekit.controller.pairing import AbstractPairing
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Accessories
+from aiohomekit.model.characteristics import CharacteristicsTypes
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,12 +94,78 @@ class PairingTester:
 
     def __init__(self, pairing):
         self.pairing = pairing
+        self.events_enabled = True
 
-    async def put(self, characteristics):
-        await self.pairing.put_characteristics(characteristics)
+        self.characteristics = {}
+        self.services = {}
+
+        name_uuid = CharacteristicsTypes.get_uuid(CharacteristicsTypes.NAME)
+        for accessory in self.pairing.accessories:
+            for service in accessory.services:
+                service_map = {}
+                for char in service.characteristics:
+                    self.characteristics[(accessory.aid, char.iid)] = char
+                    service_map[char.type] = char
+                    if char.type == name_uuid:
+                        self.services[char.get_value()] = service_map
+
+    def set_events_enabled(self, value):
+        self.events_enabled = value
+
+    def update_named_service(self, name: str, new_values):
+        """
+        Finds a named service then sets characteristics by type.
+
+        pairing.test.update_named_service("kitchen lamp", {
+            CharacteristicTypes.ON: True
+        })
+
+        Triggers events if enabled.
+        """
+        if name not in self.services:
+            raise RuntimeError(f"Fake error: service {name!r} not found")
+
+        service = self.services[name]
+
+        changed = []
+        for uuid, value in new_values.items():
+            uuid = CharacteristicsTypes.get_uuid(uuid)
+
+            if uuid not in service:
+                raise RuntimeError(
+                    f"Unexpected characteristic {uuid!r} applied to service {name!r}"
+                )
+
+            char = service[uuid]
+            char.set_value(value)
+            changed.append((char.service.accessory.aid, char.iid))
+
+        self._send_events(changed)
+
+    def update_aid_iid(self, characteristics):
+        changed = []
+        for (aid, iid, value) in characteristics:
+            self.characteristics[(aid, iid)].set_value(value)
+            changed.append((aid, iid))
+
+        self._send_events(changed)
+
+    def _send_events(self, changed):
+        if not self.events_enabled:
+            return
+
+        event = {}
+        for (aid, iid) in changed:
+            if (aid, iid) not in self.pairing.subscriptions:
+                continue
+            event[(aid, iid)] = {"value": self.characteristics[(aid, iid)].get_value()}
+
+        if not event:
+            return
+
         for listener in self.pairing.listeners:
             try:
-                listener(characteristics)
+                listener(event)
             except Exception:
                 _LOGGER.exception("Unhandled error when processing event")
 
