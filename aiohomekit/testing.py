@@ -223,15 +223,7 @@ class FakePairing(AbstractPairing):
 
     async def put_characteristics(self, characteristics):
         """Fake implementation of put_characteristics."""
-        for aid, cid, new_val in characteristics:
-            for accessory in self.accessories:
-                if aid != accessory.aid:
-                    continue
-                for service in accessory.services:
-                    for char in service.characteristics:
-                        if char.iid != cid:
-                            continue
-                        char.set_value(new_val)
+        self.testing.update_aid_iid(characteristics)
         return {}
 
 
