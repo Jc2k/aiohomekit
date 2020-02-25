@@ -22,7 +22,12 @@ from aiohomekit.crypto.chacha20poly1305 import (
     chacha20_aead_decrypt,
     chacha20_aead_encrypt,
 )
-from aiohomekit.exceptions import AccessoryDisconnectedError
+from aiohomekit.exceptions import (
+    AccessoryDisconnectedError,
+    AuthenticationError,
+    ConnectionError,
+    HomeKitException,
+)
 from aiohomekit.http import HttpContentTypes
 from aiohomekit.http.response import HttpResponse
 from aiohomekit.protocol import get_session_keys
@@ -381,9 +386,13 @@ class HomeKitConnection:
 
     async def _connect_once(self):
         loop = asyncio.get_event_loop()
-        self.transport, self.protocol = await loop.create_connection(
-            lambda: InsecureHomeKitProtocol(self), self.host, self.port
-        )
+
+        try:
+            self.transport, self.protocol = await loop.create_connection(
+                lambda: InsecureHomeKitProtocol(self), self.host, self.port
+            )
+        except OSError as e:
+            raise ConnectionError(str(e))
 
         if self.owner:
             await self.owner.connection_made(False)
@@ -396,7 +405,13 @@ class HomeKitConnection:
         while not self.closing:
             try:
                 await self._connect_once()
-            except OSError:
+
+            except AuthenticationError as e:
+                # Authentication errors should bubble up because auto-reconnect is unlikely to help
+                self.when_connected.set_exception(e)
+                continue
+
+            except HomeKitException:
                 interval = self._retry_interval = min(60, 1.5 * self._retry_interval)
                 logger.debug(
                     "Connecting to accessory failed. Retrying in %i seconds", interval

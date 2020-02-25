@@ -208,13 +208,19 @@ class EncryptionError(HomeKitException):
 
 class AccessoryDisconnectedError(HomeKitException):
     """
-    Used if a HomeKit disconnects part way through an operation or series of operations.
-
-    It may be possible to reconnect and retry the request.
+    There was a connectivity issue whilst communicating with a device.
     """
 
     def __init__(self, message: str) -> None:
         Exception.__init__(self, message)
+
+
+class ConnectionError(AccessoryDisconnectedError):
+    """
+    Used if a HomeKit disconnects part way through an operation or series of operations.
+
+    It may be possible to reconnect and retry the request.
+    """
 
 
 class ConfigLoadingError(HomeKitException):
