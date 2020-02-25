@@ -215,14 +215,15 @@ def find_device_ip_and_port(
     ServiceBrowser(zeroconf, "_hap._tcp.local.", listener)
     counter = 0
 
-    while result is None and counter < max_seconds:
-        sleep(1)
+    while result is None and counter <= max_seconds:
         data = listener.get_data()
         for info in data:
             if info.properties[b"id"].decode() == device_id:
                 result = {"ip": inet_ntoa(info.addresses[0]), "port": info.port}
                 break
+
         counter += 1
+        sleep(0.5)
 
     zeroconf.close()
     return result

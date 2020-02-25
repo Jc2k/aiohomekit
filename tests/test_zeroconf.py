@@ -15,9 +15,10 @@
 #
 
 import socket
-import unittest
+from unittest.mock import patch
 
-from zeroconf import ServiceInfo, Zeroconf
+import pytest
+from zeroconf import ServiceInfo
 
 from aiohomekit.zeroconf import (
     discover_homekit_devices,
@@ -26,155 +27,164 @@ from aiohomekit.zeroconf import (
 )
 
 
-class TestZeroconf(unittest.TestCase):
-    @staticmethod
-    def find_device(desc, result):
-        test_device = None
-        for device in result:
-            device_found = True
-            for key in desc:
-                expected_val = desc[key]
-                if device[key] != expected_val:
-                    device_found = False
-                    break
-            if device_found:
-                test_device = device
-                break
-        return test_device
+@pytest.fixture
+def mock_zeroconf():
+    """Mock zeroconf."""
 
-    def test_find_without_device(self):
-        result = find_device_ip_and_port("00:00:00:00:00:00", 1)
-        self.assertIsNone(result)
+    def browser(zeroconf, service, handler):
+        handler.add_service(zeroconf, service, f"name.{service}")
 
-    def test_find_with_device(self):
-        zeroconf = Zeroconf()
-        desc = {"id": "00:00:02:00:00:02"}
-        info = ServiceInfo(
-            "_hap._tcp.local.",
-            "foo1._hap._tcp.local.",
-            addresses=[socket.inet_aton("127.0.0.1")],
-            port=1234,
-            properties=desc,
-            weight=0,
-            priority=0,
-        )
-        zeroconf.unregister_all_services()
-        zeroconf.register_service(info, allow_name_change=True)
+    with patch("aiohomekit.zeroconf.ServiceBrowser") as mock_browser:
+        mock_browser.side_effect = browser
 
-        result = find_device_ip_and_port("00:00:02:00:00:02", 10)
+        with patch("aiohomekit.zeroconf.Zeroconf") as mock_zc:
+            yield mock_zc.return_value
 
-        zeroconf.unregister_all_services()
 
-        self.assertIsNotNone(result)
-        self.assertEqual(result["ip"], "127.0.0.1")
+def test_find_no_device(mock_zeroconf):
+    result = find_device_ip_and_port("00:00:00:00:00:00", 0)
+    assert result is None
 
-    def test_discover_homekit_devices(self):
-        zeroconf = Zeroconf()
-        desc = {
+
+def test_find_with_device(mock_zeroconf):
+    desc = {b"id": b"00:00:02:00:00:02"}
+    info = ServiceInfo(
+        "_hap._tcp.local.",
+        "foo1._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    mock_zeroconf.get_service_info.return_value = info
+
+    result = find_device_ip_and_port("00:00:02:00:00:02", 0)
+    assert result["ip"] == "127.0.0.1"
+
+
+def test_discover_homekit_devices(mock_zeroconf):
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"1",
+        b"ci": b"5",
+        b"sf": b"0",
+    }
+    info = ServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    mock_zeroconf.get_service_info.return_value = info
+
+    result = discover_homekit_devices(max_seconds=0)
+
+    assert result == [
+        {
+            "address": "127.0.0.1",
             "c#": "1",
+            "category": "Lightbulb",
+            "ci": "5",
+            "ff": 0,
+            "flags": "No support for HAP Pairing",
             "id": "00:00:01:00:00:02",
             "md": "unittest",
+            "name": "foo2._hap._tcp.local.",
+            "port": 1234,
+            "pv": "1.0",
             "s#": "1",
-            "ci": "5",
             "sf": "0",
+            "statusflags": "Accessory has been paired.",
         }
-        info = ServiceInfo(
-            "_hap._tcp.local.",
-            "foo2._hap._tcp.local.",
-            addresses=[socket.inet_aton("127.0.0.1")],
-            port=1234,
-            properties=desc,
-            weight=0,
-            priority=0,
-        )
-        zeroconf.unregister_all_services()
-        zeroconf.register_service(info, allow_name_change=True)
+    ]
 
-        result = discover_homekit_devices()
-        test_device = self.find_device(desc, result)
 
-        zeroconf.unregister_all_services()
+def test_discover_homekit_devices_missing_c(mock_zeroconf):
+    desc = {
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"1",
+        b"ci": b"5",
+        b"sf": b"0",
+    }
+    info = ServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    mock_zeroconf.get_service_info.return_value = info
 
-        self.assertIsNotNone(test_device)
+    result = discover_homekit_devices(max_seconds=0)
 
-    def test_discover_homekit_devices_missing_c(self):
-        zeroconf = Zeroconf()
-        desc = {
-            "id": "00:00:01:00:00:03",
-            "md": "unittest",
-            "s#": "1",
-            "ci": "5",
-            "sf": "0",
-        }
-        info = ServiceInfo(
-            "_hap._tcp.local.",
-            "foo3._hap._tcp.local.",
-            addresses=[socket.inet_aton("127.0.0.1")],
-            port=1234,
-            properties=desc,
-            weight=0,
-            priority=0,
-        )
-        zeroconf.unregister_all_services()
-        zeroconf.register_service(info, allow_name_change=True)
+    assert result == []
 
-        result = discover_homekit_devices()
-        test_device = self.find_device(desc, result)
 
-        zeroconf.unregister_all_services()
+def test_discover_homekit_devices_missing_md(mock_zeroconf):
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"s#": b"1",
+        b"ci": b"5",
+        b"sf": b"0",
+    }
+    info = ServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    mock_zeroconf.get_service_info.return_value = info
 
-        self.assertIsNone(test_device)
+    result = discover_homekit_devices(max_seconds=0)
 
-    def test_discover_homekit_devices_missing_md(self):
-        zeroconf = Zeroconf()
-        desc = {"c#": "1", "id": "00:00:01:00:00:04", "s#": "1", "ci": "5", "sf": "0"}
-        info = ServiceInfo(
-            "_hap._tcp.local.",
-            "foo4._hap._tcp.local.",
-            addresses=[socket.inet_aton("127.0.0.1")],
-            port=1234,
-            properties=desc,
-            weight=0,
-            priority=0,
-        )
-        zeroconf.unregister_all_services()
-        zeroconf.register_service(info, allow_name_change=True)
+    assert result == []
 
-        result = discover_homekit_devices()
-        test_device = self.find_device(desc, result)
 
-        zeroconf.unregister_all_services()
+def test_existing_key():
+    props = {"c#": "259"}
+    val = get_from_properties(props, "c#")
+    assert "259" == val
 
-        self.assertIsNone(test_device)
 
-    def test_existing_key(self):
-        props = {"c#": "259"}
-        val = get_from_properties(props, "c#")
-        self.assertEqual("259", val)
+def test_non_existing_key_no_default():
+    props = {"c#": "259"}
+    val = get_from_properties(props, "s#")
+    assert val is None
 
-    def test_non_existing_key_no_default(self):
-        props = {"c#": "259"}
-        val = get_from_properties(props, "s#")
-        self.assertEqual(None, val)
 
-    def test_non_existing_key_case_insensitive(self):
-        props = {"C#": "259", "heLLo": "World"}
-        val = get_from_properties(props, "c#")
-        self.assertEqual(None, val)
-        val = get_from_properties(props, "c#", case_sensitive=True)
-        self.assertEqual(None, val)
-        val = get_from_properties(props, "c#", case_sensitive=False)
-        self.assertEqual("259", val)
+def test_non_existing_key_case_insensitive():
+    props = {"C#": "259", "heLLo": "World"}
+    val = get_from_properties(props, "c#")
+    assert None is val
+    val = get_from_properties(props, "c#", case_sensitive=True)
+    assert None is val
+    val = get_from_properties(props, "c#", case_sensitive=False)
+    assert "259" == val
 
-        val = get_from_properties(props, "HEllo", case_sensitive=False)
-        self.assertEqual("World", val)
+    val = get_from_properties(props, "HEllo", case_sensitive=False)
+    assert "World" == val
 
-    def test_non_existing_key_with_default(self):
-        props = {"c#": "259"}
-        val = get_from_properties(props, "s#", default="1")
-        self.assertEqual("1", val)
 
-    def test_non_existing_key_with_default_non_string(self):
-        props = {"c#": "259"}
-        val = get_from_properties(props, "s#", default=1)
-        self.assertEqual("1", val)
+def test_non_existing_key_with_default():
+    props = {"c#": "259"}
+    val = get_from_properties(props, "s#", default="1")
+    assert "1" == val
+
+
+def test_non_existing_key_with_default_non_string():
+    props = {"c#": "259"}
+    val = get_from_properties(props, "s#", default=1)
+    assert "1" == val
