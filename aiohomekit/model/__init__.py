@@ -82,7 +82,7 @@ class Accessory(ToDictMixin):
         accessory.aid = data["aid"]
 
         for service_data in data["services"]:
-            service = accessory.add_service(service_data["type"])
+            service = accessory.add_service(service_data["type"], add_required=False)
             service.iid = service_data["iid"]
 
             for char_data in service_data["characteristics"]:
@@ -117,8 +117,10 @@ class Accessory(ToDictMixin):
         self._next_id += 1
         return self._next_id
 
-    def add_service(self, service_type: str, name: Optional[str] = None) -> Service:
-        service = Service(self, service_type, name=name)
+    def add_service(
+        self, service_type: str, name: Optional[str] = None, add_required: bool = False
+    ) -> Service:
+        service = Service(self, service_type, name=name, add_required=add_required)
         self.services.append(service)
         return service
 
