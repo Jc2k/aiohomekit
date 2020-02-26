@@ -15,7 +15,7 @@
 #
 
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .categories import Categories
 from .characteristics import (
@@ -117,8 +117,8 @@ class Accessory(ToDictMixin):
         self._next_id += 1
         return self._next_id
 
-    def add_service(self, service_type: str) -> Service:
-        service = Service(self, service_type)
+    def add_service(self, service_type: str, name: Optional[str] = None) -> Service:
+        service = Service(self, service_type, name=name)
         self.services.append(service)
         return service
 

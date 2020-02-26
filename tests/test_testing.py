@@ -2,8 +2,9 @@ from unittest import mock
 
 import pytest
 
-from aiohomekit.model import Accessories
+from aiohomekit.model import Accessories, Accessory
 from aiohomekit.model.characteristics import CharacteristicsTypes
+from aiohomekit.model.services import ServicesTypes
 from aiohomekit.testing import FakeController
 
 # Without this line you would have to mark your async tests with @pytest.mark.asyncio
@@ -55,6 +56,32 @@ async def test_update_named_service_events():
     pairing.testing.update_named_service("Light Strip", {CharacteristicsTypes.ON: True})
 
     assert callback.call_args_list == [mock.call({(1, 8): {"value": 1}})]
+
+
+async def test_update_named_service_events_manual_accessory():
+    accessories = Accessories()
+    accessory = Accessory(
+        name="TestLight",
+        manufacturer="Test Mfr",
+        model="Test Bulb",
+        serial_number="1234",
+        firmware_revision="1.1",
+    )
+    service = accessory.add_service(ServicesTypes.LIGHTBULB, name="Light Strip")
+    on_char = service.add_char(CharacteristicsTypes.ON)
+    accessories.add_accessory(accessory)
+
+    controller = FakeController()
+    pairing = await controller.add_paired_device(accessories, "alias")
+
+    callback = mock.Mock()
+    await pairing.subscribe([(accessory.aid, on_char.iid)])
+    pairing.dispatcher_connect(callback)
+
+    # Simulate that the state was changed on the device itself.
+    pairing.testing.update_named_service("Light Strip", {CharacteristicsTypes.ON: True})
+
+    assert callback.call_args_list == [mock.call({(accessory.aid, on_char.iid): {"value": 1}})]
 
 
 async def test_update_aid_iid_events():
