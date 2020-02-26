@@ -260,3 +260,8 @@ class FakeController(Controller):
 
     async def remove_pairing(self, alias: str) -> None:
         del self.pairings[alias]
+
+    def load_pairing(self, alias: str, pairing_data):
+        # This assumes a test has already preseed self.pairings with a fake via
+        # add_paired_device
+        return self.pairings[alias]
