@@ -200,15 +200,21 @@ class HomeKitConnection:
         # you are running some kind of long running service, so none auto-reconnecting doesnt make
         # sense
 
+        self._reconnector = None
+
     def start_reconnecter(self):
+        if self._reconnector:
+            return
+
         def done_callback(result):
+            self._reconnector = None
             try:
                 result.result()
             except Exception:
                 logger.exception("Unhandled error from reconnecter.")
 
-        reconnected = asyncio.ensure_future(self._reconnect())
-        reconnected.add_done_callback(done_callback)
+        self._reconnector = asyncio.ensure_future(self._reconnect())
+        self._reconnector.add_done_callback(done_callback)
 
     @classmethod
     async def connect(cls, *args, **kwargs):
