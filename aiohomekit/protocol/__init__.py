@@ -97,7 +97,9 @@ def create_ip_pair_verify_write(connection):
     return write_http
 
 
-def perform_pair_setup_part1() -> Generator[
+def perform_pair_setup_part1(
+    with_auth: bool = True,
+) -> Generator[
     Tuple[List[Tuple[int, bytearray]], List[int]], None, Tuple[bytearray, bytearray]
 ]:
     """
@@ -118,7 +120,7 @@ def perform_pair_setup_part1() -> Generator[
     logging.debug("#1 ios -> accessory: send SRP start request")
     request_tlv = [
         (TLV.kTLVType_State, TLV.M1),
-        (TLV.kTLVType_Method, TLV.PairSetupWithAuth),
+        (TLV.kTLVType_Method, TLV.PairSetupWithAuth if with_auth else TLV.PairSetup),
     ]
 
     step2_expectations = [
