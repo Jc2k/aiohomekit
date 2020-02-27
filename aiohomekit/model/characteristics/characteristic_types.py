@@ -181,6 +181,26 @@ class _CharacteristicsTypes(object):
     ZOOM_DIGITAL = "11D"
     ZOOM_OPTICAL = "11C"
 
+    class Vendor:
+        # Vendor specific extensions
+
+        # Elgato Eve
+        EVE_ENERGY_VOLTAGE = "E863F10A-079E-48FF-8F27-9C2605A29F52"
+        EVE_ENERGY_AMPERE = "E863F126-079E-48FF-8F27-9C2605A29F52"
+        EVE_ENERGY_WATT = "E863F10D-079E-48FF-8F27-9C2605A29F52"
+        EVE_ENERGY_KW_HOUR = "E863F10C-079E-48FF-8F27-9C2605A29F52"
+
+        # 0 = high, 4 = medium, 7 = low.
+        EVE_MOTION_SENSITIVITY = "E863F120-079E-48FF-8F27-9C2605A29F52"
+        # Persistence of motion indication in seconds
+        EVE_MOTION_DURATION = "E863F12D-079E-48FF-8F27-9C2605A29F52"
+
+        EVE_ROOM_AIR_QUALITY_PPM = "E863F10B-079E-48FF-8F27-9C2605A29F52"
+
+        # Koogeek
+        # Watts
+        KOOGEEK_REALTIME_ENERGY = "4AAAF931-0DEC-11E5-B939-0800200C9A66"
+
     def __init__(self) -> None:
         self.baseUUID = "-0000-1000-8000-0026BB765291"
         self._characteristics = {
