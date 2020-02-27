@@ -33,7 +33,8 @@ class TLV:
     M6 = bytearray(b"\x06")
 
     # Methods (see table 4-4 page 60)
-    PairSetup = bytearray(b"\x01")
+    PairSetup = bytearray(b"\x00")
+    PairSetupWithAuth = bytearray(b"\x01")
     PairVerify = bytearray(b"\x02")
     AddPairing = bytearray(b"\x03")
     RemovePairing = bytearray(b"\x04")

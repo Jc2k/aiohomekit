@@ -116,7 +116,10 @@ def perform_pair_setup_part1() -> Generator[
     # Step #1 ios --> accessory (send SRP start Request) (see page 39)
     #
     logging.debug("#1 ios -> accessory: send SRP start request")
-    request_tlv = [(TLV.kTLVType_State, TLV.M1), (TLV.kTLVType_Method, TLV.PairSetup)]
+    request_tlv = [
+        (TLV.kTLVType_State, TLV.M1),
+        (TLV.kTLVType_Method, TLV.PairSetupWithAuth),
+    ]
 
     step2_expectations = [
         TLV.kTLVType_State,
