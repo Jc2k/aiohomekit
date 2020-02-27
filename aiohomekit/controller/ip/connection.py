@@ -200,12 +200,22 @@ class HomeKitConnection:
         # you are running some kind of long running service, so none auto-reconnecting doesnt make
         # sense
 
+    def start_reconnecter(self):
+        def done_callback(result):
+            try:
+                result.result()
+            except Exception:
+                logger.exception("Unhandled error from reconnecter.")
+
+        reconnected = asyncio.ensure_future(self._reconnect())
+        reconnected.add_done_callback(done_callback)
+
     @classmethod
     async def connect(cls, *args, **kwargs):
         connection = cls(*args, **kwargs)
 
         if connection.auto_reconnect:
-            asyncio.ensure_future(connection._reconnect())
+            connection.start_reconnecter()
         else:
             await connection._connect_once()
 
@@ -379,7 +389,7 @@ class HomeKitConnection:
         self.when_connected = asyncio.Future()
 
         if self.auto_reconnect and not self.closing:
-            asyncio.ensure_future(self._reconnect())
+            self.start_reconnecter()
 
         if self.closing or not self.auto_reconnect:
             self.closed = True
@@ -420,7 +430,9 @@ class HomeKitConnection:
                 continue
 
             except Exception:
-                logger.exception("Unexpected error whilst trying to connect to accessory. Will retry.")
+                logger.exception(
+                    "Unexpected error whilst trying to connect to accessory. Will retry."
+                )
                 interval = self._retry_interval = min(60, 1.5 * self._retry_interval)
                 await asyncio.sleep(interval)
                 continue
