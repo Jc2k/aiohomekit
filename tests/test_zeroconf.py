@@ -20,6 +20,7 @@ from unittest.mock import patch
 import pytest
 from zeroconf import ServiceInfo
 
+from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.zeroconf import (
     discover_homekit_devices,
     find_device_ip_and_port,
@@ -92,7 +93,7 @@ def test_discover_homekit_devices(mock_zeroconf):
             "category": "Lightbulb",
             "ci": "5",
             "ff": 0,
-            "flags": "No support for HAP Pairing",
+            "flags": FeatureFlags(0),
             "id": "00:00:01:00:00:02",
             "md": "unittest",
             "name": "foo2._hap._tcp.local.",

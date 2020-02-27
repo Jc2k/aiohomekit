@@ -14,21 +14,10 @@
 # limitations under the License.
 #
 
-
-class _FeatureFlags(object):
-    """
-    Data taken form table 5-8 Bonjour TXT Record Feature Flags on page 69.
-    """
-
-    def __init__(self) -> None:
-        self._data = {0: "No support for HAP Pairing", 1: "Supports HAP Pairing"}
-
-    def __getitem__(self, item: int) -> str:
-        bit_value = item & 0x01
-        if bit_value in self._data:
-            return self._data[bit_value]
-
-        raise KeyError("Item {item} not found".format(item=item))
+import enum
 
 
-FeatureFlags = _FeatureFlags()
+class FeatureFlags(enum.IntFlag):
+
+    SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR = 1
+    SUPPORTS_SOFTWARE_AUTHENTICATION = 2

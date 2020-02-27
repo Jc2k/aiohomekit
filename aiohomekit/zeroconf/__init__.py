@@ -163,7 +163,7 @@ def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, in
     else:
         flags = 0
     data["ff"] = flags
-    data["flags"] = FeatureFlags[flags]
+    data["flags"] = FeatureFlags(flags)
 
     dev_id = get_from_properties(props, "id", case_sensitive=False)
     if dev_id:
