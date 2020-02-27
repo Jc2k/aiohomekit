@@ -419,6 +419,12 @@ class HomeKitConnection:
                 await asyncio.sleep(interval)
                 continue
 
+            except Exception:
+                logger.exception("Unexpected error whilst trying to connect to accessory. Will retry.")
+                interval = self._retry_interval = min(60, 1.5 * self._retry_interval)
+                await asyncio.sleep(interval)
+                continue
+
             self._retry_interval = 0.5
             self.when_connected.set_result(None)
             return
