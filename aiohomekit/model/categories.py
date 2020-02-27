@@ -41,16 +41,20 @@ class _Categories(object):
     IP_CAMERA = 17
     VIDEO_DOOR_BELL = 18
     AIR_PURIFIER = 19
-    # new categories from 2nd release of the apple spec
     HEATER = 20
-    AIRCONDITIONER = 21
+    AIR_CONDITIONER = 21
     HUMIDIFIER = 22
     DEHUMIDIFER = 23
+    APPLE_TV = 24
+    HOMEPOD = 25
+    SPEAKER = 26
+    AIRPORT = 27
     SPRINKLER = 28
     FAUCET = 29
-    SHOWER_SYSTEM = 30
-    TV = 31
+    SHOWER_HEAD = 30
+    TELEVISION = 31
     REMOTE = 32
+    ROUTER = 33
 
     def __init__(self) -> None:
         self._categories = {
@@ -74,14 +78,19 @@ class _Categories(object):
             _Categories.VIDEO_DOOR_BELL: "Video Door Bell",
             _Categories.AIR_PURIFIER: "Air Purifier",
             _Categories.HEATER: "Heater",
-            _Categories.AIRCONDITIONER: "Air Conditioner",
+            _Categories.AIR_CONDITIONER: "Air Conditioner",
             _Categories.HUMIDIFIER: "Humidifier",
             _Categories.DEHUMIDIFER: "Dehumidifier",
+            _Categories.APPLE_TV: "Apple TV",
+            _Categories.HOMEPOD: "HomePod",
+            _Categories.SPEAKER: "Speaker",
+            _Categories.AIRPORT: "AirPort",
             _Categories.SPRINKLER: "Sprinkler",
             _Categories.FAUCET: "Faucet",
-            _Categories.SHOWER_SYSTEM: "Shower System",
-            _Categories.TV: "Television",
+            _Categories.SHOWER_HEAD: "Shower Head",
+            _Categories.TELEVISION: "Television",
             _Categories.REMOTE: "Remote",
+            _Categories.ROUTER: "Router",
         }
 
         self._categories_rev = {self._categories[k]: k for k in self._categories.keys()}
@@ -102,7 +111,7 @@ class _Categories(object):
         if item in self._categories_rev:
             return self._categories_rev[item]
 
-        raise KeyError("Item {item} not found".format(item=item))
+        return "Unknown"
 
 
 Categories = _Categories()

@@ -1,4 +1,4 @@
-#! sh
+#! /bin/sh
 set -e
 
 python -m black tests aiohomekit
