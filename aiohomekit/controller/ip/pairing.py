@@ -105,7 +105,7 @@ class IpPairing(AbstractPairing):
         Close the pairing's communications. This closes the session.
         """
         if self.connection:
-            self.connection.close()
+            await self.connection.close()
             self.connection = None
 
         await asyncio.sleep(0)

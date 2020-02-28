@@ -115,7 +115,7 @@ class IpDiscovery(object):
 
             obj = self.controller.pairings[alias] = IpPairing(pairing)
 
-            self.connection.close()
+            await self.connection.close()
 
             return obj
 

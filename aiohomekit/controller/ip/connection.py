@@ -216,6 +216,13 @@ class HomeKitConnection:
         self._reconnector = asyncio.ensure_future(self._reconnect())
         self._reconnector.add_done_callback(done_callback)
 
+    async def stop_reconnector(self):
+        if not self._reconnector:
+            return
+        self._reconnector.cancel()
+        await self._reconnector
+        self._reconnector = None
+
     @classmethod
     async def connect(cls, *args, **kwargs):
         connection = cls(*args, **kwargs)
@@ -370,11 +377,13 @@ class HomeKitConnection:
             return False
         return isinstance(self.protocol, SecureHomeKitProtocol)
 
-    def close(self):
+    async def close(self):
         """
         Close the connection transport.
         """
         self.closing = True
+
+        await self.stop_reconnector()
 
         if self.transport:
             self.transport.close()
@@ -425,7 +434,7 @@ class HomeKitConnection:
             except AuthenticationError as e:
                 # Authentication errors should bubble up because auto-reconnect is unlikely to help
                 self.when_connected.set_exception(e)
-                continue
+                return
 
             except HomeKitException:
                 interval = self._retry_interval = min(60, 1.5 * self._retry_interval)
