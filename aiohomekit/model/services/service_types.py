@@ -38,6 +38,7 @@ class _ServicesTypes(object):
     HEATER_COOLER = "BC"
     HUMIDIFIER_DEHUMIDIFIER = "BD"
     HUMIDITY_SENSOR = "82"
+    INPUT_SOURCE = "D9"
     IRRIGATION_SYSTEM = "CF"
     LEAK_SENSOR = "83"
     LIGHT_SENSOR = "84"
@@ -55,6 +56,7 @@ class _ServicesTypes(object):
     SPEAKER = "113"
     STATELESS_PROGRAMMABLE_SWITCH = "89"
     SWITCH = "49"
+    TELEVISION = "D8"
     TEMPERATURE_SENSOR = "8A"
     THERMOSTAT = "4A"
     VALVE = "D0"
@@ -102,6 +104,8 @@ class _ServicesTypes(object):
             "CF": "public.hap.service.irrigation-system",
             "D0": "public.hap.service.valve",
             "D7": "public.hap.service.faucet",
+            "D8": "public.hap.service.television",
+            "D9": "public.hap.service.input-source",
             "110": "public.hap.service.camera-rtp-stream-management",
             "112": "public.hap.service.microphone",
             "113": "public.hap.service.speaker",
