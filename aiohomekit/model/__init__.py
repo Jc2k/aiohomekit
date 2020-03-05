@@ -57,7 +57,9 @@ class Services:
 
         if characteristics:
             for characteristic, value in characteristics.items():
-                pass
+                matches = filter(
+                    lambda service: service[characteristic].value == value, matches
+                )
 
         return matches
 
