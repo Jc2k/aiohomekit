@@ -15,7 +15,7 @@
 #
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 from .categories import Categories
 from .characteristics import (
@@ -36,6 +36,42 @@ __all__ = [
 ]
 
 
+class Services:
+    def __init__(self):
+        self._services: List[Service] = []
+
+    def __iter__(self):
+        return iter(self._services)
+
+    def iid(self, iid: int) -> Service:
+        return next(filter(lambda service: service.iid == iid, self._services))
+
+    def filter(
+        self, *, service_type: str = None, characteristics: Dict[str, str] = None
+    ) -> Iterable[Service]:
+        matches = iter(self._services)
+
+        if service_type:
+            service_type = ServicesTypes.get_uuid(service_type)
+            matches = filter(lambda service: service.type == service_type, matches)
+
+        if characteristics:
+            for characteristic, value in characteristics.items():
+                pass
+
+        return matches
+
+    def one(
+        self, *, service_type: str = None, characteristics: Dict[str, str] = None
+    ) -> Service:
+        return next(
+            self.filter(service_type=service_type, characteristics=characteristics)
+        )
+
+    def append(self, service: Service):
+        self._services.append(service)
+
+
 class Accessory(ToDictMixin):
     def __init__(
         self,
@@ -46,7 +82,7 @@ class Accessory(ToDictMixin):
         firmware_revision: str,
     ) -> None:
         self.aid = get_id()
-        self.services = []
+        self.services = Services()
 
         self._next_id = 0
 
@@ -78,7 +114,7 @@ class Accessory(ToDictMixin):
     @classmethod
     def setup_from_dict(cls, data: Dict[str, Any]) -> "Accessory":
         accessory = cls("Name", "Mfr", "Model", "0001", "0.1")
-        accessory.services = []
+        accessory.services = Services()
         accessory.aid = data["aid"]
 
         for service_data in data["services"]:
@@ -110,6 +146,12 @@ class Accessory(ToDictMixin):
 
                 char = service.add_char(char_data["type"], **kwargs)
                 char.iid = char_data["iid"]
+
+        for service_data in data["services"]:
+            for linked_service in service_data.get("linked", []):
+                accessory.services.iid(service_data["iid"]).add_linked_service(
+                    accessory.services.iid(linked_service)
+                )
 
         return accessory
 

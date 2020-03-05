@@ -15,15 +15,27 @@
 #
 
 from aiohomekit.model import Accessory
+from aiohomekit.model.services import ServicesTypes
 
 
 def test_hue_bridge():
     a = Accessory.setup_accessories_from_file("tests/fixtures/hue_bridge.json")
 
-    char = a[0].services[0].characteristics[0]
+    service = a[0].services.one(service_type=ServicesTypes.ACCESSORY_INFORMATION)
+    char = service.characteristics[0]
     assert char.iid == 37
     assert char.perms == ["pr"]
     assert char.format == "string"
     assert char.value == "Hue dimmer switch"
     assert char.description == "Name"
     assert char.maxLen == 64
+
+
+def test_linked_services():
+    a = Accessory.setup_accessories_from_file("tests/fixtures/hue_bridge.json")
+
+    service = a[0].services.one(
+        service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH
+    )
+    assert len(service.linked) > 0
+    assert service.linked[0].short_type == ServicesTypes.SERVICE_LABEL

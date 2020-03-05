@@ -42,6 +42,7 @@ class Service(ToDictMixin):
         self.iid = accessory.get_next_id()
         self.characteristics = []
         self.characteristics_by_type = {}
+        self.linked = []
 
         if name:
             char = self.add_char(CharacteristicsTypes.NAME)
@@ -51,6 +52,13 @@ class Service(ToDictMixin):
             for required in services[self.type]["required"]:
                 if required not in self.characteristics_by_type:
                     self.add_char(required)
+
+    @property
+    def short_type(self):
+        try:
+            return ServicesTypes.get_short_uuid(self.type)
+        except KeyError:
+            return self.type
 
     def __getitem__(self, key):
         try:
@@ -65,6 +73,9 @@ class Service(ToDictMixin):
         self.characteristics_by_type[char.type] = char
         return char
 
+    def add_linked_service(self, service: "Service"):
+        self.linked.append(service)
+
     def to_accessory_and_service_list(self):
         characteristics_list = []
         for c in self.characteristics:
@@ -74,4 +85,9 @@ class Service(ToDictMixin):
             "type": self.type,
             "characteristics": characteristics_list,
         }
+
+        linked = [service.iid for service in self.linked]
+        if linked:
+            d["linked"] = linked
+
         return d
