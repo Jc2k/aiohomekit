@@ -60,7 +60,7 @@ async def test_update_named_service_events():
 
 async def test_update_named_service_events_manual_accessory():
     accessories = Accessories()
-    accessory = Accessory(
+    accessory = Accessory.create_with_info(
         name="TestLight",
         manufacturer="Test Mfr",
         model="Test Bulb",
@@ -88,7 +88,7 @@ async def test_update_named_service_events_manual_accessory():
 
 async def test_update_named_service_events_manual_accessory_auto_requires():
     accessories = Accessories()
-    accessory = Accessory(
+    accessory = Accessory.create_with_info(
         name="TestLight",
         manufacturer="Test Mfr",
         model="Test Bulb",

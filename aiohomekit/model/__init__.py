@@ -75,18 +75,21 @@ class Services:
 
 
 class Accessory(ToDictMixin):
-    def __init__(
-        self,
+    def __init__(self):
+        self.aid = get_id()
+        self._next_id = 0
+        self.services = Services()
+
+    @classmethod
+    def create_with_info(
+        cls,
         name: str,
         manufacturer: str,
         model: str,
         serial_number: str,
         firmware_revision: str,
-    ) -> None:
-        self.aid = get_id()
-        self.services = Services()
-
-        self._next_id = 0
+    ) -> "Accessory":
+        self = cls()
 
         accessory_info = self.add_service(ServicesTypes.ACCESSORY_INFORMATION)
         accessory_info.add_char(CharacteristicsTypes.IDENTIFY, description="Identify")
@@ -98,10 +101,11 @@ class Accessory(ToDictMixin):
             CharacteristicsTypes.FIRMWARE_REVISION, value=firmware_revision
         )
 
+        return self
+
     @classmethod
-    def setup_from_dict(cls, data: Dict[str, Any]) -> "Accessory":
-        accessory = cls("Name", "Mfr", "Model", "0001", "0.1")
-        accessory.services = Services()
+    def create_from_dict(cls, data: Dict[str, Any]) -> "Accessory":
+        accessory = cls()
         accessory.aid = data["aid"]
 
         for service_data in data["services"]:
@@ -180,7 +184,7 @@ class Accessories(ToDictMixin):
     def from_list(cls, accessories):
         self = cls()
         for accessory in accessories:
-            self.add_accessory(Accessory.setup_from_dict(accessory))
+            self.add_accessory(Accessory.create_from_dict(accessory))
         return self
 
     def add_accessory(self, accessory: Accessory) -> None:

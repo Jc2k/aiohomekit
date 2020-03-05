@@ -54,7 +54,9 @@ def controller_and_unpaired_accessory(request, event_loop):
     model_mixin.id_counter = 0
 
     httpd = AccessoryServer(config_file.name, None)
-    accessory = Accessory("Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1")
+    accessory = Accessory.create_with_info(
+        "Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1"
+    )
     lightBulbService = accessory.add_service(ServicesTypes.LIGHTBULB)
     lightBulbService.add_char(CharacteristicsTypes.ON, value=False)
     httpd.add_accessory(accessory)
@@ -118,7 +120,9 @@ def controller_and_paired_accessory(request, event_loop):
     model_mixin.id_counter = 0
 
     httpd = AccessoryServer(config_file.name, None)
-    accessory = Accessory("Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1")
+    accessory = Accessory.create_with_info(
+        "Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1"
+    )
     lightBulbService = accessory.add_service(ServicesTypes.LIGHTBULB)
     lightBulbService.add_char(CharacteristicsTypes.ON, value=False)
     httpd.add_accessory(accessory)
