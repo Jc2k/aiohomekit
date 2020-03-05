@@ -21,7 +21,7 @@ from aiohomekit.model.services import ServicesTypes
 
 def test_hue_bridge():
     a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
-    service = a.services.one(service_type=ServicesTypes.ACCESSORY_INFORMATION)
+    service = a.services.first(service_type=ServicesTypes.ACCESSORY_INFORMATION)
     char = service.characteristics[0]
     assert char.iid == 37
     assert char.perms == ["pr"]
@@ -34,7 +34,7 @@ def test_hue_bridge():
 def test_linked_services():
     a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
 
-    service = a.services.one(service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH)
+    service = a.services.first(service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH)
     assert len(service.linked) > 0
     assert service.linked[0].short_type == ServicesTypes.SERVICE_LABEL
 
@@ -43,9 +43,30 @@ def test_get_by_name():
     name = "Hue dimmer switch button 3"
     a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
 
-    service = a.services.one(
+    service = a.services.first(
         service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH,
         characteristics={CharacteristicsTypes.NAME: name},
     )
 
     assert service[CharacteristicsTypes.NAME].value == name
+
+
+def test_get_by_linked():
+    name = "Hue dimmer switch button 3"
+    a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
+
+    switch = a.services.first(
+        service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH,
+        characteristics={CharacteristicsTypes.NAME: name},
+    )
+
+    service_label = a.services.first(parent_service=switch)
+    assert service_label[CharacteristicsTypes.SERVICE_LABEL_NAMESPACE].value == 1
+
+    switch = a.services.first(
+        service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH,
+        characteristics={CharacteristicsTypes.NAME: name},
+        child_service=service_label,
+    )
+
+    assert switch[CharacteristicsTypes.NAME].value == "Hue dimmer switch button 3"

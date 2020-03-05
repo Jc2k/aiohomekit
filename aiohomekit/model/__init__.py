@@ -47,7 +47,12 @@ class Services:
         return next(filter(lambda service: service.iid == iid, self._services))
 
     def filter(
-        self, *, service_type: str = None, characteristics: Dict[str, str] = None
+        self,
+        *,
+        service_type: str = None,
+        characteristics: Dict[str, str] = None,
+        parent_service: Service = None,
+        child_service: Service = None,
     ) -> Iterable[Service]:
         matches = iter(self._services)
 
@@ -61,14 +66,33 @@ class Services:
                     lambda service: service[characteristic].value == value, matches
                 )
 
+        if parent_service:
+            matches = filter(lambda service: service in parent_service.linked, matches)
+
+        if child_service:
+            matches = filter(lambda service: child_service in service.linked, matches)
+
         return matches
 
-    def one(
-        self, *, service_type: str = None, characteristics: Dict[str, str] = None
+    def first(
+        self,
+        *,
+        service_type: str = None,
+        characteristics: Dict[str, str] = None,
+        parent_service: Service = None,
+        child_service: Service = None,
     ) -> Service:
-        return next(
-            self.filter(service_type=service_type, characteristics=characteristics)
-        )
+        try:
+            return next(
+                self.filter(
+                    service_type=service_type,
+                    characteristics=characteristics,
+                    parent_service=parent_service,
+                    child_service=child_service,
+                )
+            )
+        except StopIteration:
+            return None
 
     def append(self, service: Service):
         self._services.append(service)
