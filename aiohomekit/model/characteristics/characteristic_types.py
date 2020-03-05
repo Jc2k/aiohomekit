@@ -81,6 +81,7 @@ class _CharacteristicsTypes(object):
     HORIZONTAL_TILT_TARGET = "7B"
     HUE = "13"
     IDENTIFY = "14"
+    IDENTIFIER = "E6"
     IMAGE_MIRROR = "11F"
     IMAGE_ROTATION = "11E"
     INPUT_EVENT = "73"
@@ -322,6 +323,7 @@ class _CharacteristicsTypes(object):
             "E1": "public.hap.characteristic.remote-key",
             "E2": "public.hap.characteristic.picture-mode",
             "E3": "public.hap.characteristic.configured-name",
+            "E6": "public.hap.characteristic.identifier",
             "E7": "public.hap.characteristic.active-identifier",
             "E8": "public.hap.characteristic.sleep-discovery-mode",
             "114": "public.hap.characteristic.supported-video-stream-configuration",
