@@ -99,21 +99,6 @@ class Accessory(ToDictMixin):
         )
 
     @classmethod
-    def setup_accessories_from_file(cls, path: str) -> List["Accessory"]:
-        with open(path, "r") as fp:
-            accessories_json = json.load(fp)
-        return cls.setup_accessories_from_list(accessories_json)
-
-    @classmethod
-    def setup_accessories_from_list(
-        cls, data: List[Dict[str, Any]]
-    ) -> List["Accessory"]:
-        accessories = []
-        for accessory_data in data:
-            accessories.append(cls.setup_from_dict(accessory_data))
-        return accessories
-
-    @classmethod
     def setup_from_dict(cls, data: Dict[str, Any]) -> "Accessory":
         accessory = cls("Name", "Mfr", "Model", "0001", "0.1")
         accessory.services = Services()
@@ -183,11 +168,19 @@ class Accessories(ToDictMixin):
     def __iter__(self):
         return iter(self.accessories)
 
+    def __getitem__(self, idx):
+        return self.accessories[idx]
+
     @classmethod
     def from_file(cls, path):
+        with open(path) as fp:
+            return cls.from_list(json.load(fp))
+
+    @classmethod
+    def from_list(cls, accessories):
         self = cls()
-        for accessory in Accessory.setup_accessories_from_file(path):
-            self.add_accessory(accessory)
+        for accessory in accessories:
+            self.add_accessory(Accessory.setup_from_dict(accessory))
         return self
 
     def add_accessory(self, accessory: Accessory) -> None:
@@ -202,3 +195,6 @@ class Accessories(ToDictMixin):
     def to_accessory_and_service_list(self):
         d = {"accessories": self.serialize()}
         return json.dumps(d)
+
+    def aid(self, aid) -> Accessory:
+        return next(filter(lambda accessory: accessory.aid == aid, self.accessories))

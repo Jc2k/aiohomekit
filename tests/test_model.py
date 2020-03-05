@@ -14,15 +14,14 @@
 # limitations under the License.
 #
 
-from aiohomekit.model import Accessory
+from aiohomekit.model import Accessories
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
 
 
 def test_hue_bridge():
-    a = Accessory.setup_accessories_from_file("tests/fixtures/hue_bridge.json")
-
-    service = a[0].services.one(service_type=ServicesTypes.ACCESSORY_INFORMATION)
+    a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
+    service = a.services.one(service_type=ServicesTypes.ACCESSORY_INFORMATION)
     char = service.characteristics[0]
     assert char.iid == 37
     assert char.perms == ["pr"]
@@ -33,20 +32,18 @@ def test_hue_bridge():
 
 
 def test_linked_services():
-    a = Accessory.setup_accessories_from_file("tests/fixtures/hue_bridge.json")
+    a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
 
-    service = a[0].services.one(
-        service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH
-    )
+    service = a.services.one(service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH)
     assert len(service.linked) > 0
     assert service.linked[0].short_type == ServicesTypes.SERVICE_LABEL
 
 
 def test_get_by_name():
     name = "Hue dimmer switch button 3"
-    a = Accessory.setup_accessories_from_file("tests/fixtures/hue_bridge.json")
+    a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
 
-    service = a[0].services.one(
+    service = a.services.one(
         service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH,
         characteristics={CharacteristicsTypes.NAME: name},
     )
