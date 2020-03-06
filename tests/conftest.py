@@ -77,7 +77,7 @@ async def controller_and_unpaired_accessory(request, event_loop):
             c.return_value = controller
             yield controller
 
-    await controller.shutdown()
+    await asyncio.shield(controller.shutdown())
 
     httpd.shutdown()
     t.join()
@@ -153,7 +153,7 @@ async def controller_and_paired_accessory(request, event_loop):
             c.return_value = controller
             yield controller
 
-    await controller.shutdown()
+    await asyncio.shield(controller.shutdown())
 
     httpd.shutdown()
     t.join()
@@ -165,24 +165,15 @@ def pairing(controller_and_paired_accessory):
 
 
 @pytest.fixture
-def pairings(request, event_loop, controller_and_paired_accessory):
+async def pairings(request, event_loop, controller_and_paired_accessory):
     """ Returns a pairing of pairngs. """
     left = controller_and_paired_accessory.get_pairings()["alias"]
 
     right = IpPairing(left.pairing_data)
 
-    # This syntax is awkward. We can't use the syntax proposed by the pytest-asyncio
-    # docs because we have to support python 3.5
-    def cleanup():
-        async def async_cleanup():
-            await asyncio.shield(right.close())
-
-        event_loop.run_until_complete(async_cleanup())
-
-    request.addfinalizer(cleanup)
-
     yield (left, right)
 
+    await asyncio.shield(right.close())
 
 @pytest.fixture(autouse=True)
 def configure_test_logging(caplog):
