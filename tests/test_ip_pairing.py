@@ -2,8 +2,6 @@ import asyncio
 
 import pytest
 
-from aiohomekit.exceptions import AccessoryDisconnectedError
-
 # Without this line you would have to mark your async tests with @pytest.mark.asyncio
 pytestmark = pytest.mark.asyncio
 
@@ -34,17 +32,6 @@ async def test_get_characteristics_after_failure(pairing):
     assert characteristics[(1, 9)] == {"value": False}
 
     pairing.connection.transport.close()
-
-    # The connection is closed but the reconnection mechanism hasn't kicked in yet.
-    # Attempts to use the connection should fail.
-    with pytest.raises(AccessoryDisconnectedError):
-        characteristics = await pairing.get_characteristics([(1, 9)])
-
-    # We can't await a close - this lets the coroutine fall into the 'reactor'
-    # and process queued work which will include the real transport.close work.
-    await asyncio.sleep(0)
-
-    characteristics = await pairing.get_characteristics([(1, 9)])
 
     assert characteristics[(1, 9)] == {"value": False}
 

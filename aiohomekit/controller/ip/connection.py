@@ -182,13 +182,11 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
 
 
 class HomeKitConnection:
-    def __init__(self, owner, host, port, auto_reconnect=True):
+    def __init__(self, owner, host, port):
         self.owner = owner
         self.host = host
         self.port = port
-        self.auto_reconnect = auto_reconnect
 
-        self.when_connected = asyncio.Future()
         self.closing = False
         self.closed = False
         self._retry_interval = 0.5
@@ -196,43 +194,43 @@ class HomeKitConnection:
         self.transport = None
         self.protocol = None
 
-        # FIXME: Assume auto-reconnecting? If you are using the asyncio its probably because
-        # you are running some kind of long running service, so none auto-reconnecting doesnt make
-        # sense
+        self._connector = None
 
-        self._reconnector = None
+        self.is_secure = False
 
-    def start_reconnecter(self):
-        if self._reconnector:
+    @property
+    def is_connected(self):
+        return self.transport and self.protocol and not self.closed
+
+    def start_connector(self):
+        if self._connector:
             return
 
         def done_callback(result):
-            self._reconnector = None
+            self._connector = None
             try:
                 result.result()
+            except asyncio.CancelledError:
+                pass
             except Exception:
-                logger.exception("Unhandled error from reconnecter.")
+                logger.exception("Unhandled error from connecter.")
 
-        self._reconnector = asyncio.ensure_future(self._reconnect())
-        self._reconnector.add_done_callback(done_callback)
+        self._connector = asyncio.ensure_future(self._reconnect())
+        self._connector.add_done_callback(done_callback)
 
-    async def stop_reconnector(self):
-        if not self._reconnector:
+    async def ensure_connection(self):
+        if self.is_connected:
             return
-        self._reconnector.cancel()
-        await self._reconnector
-        self._reconnector = None
+        self.closing = False
+        self.start_connector()
+        await self._connector
 
-    @classmethod
-    async def connect(cls, *args, **kwargs):
-        connection = cls(*args, **kwargs)
-
-        if connection.auto_reconnect:
-            connection.start_reconnecter()
-        else:
-            await connection._connect_once()
-
-        return connection
+    async def stop_connector(self):
+        if not self._connector:
+            return
+        self._connector.cancel()
+        await self._connector
+        self._connector = None
 
     async def get(self, target):
         """
@@ -371,43 +369,35 @@ class HomeKitConnection:
 
         return await self.protocol.send_bytes(request_bytes)
 
-    @property
-    def is_secure(self):
-        if not self.protocol:
-            return False
-        return isinstance(self.protocol, SecureHomeKitProtocol)
-
     async def close(self):
         """
         Close the connection transport.
         """
         self.closing = True
 
-        await self.stop_reconnector()
+        await self.stop_connector()
 
         if self.transport:
             self.transport.close()
+
+        self.protocol = None
+        self.transport = None
+        self.is_secure = None
 
     def _connection_lost(self, exception):
         """
         Called by a Protocol instance when eof_received happens.
         """
-        logger.info("Connection %r lost.", self)
+        logger.debug("Connection %r lost.", self)
 
-        if not self.when_connected.done():
-            self.when_connected.set_exception(
-                AccessoryDisconnectedError(
-                    "Current connection attempt failed and will be retried",
-                )
-            )
+        if not self.closing:
+            self.start_connector()
 
-        self.when_connected = asyncio.Future()
-
-        if self.auto_reconnect and not self.closing:
-            self.start_reconnecter()
-
-        if self.closing or not self.auto_reconnect:
+        if self.closing:
             self.closed = True
+
+        self.transport = None
+        self.protocol = None
 
     async def _connect_once(self):
         loop = asyncio.get_event_loop()
@@ -431,10 +421,9 @@ class HomeKitConnection:
             try:
                 await self._connect_once()
 
-            except AuthenticationError as e:
+            except AuthenticationError:
                 # Authentication errors should bubble up because auto-reconnect is unlikely to help
-                self.when_connected.set_exception(e)
-                return
+                raise
 
             except HomeKitException:
                 interval = self._retry_interval = min(60, 1.5 * self._retry_interval)
@@ -453,7 +442,6 @@ class HomeKitConnection:
                 continue
 
             self._retry_interval = 0.5
-            self.when_connected.set_result(None)
             return
 
     def event_received(self, event):
@@ -484,7 +472,13 @@ class SecureHomeKitConnection(HomeKitConnection):
         )
         self.pairing_data = pairing_data
 
+    @property
+    def is_connected(self):
+        return super().is_connected and self.is_secure
+
     async def _connect_once(self):
+        self.is_secure = False
+
         await super()._connect_once()
 
         state_machine = get_session_keys(self.pairing_data)
@@ -505,6 +499,10 @@ class SecureHomeKitConnection(HomeKitConnection):
         self.protocol = SecureHomeKitProtocol(self, a2c_key, c2a_key,)
         self.transport.set_protocol(self.protocol)
         self.protocol.connection_made(self.transport)
+
+        self.is_secure = True
+
+        logger.debug("Secure connection to %s:%s established", self.host, self.port)
 
         if self.owner:
             await self.owner.connection_made(True)

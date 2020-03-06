@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-import asyncio
 import uuid
 
 from aiohomekit.exceptions import AlreadyPairedError
@@ -39,29 +38,19 @@ class IpDiscovery(object):
         self.device_id = discovery_data["id"]
         self.info = discovery_data
 
-        self.connection = None
-        self.connect_lock = asyncio.Lock()
+        self.connection = HomeKitConnection(None, self.host, self.port)
 
     def __repr__(self):
         return "IPDiscovery(host={self.host}, port={self.port})".format(self=self)
 
     async def _ensure_connected(self):
-        if not self.connection:
-            async with self.connect_lock:
-                if not self.connection:
-                    self.connection = await HomeKitConnection.connect(
-                        None, self.host, self.port,
-                    )
-
-        await self.connection.when_connected
+        await self.connection.ensure_connection()
 
     async def close(self):
         """
         Close the pairing's communications. This closes the session.
         """
-        if self.connection:
-            self.connection.close()
-            self.connection = None
+        await self.connection.close()
 
     async def perform_pairing(self, alias, pin):
         self.controller.check_pin_format(pin)

@@ -66,8 +66,7 @@ class IpPairing(AbstractPairing):
         super().__init__()
 
         self.pairing_data = pairing_data
-        self.connection = None
-        self.connect_lock = asyncio.Lock()
+        self.connection = SecureHomeKitConnection(self, self.pairing_data)
 
     def event_received(self, event):
         event = format_characteristic_list(event)
@@ -86,28 +85,19 @@ class IpPairing(AbstractPairing):
             await self.subscribe(self.subscriptions)
 
     async def _ensure_connected(self):
-        if not self.connection:
-            async with self.connect_lock:
-                if not self.connection:
-                    self.connection = await SecureHomeKitConnection.connect(
-                        self, self.pairing_data
-                    )
-
         try:
-            await asyncio.wait_for(self.connection.when_connected, 10)
+            await asyncio.wait_for(self.connection.ensure_connection(), 10)
         except asyncio.TimeoutError:
             raise AccessoryDisconnectedError(
                 "Timeout while waiting for connection to device"
             )
+        assert self.connection.is_connected
 
     async def close(self):
         """
         Close the pairing's communications. This closes the session.
         """
-        if self.connection:
-            await self.connection.close()
-            self.connection = None
-
+        await self.connection.close()
         await asyncio.sleep(0)
 
     async def list_accessories_and_characteristics(self):
@@ -435,7 +425,7 @@ class IpPairing(AbstractPairing):
         if len(data) == 1 and data[0][0] == TLV.kTLVType_State and data[0][1] == TLV.M2:
             return True
 
-        self.connection.transport.close()
+        await self.connection.close()
 
         if (
             data[1][0] == TLV.kTLVType_Error
