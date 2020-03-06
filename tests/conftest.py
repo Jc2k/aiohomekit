@@ -174,6 +174,7 @@ async def pairing(controller_and_paired_accessory):
     except asyncio.CancelledError:
         pass
 
+
 @pytest.fixture
 async def pairings(request, controller_and_paired_accessory, loop):
     """ Returns a pairing of pairngs. """
