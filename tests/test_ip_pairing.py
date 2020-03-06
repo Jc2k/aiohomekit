@@ -28,6 +28,8 @@ async def test_get_characteristics_after_failure(pairing):
 
     pairing.connection.transport.close()
 
+    characteristics = await pairing.get_characteristics([(1, 9)])
+
     assert characteristics[(1, 9)] == {"value": False}
 
 

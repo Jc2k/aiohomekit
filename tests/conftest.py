@@ -77,7 +77,10 @@ async def controller_and_unpaired_accessory(request, loop):
             c.return_value = controller
             yield controller
 
-    await asyncio.shield(controller.shutdown())
+    try:
+        await asyncio.shield(controller.shutdown())
+    except asyncio.CancelledError:
+        pass
 
     httpd.shutdown()
     t.join()
@@ -153,16 +156,23 @@ async def controller_and_paired_accessory(request, loop):
             c.return_value = controller
             yield controller
 
-    await asyncio.shield(controller.shutdown())
+    try:
+        await asyncio.shield(controller.shutdown())
+    except asyncio.CancelledError:
+        pass
 
     httpd.shutdown()
     t.join()
 
 
 @pytest.fixture
-def pairing(controller_and_paired_accessory):
-    return controller_and_paired_accessory.get_pairings()["alias"]
-
+async def pairing(controller_and_paired_accessory):
+    pairing = controller_and_paired_accessory.get_pairings()["alias"]
+    yield pairing
+    try:
+        await pairing.close()
+    except asyncio.CancelledError:
+        pass
 
 @pytest.fixture
 async def pairings(request, controller_and_paired_accessory, loop):
@@ -173,7 +183,10 @@ async def pairings(request, controller_and_paired_accessory, loop):
 
     yield (left, right)
 
-    await asyncio.shield(right.close())
+    try:
+        await asyncio.shield(right.close())
+    except asyncio.CancelledError:
+        pass
 
 
 @pytest.fixture(autouse=True)
