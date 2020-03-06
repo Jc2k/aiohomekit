@@ -1,3 +1,4 @@
+import asyncio
 import errno
 import logging
 import socket
@@ -70,7 +71,7 @@ def controller_and_unpaired_accessory(request, event_loop):
     # docs because we have to support python 3.5
     def cleanup():
         async def async_cleanup():
-            await controller.shutdown()
+            await asyncio.shield(controller.shutdown())
 
         event_loop.run_until_complete(async_cleanup())
 
@@ -155,7 +156,7 @@ def controller_and_paired_accessory(request, event_loop):
     # docs because we have to support python 3.5
     def cleanup():
         async def async_cleanup():
-            await controller.shutdown()
+            await asyncio.shield(controller.shutdown())
 
         event_loop.run_until_complete(async_cleanup())
 
@@ -192,7 +193,7 @@ def pairings(request, event_loop, controller_and_paired_accessory):
     # docs because we have to support python 3.5
     def cleanup():
         async def async_cleanup():
-            await right.close()
+            await asyncio.shield(right.close())
 
         event_loop.run_until_complete(async_cleanup())
 
