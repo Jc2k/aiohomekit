@@ -19,6 +19,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from .categories import Categories
 from .characteristics import (
+    Characteristic,
     CharacteristicFormats,
     CharacteristicPermissions,
     CharacteristicsTypes,
@@ -98,11 +99,24 @@ class Services:
         self._services.append(service)
 
 
+class Characteristics:
+    def __init__(self, services):
+        self._services = services
+
+    def iid(self, iid: int) -> Optional[Characteristic]:
+        for service in self._services:
+            for char in service.characteristics:
+                if char.iid == iid:
+                    return char
+        return None
+
+
 class Accessory(ToDictMixin):
     def __init__(self):
         self.aid = get_id()
         self._next_id = 0
         self.services = Services()
+        self.characteristics = Characteristics(self.services)
 
     @classmethod
     def create_with_info(
@@ -200,12 +214,12 @@ class Accessories(ToDictMixin):
         return self.accessories[idx]
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, path) -> "Accessories":
         with open(path) as fp:
             return cls.from_list(json.load(fp))
 
     @classmethod
-    def from_list(cls, accessories):
+    def from_list(cls, accessories) -> "Accessories":
         self = cls()
         for accessory in accessories:
             self.add_accessory(Accessory.create_from_dict(accessory))
@@ -226,3 +240,19 @@ class Accessories(ToDictMixin):
 
     def aid(self, aid) -> Accessory:
         return next(filter(lambda accessory: accessory.aid == aid, self.accessories))
+
+    def process_changes(self, changes):
+        for ((aid, iid), value) in changes.items():
+            accessory = self.aid(aid)
+            if not accessory:
+                continue
+
+            char = accessory.characteristics.iid(iid)
+            if not char:
+                continue
+
+            if "value" in value:
+                char.value = value["value"]
+                continue
+
+            # Later on also handle error states here.

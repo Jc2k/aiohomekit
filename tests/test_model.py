@@ -70,3 +70,14 @@ def test_get_by_linked():
     )
 
     assert switch[CharacteristicsTypes.NAME].value == "Hue dimmer switch button 3"
+
+
+def test_process_changes():
+    accessories = Accessories.from_file("tests/fixtures/koogeek_ls1.json")
+
+    on_char = accessories.aid(1).characteristics.iid(8)
+    assert on_char.value is False
+
+    accessories.process_changes({(1, 8): {"value": True}})
+
+    assert on_char.value is True
