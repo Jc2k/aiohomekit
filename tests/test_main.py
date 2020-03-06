@@ -7,9 +7,6 @@ import pytest
 
 from aiohomekit.__main__ import main
 
-# Without this line you would have to mark your async tests with @pytest.mark.asyncio
-pytestmark = pytest.mark.asyncio
-
 
 async def test_help():
     with mock.patch("sys.stdout") as stdout:

@@ -1,14 +1,9 @@
 from unittest import mock
 
-import pytest
-
 from aiohomekit.model import Accessories, Accessory
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.testing import FakeController
-
-# Without this line you would have to mark your async tests with @pytest.mark.asyncio
-pytestmark = pytest.mark.asyncio
 
 
 async def test_pairing():

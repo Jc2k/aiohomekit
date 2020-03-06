@@ -1,9 +1,4 @@
-import pytest
-
 from aiohomekit.controller.ip import IpDiscovery, IpPairing
-
-# Without this line you would have to mark your async tests with @pytest.mark.asyncio
-pytestmark = pytest.mark.asyncio
 
 
 async def test_pair(controller_and_unpaired_accessory):

@@ -1,10 +1,5 @@
 import asyncio
 
-import pytest
-
-# Without this line you would have to mark your async tests with @pytest.mark.asyncio
-pytestmark = pytest.mark.asyncio
-
 
 async def test_list_accessories(pairing):
     accessories = await pairing.list_accessories_and_characteristics()

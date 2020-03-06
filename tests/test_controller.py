@@ -2,9 +2,6 @@ import pytest
 
 from aiohomekit.exceptions import AuthenticationError
 
-# Without this line you would have to mark your async tests with @pytest.mark.asyncio
-pytestmark = pytest.mark.asyncio
-
 
 async def test_remove_pairing(controller_and_paired_accessory):
     pairing = controller_and_paired_accessory.pairings["alias"]

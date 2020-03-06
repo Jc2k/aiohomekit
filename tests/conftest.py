@@ -33,7 +33,7 @@ def port_ready(port):
 
 
 @pytest.fixture
-async def controller_and_unpaired_accessory(request, event_loop):
+async def controller_and_unpaired_accessory(request, loop):
     config_file = tempfile.NamedTemporaryFile()
     config_file.write(
         """{
@@ -84,7 +84,7 @@ async def controller_and_unpaired_accessory(request, event_loop):
 
 
 @pytest.fixture
-async def controller_and_paired_accessory(request, event_loop):
+async def controller_and_paired_accessory(request, loop):
     config_file = tempfile.NamedTemporaryFile()
     config_file.write(
         """{
@@ -165,7 +165,7 @@ def pairing(controller_and_paired_accessory):
 
 
 @pytest.fixture
-async def pairings(request, event_loop, controller_and_paired_accessory):
+async def pairings(request, controller_and_paired_accessory, loop):
     """ Returns a pairing of pairngs. """
     left = controller_and_paired_accessory.get_pairings()["alias"]
 
