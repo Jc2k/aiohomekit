@@ -33,7 +33,7 @@ def port_ready(port):
 
 
 @pytest.fixture
-def controller_and_unpaired_accessory(request, event_loop):
+async def controller_and_unpaired_accessory(request, event_loop):
     config_file = tempfile.NamedTemporaryFile()
     config_file.write(
         """{
@@ -67,16 +67,6 @@ def controller_and_unpaired_accessory(request, event_loop):
 
     controller = Controller()
 
-    # This syntax is awkward. We can't use the syntax proposed by the pytest-asyncio
-    # docs because we have to support python 3.5
-    def cleanup():
-        async def async_cleanup():
-            await asyncio.shield(controller.shutdown())
-
-        event_loop.run_until_complete(async_cleanup())
-
-    request.addfinalizer(cleanup)
-
     for i in range(10):
         if port_ready(51842):
             break
@@ -87,13 +77,14 @@ def controller_and_unpaired_accessory(request, event_loop):
             c.return_value = controller
             yield controller
 
-    httpd.shutdown()
+    await controller.shutdown()
 
+    httpd.shutdown()
     t.join()
 
 
 @pytest.fixture
-def controller_and_paired_accessory(request, event_loop):
+async def controller_and_paired_accessory(request, event_loop):
     config_file = tempfile.NamedTemporaryFile()
     config_file.write(
         """{
@@ -152,16 +143,6 @@ def controller_and_paired_accessory(request, event_loop):
     controller.load_data(controller_file.name)
     config_file.close()
 
-    # This syntax is awkward. We can't use the syntax proposed by the pytest-asyncio
-    # docs because we have to support python 3.5
-    def cleanup():
-        async def async_cleanup():
-            await asyncio.shield(controller.shutdown())
-
-        event_loop.run_until_complete(async_cleanup())
-
-    request.addfinalizer(cleanup)
-
     for i in range(10):
         if port_ready(51842):
             break
@@ -172,8 +153,9 @@ def controller_and_paired_accessory(request, event_loop):
             c.return_value = controller
             yield controller
 
-    httpd.shutdown()
+    await controller.shutdown()
 
+    httpd.shutdown()
     t.join()
 
 
