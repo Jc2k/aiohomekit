@@ -175,6 +175,7 @@ async def pairings(request, event_loop, controller_and_paired_accessory):
 
     await asyncio.shield(right.close())
 
+
 @pytest.fixture(autouse=True)
 def configure_test_logging(caplog):
     caplog.set_level(logging.DEBUG)
