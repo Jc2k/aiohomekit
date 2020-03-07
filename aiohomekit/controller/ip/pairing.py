@@ -312,6 +312,11 @@ class IpPairing(AbstractPairing):
         return tmp
 
     async def unsubscribe(self, characteristics):
+        if not self.connection.is_connected:
+            # If not connected no need to unsubscribe
+            await super().unsubscribe(characteristics)
+            return {}
+
         await self._ensure_connected()
 
         data = []
