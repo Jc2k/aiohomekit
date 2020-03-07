@@ -278,9 +278,15 @@ class IpPairing(AbstractPairing):
         return {}
 
     async def subscribe(self, characteristics):
-        await self._ensure_connected()
-
         await super().subscribe(set(characteristics))
+
+        try:
+            await self._ensure_connected()
+        except AccessoryDisconnectedError:
+            logger.debug(
+                "Attempted to subscribe to characteristics but could not connect to accessory"
+            )
+            return {}
 
         data = []
         for (aid, iid) in characteristics:
