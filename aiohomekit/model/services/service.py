@@ -60,6 +60,17 @@ class Service(ToDictMixin):
         except KeyError:
             return self.type
 
+    def value(self, char_type, default_value=None):
+        try:
+            char_type = CharacteristicsTypes.get_uuid(char_type)
+        except KeyError:
+            pass
+
+        if char_type not in self.characteristics_by_type:
+            return default_value
+
+        return self.characteristics_by_type[char_type].value
+
     def __getitem__(self, key):
         try:
             key = CharacteristicsTypes.get_uuid(key)
