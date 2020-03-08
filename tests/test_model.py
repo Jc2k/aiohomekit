@@ -72,6 +72,20 @@ def test_get_by_linked():
     assert switch[CharacteristicsTypes.NAME].value == "Hue dimmer switch button 3"
 
 
+def test_order_by():
+    a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
+
+    buttons = a.services.filter(
+        service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH,
+        order_by=(CharacteristicsTypes.SERVICE_LABEL_INDEX, CharacteristicsTypes.NAME),
+    )
+
+    assert buttons[0].value(CharacteristicsTypes.SERVICE_LABEL_INDEX) == 1
+    assert buttons[1].value(CharacteristicsTypes.SERVICE_LABEL_INDEX) == 2
+    assert buttons[2].value(CharacteristicsTypes.SERVICE_LABEL_INDEX) == 3
+    assert buttons[3].value(CharacteristicsTypes.SERVICE_LABEL_INDEX) == 4
+
+
 def test_process_changes():
     accessories = Accessories.from_file("tests/fixtures/koogeek_ls1.json")
 

@@ -54,6 +54,7 @@ class Services:
         characteristics: Dict[str, str] = None,
         parent_service: Service = None,
         child_service: Service = None,
+        order_by: Optional[List[str]] = None,
     ) -> Iterable[Service]:
         matches = iter(self._services)
 
@@ -64,7 +65,7 @@ class Services:
         if characteristics:
             for characteristic, value in characteristics.items():
                 matches = filter(
-                    lambda service: service[characteristic].value == value, matches
+                    lambda service: service.value(characteristic) == value, matches
                 )
 
         if parent_service:
@@ -72,6 +73,14 @@ class Services:
 
         if child_service:
             matches = filter(lambda service: child_service in service.linked, matches)
+
+        if order_by:
+            matches = sorted(
+                matches,
+                key=lambda service: tuple(
+                    service.value(char_type) for char_type in order_by
+                ),
+            )
 
         return matches
 
