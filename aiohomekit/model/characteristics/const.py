@@ -33,3 +33,11 @@ class RemoteKeyValues(enum.IntEnum):
     EXIT = 10
     PLAY_PAUSE = 11
     INFORMATION = 15
+
+
+class InputEventValues(enum.IntEnum):
+    """Types of button press for CharacteristicsTypes.INPUT_EVENT."""
+
+    SINGLE_PRESS = 0
+    DOUBLE_PRESS = 1
+    LONG_PRESS = 2
