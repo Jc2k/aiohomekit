@@ -95,3 +95,9 @@ def test_process_changes():
     accessories.process_changes({(1, 8): {"value": True}})
 
     assert on_char.value is True
+
+
+def test_valid_vals_preserved():
+    a = Accessories.from_file("tests/fixtures/aqara_gateway.json").aid(1)
+    char = a.characteristics.iid(66307)
+    assert char.valid_values == [1, 3, 4]

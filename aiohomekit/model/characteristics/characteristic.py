@@ -70,7 +70,7 @@ class Characteristic(ToDictMixin):
         self.minStep = self._get_configuration(kwargs, "min_step", None)
         self.maxLen = 64
         self.maxDataLen = 2097152
-        self.valid_values = None
+        self.valid_values = self._get_configuration(kwargs, "valid_values", None)
         self.valid_values_range = None
 
         self.value = None
