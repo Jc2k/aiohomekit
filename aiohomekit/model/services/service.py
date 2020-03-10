@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Iterable, Optional
 
 from aiohomekit.model import ToDictMixin
 from aiohomekit.model.characteristics import Characteristic, CharacteristicsTypes
@@ -23,6 +23,29 @@ from aiohomekit.model.services.service_types import ServicesTypes
 
 if TYPE_CHECKING:
     from aiohomekit.model import Accessory
+
+
+class Characteristics:
+    def __init__(self):
+        self._characteristics = []
+
+    def append(self, char):
+        self._characteristics.append(char)
+
+    def __iter__(self):
+        return iter(self._characteristics)
+
+    def filter(self, char_types=None) -> Iterable[Characteristic]:
+        matches = iter(self)
+
+        if char_types:
+            char_types = [CharacteristicsTypes.get_uuid(c) for c in char_types]
+            matches = filter(lambda char: char.type in char_types, matches)
+
+        return matches
+
+    def first(self, char_types=None) -> Characteristic:
+        return next(self.filter(char_types=char_types))
 
 
 class Service(ToDictMixin):
@@ -40,7 +63,7 @@ class Service(ToDictMixin):
 
         self.accessory = accessory
         self.iid = accessory.get_next_id()
-        self.characteristics = []
+        self.characteristics = Characteristics()
         self.characteristics_by_type = {}
         self.linked = []
 

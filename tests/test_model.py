@@ -30,7 +30,7 @@ def test_hue_bridge():
     service = a.services.first(service_type=ServicesTypes.ACCESSORY_INFORMATION)
     assert service.type_name == "accessory-information"
 
-    char = service.characteristics[0]
+    char = next(iter(service.characteristics))
     assert char.iid == 37
     assert char.type_name == "name"
     assert char.perms == ["pr"]
@@ -58,6 +58,21 @@ def test_get_by_name():
     )
 
     assert service[CharacteristicsTypes.NAME].value == name
+
+
+def test_get_by_characteristic_types():
+    name = "Hue dimmer switch button 3"
+
+    a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
+
+    service = a.services.first(
+        service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH,
+        characteristics={CharacteristicsTypes.NAME: name},
+    )
+
+    char = service.characteristics.first(char_types=[CharacteristicsTypes.NAME])
+
+    assert char.value == name
 
 
 def test_get_by_linked():
