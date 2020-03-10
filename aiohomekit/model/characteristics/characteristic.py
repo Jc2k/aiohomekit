@@ -109,6 +109,13 @@ class Characteristic(ToDictMixin):
             return default
         return characteristics[self.type][key]
 
+    @property
+    def type_name(self):
+        try:
+            return CharacteristicsTypes.get_short(self.type)
+        except KeyError:
+            return None
+
     def set_events(self, new_val):
         self.ev = new_val
 

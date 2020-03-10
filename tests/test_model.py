@@ -21,9 +21,18 @@ from aiohomekit.model.services import ServicesTypes
 
 def test_hue_bridge():
     a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
+    assert a.name == "Hue dimmer switch"
+    assert a.model == "RWL021"
+    assert a.manufacturer == "Philips"
+    assert a.serial_number == "6623462389072572"
+    assert a.firmware_revision == "45.1.17846"
+
     service = a.services.first(service_type=ServicesTypes.ACCESSORY_INFORMATION)
+    assert service.type_name == "accessory-information"
+
     char = service.characteristics[0]
     assert char.iid == 37
+    assert char.type_name == "name"
     assert char.perms == ["pr"]
     assert char.format == "string"
     assert char.value == "Hue dimmer switch"

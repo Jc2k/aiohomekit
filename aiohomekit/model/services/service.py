@@ -60,6 +60,13 @@ class Service(ToDictMixin):
         except KeyError:
             return self.type
 
+    @property
+    def type_name(self):
+        try:
+            return ServicesTypes.get_short(self.type)
+        except KeyError:
+            return None
+
     def value(self, char_type, default_value=None):
         try:
             char_type = CharacteristicsTypes.get_uuid(char_type)

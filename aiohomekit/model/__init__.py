@@ -150,6 +150,31 @@ class Accessory(ToDictMixin):
 
         return self
 
+    @property
+    def accessory_information(self) -> Service:
+        """Returns the ACCESSORY_INFORMATION service for this accessory."""
+        return self.services.first(service_type=ServicesTypes.ACCESSORY_INFORMATION)
+
+    @property
+    def name(self):
+        return self.accessory_information.value(CharacteristicsTypes.NAME)
+
+    @property
+    def manufacturer(self):
+        return self.accessory_information.value(CharacteristicsTypes.MANUFACTURER)
+
+    @property
+    def model(self):
+        return self.accessory_information.value(CharacteristicsTypes.MODEL)
+
+    @property
+    def serial_number(self):
+        return self.accessory_information.value(CharacteristicsTypes.SERIAL_NUMBER)
+
+    @property
+    def firmware_revision(self):
+        return self.accessory_information.value(CharacteristicsTypes.FIRMWARE_REVISION)
+
     @classmethod
     def create_from_dict(cls, data: Dict[str, Any]) -> "Accessory":
         accessory = cls()
