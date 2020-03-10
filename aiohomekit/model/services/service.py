@@ -117,6 +117,19 @@ class Service(ToDictMixin):
     def add_linked_service(self, service: "Service"):
         self.linked.append(service)
 
+    def build_update(self, payload):
+        """
+        Given a payload in the form of {CHAR_TYPE: value}, render in a form suitable to pass
+        to put_characteristics using aid and iid.
+        """
+        result = []
+
+        for char_type, value in payload.items():
+            char = self[char_type]
+            result.append((self.accessory.aid, char.iid, value))
+
+        return result
+
     def to_accessory_and_service_list(self):
         characteristics_list = []
         for c in self.characteristics:

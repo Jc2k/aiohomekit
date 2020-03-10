@@ -125,3 +125,18 @@ def test_valid_vals_preserved():
     a = Accessories.from_file("tests/fixtures/aqara_gateway.json").aid(1)
     char = a.characteristics.iid(66307)
     assert char.valid_values == [1, 3, 4]
+
+
+def test_build_update():
+    name = "Hue dimmer switch button 3"
+
+    a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
+
+    service = a.services.first(
+        service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH,
+        characteristics={CharacteristicsTypes.NAME: name},
+    )
+
+    payload = service.build_update({CharacteristicsTypes.NAME: "Fred"})
+
+    assert payload == [(6623462389072572, 588410716196, "Fred")]
