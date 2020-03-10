@@ -223,6 +223,11 @@ class ConnectionError(AccessoryDisconnectedError):
     """
 
 
+class TimeoutError(ConnectionError):
+
+    """Connection timeout."""
+
+
 class ConfigLoadingError(HomeKitException):
     """
     Used on problems loading some config. This includes but may not be limited to:

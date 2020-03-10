@@ -27,6 +27,7 @@ from aiohomekit.exceptions import (
     AuthenticationError,
     ConnectionError,
     HomeKitException,
+    TimeoutError,
 )
 from aiohomekit.http import HttpContentTypes
 from aiohomekit.http.response import HttpResponse
@@ -223,7 +224,7 @@ class HomeKitConnection:
             return
         self.closing = False
         self.start_connector()
-        await self._connector
+        await asyncio.shield(self._connector)
 
     async def stop_connector(self):
         if not self._connector:
@@ -402,10 +403,19 @@ class HomeKitConnection:
     async def _connect_once(self):
         loop = asyncio.get_event_loop()
 
+        logger.debug("Attempting connection to %s:%s", self.host, self.port)
+
         try:
-            self.transport, self.protocol = await loop.create_connection(
-                lambda: InsecureHomeKitProtocol(self), self.host, self.port
+            self.transport, self.protocol = await asyncio.wait_for(
+                loop.create_connection(
+                    lambda: InsecureHomeKitProtocol(self), self.host, self.port
+                ),
+                timeout=10,
             )
+
+        except asyncio.TimeoutError:
+            raise TimeoutError("Timeout")
+
         except OSError as e:
             raise ConnectionError(str(e))
 
@@ -417,32 +427,31 @@ class HomeKitConnection:
         # There is aiozeroconf but that doesn't work on Windows until python 3.9
         # In HASS, zeroconf is a service provided by HASS itself and want to be able to
         # leverage that instead.
+        interval = 0.5
+
         while not self.closing:
             try:
-                await self._connect_once()
+                return await self._connect_once()
 
             except AuthenticationError:
                 # Authentication errors should bubble up because auto-reconnect is unlikely to help
                 raise
 
+            except asyncio.CancelledError:
+                return
+
             except HomeKitException:
-                interval = self._retry_interval = min(60, 1.5 * self._retry_interval)
                 logger.debug(
                     "Connecting to accessory failed. Retrying in %i seconds", interval
                 )
-                await asyncio.sleep(interval)
-                continue
 
             except Exception:
                 logger.exception(
                     "Unexpected error whilst trying to connect to accessory. Will retry."
                 )
-                interval = self._retry_interval = min(60, 1.5 * self._retry_interval)
-                await asyncio.sleep(interval)
-                continue
 
-            self._retry_interval = 0.5
-            return
+            interval = min(60, 1.5 * interval)
+            await asyncio.sleep(interval)
 
     def event_received(self, event):
         if not self.owner:
