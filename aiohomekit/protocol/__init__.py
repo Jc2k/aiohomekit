@@ -244,10 +244,11 @@ def perform_pair_setup_part2(
     encrypted_data_with_auth_tag = chacha20_aead_encrypt(
         bytes(), session_key, "PS-Msg05".encode(), bytes([0, 0, 0, 0]), sub_tlv_b
     )
-    tmp = bytearray(encrypted_data_with_auth_tag[0])
-    tmp += encrypted_data_with_auth_tag[1]
 
-    response_tlv = [(TLV.kTLVType_State, TLV.M5), (TLV.kTLVType_EncryptedData, tmp)]
+    response_tlv = [
+        (TLV.kTLVType_State, TLV.M5),
+        (TLV.kTLVType_EncryptedData, encrypted_data_with_auth_tag),
+    ]
 
     step6_expectations = [
         TLV.kTLVType_State,
@@ -446,11 +447,12 @@ def get_session_keys(
     encrypted_data_with_auth_tag = chacha20_aead_encrypt(
         bytes(), session_key, "PV-Msg03".encode(), bytes([0, 0, 0, 0]), sub_tlv
     )
-    tmp = bytearray(encrypted_data_with_auth_tag[0])
-    tmp += encrypted_data_with_auth_tag[1]
 
     # 11) create tlv
-    request_tlv = [(TLV.kTLVType_State, TLV.M3), (TLV.kTLVType_EncryptedData, tmp)]
+    request_tlv = [
+        (TLV.kTLVType_State, TLV.M3),
+        (TLV.kTLVType_EncryptedData, encrypted_data_with_auth_tag),
+    ]
 
     step3_expectations = [TLV.kTLVType_State, TLV.kTLVType_Error]
     response_tlv = yield (request_tlv, step3_expectations)

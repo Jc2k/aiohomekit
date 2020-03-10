@@ -20,118 +20,11 @@ from aiohomekit.crypto.chacha20poly1305 import (
     chacha20_aead_decrypt,
     chacha20_aead_encrypt,
     chacha20_aead_verify_tag,
-    chacha20_block,
-    chacha20_create_initial_state,
     chacha20_encrypt,
-    chacha20_quarter_round,
     clamp,
-    pad16,
     poly1305_key_gen,
     poly1305_mac,
 )
-
-
-def test_pad16_does_not_pad_multiples_of_16():
-    input_data = b"1234567890ABCDEF"
-    pad = pad16(input_data)
-    assert pad == bytearray(b"")
-
-
-def test_example2_1_1():
-    # Test aus 2.1.1
-    s = [
-        0x11111111,
-        0,
-        0,
-        0,
-        0x01020304,
-        0,
-        0,
-        0,
-        0x9B8D6F43,
-        0,
-        0,
-        0,
-        0x01234567,
-        0,
-        0,
-        0,
-    ]
-    chacha20_quarter_round(s, 0, 4, 8, 12)
-    assert s[0] == 0xEA2A92F4
-    assert s[4] == 0xCB1CF8CE
-    assert s[8] == 0x4581472E
-    assert s[12] == 0x5881C4BB
-
-
-def test_example2_2_1():
-    # Test aus 2.2.1
-    s = [
-        0x879531E0,
-        0xC5ECF37D,
-        0x516461B1,
-        0xC9A62F8A,
-        0x44C20EF3,
-        0x3390AF7F,
-        0xD9FC690B,
-        0x2A5F714C,
-        0x53372767,
-        0xB00A5631,
-        0x974C541A,
-        0x359E9963,
-        0x5C971061,
-        0x3D631689,
-        0x2098D9D6,
-        0x91DBD320,
-    ]
-    chacha20_quarter_round(s, 2, 7, 8, 13)
-
-    assert s[2] == 0xBDB886DC
-    assert s[7] == 0xCFACAFD2
-    assert s[8] == 0xE46BEA80
-    assert s[13] == 0xCCC07C79
-
-
-def test_example2_3_2():
-    # Test aus 2.3.2
-    k = 0x000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F .to_bytes(
-        length=32, byteorder="big"
-    )
-    n = 0x000000090000004A00000000 .to_bytes(length=12, byteorder="big")
-    c = 1
-    init = chacha20_create_initial_state(k, n, c)
-    assert init == [
-        0x61707865,
-        0x3320646E,
-        0x79622D32,
-        0x6B206574,
-        0x03020100,
-        0x07060504,
-        0x0B0A0908,
-        0x0F0E0D0C,
-        0x13121110,
-        0x17161514,
-        0x1B1A1918,
-        0x1F1E1D1C,
-        0x00000001,
-        0x09000000,
-        0x4A000000,
-        0x00000000,
-    ]
-
-    r = chacha20_block(k, n, c)
-    p = int(
-        "".join(
-            """
-        10f1e7e4 d13b5915 500fdd1f a32071c4 c7d1f4c7
-        33c06803 0422aa9a c3d46c4e d2826446 079faa09
-        14c2d705 d98b02a2 b5129cd1 de164eb9 cbd083e8
-        a2503c4e
-        """.split()
-        ),
-        16,
-    )
-    assert r == p
 
 
 def test_example2_4_2():
@@ -505,19 +398,15 @@ def test_example2_8_2():
     )
 
     r = chacha20_aead_encrypt(aad, key, iv, fixed, plain_text)
-    assert r[0] == r_[0], "ciphertext"
-    assert r[1] == r_[1], "tag"
+    assert r[:-16] == r_[0], "ciphertext"
+    assert r[-16:] == r_[1], "tag"
 
-    assert chacha20_aead_verify_tag(aad, key, iv, fixed, r[0] + r[1])
+    assert chacha20_aead_verify_tag(aad, key, iv, fixed, r)
     assert (
-        chacha20_aead_verify_tag(aad, key, iv, fixed, r[0] + r[1] + bytes([0, 1, 2, 3]))
-        is False
+        chacha20_aead_verify_tag(aad, key, iv, fixed, r + bytes([0, 1, 2, 3])) is False
     )
 
-    plain_text_ = chacha20_aead_decrypt(aad, key, iv, fixed, r[0] + r[1])
+    plain_text_ = chacha20_aead_decrypt(aad, key, iv, fixed, r)
     assert plain_text == plain_text_
 
-    assert (
-        chacha20_aead_decrypt(aad, key, iv, fixed, r[0] + r[1] + bytes([0, 1, 2, 3]))
-        is False
-    )
+    assert chacha20_aead_decrypt(aad, key, iv, fixed, r + bytes([0, 1, 2, 3])) is False

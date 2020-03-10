@@ -439,7 +439,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 self.server.sessions[self.session_id][
                     "accessory_to_controller_count"
                 ] += 1
-                out_data += len_bytes + ciper_and_mac[0] + ciper_and_mac[1]
+                out_data += len_bytes + ciper_and_mac
 
             try:
                 self.orig_wfile.write(out_data)
@@ -928,13 +928,11 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 bytes([0, 0, 0, 0]),
                 sub_tlv_b,
             )
-            tmp = bytearray(encrypted_data_with_auth_tag[0])
-            tmp += encrypted_data_with_auth_tag[1]
 
             # 8) construct result tlv
             d_res.append((TLV.kTLVType_State, TLV.M2,))
             d_res.append((TLV.kTLVType_PublicKey, accessory_spk))
-            d_res.append((TLV.kTLVType_EncryptedData, tmp))
+            d_res.append((TLV.kTLVType_EncryptedData, encrypted_data_with_auth_tag))
 
             self._send_response_tlv(d_res)
             if AccessoryRequestHandler.DEBUG_PAIR_VERIFY:
@@ -1453,12 +1451,13 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 bytes([0, 0, 0, 0]),
                 sub_tlv_b,
             )
-            tmp = bytearray(encrypted_data_with_auth_tag[0])
-            tmp += encrypted_data_with_auth_tag[1]
 
             # 7) send response
             self.server.publish_device()
-            d_res = [(TLV.kTLVType_State, TLV.M6,), (TLV.kTLVType_EncryptedData, tmp,)]
+            d_res = [
+                (TLV.kTLVType_State, TLV.M6,),
+                (TLV.kTLVType_EncryptedData, encrypted_data_with_auth_tag),
+            ]
 
             self._send_response_tlv(d_res)
             self.log_message("after step #6:\n%s", TLV.to_string(d_res))

@@ -23,6 +23,8 @@ https://tools.ietf.org/html/rfc7539. See HomeKit spec page 51.
 from math import ceil
 from typing import Tuple, Union
 
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+
 
 def rotate_left(num: int, num_size: int, shift_bits: int) -> int:
     """
@@ -165,11 +167,12 @@ def chacha20_block(key: bytes, nonce: bytes, counter: int) -> int:
     return result
 
 
-def chacha20_encrypt(key: bytes, counter: int, nonce: int, plaintext: bytes) -> bytes:
+def chacha20_encrypt(key: bytes, counter: int, nonce: bytes, plaintext: bytes) -> bytes:
     assert type(key) is bytes, "key is no instance of bytes"
     assert len(key) == 32
     assert type(nonce) is bytes, "nonce is no instance of bytes"
     assert len(nonce) == 12
+
     encrypted = bytearray()
     for i in range(0, int(len(plaintext) / 64)):
         key_stream = chacha20_block(key, nonce, counter + i)
@@ -293,17 +296,9 @@ def chacha20_aead_encrypt(
     assert len(key) == 32
 
     nonce = constant + iv
-    otk = poly1305_key_gen(key, nonce)
-    ciphertext = chacha20_encrypt(key, 1, nonce, plaintext)
-    assert len(plaintext) == len(ciphertext)
-    mac_data = aad + pad16(aad)
-    assert len(mac_data) % 16 == 0
-    mac_data += ciphertext + pad16(ciphertext)
-    assert len(mac_data) % 16 == 0
-    mac_data += len(aad).to_bytes(length=8, byteorder="little")
-    mac_data += len(ciphertext).to_bytes(length=8, byteorder="little")
-    tag = poly1305_mac(mac_data, otk)
-    return ciphertext, tag
+
+    chacha = ChaCha20Poly1305(key)
+    return chacha.encrypt(bytes(nonce), bytes(plaintext), bytes(aad))
 
 
 def chacha20_aead_decrypt(

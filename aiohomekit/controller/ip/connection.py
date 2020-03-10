@@ -126,11 +126,11 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             cnt_bytes = self.c2a_counter.to_bytes(8, byteorder="little")
             self.c2a_counter += 1
 
-            data, tag = chacha20_aead_encrypt(
+            data = chacha20_aead_encrypt(
                 len_bytes, self.c2a_key, cnt_bytes, bytes([0, 0, 0, 0]), current,
             )
 
-            buffer += len_bytes + data + tag
+            buffer += len_bytes + data
 
         return await super().send_bytes(buffer)
 
