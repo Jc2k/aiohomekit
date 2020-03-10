@@ -18,9 +18,9 @@ from binascii import hexlify
 import logging
 from typing import Any, Dict, Generator, List, Tuple, Union
 
+from cryptography import exceptions as cryptography_exceptions
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import x25519
-import ed25519
+from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
 
 from aiohomekit.crypto import (
     SrpClient,
@@ -210,7 +210,11 @@ def perform_pair_setup_part2(
     # M5 Request generation (page 44)
     session_key = srp_client.get_session_key()
 
-    ios_device_ltsk, ios_device_ltpk = ed25519.create_keypair()
+    ios_device_ltsk = ed25519.Ed25519PrivateKey.generate()
+    ios_device_ltpk = ios_device_ltsk.public_key()
+    ios_device_public_bytes = ios_device_ltpk.public_bytes(
+        encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
+    )
 
     # reversed:
     #   Pair-Setup-Encrypt-Salt instead of Pair-Setup-Controller-Sign-Salt
@@ -228,13 +232,13 @@ def perform_pair_setup_part2(
     )
 
     ios_device_pairing_id = ios_pairing_id.encode()
-    ios_device_info = ios_device_x + ios_device_pairing_id + ios_device_ltpk.to_bytes()
+    ios_device_info = ios_device_x + ios_device_pairing_id + ios_device_public_bytes
 
     ios_device_signature = ios_device_ltsk.sign(ios_device_info)
 
     sub_tlv = [
         (TLV.kTLVType_Identifier, ios_device_pairing_id),
-        (TLV.kTLVType_PublicKey, ios_device_ltpk.to_bytes()),
+        (TLV.kTLVType_PublicKey, ios_device_public_bytes),
         (TLV.kTLVType_Signature, ios_device_signature),
     ]
     sub_tlv_b = TLV.encode_list(sub_tlv)
@@ -310,18 +314,24 @@ def perform_pair_setup_part2(
 
     accessory_info = accessory_x + accessory_pairing_id + accessory_ltpk
 
-    e25519s = ed25519.VerifyingKey(bytes(response_tlv[1][1]))
+    e25519s = ed25519.Ed25519PublicKey.from_public_bytes(bytes(response_tlv[1][1]))
     try:
         e25519s.verify(bytes(accessory_sig), bytes(accessory_info))
-    except AssertionError:
+    except cryptography_exceptions.InvalidSignature:
         raise InvalidSignatureError("step #7")
+
+    ios_device_ltsk_private_bytes = ios_device_ltsk.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
 
     return {
         "AccessoryPairingID": response_tlv[0][1].decode(),
         "AccessoryLTPK": hexlify(response_tlv[1][1]).decode(),
         "iOSPairingId": ios_pairing_id,
-        "iOSDeviceLTSK": ios_device_ltsk.to_ascii(encoding="hex").decode()[:64],
-        "iOSDeviceLTPK": hexlify(ios_device_ltpk.to_bytes()).decode(),
+        "iOSDeviceLTSK": ios_device_ltsk_private_bytes.hex(),
+        "iOSDeviceLTPK": ios_device_public_bytes.hex(),
     }
 
 
@@ -406,7 +416,9 @@ def get_session_keys(
     if pairing_data["AccessoryPairingID"] != accessory_name:
         raise IncorrectPairingIdError("step 3")
 
-    accessory_ltpk = ed25519.VerifyingKey(bytes.fromhex(pairing_data["AccessoryLTPK"]))
+    accessory_ltpk = ed25519.Ed25519PublicKey.from_public_bytes(
+        bytes.fromhex(pairing_data["AccessoryLTPK"])
+    )
 
     # 6) verify accessory's signature
     accessory_sig = d1[1][1]
@@ -416,7 +428,7 @@ def get_session_keys(
     )
     try:
         accessory_ltpk.verify(bytes(accessory_sig), bytes(accessory_info))
-    except ed25519.BadSignatureError:
+    except cryptography_exceptions.InvalidSignature:
         raise InvalidSignatureError("step 3")
 
     # 7) create iOSDeviceInfo
@@ -428,10 +440,14 @@ def get_session_keys(
 
     # 8) sign iOSDeviceInfo with long term secret key
     ios_device_ltsk_h = pairing_data["iOSDeviceLTSK"]
-    ios_device_ltpk_h = pairing_data["iOSDeviceLTPK"]
-    ios_device_ltsk = ed25519.SigningKey(
-        bytes.fromhex(ios_device_ltsk_h) + bytes.fromhex(ios_device_ltpk_h)
+    # ios_device_ltpk_h = pairing_data["iOSDeviceLTPK"]
+
+    ios_device_ltsk = ed25519.Ed25519PrivateKey.from_private_bytes(
+        bytes.fromhex(ios_device_ltsk_h)
     )
+    # ios_device_ltsk = ed25519.SigningKey(
+    #    bytes.fromhex(ios_device_ltsk_h) + bytes.fromhex(ios_device_ltpk_h)
+    # )
     ios_device_signature = ios_device_ltsk.sign(ios_device_info)
 
     # 9) construct sub tlv
