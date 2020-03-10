@@ -26,9 +26,9 @@ from socketserver import ThreadingMixIn
 import sys
 import threading
 
+from cryptography import exceptions as cryptography_exceptions
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import x25519
-import ed25519
+from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
 from zeroconf import ServiceInfo, Zeroconf
 
 from aiohomekit.crypto import hkdf_derive
@@ -901,8 +901,9 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             )
 
             # 4) sign accessory info for accessory signature
-            # accessory_ltsk = ed25519.SigningKey(self.server.data.accessory_ltsk + self.server.data.accessory_ltpk)
-            accessory_ltsk = ed25519.SigningKey(self.server.data.accessory_ltsk)
+            accessory_ltsk = ed25519.Ed25519PrivateKey.from_private_bytes(
+                self.server.data.accessory_ltsk
+            )
             accessory_signature = accessory_ltsk.sign(accessory_info)
 
             # 5) sub tlv
@@ -976,7 +977,9 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                     "error in step #4: not paired %s %s", d_res, self.server.sessions
                 )
                 return
-            ios_device_lptk = ed25519.VerifyingKey(ios_device_ltpk_bytes)
+            ios_device_ltpk = ed25519.Ed25519PublicKey.from_public_bytes(
+                ios_device_ltpk_bytes
+            )
 
             # 4) verify ios_device_info
             ios_device_sig = d1[1][1]
@@ -990,8 +993,8 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 + accessory_spk
             )
             try:
-                ios_device_lptk.verify(bytes(ios_device_sig), bytes(ios_device_info))
-            except ed25519.BadSignatureError:
+                ios_device_ltpk.verify(bytes(ios_device_sig), bytes(ios_device_info))
+            except cryptography_exceptions.InvalidSignature:
                 self.send_error_reply(TLV.M4, TLV.kTLVError_Authentication)
                 self.log_error(
                     "error in step #4: signature %s %s", d_res, self.server.sessions
@@ -1378,10 +1381,12 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 5) verify signature
             ios_device_sig = d_req_2[2][1]  # should be [TLV.kTLVType_Signature
 
-            verify_key = ed25519.VerifyingKey(bytes(ios_device_ltpk))
+            verify_key = ed25519.Ed25519PublicKey.from_public_bytes(
+                bytes(ios_device_ltpk)
+            )
             try:
                 verify_key.verify(bytes(ios_device_sig), bytes(ios_device_info))
-            except ed25519.BadSignatureError:
+            except cryptography_exceptions.InvalidSignature:
                 self.send_error_reply(TLV.M6, TLV.kTLVError_Authentication)
                 self.log_error("error in step #6 %s %s", d_res, self.server.sessions)
                 return
@@ -1395,15 +1400,26 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 self.server.data.accessory_ltsk is None
                 or self.server.data.accessory_ltpk is None
             ):
-                accessory_ltsk, accessory_ltpk = ed25519.create_keypair()
+                accessory_ltsk = ed25519.Ed25519PrivateKey.generate()
+                accessory_ltsk_bytes = accessory_ltsk.private_bytes(
+                    encoding=serialization.Encoding.Raw,
+                    format=serialization.PrivateFormat.Raw,
+                    encryption_algorithm=serialization.NoEncryption(),
+                )
+
+                accessory_ltpk = accessory_ltsk.public_key()
+                accessory_ltpk_bytes = accessory_ltpk.public_bytes(
+                    encoding=serialization.Encoding.Raw,
+                    format=serialization.PublicFormat.Raw,
+                )
+
                 self.server.data.set_accessory_keys(
-                    accessory_ltpk.to_bytes(), accessory_ltsk.to_bytes(),
+                    accessory_ltpk_bytes, accessory_ltsk_bytes,
                 )
             else:
-                accessory_ltsk = ed25519.SigningKey(
-                    self.server.data.accessory_ltsk + self.server.data.accessory_ltpk
+                accessory_ltsk = ed25519.Ed25519PrivateKey.from_private_bytes(
+                    self.server.data.accessory_ltsk
                 )
-                accessory_ltpk = ed25519.VerifyingKey(self.server.data.accessory_ltpk)
 
             # 2) derive AccessoryX
             accessory_x = hkdf_derive(
@@ -1416,7 +1432,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             accessory_info = (
                 accessory_x
                 + self.server.data.accessory_pairing_id_bytes
-                + accessory_ltpk.to_bytes()
+                + self.server.data.accessory_ltpk
             )
 
             # 4) generate signature
@@ -1425,7 +1441,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 5) construct sub_tlv
             sub_tlv = [
                 (TLV.kTLVType_Identifier, self.server.data.accessory_pairing_id_bytes),
-                (TLV.kTLVType_PublicKey, accessory_ltpk.to_bytes()),
+                (TLV.kTLVType_PublicKey, self.server.data.accessory_ltpk),
                 (TLV.kTLVType_Signature, accessory_signature),
             ]
             sub_tlv_b = TLV.encode_list(sub_tlv)
