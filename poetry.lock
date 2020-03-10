@@ -209,14 +209,6 @@ pycodestyle = ">=2.5.0,<2.6.0"
 pyflakes = ">=2.1.0,<2.2.0"
 
 [[package]]
-category = "main"
-description = "HMAC-based Extract-and-Expand Key Derivation Function (HKDF)"
-name = "hkdf"
-optional = false
-python-versions = "*"
-version = "0.0.3"
-
-[[package]]
 category = "dev"
 description = "Internationalized Domain Names in Applications (IDNA)"
 name = "idna"
@@ -570,7 +562,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools"]
 
 [metadata]
-content-hash = "158d9296fb8bb9e4c7cc907102a0a0c1d418663532cf23d7829733ae1d2f47d3"
+content-hash = "042c9ecce4df099246f4ebd789c5ec7bacead53d7e185a770335b7c93e7cb10e"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -733,9 +725,6 @@ entrypoints = [
 flake8 = [
     {file = "flake8-3.7.9-py2.py3-none-any.whl", hash = "sha256:49356e766643ad15072a789a20915d3c91dc89fd313ccd71802303fd67e4deca"},
     {file = "flake8-3.7.9.tar.gz", hash = "sha256:45681a117ecc81e870cbf1262835ae4af5e7a8b08e40b944a8a6e6b895914cfb"},
-]
-hkdf = [
-    {file = "hkdf-0.0.3.tar.gz", hash = "sha256:622a31c634bc185581530a4b44ffb731ed208acf4614f9c795bdd70e77991dca"},
 ]
 idna = [
     {file = "idna-2.8-py2.py3-none-any.whl", hash = "sha256:ea8b7f6188e6fa117537c3df7da9fc686d485087abf6ac197f9c46432f7e4a3c"},

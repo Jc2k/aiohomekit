@@ -15,16 +15,19 @@
 #
 
 from binascii import hexlify
-import hashlib
 import logging
 from typing import Any, Dict, Generator, List, Tuple, Union
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import x25519
 import ed25519
-import hkdf
 
-from aiohomekit.crypto import SrpClient, chacha20_aead_decrypt, chacha20_aead_encrypt
+from aiohomekit.crypto import (
+    SrpClient,
+    chacha20_aead_decrypt,
+    chacha20_aead_encrypt,
+    hkdf_derive,
+)
 from aiohomekit.exceptions import (
     AuthenticationError,
     BackoffError,
@@ -212,19 +215,17 @@ def perform_pair_setup_part2(
     # reversed:
     #   Pair-Setup-Encrypt-Salt instead of Pair-Setup-Controller-Sign-Salt
     #   Pair-Setup-Encrypt-Info instead of Pair-Setup-Controller-Sign-Info
-    hkdf_inst = hkdf.Hkdf(
-        "Pair-Setup-Controller-Sign-Salt".encode(),
+    ios_device_x = hkdf_derive(
         SrpClient.to_byte_array(session_key),
-        hash=hashlib.sha512,
+        "Pair-Setup-Controller-Sign-Salt",
+        "Pair-Setup-Controller-Sign-Info",
     )
-    ios_device_x = hkdf_inst.expand("Pair-Setup-Controller-Sign-Info".encode(), 32)
 
-    hkdf_inst = hkdf.Hkdf(
-        "Pair-Setup-Encrypt-Salt".encode(),
+    session_key = hkdf_derive(
         SrpClient.to_byte_array(session_key),
-        hash=hashlib.sha512,
+        "Pair-Setup-Encrypt-Salt",
+        "Pair-Setup-Encrypt-Info",
     )
-    session_key = hkdf_inst.expand("Pair-Setup-Encrypt-Info".encode(), 32)
 
     ios_device_pairing_id = ios_pairing_id.encode()
     ios_device_info = ios_device_x + ios_device_pairing_id + ios_device_ltpk.to_bytes()
@@ -301,12 +302,11 @@ def perform_pair_setup_part2(
     ), "perform_pair_setup: No public key"
     accessory_ltpk = response_tlv[1][1]
 
-    hkdf_inst = hkdf.Hkdf(
-        "Pair-Setup-Accessory-Sign-Salt".encode(),
+    accessory_x = hkdf_derive(
         SrpClient.to_byte_array(srp_client.get_session_key()),
-        hash=hashlib.sha512,
+        "Pair-Setup-Accessory-Sign-Salt",
+        "Pair-Setup-Accessory-Sign-Info",
     )
-    accessory_x = hkdf_inst.expand("Pair-Setup-Accessory-Sign-Info".encode(), 32)
 
     accessory_info = accessory_x + accessory_pairing_id + accessory_ltpk
 
@@ -384,10 +384,9 @@ def get_session_keys(
     shared_secret = ios_key.exchange(accessorys_session_pub_key)
 
     # 2) derive session key
-    hkdf_inst = hkdf.Hkdf(
-        "Pair-Verify-Encrypt-Salt".encode(), shared_secret, hash=hashlib.sha512
+    session_key = hkdf_derive(
+        shared_secret, "Pair-Verify-Encrypt-Salt", "Pair-Verify-Encrypt-Info"
     )
-    session_key = hkdf_inst.expand("Pair-Verify-Encrypt-Info".encode(), 32)
 
     # 3) verify auth tag on encrypted data and 4) decrypt
     encrypted = response_tlv[2][1]
@@ -468,14 +467,13 @@ def get_session_keys(
         error_handler(response_tlv[1][1], "verification")
 
     # calculate session keys
-    hkdf_inst = hkdf.Hkdf("Control-Salt".encode(), shared_secret, hash=hashlib.sha512)
-    controller_to_accessory_key = hkdf_inst.expand(
-        "Control-Write-Encryption-Key".encode(), 32
+
+    controller_to_accessory_key = hkdf_derive(
+        shared_secret, "Control-Salt", "Control-Write-Encryption-Key"
     )
 
-    hkdf_inst = hkdf.Hkdf("Control-Salt".encode(), shared_secret, hash=hashlib.sha512)
-    accessory_to_controller_key = hkdf_inst.expand(
-        "Control-Read-Encryption-Key".encode(), 32
+    accessory_to_controller_key = hkdf_derive(
+        shared_secret, "Control-Salt", "Control-Read-Encryption-Key"
     )
 
     return controller_to_accessory_key, accessory_to_controller_key

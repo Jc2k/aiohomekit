@@ -15,7 +15,6 @@
 #
 
 import binascii
-import hashlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import io
 import json
@@ -30,9 +29,9 @@ import threading
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import x25519
 import ed25519
-import hkdf
 from zeroconf import ServiceInfo, Zeroconf
 
+from aiohomekit.crypto import hkdf_derive
 from aiohomekit.crypto.chacha20poly1305 import (
     chacha20_aead_decrypt,
     chacha20_aead_encrypt,
@@ -914,10 +913,9 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             sub_tlv_b = TLV.encode_list(sub_tlv)
 
             # 6) derive session key
-            hkdf_inst = hkdf.Hkdf(
-                "Pair-Verify-Encrypt-Salt".encode(), shared_secret, hash=hashlib.sha512
+            session_key = hkdf_derive(
+                shared_secret, "Pair-Verify-Encrypt-Salt", "Pair-Verify-Encrypt-Info"
             )
-            session_key = hkdf_inst.expand("Pair-Verify-Encrypt-Info".encode(), 32)
             self.server.sessions[self.session_id]["session_key"] = session_key
 
             # 7) encrypt sub tlv
@@ -1002,22 +1000,17 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             #
             shared_secret = self.server.sessions[self.session_id]["shared_secret"]
-            hkdf_inst = hkdf.Hkdf(
-                "Control-Salt".encode(), shared_secret, hash=hashlib.sha512
-            )
-            controller_to_accessory_key = hkdf_inst.expand(
-                "Control-Write-Encryption-Key".encode(), 32
+
+            controller_to_accessory_key = hkdf_derive(
+                shared_secret, "Control-Salt", "Control-Write-Encryption-Key"
             )
             self.server.sessions[self.session_id][
                 "controller_to_accessory_key"
             ] = controller_to_accessory_key
             self.server.sessions[self.session_id]["controller_to_accessory_count"] = 0
 
-            hkdf_inst = hkdf.Hkdf(
-                "Control-Salt".encode(), shared_secret, hash=hashlib.sha512
-            )
-            accessory_to_controller_key = hkdf_inst.expand(
-                "Control-Read-Encryption-Key".encode(), 32
+            accessory_to_controller_key = hkdf_derive(
+                shared_secret, "Control-Salt", "Control-Read-Encryption-Key"
             )
             self.server.sessions[self.session_id][
                 "accessory_to_controller_key"
@@ -1306,12 +1299,11 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             server = self.server.sessions[self.session_id]["srp"]
             server.set_client_public_key(ios_pub_key)
 
-            hkdf_inst = hkdf.Hkdf(
-                "Pair-Setup-Encrypt-Salt".encode(),
+            session_key = hkdf_derive(
                 SrpServer.to_byte_array(server.get_session_key()),
-                hash=hashlib.sha512,
+                "Pair-Setup-Encrypt-Salt",
+                "Pair-Setup-Encrypt-Info",
             )
-            session_key = hkdf_inst.expand("Pair-Setup-Encrypt-Info".encode(), 32)
             self.server.sessions[self.session_id]["session_key"] = session_key
 
             # 2) verify ios proof
@@ -1371,13 +1363,11 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             shared_secret = self.server.sessions[self.session_id][
                 "srp"
             ].get_session_key()
-            hkdf_inst = hkdf.Hkdf(
-                "Pair-Setup-Controller-Sign-Salt".encode(),
+
+            ios_device_x = hkdf_derive(
                 SrpServer.to_byte_array(shared_secret),
-                hash=hashlib.sha512,
-            )
-            ios_device_x = hkdf_inst.expand(
-                "Pair-Setup-Controller-Sign-Info".encode(), 32
+                "Pair-Setup-Controller-Sign-Salt",
+                "Pair-Setup-Controller-Sign-Info",
             )
 
             # 4) construct ios_device_info
@@ -1416,13 +1406,10 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 accessory_ltpk = ed25519.VerifyingKey(self.server.data.accessory_ltpk)
 
             # 2) derive AccessoryX
-            hkdf_inst = hkdf.Hkdf(
-                "Pair-Setup-Accessory-Sign-Salt".encode(),
+            accessory_x = hkdf_derive(
                 SrpServer.to_byte_array(shared_secret),
-                hash=hashlib.sha512,
-            )
-            accessory_x = hkdf_inst.expand(
-                "Pair-Setup-Accessory-Sign-Info".encode(), 32
+                "Pair-Setup-Accessory-Sign-Salt",
+                "Pair-Setup-Accessory-Sign-Info",
             )
 
             # 3)
