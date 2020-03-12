@@ -76,6 +76,13 @@ class Service(ToDictMixin):
                 if required not in self.characteristics_by_type:
                     self.add_char(required)
 
+    def has_characteristic(self, char_type):
+        try:
+            char_type = CharacteristicsTypes.get_uuid(char_type)
+        except KeyError:
+            pass
+        return char_type in self.characteristics_by_type
+
     @property
     def short_type(self):
         try:
