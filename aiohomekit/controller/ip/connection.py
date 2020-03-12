@@ -339,6 +339,11 @@ class HomeKitConnection:
         :param headers: a list of (header, value) tuples (optional)
         :param body: The body of the request (optional)
         """
+        if not self.protocol:
+            raise AccessoryDisconnectedError(
+                "Connection lost before request could be sent"
+            )
+
         buffer = []
         buffer.append(
             "{method} {target} HTTP/1.1".format(method=method.upper(), target=target,)
@@ -346,7 +351,7 @@ class HomeKitConnection:
 
         # WARNING: It is vital that a Host: header is present or some devices
         # will reject the request.
-        buffer.append("Host: {host}".format(host=self.host))
+        buffer.append("Host: {host}:{port}".format(host=self.host, port=self.port))
 
         if headers:
             for (header, value) in headers:

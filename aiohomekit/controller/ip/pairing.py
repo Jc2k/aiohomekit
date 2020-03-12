@@ -91,7 +91,11 @@ class IpPairing(AbstractPairing):
             raise AccessoryDisconnectedError(
                 "Timeout while waiting for connection to device"
             )
-        assert self.connection.is_connected
+
+        if not self.connection.is_connected:
+            raise AccessoryDisconnectedError(
+                "Ensure connection returned but still not connected"
+            )
 
     async def close(self):
         """
