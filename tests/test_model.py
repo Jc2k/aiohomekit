@@ -39,7 +39,7 @@ def test_hue_bridge():
     assert char.description == "Name"
     assert char.maxLen == 64
 
-    assert service.has_characteristic(char.type)
+    assert service.has(char.type)
 
 
 def test_linked_services():
