@@ -17,7 +17,10 @@
 __all__ = [
     "Service",
     "ServicesTypes",
+    "ServiceShortUUID",
+    "ServiceUUID",
 ]
 
 from .service import Service
 from .service_types import ServicesTypes
+from .types import ServiceShortUUID, ServiceUUID

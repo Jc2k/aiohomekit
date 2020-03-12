@@ -26,6 +26,7 @@ from .const import (
     TargetMediaStateValues,
 )
 from .permissions import CharacteristicPermissions
+from .types import CharacteristicShortUUID, CharacteristicUUID
 from .units import CharacteristicUnits
 
 __all__ = [
@@ -40,4 +41,6 @@ __all__ = [
     "InputEventValues",
     "HeatingCoolingCurrentValues",
     "HeatingCoolingTargetValues",
+    "CharacteristicUUID",
+    "CharacteristicShortUUID",
 ]
