@@ -20,10 +20,11 @@ from unittest.mock import patch
 import pytest
 from zeroconf import ServiceInfo
 
+from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.zeroconf import (
+    async_find_device_ip_and_port,
     discover_homekit_devices,
-    find_device_ip_and_port,
     get_from_properties,
 )
 
@@ -42,12 +43,12 @@ def mock_zeroconf():
             yield mock_zc.return_value
 
 
-def test_find_no_device(mock_zeroconf):
-    result = find_device_ip_and_port("00:00:00:00:00:00", 0)
-    assert result is None
+async def test_find_no_device(mock_zeroconf):
+    with pytest.raises(AccessoryNotFoundError):
+        await async_find_device_ip_and_port("00:00:00:00:00:00", 0)
 
 
-def test_find_with_device(mock_zeroconf):
+async def test_find_with_device(mock_zeroconf):
     desc = {b"id": b"00:00:02:00:00:02"}
     info = ServiceInfo(
         "_hap._tcp.local.",
@@ -60,8 +61,8 @@ def test_find_with_device(mock_zeroconf):
     )
     mock_zeroconf.get_service_info.return_value = info
 
-    result = find_device_ip_and_port("00:00:02:00:00:02", 0)
-    assert result["ip"] == "127.0.0.1"
+    result = await async_find_device_ip_and_port("00:00:02:00:00:02", 0)
+    assert result == ("127.0.0.1", 1234)
 
 
 def test_discover_homekit_devices(mock_zeroconf):

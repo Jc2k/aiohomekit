@@ -24,6 +24,7 @@ from aiohomekit.crypto.chacha20poly1305 import (
 )
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
+    AccessoryNotFoundError,
     AuthenticationError,
     ConnectionError,
     HomeKitException,
@@ -33,6 +34,7 @@ from aiohomekit.http import HttpContentTypes
 from aiohomekit.http.response import HttpResponse
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
+from aiohomekit.zeroconf import async_find_device_ip_and_port
 
 logger = logging.getLogger(__name__)
 
@@ -494,6 +496,13 @@ class SecureHomeKitConnection(HomeKitConnection):
 
     async def _connect_once(self):
         self.is_secure = False
+
+        try:
+            self.host, self.port = await async_find_device_ip_and_port(
+                self.pairing_data["AccessoryPairingID"]
+            )
+        except AccessoryNotFoundError:
+            pass
 
         await super()._connect_once()
 

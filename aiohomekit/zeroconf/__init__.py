@@ -17,12 +17,15 @@
 """Helpers for detecing homekit devices via zeroconf."""
 
 from _socket import inet_ntoa
+import asyncio
+from functools import partial
 import logging
 from time import sleep
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from zeroconf import ServiceBrowser, ServiceInfo, Zeroconf
 
+from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import IpStatusFlags
@@ -197,33 +200,37 @@ def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, in
     return data
 
 
-def find_device_ip_and_port(
-    device_id: str, max_seconds: int = 10
-) -> Optional[Dict[str, Union[str, int]]]:
+def _find_device_ip_and_port(device_id: str, max_seconds: int = 10) -> Tuple[str, int]:
     """
     Try to find a HomeKit Accessory via Bonjour. The process is time boxed by the second parameter which sets an upper
     limit of `max_seconds` before it times out. The runtime of the function may be longer because of the Bonjour
     handling code.
-
-    :param device_id: the Accessory's pairing id
-    :param max_seconds: the number of seconds to wait for the accessory to be found
-    :return: a dict with ip and port if the accessory was found or None
     """
-    result = None
     zeroconf = Zeroconf()
     listener = CollectingListener()
     ServiceBrowser(zeroconf, "_hap._tcp.local.", listener)
-    counter = 0
+    counter = max_seconds * 2
 
-    while result is None and counter <= max_seconds:
-        data = listener.get_data()
-        for info in data:
-            if info.properties[b"id"].decode() == device_id:
-                result = {"ip": inet_ntoa(info.addresses[0]), "port": info.port}
-                break
+    try:
+        while counter >= 0:
+            data = listener.get_data()
+            for info in data:
+                if info.properties[b"id"].decode() == device_id:
+                    return (inet_ntoa(info.addresses[0]), info.port)
 
-        counter += 1
-        sleep(0.5)
+            counter -= 1
+            sleep(0.5)
+    finally:
+        zeroconf.close()
 
-    zeroconf.close()
-    return result
+    raise AccessoryNotFoundError("Device not found via Bonjour within 10 seconds")
+
+
+async def async_find_device_ip_and_port(
+    device_id: str, max_seconds: int = 10
+) -> Tuple[str, int]:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(
+        None,
+        partial(_find_device_ip_and_port, device_id=device_id, max_seconds=max_seconds),
+    )
