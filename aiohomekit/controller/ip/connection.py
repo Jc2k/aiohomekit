@@ -259,7 +259,7 @@ class HomeKitConnection:
 
     async def put_json(self, target, body):
         response = await self.put(
-            target, json.dumps(body).encode("utf-8"), content_type=HttpContentTypes.TLV,
+            target, json.dumps(body).encode("utf-8"), content_type=HttpContentTypes.JSON,
         )
 
         if response.code == 204:
