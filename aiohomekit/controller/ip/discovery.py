@@ -64,7 +64,7 @@ class IpDiscovery(object):
         if self.info["ff"] & FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR:
             with_auth = True
         elif self.info["ff"] & FeatureFlags.SUPPORTS_SOFTWARE_AUTHENTICATION:
-            with_auth = True
+            with_auth = False
 
         state_machine = perform_pair_setup_part1(with_auth)
         request, expected = state_machine.send(None)
