@@ -67,6 +67,7 @@ class IpPairing(AbstractPairing):
 
         self.pairing_data = pairing_data
         self.connection = SecureHomeKitConnection(self, self.pairing_data)
+        self.supports_subscribe = True
 
     def event_received(self, event):
         event = format_characteristic_list(event)
@@ -284,6 +285,12 @@ class IpPairing(AbstractPairing):
     async def subscribe(self, characteristics):
         await super().subscribe(set(characteristics))
 
+        if not self.supports_subscribe:
+            logger.info(
+                "This device does not support push, so only polling operations will be supported during this session"
+            )
+            return
+
         try:
             await self._ensure_connected()
         except AccessoryDisconnectedError:
@@ -303,6 +310,7 @@ class IpPairing(AbstractPairing):
         try:
             response = await self.connection.put_json("/characteristics", data)
         except AccessoryDisconnectedError:
+            self.supports_subscribe = False
             return {}
 
         if response:
