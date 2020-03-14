@@ -41,3 +41,20 @@ class InputEventValues(enum.IntEnum):
     SINGLE_PRESS = 0
     DOUBLE_PRESS = 1
     LONG_PRESS = 2
+
+
+class HeatingCoolingCurrentValues(enum.IntEnum):
+    """What is a thermostat currently doing."""
+
+    IDLE = 0
+    HEATING = 1
+    COOLING = 2
+
+
+class HeatingCoolingTargetValues(enum.IntEnum):
+    """What is the current 'goal' for the thermostat."""
+
+    OFF = 0
+    HEAT = 1
+    COOL = 2
+    AUTO = 3

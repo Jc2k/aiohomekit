@@ -39,6 +39,8 @@ def test_hue_bridge():
     assert char.description == "Name"
     assert char.maxLen == 64
 
+    assert service.has(char.type)
+
 
 def test_linked_services():
     a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
