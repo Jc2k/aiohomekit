@@ -22,8 +22,12 @@ from .const import (
     HeatingCoolingCurrentValues,
     HeatingCoolingTargetValues,
     InputEventValues,
+    InUseValues,
+    IsConfiguredValues,
+    ProgramModeValues,
     RemoteKeyValues,
     TargetMediaStateValues,
+    ValveTypeValues,
 )
 from .permissions import CharacteristicPermissions
 from .types import CharacteristicShortUUID, CharacteristicUUID
@@ -43,4 +47,8 @@ __all__ = [
     "HeatingCoolingTargetValues",
     "CharacteristicUUID",
     "CharacteristicShortUUID",
+    "InUseValues",
+    "IsConfiguredValues",
+    "ProgramModeValues",
+    "ValveTypeValues",
 ]

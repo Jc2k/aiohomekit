@@ -58,3 +58,34 @@ class HeatingCoolingTargetValues(enum.IntEnum):
     HEAT = 1
     COOL = 2
     AUTO = 3
+
+
+class InUseValues(enum.IntEnum):
+    """Whether or not something is in use."""
+
+    NOT_IN_USE = 0
+    IN_USE = 1
+
+
+class IsConfiguredValues(enum.IntEnum):
+    """Whether or not something is configured."""
+
+    NOT_CONFIGURED = 0
+    CONFIGURED = 1
+
+
+class ProgramModeValues(enum.IntEnum):
+    """Whether or not a program is set."""
+
+    NO_PROGRAM_SCHEDULED = 0
+    PROGRAM_SCHEDULED = 1
+    PROGRAM_SCHEDULED_MANUAL_MODE = 2
+
+
+class ValveTypeValues(enum.IntEnum):
+    """The type of valve."""
+
+    GENERIC_VALVE = 0
+    IRRIGATION = 1
+    SHOWER_HEAD = 2
+    WATER_FAUCET = 3
