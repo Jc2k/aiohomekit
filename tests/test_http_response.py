@@ -24,6 +24,9 @@ def parse(data):
         response.parse(data[i])
         if response.is_read_completely():
             break
+
+    assert response.is_read_completely()
+
     return response
 
 
@@ -194,3 +197,39 @@ def test_example4():
     assert res.code == 200
     assert res.get_http_name() == "HTTP"
     json.loads(res.body.decode())
+
+
+def test_example_lines():
+    parts = [
+        b"HTTP/1.1 200 OK\r\n",
+        b"Content-Type: application/hap+json\r\n",
+        b"Content-Length: 95\r\n",
+        b"Connection: keep-alive\r\n",
+        b"\r\n",
+        b'{"characteristics":[{"aid":1,"iid":10,"value":35},'
+        b'{"aid":1,"iid":13,"value":36.0999984741211}]}',
+    ]
+    res = parse(parts)
+    assert res.code == 200
+    assert res.get_http_name() == "HTTP"
+    assert (
+        res.body
+        == b'{"characteristics":[{"aid":1,"iid":10,"value":35},{"aid":1,"iid":13,"value":36.0999984741211}]}'
+    )
+    json.loads(res.body.decode())
+
+
+def test_example_204():
+    res = parse([b"HTTP/1.1 204 No content\r\n\r\n"])
+    assert res.code == 204
+    assert res.get_http_name() == "HTTP"
+    assert res.body == b""
+    assert res.headers == []
+
+
+def test_example_470():
+    res = parse([b"HTTP/1.1 470 Connection Authorization Required\r\n\r\n"])
+    assert res.code == 470
+    assert res.get_http_name() == "HTTP"
+    assert res.body == b""
+    assert res.headers == []
