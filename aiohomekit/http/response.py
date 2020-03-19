@@ -115,16 +115,14 @@ class HttpResponse(object):
     def is_read_completely(self) -> bool:
         if self._is_chunked:
             return self._had_empty_chunk
-        if self.code == 204:
-            return True
+
+        if self._state < HttpResponse.STATE_BODY:
+            return False
+
         if self._content_length != -1:
             return len(self.body) == self._content_length
-        if (
-            self._state == HttpResponse.STATE_PRE_STATUS
-            or self._state == HttpResponse.STATE_HEADERS
-        ):
-            return False
-        raise HttpException("Could not determine if HTTP data was read completely")
+
+        return True
 
     def get_http_name(self) -> str:
         """
