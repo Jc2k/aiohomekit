@@ -223,6 +223,12 @@ class ConnectionError(AccessoryDisconnectedError):
     """
 
 
+class HttpErrorResponse(AccessoryDisconnectedError):
+    def __init__(self, message: str, response):
+        super().__init__(message)
+        self.response = response
+
+
 class TimeoutError(ConnectionError):
 
     """Connection timeout."""

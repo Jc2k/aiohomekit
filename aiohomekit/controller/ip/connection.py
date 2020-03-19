@@ -28,6 +28,7 @@ from aiohomekit.exceptions import (
     AuthenticationError,
     ConnectionError,
     HomeKitException,
+    HttpErrorResponse,
     TimeoutError,
 )
 from aiohomekit.http import HttpContentTypes
@@ -72,7 +73,7 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
         self.result_cbs.append(result)
 
         try:
-            return await asyncio.wait_for(result, 10)
+            return await asyncio.wait_for(result, 30)
         except asyncio.TimeoutError:
             self.transport.write_eof()
             self.transport.close()
@@ -325,9 +326,13 @@ class HomeKitConnection:
         return parsed
 
     async def post_tlv(self, target, body, expected=None):
-        response = await self.post(
-            target, TLV.encode_list(body), content_type=HttpContentTypes.TLV,
-        )
+        try:
+            response = await self.post(
+                target, TLV.encode_list(body), content_type=HttpContentTypes.TLV,
+            )
+        except HttpErrorResponse as e:
+            self.transport.close()
+            response = e.response
         body = TLV.decode_bytes(response.body, expected=expected)
         return body
 
@@ -355,7 +360,7 @@ class HomeKitConnection:
 
         # WARNING: It is vital that a Host: header is present or some devices
         # will reject the request.
-        buffer.append("Host: {host}:{port}".format(host=self.host, port=self.port))
+        buffer.append("Host: {host}".format(host=self.host))
 
         if headers:
             for (header, value) in headers:
@@ -377,7 +382,19 @@ class HomeKitConnection:
         # https://github.com/jlusiardi/homekit_python/issues/12
         # https://github.com/jlusiardi/homekit_python/issues/16
 
-        return await self.protocol.send_bytes(request_bytes)
+        logger.debug("%s: raw request: %r", self.host, request_bytes)
+        resp = await self.protocol.send_bytes(request_bytes)
+
+        if resp.code >= 400 and resp.code <= 499:
+            logger.debug(f"Got HTTP error {resp.code} for {method} against {target}")
+            raise HttpErrorResponse(
+                f"Got HTTP error {resp.code} for {method} against {target}",
+                response=resp,
+            )
+
+        logger.debug("%s: raw response: %r", self.host, resp.body)
+
+        return resp
 
     async def close(self):
         """
