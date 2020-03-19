@@ -14,9 +14,12 @@
 # limitations under the License.
 #
 
+import logging
 from typing import Union
 
 from aiohomekit.exceptions import HttpException
+
+logger = logging.getLogger(__name__)
 
 
 class HttpResponse(object):
@@ -100,6 +103,10 @@ class HttpResponse(object):
 
         if self.is_read_completely():
             # Whatever is left in the buffer is part of the next request
+            if len(self._raw_response) > 0:
+                logger.debug(
+                    "Bytes left in buffer after parsing packet: %r", self._raw_response
+                )
             return self._raw_response
 
         return bytearray()
