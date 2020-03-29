@@ -16,6 +16,7 @@
 
 from typing import TYPE_CHECKING, Iterable, Optional
 
+from aiohomekit.controller.tools import check_convert_value
 from aiohomekit.model import ToDictMixin
 from aiohomekit.model.characteristics import Characteristic, CharacteristicsTypes
 from aiohomekit.model.services.data import services
@@ -135,7 +136,9 @@ class Service(ToDictMixin):
 
         for char_type, value in payload.items():
             char = self[char_type]
-            result.append((self.accessory.aid, char.iid, value))
+            result.append(
+                (self.accessory.aid, char.iid, check_convert_value(value, char.format))
+            )
 
         return result
 
