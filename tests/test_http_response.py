@@ -233,3 +233,76 @@ def test_example_470():
     assert res.get_http_name() == "HTTP"
     assert res.body == b""
     assert res.headers == []
+
+
+def test_example_multi_status():
+    res = parse(
+        [(
+            b'HTTP/1.1 207 Multi-Status\r\n'
+            b'Content-Type: application/hap+json\r\n'
+            b'Date: Sun, 29 Mar 2020 21:58:41 GMT\r\n'
+            b'Connection: keep-alive\r\n'
+            b'Transfer-Encoding: chunked\r\n'
+            b'\r\n'
+            b'33\r\n'
+            b'{"characteristics":[{"aid":2,"iid":10,"status":0}]}\r\n'
+            b'0\r\n'
+            b'\r\n'
+        )]
+    )
+    assert res.code == 207
+    assert res.body == b'{"characteristics":[{"aid":2,"iid":10,"status":0}]}'
+
+
+def test_example_multi_status_2():
+    res = parse(
+        [(
+            b'HTTP/1.1 207 Multi-Status\r\n'
+            b'Content-Type: application/hap+json\r\n'
+            b'Date: Sun, 29 Mar 2020 21:58:24 GMT\r\n'
+            b'Connection: keep-alive\r\n'
+            b'Transfer-Encoding: chunked\r\n'
+            b'\r\n'
+            b'40\r\n'
+            b'{"characteristics":[{"aid":2,"iid":10,"value":true,"status":0}]}\r\n'
+            b'0\r\n'
+            b'\r\n'
+        )]
+    )
+    assert res.code == 207
+    assert (
+        res.body == b'{"characteristics":[{"aid":2,"iid":10,"value":true,"status":0}]}'
+    )
+
+
+def test_example_multi_status_3():
+    """
+    Test that 2 payloads arriving in same packet works.
+
+    https://github.com/Jc2k/aiohomekit/issues/1
+    """
+    res = parse(
+        [(
+            b'HTTP/1.1 207 Multi-Status\r\n'
+            b'Content-Type: application/hap+json\r\n'
+            b'Date: Sun, 29 Mar 2020 21:57:54 GMT\r\n'
+            b'Connection: keep-alive\r\n'
+            b'Transfer-Encoding: chunked\r\n'
+            b'\r\n'
+            b'33\r\n'
+            b'{"characteristics":[{"aid":2,"iid":10,"status":0}]}\r\n'
+            b'0\r\n'
+            b'\r\n'
+            b'HTTP/1.1 207 Multi-Status\r\n'
+            b'Content-Type: application/hap+json'
+            b'\r\nDate: Sun, 29 Mar 2020 21:57:54 GMT\r\n'
+            b'Connection: keep-alive\r\n'
+            b'Transfer-Encoding: chunked\r\n'
+            b'\r\n'
+            b'33\r\n'
+            b'{"characteristics":[{"aid":2,"iid":10,"status":0}]}\r\n'
+            b'0\r\n'
+            b'\r\n'
+        )]
+    )
+    assert res.code == 207

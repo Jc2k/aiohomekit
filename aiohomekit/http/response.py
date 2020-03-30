@@ -44,7 +44,8 @@ class HttpResponse(object):
     def parse(self, part: Union[bytearray, bytes]) -> bytearray:
         self._raw_response += part
         pos = self._raw_response.find(b"\r\n")
-        while pos != -1:
+
+        while pos != -1 and self._state < HttpResponse.STATE_DONE:
             line = self._raw_response[:pos]
             self._raw_response = self._raw_response[pos + 2 :]
             if self._state == HttpResponse.STATE_PRE_STATUS:
@@ -91,6 +92,7 @@ class HttpResponse(object):
                 if self._content_length > -1:
                     self.body += self._raw_response
                     self._raw_response = bytearray()
+
             else:
                 raise HttpException("Unknown parser state")
 
