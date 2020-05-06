@@ -40,6 +40,17 @@ from aiohomekit.zeroconf import async_find_device_ip_and_port
 logger = logging.getLogger(__name__)
 
 
+def serialize_json(obj) -> bytes:
+    """
+    An iPhone sends JSON like this:
+
+    {"characteristics":[{"iid":15,"aid":2,"ev":true}]}
+
+    Some devices (Tado Internet Bridge) depend on this some of the time.
+    """
+    return json.dumps(obj, separators=(",", ":")).encode("utf-8")
+
+
 class InsecureHomeKitProtocol(asyncio.Protocol):
     def __init__(self, connection):
         self.connection = connection
@@ -264,9 +275,7 @@ class HomeKitConnection:
 
     async def put_json(self, target, body):
         response = await self.put(
-            target,
-            json.dumps(body).encode("utf-8"),
-            content_type=HttpContentTypes.JSON,
+            target, serialize_json(body), content_type=HttpContentTypes.JSON,
         )
 
         if response.code == 204:
@@ -304,7 +313,7 @@ class HomeKitConnection:
 
     async def post_json(self, target, body):
         response = await self.post(
-            target, json.dumps(body).encode("utf-8"), content_type=HttpContentTypes.TLV,
+            target, serialize_json(body), content_type=HttpContentTypes.JSON,
         )
 
         if response.code != 204:
