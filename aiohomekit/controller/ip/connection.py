@@ -186,7 +186,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
 
 
 class HomeKitConnection:
-    def __init__(self, owner, host, port):
+    def __init__(self, owner, host, port, concurrency_limit=1):
         self.owner = owner
         self.host = host
         self.port = port
@@ -201,6 +201,8 @@ class HomeKitConnection:
         self._connector = None
 
         self.is_secure = False
+
+        self._concurrency_limit = asyncio.Semaphore(concurrency_limit)
 
     @property
     def is_connected(self):
@@ -382,8 +384,9 @@ class HomeKitConnection:
         # https://github.com/jlusiardi/homekit_python/issues/12
         # https://github.com/jlusiardi/homekit_python/issues/16
 
-        logger.debug("%s: raw request: %r", self.host, request_bytes)
-        resp = await self.protocol.send_bytes(request_bytes)
+        async with self._concurrency_limit:
+            logger.debug("%s: raw request: %r", self.host, request_bytes)
+            resp = await self.protocol.send_bytes(request_bytes)
 
         if resp.code >= 400 and resp.code <= 499:
             logger.debug(f"Got HTTP error {resp.code} for {method} against {target}")
