@@ -20,7 +20,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.7"
 cryptography = "^2.8"
-zeroconf = {version = "^0.24.4", extras = ["IP"]}
+zeroconf = {version = ">= 0.26.0"}
 
 [tool.poetry.dev-dependencies]
 isort = "^4.3.21"
