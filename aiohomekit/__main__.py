@@ -341,7 +341,7 @@ async def unpair(args):
 
     await controller.remove_pairing(args.alias)
     controller.save_data(args.file)
-    print("Device was completely unpaired.".format(a=args.alias))
+    print("Device {a} was completely unpaired.".format(a=args.alias))
     return True
 
 
