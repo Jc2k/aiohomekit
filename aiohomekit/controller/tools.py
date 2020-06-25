@@ -62,6 +62,10 @@ def check_convert_value(val: str, target_type: str) -> int:
         except ValueError:
             raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=target_type))
 
+        # Honeywell T6 Pro cannot handle arbritary precision, so round the value.
+        # See https://github.com/home-assistant/core/issues/37083
+        val = round(val, 2)
+
     if target_type == CharacteristicFormats.data:
         try:
             base64.decodebytes(val.encode())
