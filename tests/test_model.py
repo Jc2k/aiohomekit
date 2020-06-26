@@ -142,3 +142,36 @@ def test_build_update():
     payload = service.build_update({CharacteristicsTypes.NAME: "Fred"})
 
     assert payload == [(6623462389072572, 588410716196, "Fred")]
+
+
+def test_build_update_minStep_clamping_lennox():
+    a = Accessories.from_file("tests/fixtures/lennox_e30.json").aid(1)
+    service = a.services.iid(100)
+
+    assertions = [
+        (27.23, 27.0),
+        (27.6, 27.5),
+        (27.26, 27.5),
+        (27.9, 28.0),
+    ]
+
+    for left, right in assertions:
+        payload = service.build_update({CharacteristicsTypes.TEMPERATURE_TARGET: left})
+        assert payload == [(1, 104, right)]
+
+
+def test_build_update_minStep_clamping_ecobee():
+    a = Accessories.from_file("tests/fixtures/ecobee3.json").aid(1)
+    service = a.services.iid(16)
+
+    assertions = [
+        (27.23, 27.2),
+        (27.6, 27.6),
+        (27.26, 27.3),
+        (27.9, 27.9),
+        (27.95, 28.0),
+    ]
+
+    for left, right in assertions:
+        payload = service.build_update({CharacteristicsTypes.TEMPERATURE_TARGET: left})
+        assert payload == [(1, 20, right)]
