@@ -142,18 +142,3 @@ def test_build_update():
     payload = service.build_update({CharacteristicsTypes.NAME: "Fred"})
 
     assert payload == [(6623462389072572, 588410716196, "Fred")]
-
-
-def test_build_update_float():
-    # Regression test for https://github.com/home-assistant/core/issues/37083
-
-    a = Accessories.from_file("tests/fixtures/koogeek_ls1.json").aid(1)
-
-    service = a.services.first(
-        service_type=ServicesTypes.LIGHTBULB,
-        characteristics={CharacteristicsTypes.NAME: "Light Strip"},
-    )
-
-    payload = service.build_update({CharacteristicsTypes.SATURATION: 22.22222222})
-
-    assert payload == [(1, 10, 22.22)]
