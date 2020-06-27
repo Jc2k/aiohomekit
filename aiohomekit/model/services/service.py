@@ -17,9 +17,9 @@
 from decimal import Decimal, localcontext
 from typing import TYPE_CHECKING, Iterable, Optional
 
-from aiohomekit.controller.tools import check_convert_value
 from aiohomekit.model import ToDictMixin
 from aiohomekit.model.characteristics import Characteristic, CharacteristicsTypes
+from aiohomekit.model.characteristics.characteristic import check_convert_value
 from aiohomekit.model.services.data import services
 from aiohomekit.model.services.service_types import ServicesTypes
 

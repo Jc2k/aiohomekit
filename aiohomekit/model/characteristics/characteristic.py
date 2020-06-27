@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 from aiohomekit.exceptions import CharacteristicPermissionError, FormatError
 from aiohomekit.model.mixin import ToDictMixin
 from aiohomekit.protocol.statuscodes import HapStatusCodes
+from aiohomekit.protocol.tlv import TLV, TlvParseException
 
 from .characteristic_formats import CharacteristicFormats
 from .characteristic_types import CharacteristicsTypes
@@ -32,6 +33,61 @@ from .permissions import CharacteristicPermissions
 
 if TYPE_CHECKING:
     from aiohomekit.model.service import Service
+
+
+def check_convert_value(val: str, target_type: str) -> int:
+    """
+    Checks if the given value is of the given type or is convertible into the type. If the value is not convertible, a
+    HomeKitTypeException is thrown.
+    :param val: the original value
+    :param target_type: the target type of the conversion
+    :return: the converted value
+    :raises FormatError: if the input value could not be converted to the target type
+    """
+
+    if target_type == CharacteristicFormats.bool:
+        try:
+            val = strtobool(str(val))
+        except ValueError:
+            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=target_type))
+
+        # We have seen iPhone's sending 1 and 0 for True and False
+        # This is in spec
+        # It is also *required* for Ecobee Switch+ devices (as at Mar 2020)
+        return 1 if val else 0
+
+    if target_type in [
+        CharacteristicFormats.uint64,
+        CharacteristicFormats.uint32,
+        CharacteristicFormats.uint16,
+        CharacteristicFormats.uint8,
+        CharacteristicFormats.int,
+    ]:
+        try:
+            val = int(val)
+        except ValueError:
+            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=target_type))
+
+    if target_type == CharacteristicFormats.float:
+        try:
+            val = float(val)
+        except ValueError:
+            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=target_type))
+
+    if target_type == CharacteristicFormats.data:
+        try:
+            base64.decodebytes(val.encode())
+        except binascii.Error:
+            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=target_type))
+
+    if target_type == CharacteristicFormats.tlv8:
+        try:
+            tmp_bytes = base64.decodebytes(val.encode())
+            TLV.decode_bytes(tmp_bytes)
+        except (binascii.Error, TlvParseException):
+            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=target_type))
+
+    return val
 
 
 DEFAULT_FOR_TYPE = {
