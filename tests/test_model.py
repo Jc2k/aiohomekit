@@ -222,6 +222,12 @@ def test_build_update_minStep_clamping_synthetic_int():
 
     assertions = [
         # minStep 1, int
+        (8, 27.0, 27),
+        (8, 27.5, 28),
+        (8, 28.0, 28),
+        (8, 28.5, 29),
+        (8, 29.0, 29),
+        (8, 29.5, 30),
         (8, 27.2, 27),
         (8, 27.6, 28),
         (8, 27.9, 28),

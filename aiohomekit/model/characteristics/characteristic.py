@@ -16,7 +16,7 @@
 
 import base64
 import binascii
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal, localcontext
 from distutils.util import strtobool
 import struct
 from typing import TYPE_CHECKING, Any, Dict, Optional
@@ -35,61 +35,6 @@ if TYPE_CHECKING:
     from aiohomekit.model.service import Service
 
 
-def check_convert_value(val: str, target_type: str) -> int:
-    """
-    Checks if the given value is of the given type or is convertible into the type. If the value is not convertible, a
-    HomeKitTypeException is thrown.
-    :param val: the original value
-    :param target_type: the target type of the conversion
-    :return: the converted value
-    :raises FormatError: if the input value could not be converted to the target type
-    """
-
-    if target_type == CharacteristicFormats.bool:
-        try:
-            val = strtobool(str(val))
-        except ValueError:
-            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=target_type))
-
-        # We have seen iPhone's sending 1 and 0 for True and False
-        # This is in spec
-        # It is also *required* for Ecobee Switch+ devices (as at Mar 2020)
-        return 1 if val else 0
-
-    if target_type in [
-        CharacteristicFormats.uint64,
-        CharacteristicFormats.uint32,
-        CharacteristicFormats.uint16,
-        CharacteristicFormats.uint8,
-        CharacteristicFormats.int,
-    ]:
-        try:
-            val = int(val)
-        except ValueError:
-            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=target_type))
-
-    if target_type == CharacteristicFormats.float:
-        try:
-            val = float(val)
-        except ValueError:
-            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=target_type))
-
-    if target_type == CharacteristicFormats.data:
-        try:
-            base64.decodebytes(val.encode())
-        except binascii.Error:
-            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=target_type))
-
-    if target_type == CharacteristicFormats.tlv8:
-        try:
-            tmp_bytes = base64.decodebytes(val.encode())
-            TLV.decode_bytes(tmp_bytes)
-        except (binascii.Error, TlvParseException):
-            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=target_type))
-
-    return val
-
-
 DEFAULT_FOR_TYPE = {
     CharacteristicFormats.bool: False,
     CharacteristicFormats.uint8: 0,
@@ -102,6 +47,16 @@ DEFAULT_FOR_TYPE = {
     CharacteristicFormats.array: [],
     CharacteristicFormats.dict: {},
 }
+
+INTEGER_TYPES = [
+    CharacteristicFormats.uint64,
+    CharacteristicFormats.uint32,
+    CharacteristicFormats.uint16,
+    CharacteristicFormats.uint8,
+    CharacteristicFormats.int,
+]
+
+NUMBER_TYPES = INTEGER_TYPES + [CharacteristicFormats.float]
 
 
 class Characteristic(ToDictMixin):
@@ -344,3 +299,79 @@ class Characteristic(ToDictMixin):
         if self.valid_values:
             d["valid-values"] = self.valid_values
         return d
+
+
+def check_convert_value(val: str, char: Characteristic) -> Any:
+    """
+    Checks if the given value is of the given type or is convertible into the type. If the value is not convertible, a
+    HomeKitTypeException is thrown.
+
+    :param val: the original value
+    :param char: the characteristic
+    :return: the converted value
+    :raises FormatError: if the input value could not be converted to the target type
+    """
+
+    if char.format == CharacteristicFormats.bool:
+        try:
+            val = strtobool(str(val))
+        except ValueError:
+            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=char.format))
+
+        # We have seen iPhone's sending 1 and 0 for True and False
+        # This is in spec
+        # It is also *required* for Ecobee Switch+ devices (as at Mar 2020)
+        return 1 if val else 0
+
+    if char.format in NUMBER_TYPES:
+        try:
+            val = Decimal(val)
+        except ValueError:
+            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=char.format))
+
+        if char.minValue is not None:
+            val = max(char.minValue, val)
+
+        if char.maxValue is not None:
+            val = min(char.maxValue, val)
+
+        # Honeywell T6 Pro cannot handle arbritary precision, the values we send
+        # *must* respect minStep
+        # See https://github.com/home-assistant/core/issues/37083
+        if char.minStep is not None:
+            with localcontext() as ctx:
+                ctx.prec = 6
+
+                # Python3 uses bankers rounding by default, so 28.5 rounds to 28, not 29.
+                # This is surprising for most people
+                ctx.rounding = ROUND_HALF_UP
+
+                val = Decimal(val)
+                offset = Decimal(char.minValue if char.minValue is not None else 0)
+                min_step = Decimal(char.minStep)
+
+                # We use to_integral_value() here rather than round as it respsects
+                # ctx.rounding
+                val = offset + (
+                    ((val - offset) / min_step).to_integral_value() * min_step
+                )
+
+                if char.format in INTEGER_TYPES:
+                    val = int(val.to_integral_value())
+                else:
+                    val = float(val)
+
+    if char.format == CharacteristicFormats.data:
+        try:
+            base64.decodebytes(val.encode())
+        except binascii.Error:
+            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=char.format))
+
+    if char.format == CharacteristicFormats.tlv8:
+        try:
+            tmp_bytes = base64.decodebytes(val.encode())
+            TLV.decode_bytes(tmp_bytes)
+        except (binascii.Error, TlvParseException):
+            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=char.format))
+
+    return val
