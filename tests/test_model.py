@@ -215,3 +215,26 @@ def test_build_update_minStep_clamping_synthetic():
         service = a.aid(aid).services.iid(100)
         payload = service.build_update({CharacteristicsTypes.TEMPERATURE_TARGET: left})
         assert payload == [(aid, 104, right)]
+
+
+def test_build_update_minStep_clamping_synthetic_int():
+    a = Accessories.from_file("tests/fixtures/synthetic_float_minstep.json")
+
+    assertions = [
+        # minStep 1, int
+        (8, 27.0, 27),
+        (8, 27.5, 28),
+        (8, 28.0, 28),
+        (8, 28.5, 29),
+        (8, 29.0, 29),
+        (8, 29.5, 30),
+        (8, 27.2, 27),
+        (8, 27.6, 28),
+        (8, 27.9, 28),
+    ]
+
+    for aid, left, right in assertions:
+        service = a.aid(aid).services.iid(100)
+        payload = service.build_update({CharacteristicsTypes.TEMPERATURE_TARGET: left})
+        assert payload == [(aid, 104, right)]
+        assert isinstance(payload[0][2], int)

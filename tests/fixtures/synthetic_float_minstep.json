@@ -183,5 +183,32 @@
                 "type": "4A"
             }
         ]
+    },
+    {
+        "aid": 8,
+        "services": [
+            {
+                "characteristics": [
+                    {
+                        "format": "int",
+                        "iid": 104,
+                        "maxValue": 32,
+                        "minStep": 1,
+                        "minValue": 4,
+                        "perms": [
+                            "pr",
+                            "pw",
+                            "ev"
+                        ],
+                        "type": "35",
+                        "unit": "celsius",
+                        "value": 21
+                    }
+                ],
+                "iid": 100,
+                "primary": true,
+                "type": "4A"
+            }
+        ]
     }
 ]

@@ -14,12 +14,11 @@
 # limitations under the License.
 #
 
-from decimal import Decimal, localcontext
 from typing import TYPE_CHECKING, Iterable, Optional
 
-from aiohomekit.controller.tools import check_convert_value
 from aiohomekit.model import ToDictMixin
 from aiohomekit.model.characteristics import Characteristic, CharacteristicsTypes
+from aiohomekit.model.characteristics.characteristic import check_convert_value
 from aiohomekit.model.services.data import services
 from aiohomekit.model.services.service_types import ServicesTypes
 
@@ -137,30 +136,7 @@ class Service(ToDictMixin):
 
         for char_type, value in payload.items():
             char = self[char_type]
-
-            value = check_convert_value(value, char.format)
-
-            if char.minValue is not None:
-                value = max(char.minValue, value)
-
-            if char.maxValue is not None:
-                value = min(char.maxValue, value)
-
-            # Honeywell T6 Pro cannot handle arbritary precision, the values we send
-            # *must* respect minStep
-            # See https://github.com/home-assistant/core/issues/37083
-            if char.minStep is not None:
-                with localcontext() as ctx:
-                    ctx.prec = 6
-
-                    value = Decimal(value)
-                    offset = Decimal(char.minValue if char.minValue is not None else 0)
-                    min_step = Decimal(char.minStep)
-
-                    value = float(
-                        offset + (round((value - offset) / min_step) * min_step)
-                    )
-
+            value = check_convert_value(value, char)
             result.append((self.accessory.aid, char.iid, value))
 
         return result
