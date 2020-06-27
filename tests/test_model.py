@@ -142,3 +142,76 @@ def test_build_update():
     payload = service.build_update({CharacteristicsTypes.NAME: "Fred"})
 
     assert payload == [(6623462389072572, 588410716196, "Fred")]
+
+
+def test_build_update_minStep_clamping_lennox():
+    a = Accessories.from_file("tests/fixtures/lennox_e30.json").aid(1)
+    service = a.services.iid(100)
+
+    assertions = [
+        (27.23, 27.0),
+        (27.6, 27.5),
+        (27.26, 27.5),
+        (27.9, 28.0),
+    ]
+
+    for left, right in assertions:
+        payload = service.build_update({CharacteristicsTypes.TEMPERATURE_TARGET: left})
+        assert payload == [(1, 104, right)]
+
+
+def test_build_update_minStep_clamping_ecobee():
+    a = Accessories.from_file("tests/fixtures/ecobee3.json").aid(1)
+    service = a.services.iid(16)
+
+    assertions = [
+        (27.23, 27.2),
+        (27.6, 27.6),
+        (27.26, 27.3),
+        (27.9, 27.9),
+        (27.95, 28.0),
+    ]
+
+    for left, right in assertions:
+        payload = service.build_update({CharacteristicsTypes.TEMPERATURE_TARGET: left})
+        assert payload == [(1, 20, right)]
+
+
+def test_build_update_minStep_clamping_synthetic():
+    a = Accessories.from_file("tests/fixtures/synthetic_float_minstep.json")
+
+    assertions = [
+        # minStep 1
+        (1, 27.2, 27.5),
+        (1, 27.6, 27.5),
+        (1, 27.9, 27.5),
+        # minStep 2
+        (2, 27.2, 26.5),
+        (2, 28.2, 28.5),
+        (2, 27.7, 28.5),
+        # minStep 5
+        (3, 27.2, 29.5),
+        (3, 25.0, 24.5),
+        (3, 28.3, 29.5),
+        # no minStep
+        (4, 27.2, 27.2),
+        (4, 27.3, 27.3),
+        (4, 27.7, 27.7),
+        # minStep 1, no offset
+        (5, 27.2, 27.0),
+        (5, 27.6, 28.0),
+        (5, 27.9, 28.0),
+        # minStep 2, no offset
+        (6, 27.2, 28.0),
+        (6, 28.2, 28.0),
+        (6, 27.7, 28.0),
+        # minStep 5, no offset
+        (7, 27.2, 25.0),
+        (7, 25.0, 25.0),
+        (7, 28.3, 30.0),
+    ]
+
+    for aid, left, right in assertions:
+        service = a.aid(aid).services.iid(100)
+        payload = service.build_update({CharacteristicsTypes.TEMPERATURE_TARGET: left})
+        assert payload == [(aid, 104, right)]
