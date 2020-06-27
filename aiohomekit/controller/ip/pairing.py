@@ -18,7 +18,6 @@ import asyncio
 import logging
 
 from aiohomekit.controller.pairing import AbstractPairing
-from aiohomekit.controller.tools import check_convert_value
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
@@ -231,7 +230,7 @@ class IpPairing(AbstractPairing):
 
         return format_characteristic_list(response)
 
-    async def put_characteristics(self, characteristics, do_conversion=False):
+    async def put_characteristics(self, characteristics):
         """
         Update the values of writable characteristics. The characteristics have to be identified by accessory id (aid),
         instance id (iid). If do_conversion is False (the default), the value must be of proper format for the
@@ -254,17 +253,6 @@ class IpPairing(AbstractPairing):
             aid = characteristic[0]
             iid = characteristic[1]
             value = characteristic[2]
-            if do_conversion:
-                # evaluate proper format
-                c_format = None
-                for d in self.pairing_data["accessories"]:
-                    if "aid" in d and d["aid"] == aid:
-                        for s in d["services"]:
-                            for c in s["characteristics"]:
-                                if "iid" in c and c["iid"] == iid:
-                                    c_format = c["format"]
-
-                value = check_convert_value(value, c_format)
             characteristics_set.add("{a}.{i}".format(a=aid, i=iid))
             data.append({"aid": aid, "iid": iid, "value": value})
         data = {"characteristics": data}

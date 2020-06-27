@@ -94,14 +94,12 @@ class AbstractPairing(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def put_characteristics(self, characteristics, do_conversion=False):
+    async def put_characteristics(self, characteristics):
         """
         Update the values of writable characteristics. The characteristics have to be identified by accessory id (aid),
-        instance id (iid). If do_conversion is False (the default), the value must be of proper format for the
-        characteristic since no conversion is done. If do_conversion is True, the value is converted.
+        instance id (iid). No conversion is done.
 
         :param characteristics: a list of 3-tupels of accessory id, instance id and the value
-        :param do_conversion: select if conversion is done (False is default)
         :return: a dict from (aid, iid) onto {status, description}
         :raises FormatError: if the input value could not be converted to the target type and conversion was
                              requested

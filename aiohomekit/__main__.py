@@ -263,6 +263,8 @@ async def put_characteristics(args: Namespace) -> bool:
     try:
         pairing = controller.get_pairings()[args.alias]
 
+        # FIXME use Service.build_update
+
         characteristics = [
             (
                 int(c[0].split(".")[0]),  # the first part is the aid, must be int
@@ -271,7 +273,7 @@ async def put_characteristics(args: Namespace) -> bool:
             )
             for c in args.characteristics
         ]
-        results = await pairing.put_characteristics(characteristics, do_conversion=True)
+        results = await pairing.put_characteristics(characteristics)
     except Exception:
         logging.exception("Unhandled error whilst writing to device")
         return False
