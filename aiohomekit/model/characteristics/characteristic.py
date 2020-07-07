@@ -330,10 +330,10 @@ def check_convert_value(val: str, char: Characteristic) -> Any:
             raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=char.format))
 
         if char.minValue is not None:
-            val = max(char.minValue, val)
+            val = max(Decimal(char.minValue), val)
 
         if char.maxValue is not None:
-            val = min(char.maxValue, val)
+            val = min(Decimal(char.maxValue), val)
 
         # Honeywell T6 Pro cannot handle arbritary precision, the values we send
         # *must* respect minStep
