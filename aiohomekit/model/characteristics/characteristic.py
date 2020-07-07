@@ -356,10 +356,10 @@ def check_convert_value(val: str, char: Characteristic) -> Any:
                     ((val - offset) / min_step).to_integral_value() * min_step
                 )
 
-                if char.format in INTEGER_TYPES:
-                    val = int(val.to_integral_value())
-                else:
-                    val = float(val)
+        if char.format in INTEGER_TYPES:
+            val = int(val.to_integral_value())
+        else:
+            val = float(val)
 
     if char.format == CharacteristicFormats.data:
         try:
