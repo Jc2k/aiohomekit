@@ -19,7 +19,8 @@ from typing import Any, Dict
 
 
 class AbstractPairing(abc.ABC):
-    def __init__(self):
+    def __init__(self, controller):
+        self.controller = controller
         self.listeners = set()
         self.subscriptions = set()
 

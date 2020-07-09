@@ -55,14 +55,14 @@ class IpPairing(AbstractPairing):
     This represents a paired HomeKit IP accessory.
     """
 
-    def __init__(self, pairing_data):
+    def __init__(self, controller, pairing_data):
         """
         Initialize a Pairing by using the data either loaded from file or obtained after calling
         Controller.perform_pairing().
 
         :param pairing_data:
         """
-        super().__init__()
+        super().__init__(controller)
 
         self.pairing_data = pairing_data
         self.connection = SecureHomeKitConnection(self, self.pairing_data)

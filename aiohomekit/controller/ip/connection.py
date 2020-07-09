@@ -528,7 +528,8 @@ class SecureHomeKitConnection(HomeKitConnection):
 
         try:
             self.host, self.port = await async_find_device_ip_and_port(
-                self.pairing_data["AccessoryPairingID"]
+                self.pairing_data["AccessoryPairingID"],
+                zeroconf_instance=self.owner.controller._zeroconf_instance,
             )
         except AccessoryNotFoundError:
             pass
