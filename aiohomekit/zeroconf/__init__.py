@@ -20,6 +20,7 @@ from _socket import inet_ntoa
 import asyncio
 from functools import partial
 import logging
+import threading
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -30,14 +31,19 @@ from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import IpStatusFlags
 
+HAP_TYPE = "_hap._tcp.local."
+
 
 class CollectingListener:
     """
     Helper class to collect all zeroconf announcements.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, max_attempts=2, device_id=None, found_device_event=None) -> None:
         self.data = []
+        self._max_attempts = max_attempts
+        self._device_id = device_id
+        self._found_device_event = found_device_event
 
     def remove_service(self, zeroconf, zeroconf_type, name):
         """A device is no longer visible via zeroconf."""
@@ -46,9 +52,27 @@ class CollectingListener:
 
     def add_service(self, zeroconf, zeroconf_type, name):
         """A device became visible via zeroconf."""
-        info = zeroconf.get_service_info(zeroconf_type, name)
-        if info is not None:
-            self.data.append(info)
+        info = None
+        attempts = 0
+        while info is None and attempts < self._max_attempts:
+            try:
+                info = zeroconf.get_service_info(zeroconf_type, name)
+            except OSError:
+                break
+            attempts += 1
+
+        if not info:
+            return
+
+        self.data.append(info)
+
+        if not self._device_id:
+            return
+
+        if info.properties[b"id"].decode() == self._device_id:
+            self._found_device_event.set()
+
+    update_service = add_service
 
     def get_data(self) -> List[ServiceInfo]:
         """
@@ -91,7 +115,9 @@ def get_from_properties(
     return None
 
 
-def discover_homekit_devices(max_seconds: int = 10) -> List[Any]:
+def discover_homekit_devices(
+    max_seconds: int = 10, zeroconf_instance: "Zeroconf" = None
+) -> List[Any]:
     """
     This method discovers all HomeKit Accessories. It browses for devices in the _hap._tcp.local. domain and checks if
     all required fields are set in the text record. It one field is missing, it will be excluded from the result list.
@@ -99,31 +125,34 @@ def discover_homekit_devices(max_seconds: int = 10) -> List[Any]:
     :param max_seconds: the number of seconds we will wait for the devices to be discovered
     :return: a list of dicts containing all fields as described in table 5.7 page 69
     """
-    zeroconf = Zeroconf()
+    zeroconf = zeroconf_instance or Zeroconf()
     listener = CollectingListener()
-    ServiceBrowser(zeroconf, "_hap._tcp.local.", listener)
+    service_browser = ServiceBrowser(zeroconf, HAP_TYPE, listener)
     sleep(max_seconds)
     tmp = []
-    for info in listener.get_data():
-        # from Bonjour discovery
-        data = {
-            "name": info.name,
-            "address": inet_ntoa(info.addresses[0]),
-            "port": info.port,
-        }
+    try:
+        for info in listener.get_data():
+            # from Bonjour discovery
+            data = {
+                "name": info.name,
+                "address": inet_ntoa(info.addresses[0]),
+                "port": info.port,
+            }
 
-        logging.debug("candidate data %s", info.properties)
+            logging.debug("candidate data %s", info.properties)
 
-        data.update(
-            parse_discovery_properties(decode_discovery_properties(info.properties))
-        )
+            data.update(
+                parse_discovery_properties(decode_discovery_properties(info.properties))
+            )
 
-        if "c#" not in data or "md" not in data:
-            continue
-        logging.debug("found Homekit IP accessory %s", data)
-        tmp.append(data)
-
-    zeroconf.close()
+            if "c#" not in data or "md" not in data:
+                continue
+            logging.debug("found Homekit IP accessory %s", data)
+            tmp.append(data)
+    finally:
+        service_browser.cancel()
+        if not zeroconf_instance:
+            zeroconf.close()
     return tmp
 
 
@@ -200,37 +229,46 @@ def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, in
     return data
 
 
-def _find_device_ip_and_port(device_id: str, max_seconds: int = 10) -> Tuple[str, int]:
+def _find_device_ip_and_port(
+    device_id: str, max_seconds: int = 10, zeroconf_instance: "Zeroconf" = None
+) -> Tuple[str, int]:
     """
     Try to find a HomeKit Accessory via Bonjour. The process is time boxed by the second parameter which sets an upper
     limit of `max_seconds` before it times out. The runtime of the function may be longer because of the Bonjour
     handling code.
     """
-    zeroconf = Zeroconf()
-    listener = CollectingListener()
-    ServiceBrowser(zeroconf, "_hap._tcp.local.", listener)
-    counter = max_seconds * 2
+    zeroconf = zeroconf_instance or Zeroconf()
+    found_device_event = threading.Event()
+    listener = CollectingListener(
+        device_id=device_id, found_device_event=found_device_event
+    )
+    service_browser = ServiceBrowser(zeroconf, HAP_TYPE, listener)
+    found_device_event.wait(timeout=max_seconds)
 
     try:
-        while counter >= 0:
-            data = listener.get_data()
-            for info in data:
-                if info.properties[b"id"].decode() == device_id:
-                    return (inet_ntoa(info.addresses[0]), info.port)
-
-            counter -= 1
-            sleep(0.5)
+        data = listener.get_data()
+        for info in data:
+            if info.properties[b"id"].decode() == device_id:
+                logging.debug("Located Homekit IP accessory %s", info.properties)
+                return (inet_ntoa(info.addresses[0]), info.port)
     finally:
-        zeroconf.close()
+        service_browser.cancel()
+        if not zeroconf_instance:
+            zeroconf.close()
 
     raise AccessoryNotFoundError("Device not found via Bonjour within 10 seconds")
 
 
 async def async_find_device_ip_and_port(
-    device_id: str, max_seconds: int = 10
+    device_id: str, max_seconds: int = 10, zeroconf_instance: "Zeroconf" = None
 ) -> Tuple[str, int]:
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(
         None,
-        partial(_find_device_ip_and_port, device_id=device_id, max_seconds=max_seconds),
+        partial(
+            _find_device_ip_and_port,
+            device_id=device_id,
+            max_seconds=max_seconds,
+            zeroconf_instance=zeroconf_instance,
+        ),
     )

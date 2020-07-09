@@ -50,7 +50,7 @@ class Controller(object):
         self.ble_adapter = ble_adapter
         self.logger = logging.getLogger(__name__)
 
-    async def discover_ip(self, max_seconds=10):
+    async def discover_ip(self, max_seconds=10, zeroconf_instance=None):
         """
         Perform a Bonjour discovery for HomeKit accessory. The discovery will last for the given amount of seconds. The
         result will be a list of dicts. The keys of the dicts are:
@@ -78,14 +78,20 @@ class Controller(object):
         """
         if not IP_TRANSPORT_SUPPORTED:
             raise TransportNotSupportedError("IP")
-        devices = await async_discover_homekit_devices(max_seconds)
+        devices = await async_discover_homekit_devices(
+            max_seconds, zeroconf_instance=zeroconf_instance
+        )
         tmp = []
         for device in devices:
             tmp.append(IpDiscovery(self, device))
         return tmp
 
-    async def find_ip_by_device_id(self, device_id, max_seconds=10):
-        results = await self.discover_ip(max_seconds=max_seconds)
+    async def find_ip_by_device_id(
+        self, device_id, max_seconds=10, zeroconf_instance=None
+    ):
+        results = await self.discover_ip(
+            max_seconds=max_seconds, zeroconf_instance=zeroconf_instance
+        )
         for result in results:
             if result.device_id == device_id:
                 return result
