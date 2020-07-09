@@ -28,11 +28,20 @@ This also means we don't need to add any extra dependencies.
 import asyncio
 from functools import partial
 
+from zeroconf import Zeroconf
+
 from aiohomekit.zeroconf import discover_homekit_devices
 
 
-async def async_discover_homekit_devices(max_seconds=10):
+async def async_discover_homekit_devices(
+    max_seconds=10, zeroconf_instance: "Zeroconf" = None
+):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(
-        None, partial(discover_homekit_devices, max_seconds=max_seconds)
+        None,
+        partial(
+            discover_homekit_devices,
+            max_seconds=max_seconds,
+            zeroconf_instance=zeroconf_instance,
+        ),
     )

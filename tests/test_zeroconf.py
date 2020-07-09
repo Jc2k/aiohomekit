@@ -15,7 +15,7 @@
 #
 
 import socket
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from zeroconf import ServiceInfo
@@ -35,6 +35,7 @@ def mock_zeroconf():
 
     def browser(zeroconf, service, handler):
         handler.add_service(zeroconf, service, f"name.{service}")
+        return MagicMock()
 
     with patch("aiohomekit.zeroconf.ServiceBrowser") as mock_browser:
         mock_browser.side_effect = browser
@@ -63,6 +64,13 @@ async def test_find_with_device(mock_zeroconf):
 
     result = await async_find_device_ip_and_port("00:00:02:00:00:02", 0)
     assert result == ("127.0.0.1", 1234)
+
+
+async def test_find_with_device_get_service_info_throws(mock_zeroconf):
+    mock_zeroconf.get_service_info.side_effect = OSError
+
+    with pytest.raises(AccessoryNotFoundError):
+        await async_find_device_ip_and_port("00:00:02:00:00:02", 0)
 
 
 def test_discover_homekit_devices(mock_zeroconf):
@@ -153,6 +161,48 @@ def test_discover_homekit_devices_missing_md(mock_zeroconf):
     result = discover_homekit_devices(max_seconds=0)
 
     assert result == []
+
+
+def test_discover_homekit_devices_shared_zeroconf(mock_zeroconf):
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"1",
+        b"ci": b"5",
+        b"sf": b"0",
+    }
+    info = ServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    mock_zeroconf.get_service_info.return_value = info
+
+    result = discover_homekit_devices(max_seconds=0, zeroconf_instance=mock_zeroconf)
+
+    assert result == [
+        {
+            "address": "127.0.0.1",
+            "c#": "1",
+            "category": "Lightbulb",
+            "ci": "5",
+            "ff": 0,
+            "flags": FeatureFlags(0),
+            "id": "00:00:01:00:00:02",
+            "md": "unittest",
+            "name": "foo2._hap._tcp.local.",
+            "port": 1234,
+            "pv": "1.0",
+            "s#": "1",
+            "sf": "0",
+            "statusflags": "Accessory has been paired.",
+        }
+    ]
 
 
 def test_existing_key():
