@@ -132,18 +132,7 @@ def discover_homekit_devices(
     tmp = []
     try:
         for info in listener.get_data():
-            # from Bonjour discovery
-            data = {
-                "name": info.name,
-                "address": inet_ntoa(info.addresses[0]),
-                "port": info.port,
-            }
-
-            logging.debug("candidate data %s", info.properties)
-
-            data.update(
-                parse_discovery_properties(decode_discovery_properties(info.properties))
-            )
+            data = _build_data_from_service_info(info)
 
             if "c#" not in data or "md" not in data:
                 continue
@@ -154,6 +143,24 @@ def discover_homekit_devices(
         if not zeroconf_instance:
             zeroconf.close()
     return tmp
+
+
+def _build_data_from_service_info(service_info):
+    """Construct data from service_info."""
+    # from Bonjour discovery
+    data = {
+        "name": service_info.name,
+        "address": inet_ntoa(service_info.addresses[0]),
+        "port": service_info.port,
+    }
+
+    logging.debug("candidate data %s", service_info.properties)
+
+    data.update(
+        parse_discovery_properties(decode_discovery_properties(service_info.properties))
+    )
+
+    return data
 
 
 def decode_discovery_properties(props: Dict[bytes, bytes]) -> Dict[str, str]:
@@ -229,7 +236,7 @@ def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, in
     return data
 
 
-def _find_device_ip_and_port(
+def _find_data_for_device_id(
     device_id: str, max_seconds: int = 10, zeroconf_instance: "Zeroconf" = None
 ) -> Tuple[str, int]:
     """
@@ -250,7 +257,7 @@ def _find_device_ip_and_port(
         for info in data:
             if info.properties[b"id"].decode() == device_id:
                 logging.debug("Located Homekit IP accessory %s", info.properties)
-                return (inet_ntoa(info.addresses[0]), info.port)
+                return _build_data_from_service_info(info)
     finally:
         service_browser.cancel()
         if not zeroconf_instance:
@@ -263,10 +270,26 @@ async def async_find_device_ip_and_port(
     device_id: str, max_seconds: int = 10, zeroconf_instance: "Zeroconf" = None
 ) -> Tuple[str, int]:
     loop = asyncio.get_event_loop()
+    data = await loop.run_in_executor(
+        None,
+        partial(
+            _find_data_for_device_id,
+            device_id=device_id,
+            max_seconds=max_seconds,
+            zeroconf_instance=zeroconf_instance,
+        ),
+    )
+    return (data["address"], data["port"])
+
+
+async def async_find_data_for_device_id(
+    device_id: str, max_seconds: int = 10, zeroconf_instance: "Zeroconf" = None
+) -> Tuple[str, int]:
+    loop = asyncio.get_event_loop()
     return await loop.run_in_executor(
         None,
         partial(
-            _find_device_ip_and_port,
+            _find_data_for_device_id,
             device_id=device_id,
             max_seconds=max_seconds,
             zeroconf_instance=zeroconf_instance,

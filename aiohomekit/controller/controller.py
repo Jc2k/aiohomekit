@@ -33,6 +33,7 @@ from .pairing import AbstractPairing
 if IP_TRANSPORT_SUPPORTED:
     from .ip import IpDiscovery, IpPairing
     from .ip.zeroconf import async_discover_homekit_devices
+    from aiohomekit.zeroconf import async_find_data_for_device_id
 
 
 class Controller(object):
@@ -88,13 +89,14 @@ class Controller(object):
         return tmp
 
     async def find_ip_by_device_id(self, device_id, max_seconds=10):
-        results = await self.discover_ip(
-            max_seconds=max_seconds, zeroconf_instance=self._zeroconf_instance
+        if not IP_TRANSPORT_SUPPORTED:
+            raise TransportNotSupportedError("IP")
+        device = await async_find_data_for_device_id(
+            device_id=device_id,
+            max_seconds=max_seconds,
+            zeroconf_instance=self._zeroconf_instance,
         )
-        for result in results:
-            if result.device_id == device_id:
-                return result
-        raise AccessoryNotFoundError("No matching accessory found")
+        return IpDiscovery(self, device)
 
     @staticmethod
     async def discover_ble(max_seconds=10, adapter="hci0"):

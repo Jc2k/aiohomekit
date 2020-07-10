@@ -72,8 +72,12 @@ async def controller_and_unpaired_accessory(request, loop):
             break
         time.sleep(1)
 
-    with mock.patch("aiohomekit.zeroconf._find_device_ip_and_port") as find:
-        find.return_value = ("127.0.0.1", 51842)
+    with mock.patch("aiohomekit.zeroconf._find_data_for_device_id") as find:
+        find.return_value = {
+            "address": "127.0.0.1",
+            "port": 51842,
+            "id": "12:34:56:00:01:0A",
+        }
         with mock.patch.object(controller, "load_data", lambda x: None):
             with mock.patch("aiohomekit.__main__.Controller") as c:
                 c.return_value = controller
@@ -153,8 +157,12 @@ async def controller_and_paired_accessory(request, loop):
             break
         time.sleep(1)
 
-    with mock.patch("aiohomekit.zeroconf._find_device_ip_and_port") as find:
-        find.return_value = ("127.0.0.1", 51842)
+    with mock.patch("aiohomekit.zeroconf._find_data_for_device_id") as find:
+        find.return_value = {
+            "address": "127.0.0.1",
+            "port": 51842,
+            "id": "12:34:56:00:01:0A",
+        }
         with mock.patch.object(controller, "load_data", lambda x: None):
             with mock.patch("aiohomekit.__main__.Controller") as c:
                 c.return_value = controller
