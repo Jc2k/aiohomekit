@@ -88,9 +88,7 @@ class Controller(object):
         return tmp
 
     async def find_ip_by_device_id(self, device_id, max_seconds=10):
-        results = await self.discover_ip(
-            max_seconds=max_seconds, zeroconf_instance=self._zeroconf_instance
-        )
+        results = await self.discover_ip(max_seconds=max_seconds)
         for result in results:
             if result.device_id == device_id:
                 return result
