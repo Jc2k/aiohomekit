@@ -97,7 +97,6 @@ class Controller(object):
             zeroconf_instance=self._zeroconf_instance,
         )
         return IpDiscovery(self, device)
-        raise AccessoryNotFoundError("No matching accessory found")
 
     @staticmethod
     async def discover_ble(max_seconds=10, adapter="hci0"):
