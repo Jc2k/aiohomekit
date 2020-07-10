@@ -92,7 +92,9 @@ class Controller(object):
         if not IP_TRANSPORT_SUPPORTED:
             raise TransportNotSupportedError("IP")
         device = await async_find_data_for_device_id(
-            max_seconds=max_seconds, zeroconf_instance=self._zeroconf_instance
+            device_id=device_id,
+            max_seconds=max_seconds,
+            zeroconf_instance=self._zeroconf_instance,
         )
         return IpDiscovery(self, device)
         raise AccessoryNotFoundError("No matching accessory found")
