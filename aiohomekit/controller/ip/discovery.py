@@ -102,7 +102,7 @@ class IpDiscovery(object):
             pairing["AccessoryPort"] = self.port
             pairing["Connection"] = "IP"
 
-            obj = self.controller.pairings[alias] = IpPairing(pairing)
+            obj = self.controller.pairings[alias] = IpPairing(self.controller, pairing)
 
             await self.connection.close()
 

@@ -75,7 +75,7 @@ class FakeDiscovery(object):
             pairing_data["Connection"] = "IP"
 
             obj = self.controller.pairings[alias] = FakePairing(
-                pairing_data, self.accessories
+                self.controller, pairing_data, self.accessories
             )
             return obj
 
@@ -178,9 +178,9 @@ class FakePairing(AbstractPairing):
     class.
     """
 
-    def __init__(self, pairing_data, accessories: Accessories):
+    def __init__(self, controller, pairing_data, accessories: Accessories):
         """Create a fake pairing from an accessory model."""
-        super().__init__()
+        super().__init__(controller)
 
         self.accessories = accessories
         self.pairing_data = {}

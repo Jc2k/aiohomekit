@@ -184,7 +184,7 @@ async def pairings(request, controller_and_paired_accessory, loop):
     """ Returns a pairing of pairngs. """
     left = controller_and_paired_accessory.get_pairings()["alias"]
 
-    right = IpPairing(left.pairing_data)
+    right = IpPairing(left.controller, left.pairing_data)
 
     yield (left, right)
 
