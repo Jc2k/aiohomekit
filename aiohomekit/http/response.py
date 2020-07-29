@@ -65,7 +65,7 @@ class HttpResponse(object):
             elif self._state == HttpResponse.STATE_HEADERS:
                 # parse a header line
                 line = line.split(b":", 1)
-                name = line[0].decode()
+                name = line[0].decode().strip().title()
                 value = line[1].decode().strip()
                 if name == "Transfer-Encoding":
                     if value == "chunked":
