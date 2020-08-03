@@ -6,7 +6,7 @@ stages:
 language: python
 
 before_install:
-- pip install poetry
+- pip3 install poetry
 
 install:
 - poetry check
