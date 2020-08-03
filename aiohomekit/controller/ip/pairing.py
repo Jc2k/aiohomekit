@@ -84,18 +84,26 @@ class IpPairing(AbstractPairing):
         if self.subscriptions:
             await self.subscribe(self.subscriptions)
 
-    async def _ensure_connected(self):
+    async def _ensure_connected(self, *, _timeout: float = 10):
         try:
-            await asyncio.wait_for(self.connection.ensure_connection(), 10)
-        except asyncio.TimeoutError:
-            raise AccessoryDisconnectedError(
-                "Timeout while waiting for connection to device"
-            )
+            try:
+                await asyncio.wait_for(self.connection.ensure_connection(), _timeout)
+            except asyncio.TimeoutError:
+                raise AccessoryDisconnectedError(
+                    "Timeout while waiting for connection to device"
+                )
 
-        if not self.connection.is_connected:
-            raise AccessoryDisconnectedError(
-                "Ensure connection returned but still not connected"
-            )
+            assert (
+                self.connection.is_connected
+            ), "must be connected or receive exception after waiting for connection attempt"
+        except:  # noqa: E722  # Re-raise with cleanup is unproblematic
+            # Ensure that no `_reconnect` task is left dangling in the background
+            #
+            # Previously, these would accumulate if the target device was
+            # temporarily unavailable and cause a SYN-storm to hit the device
+            # when it became available again.
+            await self.connection.close()
+            raise
 
     async def close(self):
         """

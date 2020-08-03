@@ -1,6 +1,6 @@
 #! /bin/sh
 set -e
-
+alias python="poetry run python"
 python -m black tests aiohomekit
 python -m isort -rc tests aiohomekit
 python -m black tests aiohomekit --check --diff

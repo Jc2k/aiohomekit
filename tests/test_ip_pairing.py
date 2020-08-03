@@ -1,5 +1,9 @@
 import asyncio
 
+import pytest
+
+from aiohomekit import exceptions
+
 
 async def test_list_accessories(pairing):
     accessories = await pairing.list_accessories_and_characteristics()
@@ -13,6 +17,19 @@ async def test_list_accessories(pairing):
     assert char["format"] == "bool"
     assert char["perms"] == ["pw"]
     assert char["type"] == "00000014-0000-1000-8000-0026BB765291"
+
+
+async def test_connection_timeout(monkeypatch, pairing):
+    loop = asyncio.get_event_loop()
+
+    # Test disconnect due to timeout
+    async def connect_timeout(*args, **kwargs):
+        await asyncio.sleep(20)
+
+    monkeypatch.setattr(loop, "create_connection", connect_timeout)
+
+    with pytest.raises(exceptions.AccessoryDisconnectedError):
+        await pairing._ensure_connected(_timeout=0.1)
 
 
 async def test_get_characteristics(pairing):
