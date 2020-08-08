@@ -187,9 +187,9 @@ class Accessory(ToDictMixin):
             for char_data in service_data["characteristics"]:
                 kwargs = {
                     "perms": char_data["perms"],
-                    "format": char_data["format"],
                 }
-
+                if "format" in char_data:
+                    kwargs["format"] = char_data["format"]
                 if "description" in char_data:
                     kwargs["description"] = char_data["description"]
                 if "value" in char_data:
