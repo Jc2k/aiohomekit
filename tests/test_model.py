@@ -42,6 +42,29 @@ def test_hue_bridge():
     assert service.has(char.type)
 
 
+def test_idevices_switch():
+    a = Accessories.from_file("tests/fixtures/idevices_switch.json").aid(1)
+    assert a.name == "iDevices Switch"
+    assert a.model == "IDEV0001"
+    assert a.manufacturer == "iDevices LLC"
+    assert a.serial_number == "00080685"
+    assert a.firmware_revision == "1.2.1"
+
+    service = a.services.first(service_type=ServicesTypes.ACCESSORY_INFORMATION)
+    assert service.type_name == "accessory-information"
+
+    char = next(iter(service.characteristics))
+    assert char.iid == 2
+    assert char.type_name == "name"
+    assert char.perms == ["pr"]
+    assert char.format == "string"
+    assert char.value == "iDevices Switch"
+    assert char.description == "Name"
+    assert char.maxLen == 64
+
+    assert service.has(char.type)
+
+
 def test_linked_services():
     a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
 
