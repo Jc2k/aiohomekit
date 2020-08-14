@@ -18,7 +18,7 @@ import socket
 from unittest.mock import MagicMock, patch
 
 import pytest
-from zeroconf import ServiceInfo
+from zeroconf import BadTypeInNameException, Error, ServiceInfo
 
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model.feature_flags import FeatureFlags
@@ -66,8 +66,9 @@ async def test_find_with_device(mock_zeroconf):
     assert result == ("127.0.0.1", 1234)
 
 
-async def test_find_with_device_get_service_info_throws(mock_zeroconf):
-    mock_zeroconf.get_service_info.side_effect = OSError
+@pytest.mark.parametrize("exception", [OSError, Error, BadTypeInNameException])
+async def test_find_with_device_get_service_info_throws(exception, mock_zeroconf):
+    mock_zeroconf.get_service_info.side_effect = exception
 
     with pytest.raises(AccessoryNotFoundError):
         await async_find_device_ip_and_port("00:00:02:00:00:02", 0)

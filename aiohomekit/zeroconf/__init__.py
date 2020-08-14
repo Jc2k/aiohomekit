@@ -24,7 +24,7 @@ import threading
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from zeroconf import ServiceBrowser, ServiceInfo, Zeroconf
+from zeroconf import Error, ServiceBrowser, ServiceInfo, Zeroconf
 
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Categories
@@ -57,6 +57,8 @@ class CollectingListener:
         while info is None and attempts < self._max_attempts:
             try:
                 info = zeroconf.get_service_info(zeroconf_type, name)
+            except Error:
+                break
             except OSError:
                 break
             attempts += 1
