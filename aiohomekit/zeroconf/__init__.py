@@ -33,6 +33,8 @@ from aiohomekit.model.status_flags import IpStatusFlags
 
 HAP_TYPE = "_hap._tcp.local."
 
+logger = logging.getLogger(__name__)
+
 
 class CollectingListener:
     """
@@ -58,6 +60,10 @@ class CollectingListener:
             try:
                 info = zeroconf.get_service_info(zeroconf_type, name)
             except Error:
+                logger.warning(
+                    "Cannot finish discovering %s as it has an invalid discovery record",
+                    name,
+                )
                 break
             except OSError:
                 break
