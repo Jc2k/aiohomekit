@@ -55,6 +55,7 @@ class _CharacteristicsTypes(object):
     CONFIGURED_NAME = "E3"
     CONTACT_STATE = "6A"
     CURRENT_HEATER_COOLER_STATE = "B1"
+    TARGET_HEATER_COOLER_STATE = "B2"
     CURRENT_HUMIDIFIER_DEHUMIDIFIER_STATE = "B3"
     # derived from https://github.com/KhaosT/HAP-NodeJS/blob/master/src/lib/gen/HomeKit-TV.ts
     CURRENT_MEDIA_STATE = "E0"
@@ -292,6 +293,7 @@ class _CharacteristicsTypes(object):
             "AF": "public.hap.characteristic.fan.state.current",
             "B0": "public.hap.characteristic.active",
             "B1": "public.hap.characteristic.heater-cooler.state.current",
+            "B2": "public.hap.characteristic.heater-cooler.state.target",
             "B3": "public.hap.characteristic.humidifier-dehumidifier.state.current",
             "B4": "public.hap.characteristic.humidifier-dehumidifier.state.target",
             "B5": "public.hap.characteristic.water-level",

@@ -89,3 +89,38 @@ class ValveTypeValues(enum.IntEnum):
     IRRIGATION = 1
     SHOWER_HEAD = 2
     WATER_FAUCET = 3
+
+
+class ActivationStateValues(enum.IntEnum):
+    """Possible values for the current status of an accessory.
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvalueactivationstate"""
+
+    INACTIVE = 0
+    ACTIVE = 1
+
+
+class SwingModeValues(enum.IntEnum):
+    """Possible values for fan movement.
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvalueswingmode"""
+
+    DISABLED = 0
+    ENABLED = 1
+
+
+class CurrentHeaterCoolerStateValues(enum.IntEnum):
+    """Possible values for the current state of a device that heats or cools.
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluecurrentheatercoolerstate"""
+
+    INACTIVE = 0
+    IDLE = 1
+    HEATING = 2
+    COOLING = 3
+
+
+class TargetHeaterCoolerStateValues(enum.IntEnum):
+    """Possible values for the target state of a device that heats or cools.
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluetargetheatercoolerstate"""
+
+    AUTOMATIC = 0
+    HEAT = 1
+    COOL = 2
