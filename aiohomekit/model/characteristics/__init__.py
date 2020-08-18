@@ -18,6 +18,8 @@ from .characteristic import Characteristic
 from .characteristic_formats import CharacteristicFormats
 from .characteristic_types import CharacteristicsTypes
 from .const import (
+    ActivationStateValues,
+    CurrentHeaterCoolerStateValues,
     CurrentMediaStateValues,
     HeatingCoolingCurrentValues,
     HeatingCoolingTargetValues,
@@ -26,6 +28,8 @@ from .const import (
     IsConfiguredValues,
     ProgramModeValues,
     RemoteKeyValues,
+    SwingModeValues,
+    TargetHeaterCoolerStateValues,
     TargetMediaStateValues,
     ValveTypeValues,
 )
@@ -51,4 +55,8 @@ __all__ = [
     "IsConfiguredValues",
     "ProgramModeValues",
     "ValveTypeValues",
+    "ActivationStateValues",
+    "SwingModeValues",
+    "CurrentHeaterCoolerStateValues",
+    "TargetHeaterCoolerStateValues",
 ]
