@@ -1,6 +1,7 @@
 import asyncio
 import errno
 import logging
+import os
 import socket
 import tempfile
 import threading
@@ -34,7 +35,7 @@ def port_ready(port):
 
 @pytest.fixture
 async def controller_and_unpaired_accessory(request, loop):
-    config_file = tempfile.NamedTemporaryFile()
+    config_file = tempfile.NamedTemporaryFile(delete=False)
     config_file.write(
         b"""{
         "accessory_ltpk": "7986cf939de8986f428744e36ed72d86189bea46b4dcdc8d9d79a3e4fceb92b9",
@@ -49,7 +50,7 @@ async def controller_and_unpaired_accessory(request, loop):
         "unsuccessful_tries": 0
     }"""
     )
-    config_file.flush()
+    config_file.close()
 
     # Make sure get_id() numbers are stable between tests
     model_mixin.id_counter = 0
@@ -88,13 +89,15 @@ async def controller_and_unpaired_accessory(request, loop):
     except asyncio.CancelledError:
         pass
 
+    os.unlink(config_file.name)
+
     httpd.shutdown()
     t.join()
 
 
 @pytest.fixture
 async def controller_and_paired_accessory(request, loop):
-    config_file = tempfile.NamedTemporaryFile()
+    config_file = tempfile.NamedTemporaryFile(delete=False)
     config_file.write(
         b"""{
         "accessory_ltpk": "7986cf939de8986f428744e36ed72d86189bea46b4dcdc8d9d79a3e4fceb92b9",
@@ -115,7 +118,7 @@ async def controller_and_paired_accessory(request, loop):
         "unsuccessful_tries": 0
     }"""
     )
-    config_file.flush()
+    config_file.close()
 
     # Make sure get_id() numbers are stable between tests
     model_mixin.id_counter = 0
@@ -131,7 +134,7 @@ async def controller_and_paired_accessory(request, loop):
     t = threading.Thread(target=httpd.serve_forever)
     t.start()
 
-    controller_file = tempfile.NamedTemporaryFile()
+    controller_file = tempfile.NamedTemporaryFile(delete=False)
     controller_file.write(
         b"""{
         "alias": {
@@ -146,7 +149,7 @@ async def controller_and_paired_accessory(request, loop):
         }
     }"""
     )
-    controller_file.flush()
+    controller_file.close()
 
     controller = Controller()
     controller.load_data(controller_file.name)
@@ -172,6 +175,9 @@ async def controller_and_paired_accessory(request, loop):
         await asyncio.shield(controller.shutdown())
     except asyncio.CancelledError:
         pass
+
+    os.unlink(config_file.name)
+    os.unlink(controller_file.name)
 
     httpd.shutdown()
     t.join()
