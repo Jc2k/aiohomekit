@@ -124,3 +124,11 @@ class TargetHeaterCoolerStateValues(enum.IntEnum):
     AUTOMATIC = 0
     HEAT = 1
     COOL = 2
+
+
+class StreamingStatusValues(enum.IntEnum):
+    """The current streaming state of a camera."""
+
+    IDLE = 0
+    IN_USE = 1
+    UNAVAILABLE = 2
