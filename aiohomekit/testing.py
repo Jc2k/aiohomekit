@@ -15,6 +15,7 @@
 #
 
 import logging
+from typing import Dict
 
 from aiohomekit import exceptions
 from aiohomekit.controller import Controller
@@ -64,7 +65,7 @@ class FakeDiscovery(object):
 
     async def start_pairing(self, alias: str):
         if self.device_id in self.controller.pairings:
-            raise exceptions.AlreadyPairedError()
+            raise exceptions.AlreadyPairedError(f"{self.device_id} already paired")
 
         async def finish_pairing(pairing_code):
             if pairing_code != self.pairing_code:
@@ -183,7 +184,7 @@ class FakePairing(AbstractPairing):
         super().__init__(controller)
 
         self.accessories = accessories
-        self.pairing_data = {}
+        self.pairing_data: Dict[str, AbstractPairing] = {}
         self.available = True
 
         self.testing = PairingTester(self)

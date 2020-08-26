@@ -192,7 +192,7 @@ class _ServicesTypes(object):
             uuid = uuid.upper()
             uuid = uuid.split("-", 1)[0]
             return uuid.lstrip("0")
-        raise uuid
+        raise ValueError(uuid)
 
 
 #
