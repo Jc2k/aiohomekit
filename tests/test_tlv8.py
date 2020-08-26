@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import IntEnum
 
 from aiohomekit.tlv8 import TLVStruct, tlv_entry
 
@@ -45,3 +46,19 @@ def test_example_2():
     assert result.identifier == "hello"
 
     assert result.encode() == raw
+
+
+def test_int_enum():
+    class FooValues(IntEnum):
+        ACTIVE = 1
+        INACTIVE = 0
+
+    @dataclass
+    class DummyStruct(TLVStruct):
+        foo: FooValues = tlv_entry(1)
+
+    result = DummyStruct.decode(b"\x01\x01\x01")
+    assert result.foo == FooValues.ACTIVE
+
+    assert DummyStruct(foo=FooValues.ACTIVE).encode() == b"\x01\x01\x01"
+    assert DummyStruct(foo=FooValues.INACTIVE).encode() == b"\x01\x01\x00"

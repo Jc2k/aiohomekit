@@ -1,4 +1,6 @@
 from dataclasses import field, fields
+import enum
+from functools import lru_cache
 import struct
 
 
@@ -14,24 +16,59 @@ class TlvSerializeException(Exception):
     pass
 
 
-def deserialize_int(value: bytes) -> int:
+def deserialize_int(value_type: type, value: bytes) -> int:
     return int.from_bytes(value, "little")
 
 
-def deserialize_str(value: bytes) -> str:
+def deserialize_str(value_type: type, value: bytes) -> str:
     return value.decode("utf-8")
 
 
-def serialize_int(value: int) -> bytes:
+def deserialize_int_enum(value_type: type, value: bytes):
+    int_value = deserialize_int(value_type, value)
+    return value_type(int_value)
+
+
+def serialize_int(value_type: type, value: int) -> bytes:
     return struct.pack("B", value)
 
 
-def serialize_str(value: str) -> bytes:
+def serialize_str(value_type: type, value: str) -> bytes:
     return value.encode("utf-8")
+
+
+def serialize_int_enum(value_type: type, value: int):
+    return serialize_int(value_type, int(value))
 
 
 def tlv_entry(type, **kwargs):
     return field(metadata={"tlv_type": type, **kwargs})
+
+
+@lru_cache(maxsize=100)
+def find_serializer(py_type: type):
+    superclasses = [py_type]
+    if hasattr(type, "__mro__"):
+        superclasses = py_type.__mro__
+
+    for klass in superclasses:
+        if klass in SERIALIZERS:
+            return SERIALIZERS[klass]
+
+    raise TlvSerializeException(f"Cannot serialize {py_type} to TLV8")
+
+
+@lru_cache(maxsize=100)
+def find_deserializer(py_type: type):
+    superclasses = [py_type]
+    if hasattr(type, "__mro__"):
+        superclasses = py_type.__mro__
+
+    for klass in superclasses:
+        if klass in DESERIALIZERS:
+            return DESERIALIZERS[klass]
+
+    raise TlvParseException(f"Cannot deserialize TLV type {type} into {py_type}")
 
 
 class TLVStruct:
@@ -46,10 +83,8 @@ class TLVStruct:
             tlv_type = struct_field.metadata["tlv_type"]
             py_type = struct_field.type
 
-            if py_type not in SERIALIZERS:
-                raise TlvSerializeException(f"Cannot serialize {py_type} to TLV8")
-
-            encoded = SERIALIZERS[py_type](getattr(self, struct_field.name))
+            serializer = find_serializer(py_type)
+            encoded = serializer(py_type, getattr(self, struct_field.name))
 
             for offset in range(0, len(encoded), 255):
                 chunk = encoded[offset : offset + 255]
@@ -74,10 +109,7 @@ class TLVStruct:
                 raise TlvParseException(f"Unknown TLV type {type} for {cls}")
 
             py_type = tlv_types[type].type
-            if py_type not in DESERIALIZERS:
-                raise TlvParseException(
-                    f"Cannot deserialize TLV type {type} into {py_type}"
-                )
+            deserializer = find_deserializer(py_type)
 
             length = encoded_struct[offset + 1]
             value = encoded_struct[offset + 2 :][:length]
@@ -92,7 +124,7 @@ class TLVStruct:
                 length = encoded_struct[offset + 1]
                 value += encoded_struct[offset + 2 :][:length]
 
-            kwargs[tlv_types[type].name] = DESERIALIZERS[py_type](value)
+            kwargs[tlv_types[type].name] = deserializer(py_type, value)
 
             offset += 2 + length
 
@@ -102,9 +134,11 @@ class TLVStruct:
 DESERIALIZERS = {
     int: deserialize_int,
     str: deserialize_str,
+    enum.IntEnum: deserialize_int_enum,
 }
 
 SERIALIZERS = {
     int: serialize_int,
     str: serialize_str,
+    enum.IntEnum: serialize_int_enum,
 }

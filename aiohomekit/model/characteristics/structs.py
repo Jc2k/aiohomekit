@@ -17,8 +17,10 @@ from dataclasses import dataclass
 
 from aiohomekit.tlv8 import TLVStruct, tlv_entry
 
+from .const import StreamingStatusValues
+
 
 @dataclass
 class StreamingStatus(TLVStruct):
 
-    status: int = tlv_entry(1)
+    status: StreamingStatusValues = tlv_entry(1)
