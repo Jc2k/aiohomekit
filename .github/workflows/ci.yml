@@ -51,6 +51,10 @@ jobs:
       shell: bash
       run: poetry install
 
+    - name: Run pyupgrade
+      shell: bash
+      run: poetry run find . -name '*.py' -exec python -m pyupgrade --py37-plus {} + && git diff --exit-code
+
     - name: Run isort
       shell: bash
       run: poetry run python -m isort -rc -c --diff aiohomekit tests
