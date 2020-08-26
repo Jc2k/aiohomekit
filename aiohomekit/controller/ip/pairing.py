@@ -15,6 +15,7 @@
 #
 
 import asyncio
+import json
 import logging
 
 from aiohomekit.controller.pairing import AbstractPairing
@@ -453,3 +454,18 @@ class IpPairing(AbstractPairing):
             raise AuthenticationError("Remove pairing failed: missing authentication")
 
         raise UnknownError("Remove pairing failed: unknown error")
+
+    async def image(self, accessory, width, height):
+        resp = await self.connection.post(
+            "/resource",
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "aid": accessory,
+                    "resource-type": "image",
+                    "image-width": width,
+                    "image-height": height,
+                }
+            ).encode("utf-8"),
+        )
+        return resp.body
