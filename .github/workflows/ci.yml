@@ -53,15 +53,15 @@ jobs:
 
     - name: Run isort
       shell: bash
-      run: poetry run python -m isort touchdown
+      run: poetry run python -m isort -rc -c --diff aiohomekit tests
 
     - name: Run black
       shell: bash
-      run: poetry run python -m black touchdown
+      run: poetry run python -m black --check --diff aiohomekit tests
 
     - name: Run flake8
       shell: bash
-      run: poetry run python -m flake8 touchdown
+      run: poetry run python -m flake8 aiohomekit tests
 
   tests:
     name: pytest/${{ matrix.os }}/${{ matrix.python-version }}
