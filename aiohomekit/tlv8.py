@@ -2,6 +2,11 @@ from dataclasses import field, fields
 import enum
 from functools import lru_cache
 import struct
+from typing import Any, Callable, Dict, TypeVar
+
+SerializerCallback = Callable[[type, Any], bytes]
+DeserializerCallback = Callable[[type, bytes], Any]
+T = TypeVar("T")
 
 
 class TlvParseException(Exception):
@@ -24,7 +29,7 @@ def deserialize_str(value_type: type, value: bytes) -> str:
     return value.decode("utf-8")
 
 
-def deserialize_int_enum(value_type: type, value: bytes):
+def deserialize_int_enum(value_type: type, value: bytes) -> enum.IntEnum:
     int_value = deserialize_int(value_type, value)
     return value_type(int_value)
 
@@ -37,11 +42,11 @@ def serialize_str(value_type: type, value: str) -> bytes:
     return value.encode("utf-8")
 
 
-def serialize_int_enum(value_type: type, value: int):
+def serialize_int_enum(value_type: type, value: enum.IntEnum) -> bytes:
     return serialize_int(value_type, int(value))
 
 
-def tlv_entry(type, **kwargs):
+def tlv_entry(type: int, **kwargs):
     return field(metadata={"tlv_type": type, **kwargs})
 
 
@@ -95,7 +100,7 @@ class TLVStruct:
         return bytes(result)
 
     @classmethod
-    def decode(cls, encoded_struct: bytes) -> "TLVStruct":
+    def decode(cls: T, encoded_struct: bytes) -> T:
         kwargs = {}
         offset = 0
 
@@ -131,13 +136,13 @@ class TLVStruct:
         return cls(**kwargs)
 
 
-DESERIALIZERS = {
+DESERIALIZERS: Dict[type, DeserializerCallback] = {
     int: deserialize_int,
     str: deserialize_str,
     enum.IntEnum: deserialize_int_enum,
 }
 
-SERIALIZERS = {
+SERIALIZERS: Dict[type, SerializerCallback] = {
     int: serialize_int,
     str: serialize_str,
     enum.IntEnum: serialize_int_enum,
