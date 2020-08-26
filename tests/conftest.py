@@ -23,7 +23,7 @@ def port_ready(port):
 
     try:
         s.bind(("127.0.0.1", port))
-    except socket.error as e:
+    except OSError as e:
         if e.errno == errno.EADDRINUSE:
             return True
     finally:
@@ -36,7 +36,7 @@ def port_ready(port):
 async def controller_and_unpaired_accessory(request, loop):
     config_file = tempfile.NamedTemporaryFile()
     config_file.write(
-        """{
+        b"""{
         "accessory_ltpk": "7986cf939de8986f428744e36ed72d86189bea46b4dcdc8d9d79a3e4fceb92b9",
         "accessory_ltsk": "3d99f3e959a1f93af4056966f858074b2a1fdec1c5fd84a51ea96f9fa004156a",
         "accessory_pairing_id": "12:34:56:00:01:0A",
@@ -47,7 +47,7 @@ async def controller_and_unpaired_accessory(request, loop):
         "host_port": 51842,
         "name": "unittestLight",
         "unsuccessful_tries": 0
-    }""".encode()
+    }"""
     )
     config_file.flush()
 
@@ -96,7 +96,7 @@ async def controller_and_unpaired_accessory(request, loop):
 async def controller_and_paired_accessory(request, loop):
     config_file = tempfile.NamedTemporaryFile()
     config_file.write(
-        """{
+        b"""{
         "accessory_ltpk": "7986cf939de8986f428744e36ed72d86189bea46b4dcdc8d9d79a3e4fceb92b9",
         "accessory_ltsk": "3d99f3e959a1f93af4056966f858074b2a1fdec1c5fd84a51ea96f9fa004156a",
         "accessory_pairing_id": "12:34:56:00:01:0A",
@@ -113,7 +113,7 @@ async def controller_and_paired_accessory(request, loop):
             }
         },
         "unsuccessful_tries": 0
-    }""".encode()
+    }"""
     )
     config_file.flush()
 
@@ -133,7 +133,7 @@ async def controller_and_paired_accessory(request, loop):
 
     controller_file = tempfile.NamedTemporaryFile()
     controller_file.write(
-        """{
+        b"""{
         "alias": {
             "Connection": "IP",
             "iOSDeviceLTPK": "d708df2fbf4a8779669f0ccd43f4962d6d49e4274f88b1292f822edc3bcf8ed8",
@@ -144,7 +144,7 @@ async def controller_and_paired_accessory(request, loop):
             "AccessoryIP": "127.0.0.1",
             "iOSDeviceLTSK": "fa45f082ef87efc6c8c8d043d74084a3ea923a2253e323a7eb9917b4090c2fcc"
         }
-    }""".encode()
+    }"""
     )
     controller_file.flush()
 

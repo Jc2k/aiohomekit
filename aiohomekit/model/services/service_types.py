@@ -15,7 +15,7 @@
 #
 
 
-class _ServicesTypes(object):
+class _ServicesTypes:
     """
     This data is taken from chapter 9 page 216 onwards.
     """
@@ -127,7 +127,7 @@ class _ServicesTypes(object):
             return self._services_rev[item]
 
         # raise KeyError('Item {item} not found'.format_map(item=item))
-        return "Unknown Service: {i}".format(i=item)
+        return f"Unknown Service: {item}"
 
     def get_short(self, item: str) -> str:
         """
@@ -145,7 +145,7 @@ class _ServicesTypes(object):
 
         if item in self._services:
             return self._services[item].split(".")[-1]
-        return "Unknown Service: {i}".format(i=orig_item)
+        return f"Unknown Service: {orig_item}"
 
     def get_uuid(self, item_name: str) -> str:
         """
@@ -170,7 +170,7 @@ class _ServicesTypes(object):
         elif item_name.upper() in self._services:
             short = item_name.upper()
         else:
-            raise KeyError("No UUID found for Item {item}".format(item=orig_item))
+            raise KeyError(f"No UUID found for Item {orig_item}")
 
         medium = "0" * (8 - len(short)) + short
         long = medium + self.baseUUID

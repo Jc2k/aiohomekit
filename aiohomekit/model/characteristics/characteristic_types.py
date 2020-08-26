@@ -18,7 +18,7 @@ from typing import Union
 import uuid
 
 
-class _CharacteristicsTypes(object):
+class _CharacteristicsTypes:
     """
     Translate the characteristic's UUIDs into the type description (as defined by Apple).
     E.g:
@@ -364,7 +364,7 @@ class _CharacteristicsTypes(object):
             return self._characteristics_rev[item]
 
         # https://docs.python.org/3.5/reference/datamodel.html#object.__getitem__ say, KeyError should be raised
-        raise KeyError("Unknown Characteristic {i}?".format(i=item))
+        raise KeyError(f"Unknown Characteristic {item}?")
 
     def get_short(self, uuid: str) -> str:
         """
@@ -385,7 +385,7 @@ class _CharacteristicsTypes(object):
         if uuid in self._characteristics:
             return self._characteristics[uuid].split(".", maxsplit=3)[3]
 
-        return "Unknown Characteristic {i}".format(i=orig_item)
+        return f"Unknown Characteristic {orig_item}"
 
     def get_short_uuid(self, item_name: str) -> str:
         """
@@ -413,10 +413,10 @@ class _CharacteristicsTypes(object):
             return self._characteristics_rev[item_name]
 
         try:
-            uuid.UUID("{{{s}}}".format(s=item_name))
+            uuid.UUID(f"{{{item_name}}}")
             return item_name
         except ValueError:
-            raise KeyError("No short UUID found for Item {item}".format(item=orig_item))
+            raise KeyError(f"No short UUID found for Item {orig_item}")
 
     def get_uuid(self, item_name: str) -> str:
         """
@@ -443,7 +443,7 @@ class _CharacteristicsTypes(object):
         elif item_name.upper() in self._characteristics:
             short = item_name.upper()
         else:
-            raise KeyError("No UUID found for Item {item}".format(item=orig_item))
+            raise KeyError(f"No UUID found for Item {orig_item}")
 
         medium = "0" * (8 - len(short)) + short
         long = medium + self.baseUUID

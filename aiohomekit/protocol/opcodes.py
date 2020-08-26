@@ -15,7 +15,7 @@
 #
 
 
-class _HapBleOpCodes(object):
+class _HapBleOpCodes:
     """
     This data is taken from Table 6-7 HAP Opcode Description on page 97.
     """
@@ -43,7 +43,7 @@ class _HapBleOpCodes(object):
         if item in self._codes:
             return self._codes[item]
 
-        raise KeyError("Item {item} not found".format(item=item))
+        raise KeyError(f"Item {item} not found")
 
 
 HapBleOpCodes = _HapBleOpCodes()

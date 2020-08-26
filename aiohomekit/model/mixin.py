@@ -25,7 +25,7 @@ def get_id() -> int:
     return id_counter
 
 
-class ToDictMixin(object):
+class ToDictMixin:
     """
     Will help to convert the various accessories, services and characteristics to JSON.
     """

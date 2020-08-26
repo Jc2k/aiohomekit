@@ -15,7 +15,7 @@
 #
 
 
-class _IpStatusFlags(object):
+class _IpStatusFlags:
     """
     Data taken form table 5-9 page 70
     """
@@ -37,10 +37,10 @@ class _IpStatusFlags(object):
         if i == 0:
             return " ".join(result)
         else:
-            raise KeyError("Item {item} not found".format(item=item))
+            raise KeyError(f"Item {item} not found")
 
 
-class _BleStatusFlags(object):
+class _BleStatusFlags:
     """
     Data taken form table 6-32 page 125
     """
@@ -56,7 +56,7 @@ class _BleStatusFlags(object):
         if i == 0:
             return " ".join(result)
         else:
-            raise KeyError("Item {item} not found".format(item=item))
+            raise KeyError(f"Item {item} not found")
 
 
 IpStatusFlags = _IpStatusFlags()

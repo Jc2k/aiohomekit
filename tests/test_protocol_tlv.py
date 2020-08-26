@@ -24,7 +24,7 @@ class TestTLV(unittest.TestCase):
         val = [
             [TLV.kTLVType_State, TLV.M3],
             [TLV.kTLVType_Certificate, (300 * "a").encode()],
-            [TLV.kTLVType_Identifier, "hello".encode()],
+            [TLV.kTLVType_Identifier, b"hello"],
         ]
         res = TLV.decode_bytearray(TLV.encode_list(val))
         self.assertEqual(val, res)
@@ -33,7 +33,7 @@ class TestTLV(unittest.TestCase):
         val = [
             [TLV.kTLVType_State, TLV.M3],
             [TLV.kTLVType_Certificate, (150 * "a" + 150 * "b").encode()],
-            [TLV.kTLVType_Identifier, "hello".encode()],
+            [TLV.kTLVType_Identifier, b"hello"],
         ]
         res = TLV.decode_bytearray(TLV.encode_list(val))
         self.assertEqual(val, res)

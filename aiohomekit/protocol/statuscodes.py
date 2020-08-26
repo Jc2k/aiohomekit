@@ -15,7 +15,7 @@
 #
 
 
-class _HapStatusCodes(object):
+class _HapStatusCodes:
     """
     This data is taken from Table 5-12 HAP Satus Codes on page 80.
     """
@@ -55,10 +55,10 @@ class _HapStatusCodes(object):
         if item in self._codes:
             return self._codes[item]
 
-        raise KeyError("Item {item} not found".format(item=item))
+        raise KeyError(f"Item {item} not found")
 
 
-class _HapBleStatusCodes(object):
+class _HapBleStatusCodes:
     """
     This data is taken from Table 6-26 HAP Status Codes on page 116.
     """
@@ -91,7 +91,7 @@ class _HapBleStatusCodes(object):
         if item in self._codes:
             return self._codes[item]
 
-        raise KeyError("Item {item} not found".format(item=item))
+        raise KeyError(f"Item {item} not found")
 
 
 HapStatusCodes = _HapStatusCodes()

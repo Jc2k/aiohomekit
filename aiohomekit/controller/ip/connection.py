@@ -368,17 +368,15 @@ class HomeKitConnection:
             )
 
         buffer = []
-        buffer.append(
-            "{method} {target} HTTP/1.1".format(method=method.upper(), target=target,)
-        )
+        buffer.append(f"{method.upper()} {target} HTTP/1.1")
 
         # WARNING: It is vital that a Host: header is present or some devices
         # will reject the request.
-        buffer.append("Host: {host}".format(host=self.host))
+        buffer.append(f"Host: {self.host}")
 
         if headers:
             for (header, value) in headers:
-                buffer.append("{header}: {value}".format(header=header, value=value))
+                buffer.append(f"{header}: {value}")
 
         buffer.append("")
         buffer.append("")
@@ -512,7 +510,7 @@ class HomeKitConnection:
         self.owner.event_received(parsed)
 
     def __repr__(self):
-        return "HomeKitConnection(host=%r, port=%r)" % (self.host, self.port)
+        return f"HomeKitConnection(host={self.host!r}, port={self.port!r})"
 
 
 class SecureHomeKitConnection(HomeKitConnection):

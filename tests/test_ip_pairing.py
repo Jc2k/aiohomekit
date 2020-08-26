@@ -65,7 +65,7 @@ async def test_subscribe(pairing):
 
     await pairing.subscribe([(1, 9)])
 
-    assert pairing.subscriptions == set(((1, 9),))
+    assert pairing.subscriptions == {(1, 9)}
 
     characteristics = await pairing.get_characteristics([(1, 9)], include_events=True)
 
@@ -75,7 +75,7 @@ async def test_subscribe(pairing):
 async def test_unsubscribe(pairing):
     await pairing.subscribe([(1, 9)])
 
-    assert pairing.subscriptions == set(((1, 9),))
+    assert pairing.subscriptions == {(1, 9)}
 
     characteristics = await pairing.get_characteristics([(1, 9)], include_events=True)
 
@@ -97,7 +97,7 @@ async def test_dispatcher_connect(pairing):
         pass
 
     cancel = pairing.dispatcher_connect(callback)
-    assert pairing.listeners == set((callback,))
+    assert pairing.listeners == {callback}
 
     cancel()
     assert pairing.listeners == set()

@@ -25,7 +25,7 @@ from .connection import HomeKitConnection
 from .pairing import IpPairing
 
 
-class IpDiscovery(object):
+class IpDiscovery:
 
     """
     A discovered IP HAP device that is unpaired.

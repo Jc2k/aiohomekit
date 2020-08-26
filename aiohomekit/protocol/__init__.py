@@ -247,7 +247,7 @@ def perform_pair_setup_part2(
     # https://github.com/KhaosT/HAP-NodeJS/blob/2ea9d761d9bd7593dd1949fec621ab085af5e567/lib/HAPServer.js
     # function handlePairStepFive calling encryption.encryptAndSeal
     encrypted_data_with_auth_tag = chacha20_aead_encrypt(
-        bytes(), session_key, "PS-Msg05".encode(), bytes([0, 0, 0, 0]), sub_tlv_b
+        bytes(), session_key, b"PS-Msg05", bytes([0, 0, 0, 0]), sub_tlv_b
     )
 
     response_tlv = [
@@ -276,11 +276,7 @@ def perform_pair_setup_part2(
         response_tlv[1][0] == TLV.kTLVType_EncryptedData
     ), "perform_pair_setup: No encrypted data"
     decrypted_data = chacha20_aead_decrypt(
-        bytes(),
-        session_key,
-        "PS-Msg06".encode(),
-        bytes([0, 0, 0, 0]),
-        response_tlv[1][1],
+        bytes(), session_key, b"PS-Msg06", bytes([0, 0, 0, 0]), response_tlv[1][1],
     )
     if decrypted_data is False:
         raise IllegalData("step 7")
@@ -401,7 +397,7 @@ def get_session_keys(
     # 3) verify auth tag on encrypted data and 4) decrypt
     encrypted = response_tlv[2][1]
     decrypted = chacha20_aead_decrypt(
-        bytes(), session_key, "PV-Msg02".encode(), bytes([0, 0, 0, 0]), encrypted
+        bytes(), session_key, b"PV-Msg02", bytes([0, 0, 0, 0]), encrypted
     )
     if type(decrypted) == bool and not decrypted:
         raise InvalidAuthTagError("step 3")
@@ -460,7 +456,7 @@ def get_session_keys(
 
     # 10) encrypt and sign
     encrypted_data_with_auth_tag = chacha20_aead_encrypt(
-        bytes(), session_key, "PV-Msg03".encode(), bytes([0, 0, 0, 0]), sub_tlv
+        bytes(), session_key, b"PV-Msg03", bytes([0, 0, 0, 0]), sub_tlv
     )
 
     # 11) create tlv

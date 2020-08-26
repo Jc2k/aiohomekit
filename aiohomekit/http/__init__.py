@@ -55,7 +55,7 @@ class _HttpStatusCodes:
         if item in self._codes:
             return self._codes[item]
 
-        raise KeyError("Item {item} not found".format(item=item))
+        raise KeyError(f"Item {item} not found")
 
 
 HttpStatusCodes = _HttpStatusCodes()

@@ -23,8 +23,8 @@ from aiohomekit.crypto.chacha20poly1305 import (
 def test_example2_8_2():
     # Test aus 2.8.2
     plain_text = (
-        "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, "
-        "sunscreen would be it.".encode()
+        b"Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, "
+        b"sunscreen would be it."
     )
     aad = 0x50515253C0C1C2C3C4C5C6C7 .to_bytes(length=12, byteorder="big")
     key = 0x808182838485868788898A8B8C8D8E8F909192939495969798999A9B9C9D9E9F .to_bytes(

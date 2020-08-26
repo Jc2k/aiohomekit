@@ -27,7 +27,7 @@ from aiohomekit.model.characteristics import CharacteristicsTypes
 _LOGGER = logging.getLogger(__name__)
 
 
-class FakeDiscovery(object):
+class FakeDiscovery:
     def __init__(
         self, controller: "FakeController", device_id: str, accessories: Accessories
     ):

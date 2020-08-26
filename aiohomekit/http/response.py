@@ -22,7 +22,7 @@ from aiohomekit.exceptions import HttpException
 logger = logging.getLogger(__name__)
 
 
-class HttpResponse(object):
+class HttpResponse:
     STATE_PRE_STATUS = 0
     STATE_HEADERS = 1
     STATE_BODY = 2

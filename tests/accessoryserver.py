@@ -157,19 +157,17 @@ class AccessoryServerData:
     def __init__(self, data_file):
         self.data_file = data_file
         try:
-            with open(data_file, "r") as input_file:
+            with open(data_file) as input_file:
                 self.data = json.load(input_file)
         except PermissionError:
             raise ConfigLoadingError(
-                'Could not open "{f}" due to missing permissions'.format(f=input_file)
+                f'Could not open "{input_file}" due to missing permissions'
             )
         except JSONDecodeError:
-            raise ConfigLoadingError(
-                'Cannot parse "{f}" as JSON file'.format(f=input_file)
-            )
+            raise ConfigLoadingError(f'Cannot parse "{input_file}" as JSON file')
         except FileNotFoundError:
             raise ConfigLoadingError(
-                'Could not open "{f}" because it does not exist'.format(f=input_file)
+                f'Could not open "{input_file}" because it does not exist'
             )
 
         self.check()
@@ -234,12 +232,10 @@ class AccessoryServerData:
         try:
             category = self.data["category"]
         except KeyError:
-            raise ConfigurationError(
-                'category missing in "{f}"'.format(f=self.data_file)
-            )
+            raise ConfigurationError(f'category missing in "{self.data_file}"')
         if category not in Categories:
             raise ConfigurationError(
-                'invalid category "{c}" in "{f}"'.format(c=category, f=self.data_file)
+                f'invalid category "{category}" in "{self.data_file}"'
             )
         return category
 
@@ -921,11 +917,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 7) encrypt sub tlv
             encrypted_data_with_auth_tag = chacha20_aead_encrypt(
-                bytes(),
-                session_key,
-                "PV-Msg02".encode(),
-                bytes([0, 0, 0, 0]),
-                sub_tlv_b,
+                bytes(), session_key, b"PV-Msg02", bytes([0, 0, 0, 0]), sub_tlv_b,
             )
 
             # 8) construct result tlv
@@ -949,11 +941,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 2) decrypt
             encrypted = d_req[1][1]
             decrypted = chacha20_aead_decrypt(
-                bytes(),
-                session_key,
-                "PV-Msg03".encode(),
-                bytes([0, 0, 0, 0]),
-                encrypted,
+                bytes(), session_key, b"PV-Msg03", bytes([0, 0, 0, 0]), encrypted,
             )
             if decrypted is False:
                 self.send_error_reply(TLV.M4, TLV.kTLVError_Authentication)
@@ -1348,7 +1336,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             decrypted_data = chacha20_aead_decrypt(
                 bytes(),
                 self.server.sessions[self.session_id]["session_key"],
-                "PS-Msg05".encode(),
+                b"PS-Msg05",
                 bytes([0, 0, 0, 0]),
                 encrypted_data,
             )
@@ -1450,7 +1438,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             encrypted_data_with_auth_tag = chacha20_aead_encrypt(
                 bytes(),
                 self.server.sessions[self.session_id]["session_key"],
-                "PS-Msg06".encode(),
+                b"PS-Msg06",
                 bytes([0, 0, 0, 0]),
                 sub_tlv_b,
             )

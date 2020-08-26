@@ -1,5 +1,3 @@
-# -*- coding: UTF-8 -*-
-
 #
 # Copyright 2019 aiohomekit team
 #
@@ -70,7 +68,7 @@ E0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF""",
         # calculate k (see https://tools.ietf.org/html/rfc5054#section-2.5.3)
         hash_instance = self.h()
         n = Srp.to_byte_array(self.n)
-        g = bytearray.fromhex((383 * "00" + "05"))  # 383 * b'0' + '5'.encode()
+        g = bytearray.fromhex(383 * "00" + "05")  # 383 * b'0' + '5'.encode()
         hash_instance.update(n)
         hash_instance.update(g)
         k = int.from_bytes(hash_instance.digest(), "big")

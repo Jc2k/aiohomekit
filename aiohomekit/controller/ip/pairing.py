@@ -262,7 +262,7 @@ class IpPairing(AbstractPairing):
             aid = characteristic[0]
             iid = characteristic[1]
             value = characteristic[2]
-            characteristics_set.add("{a}.{i}".format(a=aid, i=iid))
+            characteristics_set.add(f"{aid}.{iid}")
             data.append({"aid": aid, "iid": iid, "value": value})
         data = {"characteristics": data}
 
@@ -393,7 +393,7 @@ class IpPairing(AbstractPairing):
         elif permissions == "Admin":
             permissions = TLV.kTLVType_Permission_AdminUser
         else:
-            raise RuntimeError("Unknown permission: {p}".format(p=permissions))
+            raise RuntimeError(f"Unknown permission: {permissions}")
 
         request_tlv = [
             (TLV.kTLVType_State, TLV.M1),

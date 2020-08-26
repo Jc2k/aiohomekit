@@ -245,9 +245,7 @@ class Characteristic(ToDictMixin):
             try:
                 val = strtobool(str(value))
             except ValueError:
-                raise FormatError(
-                    '"{v}" is no valid "{t}"!'.format(v=value, t=self.format)
-                )
+                raise FormatError(f'"{value}" is no valid "{self.format}"!')
 
             value = struct.pack("?", val)
         elif self.format == CharacteristicFormats.int:
@@ -316,7 +314,7 @@ def check_convert_value(val: str, char: Characteristic) -> Any:
         try:
             val = strtobool(str(val))
         except ValueError:
-            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=char.format))
+            raise FormatError(f'"{val}" is no valid "{char.format}"!')
 
         # We have seen iPhone's sending 1 and 0 for True and False
         # This is in spec
@@ -327,7 +325,7 @@ def check_convert_value(val: str, char: Characteristic) -> Any:
         try:
             val = Decimal(val)
         except ValueError:
-            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=char.format))
+            raise FormatError(f'"{val}" is no valid "{char.format}"!')
 
         if char.minValue is not None:
             val = max(Decimal(char.minValue), val)
@@ -365,13 +363,13 @@ def check_convert_value(val: str, char: Characteristic) -> Any:
         try:
             base64.decodebytes(val.encode())
         except binascii.Error:
-            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=char.format))
+            raise FormatError(f'"{val}" is no valid "{char.format}"!')
 
     if char.format == CharacteristicFormats.tlv8:
         try:
             tmp_bytes = base64.decodebytes(val.encode())
             TLV.decode_bytes(tmp_bytes)
         except (binascii.Error, TlvParseException):
-            raise FormatError('"{v}" is no valid "{t}"!'.format(v=val, t=char.format))
+            raise FormatError(f'"{val}" is no valid "{char.format}"!')
 
     return val

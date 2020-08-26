@@ -32,6 +32,7 @@ coverage = "^5.0.3"
 codecov = "^2.0.15"
 pylint = "^2.4.4"
 pytest-aiohttp = "^0.3.0"
+pyupgrade = "^2.7.2"
 
 [tool.black]
 target-version = ["py37", "py38"]

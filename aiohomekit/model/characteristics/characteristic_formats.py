@@ -15,7 +15,7 @@
 #
 
 
-class CharacteristicFormats(object):
+class CharacteristicFormats:
     """
     Values for characteristic's format taken from table 5-5 page 67
     """
@@ -34,7 +34,7 @@ class CharacteristicFormats(object):
     dict = "dict"
 
 
-class _BleCharacteristicFormats(object):
+class _BleCharacteristicFormats:
     """
     Mapping taken from Table 6-36 page 129 and
     https://developer.nordicsemi.com/nRF5_SDK/nRF51_SDK_v4.x.x/doc/html/group___b_l_e___g_a_t_t___c_p_f___f_o_r_m_a_t_s.html

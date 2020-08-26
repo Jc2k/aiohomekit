@@ -36,7 +36,7 @@ if IP_TRANSPORT_SUPPORTED:
     from aiohomekit.zeroconf import async_find_data_for_device_id
 
 
-class Controller(object):
+class Controller:
     """
     This class represents a HomeKit controller (normally your iPhone or iPad).
     """
@@ -164,21 +164,19 @@ class Controller(object):
         :raises ConfigLoadingError: if the config could not be loaded. The reason is given in the message.
         """
         try:
-            with open(filename, "r") as input_fp:
+            with open(filename) as input_fp:
                 data = json.load(input_fp)
                 for pairing_id in data:
                     self.load_pairing(pairing_id, data[pairing_id])
         except PermissionError:
             raise ConfigLoadingError(
-                'Could not open "{f}" due to missing permissions'.format(f=filename)
+                f'Could not open "{filename}" due to missing permissions'
             )
         except JSONDecodeError:
-            raise ConfigLoadingError(
-                'Cannot parse "{f}" as JSON file'.format(f=filename)
-            )
+            raise ConfigLoadingError(f'Cannot parse "{filename}" as JSON file')
         except FileNotFoundError:
             raise ConfigLoadingError(
-                'Could not open "{f}" because it does not exist'.format(f=filename)
+                f'Could not open "{filename}" because it does not exist'
             )
 
     def save_data(self, filename: str) -> None:
@@ -197,7 +195,7 @@ class Controller(object):
                 json.dump(data, output_fp, indent="  ")
         except PermissionError:
             raise ConfigSavingError(
-                'Could not write "{f}" due to missing permissions'.format(f=filename)
+                f'Could not write "{filename}" due to missing permissions'
             )
         except FileNotFoundError:
             raise ConfigSavingError(
@@ -232,7 +230,7 @@ class Controller(object):
         :raises UnknownError: on unknown errors
         """
         if alias not in self.pairings:
-            raise AccessoryNotFoundError('Alias "{a}" is not found.'.format(a=alias))
+            raise AccessoryNotFoundError(f'Alias "{alias}" is not found.')
 
         pairing = self.pairings[alias]
 
