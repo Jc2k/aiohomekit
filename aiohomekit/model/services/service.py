@@ -72,7 +72,7 @@ class Service(ToDictMixin):
 
         if name:
             char = self.add_char(CharacteristicsTypes.NAME)
-            char.value = name
+            char.set_value(name)
 
         if add_required:
             for required in services[self.type]["required"]:

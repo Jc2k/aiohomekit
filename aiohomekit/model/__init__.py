@@ -192,8 +192,6 @@ class Accessory(ToDictMixin):
                     kwargs["format"] = char_data["format"]
                 if "description" in char_data:
                     kwargs["description"] = char_data["description"]
-                if "value" in char_data:
-                    kwargs["value"] = char_data["value"]
                 if "minValue" in char_data:
                     kwargs["min_value"] = char_data["minValue"]
                 if "maxValue" in char_data:
@@ -209,6 +207,9 @@ class Accessory(ToDictMixin):
 
                 char = service.add_char(char_data["type"], **kwargs)
                 char.iid = char_data["iid"]
+
+                if char_data.get("value") is not None:
+                    char.set_value(char_data["value"])
 
         for service_data in data["services"]:
             for linked_service in service_data.get("linked", []):
@@ -286,7 +287,7 @@ class Accessories(ToDictMixin):
                 continue
 
             if "value" in value:
-                char.value = value["value"]
+                char.set_value(value["value"])
                 continue
 
             # Later on also handle error states here.

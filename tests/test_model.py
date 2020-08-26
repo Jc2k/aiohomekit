@@ -16,6 +16,7 @@
 
 from aiohomekit.model import Accessories
 from aiohomekit.model.characteristics import CharacteristicsTypes
+from aiohomekit.model.characteristics.const import StreamingStatusValues
 from aiohomekit.model.services import ServicesTypes
 
 
@@ -261,3 +262,10 @@ def test_build_update_minStep_clamping_synthetic_int():
         payload = service.build_update({CharacteristicsTypes.TEMPERATURE_TARGET: left})
         assert payload == [(aid, 104, right)]
         assert isinstance(payload[0][2], int)
+
+
+def test_tlv8_struct():
+    a = Accessories.from_file("tests/fixtures/camera.json")
+    service = a.aid(1).services.iid(16)
+    streaming_status = service.value(CharacteristicsTypes.STREAMING_STATUS)
+    assert streaming_status.status == StreamingStatusValues.AVAILABLE

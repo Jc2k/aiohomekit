@@ -767,7 +767,14 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                                     characteristic_to_set["value"],
                                 )
                             try:
-                                characteristic.set_value(characteristic_to_set["value"])
+                                if "pw" not in characteristic.perms:
+                                    raise CharacteristicPermissionError(
+                                        HapStatusCodes.CANT_WRITE_READ_ONLY
+                                    )
+                                new_val = characteristic.validate_value(
+                                    characteristic_to_set["value"]
+                                )
+                                characteristic.set_value(new_val)
                                 result["characteristics"].append(
                                     {"aid": aid, "iid": cid, "status": 0}
                                 )

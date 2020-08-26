@@ -133,12 +133,16 @@ class Characteristic(ToDictMixin):
     def set_value(self, new_val):
         """
         This function sets the value of this characteristic. Permissions are checked first
-
-        :param new_val:
-        :raises CharacteristicPermissionError: if the characteristic cannot be written
         """
-        if CharacteristicPermissions.paired_write not in self.perms:
-            raise CharacteristicPermissionError(HapStatusCodes.CANT_WRITE_READ_ONLY)
+        if self.format == CharacteristicFormats.tlv8:
+            new_val = base64.b64decode(new_val)
+            struct = characteristics.get(self.type, {}).get("struct")
+            if struct:
+                new_val = struct.decode(new_val)
+
+        self.value = new_val
+
+    def validate_value(self, new_val):
         try:
             # convert input to python int if it is any kind of int
             if self.format in [
@@ -201,29 +205,7 @@ class Characteristic(ToDictMixin):
             if len(new_val) > self.maxLen:
                 raise FormatError(HapStatusCodes.INVALID_VALUE)
 
-        self.value = new_val
-
-    def set_value_from_ble(self, value):
-        if self.format == CharacteristicFormats.bool:
-            value = struct.unpack("?", value)[0]
-        elif self.format == CharacteristicFormats.uint8:
-            value = struct.unpack("B", value)[0]
-        elif self.format == CharacteristicFormats.uint16:
-            value = struct.unpack("H", value)[0]
-        elif self.format == CharacteristicFormats.uint32:
-            value = struct.unpack("I", value)[0]
-        elif self.format == CharacteristicFormats.uint64:
-            value = struct.unpack("Q", value)[0]
-        elif self.format == CharacteristicFormats.int:
-            value = struct.unpack("i", value)[0]
-        elif self.format == CharacteristicFormats.float:
-            value = struct.unpack("f", value)[0]
-        elif self.format == CharacteristicFormats.string:
-            value = value.decode("UTF-8")
-        else:
-            value = value.hex()
-
-        self.set_value(value)
+        return new_val
 
     def get_value(self):
         """
