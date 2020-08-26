@@ -16,8 +16,7 @@ script:
 - poetry run isort -rc -c --diff aiohomekit tests
 - poetry run black aiohomekit tests --check --diff
 - poetry run flake8 aiohomekit tests
-- poetry run mypy aiohomekit
-- poetry run coverage run -m pytest tests/
+- poetry run -m pytest tests/
 - poetry build
 
 after_success:
@@ -27,14 +26,7 @@ jobs:
   include:
   - os: linux
     dist: xenial
-    python: 3.7
-
-  - os: linux
-    dist: xenial
     python: 3.8
-
-  - os: osx
-    language: generic
 
   - stage: deploy
     dist: xenial
