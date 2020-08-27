@@ -134,4 +134,4 @@ jobs:
 
     - name: Upload coverage to Codecov
       shell: bash
-      run: poetry run codecov
+      run: poetry run codecov --required --flags unittests -e OS -e PYTHON
