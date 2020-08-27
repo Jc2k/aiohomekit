@@ -219,39 +219,6 @@ class Characteristic:
             raise CharacteristicPermissionError(HapStatusCodes.CANT_READ_WRITE_ONLY)
         return self.value
 
-    def get_value_for_ble(self):
-        value = self.get_value()
-
-        if self.format == CharacteristicFormats.bool:
-            try:
-                val = strtobool(str(value))
-            except ValueError:
-                raise FormatError(f'"{value}" is no valid "{self.format}"!')
-
-            value = struct.pack("?", val)
-        elif self.format == CharacteristicFormats.int:
-            value = struct.pack("i", int(value))
-        elif self.format == CharacteristicFormats.float:
-            value = struct.pack("f", float(value))
-        elif self.format == CharacteristicFormats.string:
-            value = value.encode()
-
-        return value
-
-    def get_meta(self):
-        """
-        This method returns a dict of meta information for this characteristic. This includes at least the format of
-        the characteristic but may contain any other specific attribute.
-
-        :return: a dict
-        """
-        tmp = {"format": self.format}
-        # TODO implement handling of already defined maxLen (upto 256!)
-        if self.format == CharacteristicFormats.string:
-            tmp["maxLen"] = 64
-        # TODO implement handling of other fields! eg maxDataLen
-        return tmp
-
     def to_accessory_and_service_list(self):
         d = {
             "type": self.type,
