@@ -568,7 +568,7 @@ description = "Pure Python Multicast DNS Service Discovery Library (Bonjour/Avah
 name = "zeroconf"
 optional = false
 python-versions = "*"
-version = "0.28.1"
+version = "0.28.2"
 
 [package.dependencies]
 ifaddr = ">=0.1.7"
@@ -587,7 +587,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "b3f553a8c7930526629f2374a88e9531783485c13baca82ce81f7845f480d93e"
+content-hash = "8bd8cc96d6883a14b56918eb2c240a13fb988e2e8bb6376156d91ab3037e0b87"
 lock-version = "1.0"
 python-versions = "^3.7"
 
@@ -977,8 +977,8 @@ yarl = [
     {file = "yarl-1.5.1.tar.gz", hash = "sha256:c22c75b5f394f3d47105045ea551e08a3e804dc7e01b37800ca35b58f856c3d6"},
 ]
 zeroconf = [
-    {file = "zeroconf-0.28.1-py3-none-any.whl", hash = "sha256:aae48e790f0f7c213c3893654ae2f53f7de01e05a34271bf17aa4c99def73940"},
-    {file = "zeroconf-0.28.1.tar.gz", hash = "sha256:902e6c3ca4cc752577d650d05a3e7102a897b647fe76da7c0d322cd493cbd1a3"},
+    {file = "zeroconf-0.28.2-py3-none-any.whl", hash = "sha256:ab9bd4dfc76db2b1c5c18b279b8216162c754c7252f12b7525ea7f6819f83779"},
+    {file = "zeroconf-0.28.2.tar.gz", hash = "sha256:447d6da0b6426c0c67d5c29339e51b2d75e2c1f129605ad35a0cb84a454f09bc"},
 ]
 zipp = [
     {file = "zipp-3.1.0-py3-none-any.whl", hash = "sha256:aa36550ff0c0b7ef7fa639055d797116ee891440eac1a56f378e2d3179e0320b"},
