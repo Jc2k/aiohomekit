@@ -31,9 +31,10 @@ from ..exceptions import (
 from .pairing import AbstractPairing
 
 if IP_TRANSPORT_SUPPORTED:
+    from aiohomekit.zeroconf import async_find_data_for_device_id
+
     from .ip import IpDiscovery, IpPairing
     from .ip.zeroconf import async_discover_homekit_devices
-    from aiohomekit.zeroconf import async_find_data_for_device_id
 
 
 class Controller:

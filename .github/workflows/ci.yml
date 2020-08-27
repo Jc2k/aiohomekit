@@ -57,7 +57,7 @@ jobs:
 
     - name: Run isort
       shell: bash
-      run: poetry run python -m isort -rc -c --diff aiohomekit tests
+      run: poetry run python -m isort -c --diff aiohomekit tests
 
     - name: Run black
       shell: bash
