@@ -480,7 +480,7 @@ async def main(argv: Optional[List[str]] = None) -> None:
 
     # get_accessories - return all characteristics of all services of all accessories.
     get_accessories_parser = subparsers.add_parser(
-        "get_accessories",
+        "accessories",
         help="List all accessories, services and characteristics for a paired device",
     )
     get_accessories_parser.set_defaults(func=get_accessories)
@@ -496,7 +496,7 @@ async def main(argv: Optional[List[str]] = None) -> None:
 
     # get_characteristics - get only requested characteristics
     get_char_parser = subparsers.add_parser(
-        "get_characteristics",
+        "get",
         help="Read an up to date value from a characteristic of a paired device",
     )
     get_char_parser.set_defaults(func=get_characteristics)
@@ -539,7 +539,7 @@ async def main(argv: Optional[List[str]] = None) -> None:
 
     # put_characteristics - set characteristics values
     put_char_parser = subparsers.add_parser(
-        "put_characteristics", help="Write to a characteristic of a paired device"
+        "put", help="Write to a characteristic of a paired device"
     )
     put_char_parser.set_defaults(func=put_characteristics)
     setup_parser_for_pairing(put_char_parser)
@@ -550,6 +550,19 @@ async def main(argv: Optional[List[str]] = None) -> None:
         dest="characteristics",
         nargs=2,
         help="Use aid.iid value to change the value. Repeat to change multiple characteristics.",
+    )
+
+    get_events_parser = subparsers.add_parser(
+        "watch", help="Monitor changes to characteristics on this device"
+    )
+    get_events_parser.set_defaults(func=get_events)
+    setup_parser_for_pairing(get_events_parser)
+    get_events_parser.add_argument(
+        "-c",
+        action="append",
+        required=True,
+        dest="characteristics",
+        help="Read characteristics, multiple characteristics can be given by repeating the option",
     )
 
     # list_pairings - list all pairings
@@ -579,19 +592,6 @@ async def main(argv: Optional[List[str]] = None) -> None:
     )
     unpair_parser.set_defaults(func=unpair)
     setup_parser_for_pairing(unpair_parser)
-
-    get_events_parser = subparsers.add_parser(
-        "get_events", help="Monitor changes to characteristics on this device"
-    )
-    get_events_parser.set_defaults(func=get_events)
-    setup_parser_for_pairing(get_events_parser)
-    get_events_parser.add_argument(
-        "-c",
-        action="append",
-        required=True,
-        dest="characteristics",
-        help="Read characteristics, multiple characteristics can be given by repeating the option",
-    )
 
     args = parser.parse_args(argv)
 
