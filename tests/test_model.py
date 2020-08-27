@@ -267,5 +267,11 @@ def test_build_update_minStep_clamping_synthetic_int():
 def test_tlv8_struct():
     a = Accessories.from_file("tests/fixtures/camera.json")
     service = a.aid(1).services.iid(16)
+
     streaming_status = service.value(CharacteristicsTypes.STREAMING_STATUS)
     assert streaming_status.status == StreamingStatusValues.AVAILABLE
+
+    session_control = service.value(
+        CharacteristicsTypes.SUPPORTED_VIDEO_STREAM_CONFIGURATION
+    )
+    assert session_control.config[0].codec_type == 0

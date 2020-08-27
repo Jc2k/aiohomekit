@@ -132,3 +132,13 @@ class StreamingStatusValues(enum.IntEnum):
     AVAILABLE = 0
     IN_USE = 1
     UNAVAILABLE = 2
+
+
+class SessionControlCommandValues(enum.IntEnum):
+    """Session control commands."""
+
+    END_SESSION = 0
+    START_SESSION = 1
+    SUSPEND_SESSION = 2
+    RESUME_SESSION = 3
+    RECONFIGURE_SESSION = 4
