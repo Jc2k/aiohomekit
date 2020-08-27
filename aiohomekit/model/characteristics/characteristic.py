@@ -108,7 +108,10 @@ class Characteristic:
             self.value = min(self.value, self.maxValue)
 
     def _get_configuration(
-        self, kwargs: Dict[str, Any], key: str, default: Optional[Any] = None,
+        self,
+        kwargs: Dict[str, Any],
+        key: str,
+        default: Optional[Any] = None,
     ) -> Optional[Any]:
         if key in kwargs:
             return kwargs[key]

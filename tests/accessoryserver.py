@@ -924,11 +924,20 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 7) encrypt sub tlv
             encrypted_data_with_auth_tag = chacha20_aead_encrypt(
-                bytes(), session_key, b"PV-Msg02", bytes([0, 0, 0, 0]), sub_tlv_b,
+                bytes(),
+                session_key,
+                b"PV-Msg02",
+                bytes([0, 0, 0, 0]),
+                sub_tlv_b,
             )
 
             # 8) construct result tlv
-            d_res.append((TLV.kTLVType_State, TLV.M2,))
+            d_res.append(
+                (
+                    TLV.kTLVType_State,
+                    TLV.M2,
+                )
+            )
             d_res.append((TLV.kTLVType_PublicKey, accessory_spk))
             d_res.append((TLV.kTLVType_EncryptedData, encrypted_data_with_auth_tag))
 
@@ -948,7 +957,11 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 2) decrypt
             encrypted = d_req[1][1]
             decrypted = chacha20_aead_decrypt(
-                bytes(), session_key, b"PV-Msg03", bytes([0, 0, 0, 0]), encrypted,
+                bytes(),
+                session_key,
+                b"PV-Msg03",
+                bytes([0, 0, 0, 0]),
+                encrypted,
             )
             if decrypted is False:
                 self.send_error_reply(TLV.M4, TLV.kTLVError_Authentication)
@@ -1015,7 +1028,12 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             ] = accessory_to_controller_key
             self.server.sessions[self.session_id]["accessory_to_controller_count"] = 0
 
-            d_res.append((TLV.kTLVType_State, TLV.M4,))
+            d_res.append(
+                (
+                    TLV.kTLVType_State,
+                    TLV.M4,
+                )
+            )
 
             self._send_response_tlv(d_res)
             if AccessoryRequestHandler.DEBUG_PAIR_VERIFY:
@@ -1055,7 +1073,12 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             and d_req[1][1] == TLV.AddPairing
         ):
             self.log_message("Step #2 /pairings add pairing")
-            d_res.append((TLV.kTLVType_State, TLV.M2,))
+            d_res.append(
+                (
+                    TLV.kTLVType_State,
+                    TLV.M2,
+                )
+            )
 
             # see page 51
             # 1)
@@ -1132,7 +1155,12 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             server_data.remove_peer(d_req[2][1])
             self.server.publish_device()
 
-            d_res.append((TLV.kTLVType_State, TLV.M2,))
+            d_res.append(
+                (
+                    TLV.kTLVType_State,
+                    TLV.M2,
+                )
+            )
             self._send_response_tlv(d_res)
             self.log_message("after step #2\n%s", TLV.to_string(d_res))
 
@@ -1278,9 +1306,24 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             public_key = server.get_public_key()
 
             # 10) create response tlv and send response
-            d_res.append((TLV.kTLVType_State, TLV.M2,))
-            d_res.append((TLV.kTLVType_PublicKey, SrpServer.to_byte_array(public_key),))
-            d_res.append((TLV.kTLVType_Salt, SrpServer.to_byte_array(salt),))
+            d_res.append(
+                (
+                    TLV.kTLVType_State,
+                    TLV.M2,
+                )
+            )
+            d_res.append(
+                (
+                    TLV.kTLVType_PublicKey,
+                    SrpServer.to_byte_array(public_key),
+                )
+            )
+            d_res.append(
+                (
+                    TLV.kTLVType_Salt,
+                    SrpServer.to_byte_array(salt),
+                )
+            )
             self._send_response_tlv(d_res)
 
             # store session
@@ -1307,8 +1350,18 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 2) verify ios proof
             ios_proof = int.from_bytes(d_req[2][1], "big")
             if not server.verify_clients_proof(ios_proof):
-                d_res.append((TLV.kTLVType_State, TLV.M4,))
-                d_res.append((TLV.kTLVType_Error, TLV.kTLVError_Authentication,))
+                d_res.append(
+                    (
+                        TLV.kTLVType_State,
+                        TLV.M4,
+                    )
+                )
+                d_res.append(
+                    (
+                        TLV.kTLVType_Error,
+                        TLV.kTLVError_Authentication,
+                    )
+                )
 
                 self._send_response_tlv(d_res)
                 self.log_error("error in step #4 %s %s", d_res, self.server.sessions)
@@ -1320,9 +1373,17 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             accessory_proof = server.get_proof(ios_proof)
 
             # 4) create response tlv
-            d_res.append((TLV.kTLVType_State, TLV.M4,))
             d_res.append(
-                (TLV.kTLVType_Proof, SrpServer.to_byte_array(accessory_proof),)
+                (
+                    TLV.kTLVType_State,
+                    TLV.M4,
+                )
+            )
+            d_res.append(
+                (
+                    TLV.kTLVType_Proof,
+                    SrpServer.to_byte_array(accessory_proof),
+                )
             )
 
             # 5) send response tlv
@@ -1348,8 +1409,18 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 encrypted_data,
             )
             if decrypted_data is False:
-                d_res.append((TLV.kTLVType_State, TLV.M6,))
-                d_res.append((TLV.kTLVType_Error, TLV.kTLVError_Authentication,))
+                d_res.append(
+                    (
+                        TLV.kTLVType_State,
+                        TLV.M6,
+                    )
+                )
+                d_res.append(
+                    (
+                        TLV.kTLVType_Error,
+                        TLV.kTLVError_Authentication,
+                    )
+                )
 
                 self.send_error_reply(TLV.M6, TLV.kTLVError_Authentication)
                 self.log_error("error in step #6 %s %s", d_res, self.server.sessions)
@@ -1409,7 +1480,8 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 )
 
                 self.server.data.set_accessory_keys(
-                    accessory_ltpk_bytes, accessory_ltsk_bytes,
+                    accessory_ltpk_bytes,
+                    accessory_ltsk_bytes,
                 )
             else:
                 accessory_ltsk = ed25519.Ed25519PrivateKey.from_private_bytes(
@@ -1453,7 +1525,10 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 7) send response
             self.server.publish_device()
             d_res = [
-                (TLV.kTLVType_State, TLV.M6,),
+                (
+                    TLV.kTLVType_State,
+                    TLV.M6,
+                ),
                 (TLV.kTLVType_EncryptedData, encrypted_data_with_auth_tag),
             ]
 

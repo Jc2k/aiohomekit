@@ -391,7 +391,9 @@ async def get_events(args):
     while True:
         # get the data
         try:
-            data = await pairing.get_characteristics(characteristics,)
+            data = await pairing.get_characteristics(
+                characteristics,
+            )
             handler(data)
         except Exception:
             logging.exception("Error whilst fetching /accessories")
@@ -496,7 +498,8 @@ async def main(argv: Optional[List[str]] = None) -> None:
 
     # get_characteristics - get only requested characteristics
     get_char_parser = subparsers.add_parser(
-        "get", help="Read an up to date value from a characteristic of a paired device",
+        "get",
+        help="Read an up to date value from a characteristic of a paired device",
     )
     get_char_parser.set_defaults(func=get_characteristics)
     setup_parser_for_pairing(get_char_parser)

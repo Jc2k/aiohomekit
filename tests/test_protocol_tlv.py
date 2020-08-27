@@ -95,27 +95,45 @@ class TestTLV(unittest.TestCase):
 
     def test_encode_list_key_error(self):
         example = [
-            (-1, "hello",),
+            (
+                -1,
+                "hello",
+            ),
         ]
         self.assertRaises(ValueError, TLV.encode_list, example)
         example = [
-            (256, "hello",),
+            (
+                256,
+                "hello",
+            ),
         ]
         self.assertRaises(ValueError, TLV.encode_list, example)
         example = [
-            ("test", "hello",),
+            (
+                "test",
+                "hello",
+            ),
         ]
         self.assertRaises(ValueError, TLV.encode_list, example)
 
     def test_to_string_for_list(self):
         example = [
-            (1, "hello",),
+            (
+                1,
+                "hello",
+            ),
         ]
         res = TLV.to_string(example)
         self.assertEqual(res, "[\n  1: (5 bytes/<class 'str'>) hello\n]\n")
         example = [
-            (1, "hello",),
-            (2, "world",),
+            (
+                1,
+                "hello",
+            ),
+            (
+                2,
+                "world",
+            ),
         ]
         res = TLV.to_string(example)
         self.assertEqual(

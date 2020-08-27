@@ -244,7 +244,9 @@ class FakeController(Controller):
     def add_device(self, accessories):
         device_id = "00:00:00:00:00:00"
         discovery = self.discoveries[device_id] = FakeDiscovery(
-            self, device_id, accessories=accessories,
+            self,
+            device_id,
+            accessories=accessories,
         )
         return discovery
 

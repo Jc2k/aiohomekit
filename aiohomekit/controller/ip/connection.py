@@ -142,7 +142,11 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             self.c2a_counter += 1
 
             data = chacha20_aead_encrypt(
-                len_bytes, self.c2a_key, cnt_bytes, bytes([0, 0, 0, 0]), current,
+                len_bytes,
+                self.c2a_key,
+                cnt_bytes,
+                bytes([0, 0, 0, 0]),
+                current,
             )
 
             buffer += len_bytes + data
@@ -257,7 +261,10 @@ class HomeKitConnection:
         Sends a HTTP POST request to the current transport and returns an awaitable
         that can be used to wait for a response.
         """
-        return await self.request(method="GET", target=target,)
+        return await self.request(
+            method="GET",
+            target=target,
+        )
 
     async def get_json(self, target):
         response = await self.get(target)
@@ -278,7 +285,9 @@ class HomeKitConnection:
 
     async def put_json(self, target, body):
         response = await self.put(
-            target, serialize_json(body), content_type=HttpContentTypes.JSON,
+            target,
+            serialize_json(body),
+            content_type=HttpContentTypes.JSON,
         )
 
         if response.code == 204:
@@ -316,7 +325,9 @@ class HomeKitConnection:
 
     async def post_json(self, target, body):
         response = await self.post(
-            target, serialize_json(body), content_type=HttpContentTypes.JSON,
+            target,
+            serialize_json(body),
+            content_type=HttpContentTypes.JSON,
         )
 
         if response.code != 204:
@@ -342,7 +353,9 @@ class HomeKitConnection:
     async def post_tlv(self, target, body, expected=None):
         try:
             response = await self.post(
-                target, TLV.encode_list(body), content_type=HttpContentTypes.TLV,
+                target,
+                TLV.encode_list(body),
+                content_type=HttpContentTypes.TLV,
             )
         except HttpErrorResponse as e:
             self.transport.close()
@@ -516,7 +529,9 @@ class HomeKitConnection:
 class SecureHomeKitConnection(HomeKitConnection):
     def __init__(self, owner, pairing_data):
         super().__init__(
-            owner, pairing_data["AccessoryIP"], pairing_data["AccessoryPort"],
+            owner,
+            pairing_data["AccessoryIP"],
+            pairing_data["AccessoryPort"],
         )
         self.pairing_data = pairing_data
 
@@ -543,7 +558,9 @@ class SecureHomeKitConnection(HomeKitConnection):
         while True:
             try:
                 response = await self.post_tlv(
-                    "/pair-verify", body=request, expected=expected,
+                    "/pair-verify",
+                    body=request,
+                    expected=expected,
                 )
                 request, expected = state_machine.send(response)
             except StopIteration as result:
@@ -552,7 +569,11 @@ class SecureHomeKitConnection(HomeKitConnection):
                 break
 
         # Secure session has been negotiated - switch protocol so all future messages are encrypted
-        self.protocol = SecureHomeKitProtocol(self, a2c_key, c2a_key,)
+        self.protocol = SecureHomeKitProtocol(
+            self,
+            a2c_key,
+            c2a_key,
+        )
         self.transport.set_protocol(self.protocol)
         self.protocol.connection_made(self.transport)
 

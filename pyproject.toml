@@ -25,7 +25,7 @@ zeroconf = {version = ">= 0.28.0"}
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
 mypy = "^0.761"
-black = "^19.10b0"
+black = "^20.8b1"
 flake8 = "^3.7.9"
 pytest = "^5.3.5"
 coverage = "^5.0.4"

@@ -276,7 +276,11 @@ def perform_pair_setup_part2(
         response_tlv[1][0] == TLV.kTLVType_EncryptedData
     ), "perform_pair_setup: No encrypted data"
     decrypted_data = chacha20_aead_decrypt(
-        bytes(), session_key, b"PS-Msg06", bytes([0, 0, 0, 0]), response_tlv[1][1],
+        bytes(),
+        session_key,
+        b"PS-Msg06",
+        bytes([0, 0, 0, 0]),
+        response_tlv[1][1],
     )
     if decrypted_data is False:
         raise IllegalData("step 7")

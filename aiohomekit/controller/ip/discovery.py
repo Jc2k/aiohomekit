@@ -71,7 +71,9 @@ class IpDiscovery:
         while True:
             try:
                 response = await self.connection.post_tlv(
-                    "/pair-setup", body=request, expected=expected,
+                    "/pair-setup",
+                    body=request,
+                    expected=expected,
                 )
                 request, expected = state_machine.send(response)
             except StopIteration as result:
@@ -90,7 +92,9 @@ class IpDiscovery:
             while True:
                 try:
                     response = await self.connection.post_tlv(
-                        "/pair-setup", body=request, expected=expected,
+                        "/pair-setup",
+                        body=request,
+                        expected=expected,
                     )
                     request, expected = state_machine.send(response)
                 except StopIteration as result:
@@ -122,7 +126,8 @@ class IpDiscovery:
 
         raise AlreadyPairedError(
             "Identify failed because: {reason} ({code}).".format(
-                reason=HapStatusCodes[code], code=code,
+                reason=HapStatusCodes[code],
+                code=code,
             )
         )
 
