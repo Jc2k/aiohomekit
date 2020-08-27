@@ -20,14 +20,12 @@ async def test_help():
 
 async def test_get_accessories(pairing):
     with mock.patch("sys.stdout") as stdout:
-        await main(["get_accessories", "-f", "pairing.json", "-a", "alias"])
+        await main(["accessories", "-f", "pairing.json", "-a", "alias"])
     printed = stdout.write.call_args_list[0][0][0]
     assert printed.startswith("1.1: >accessory-information")
 
     with mock.patch("sys.stdout") as stdout:
-        await main(
-            ["get_accessories", "-f", "pairing.json", "-a", "alias", "-o", "json"]
-        )
+        await main(["accessories", "-f", "pairing.json", "-a", "alias", "-o", "json"])
     printed = stdout.write.call_args_list[0][0][0]
     accessories = json.loads(printed)
     assert accessories[0]["aid"] == 1
@@ -37,27 +35,14 @@ async def test_get_accessories(pairing):
 
 async def test_get_characteristic(pairing):
     with mock.patch("sys.stdout") as stdout:
-        await main(
-            ["get_characteristics", "-f", "pairing.json", "-a", "alias", "-c", "1.9"]
-        )
+        await main(["get", "-f", "pairing.json", "-a", "alias", "-c", "1.9"])
     printed = stdout.write.call_args_list[0][0][0]
     assert json.loads(printed) == {"1.9": {"value": False}}
 
 
 async def test_put_characteristic(pairing):
     with mock.patch("sys.stdout"):
-        await main(
-            [
-                "put_characteristics",
-                "-f",
-                "pairing.json",
-                "-a",
-                "alias",
-                "-c",
-                "1.9",
-                "true",
-            ]
-        )
+        await main(["put", "-f", "pairing.json", "-a", "alias", "-c", "1.9", "true"])
 
     characteristics = await pairing.get_characteristics([(1, 9)])
     assert characteristics[(1, 9)] == {"value": True}

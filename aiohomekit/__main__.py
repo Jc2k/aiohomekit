@@ -496,8 +496,7 @@ async def main(argv: Optional[List[str]] = None) -> None:
 
     # get_characteristics - get only requested characteristics
     get_char_parser = subparsers.add_parser(
-        "get",
-        help="Read an up to date value from a characteristic of a paired device",
+        "get", help="Read an up to date value from a characteristic of a paired device",
     )
     get_char_parser.set_defaults(func=get_characteristics)
     setup_parser_for_pairing(get_char_parser)
