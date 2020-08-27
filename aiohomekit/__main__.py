@@ -418,7 +418,10 @@ def setup_parser_for_pairing(parser: ArgumentParser) -> None:
 async def main(argv: Optional[List[str]] = None) -> None:
     argv = argv or sys.argv[1:]
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="aiohomekitctl",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "--adapter",
         action="store",
@@ -429,11 +432,13 @@ async def main(argv: Optional[List[str]] = None) -> None:
     add_log_arguments(parser)
 
     subparsers = parser.add_subparsers(
-        title="subcommands", description="valid subcommands", help="additional help"
+        title="available commands", metavar="command [options ...]"
     )
 
     # discover_ip
-    discover_parser = subparsers.add_parser("discover_ip")
+    discover_parser = subparsers.add_parser(
+        "discover_ip", help="Find HomeKit devices accessible by LAN/WiFi"
+    )
     discover_parser.set_defaults(func=discover_ip)
     discover_parser.add_argument(
         "-t",
@@ -453,7 +458,9 @@ async def main(argv: Optional[List[str]] = None) -> None:
     )
 
     # pair_ip
-    pair_parser = subparsers.add_parser("pair_ip")
+    pair_parser = subparsers.add_parser(
+        "pair_ip", help="Pair with a HomeKit device accessible on your LAN/WiFi"
+    )
     pair_parser.set_defaults(func=pair_ip)
     setup_parser_for_pairing(pair_parser)
     pair_parser.add_argument(
@@ -472,7 +479,10 @@ async def main(argv: Optional[List[str]] = None) -> None:
     )
 
     # get_accessories - return all characteristics of all services of all accessories.
-    get_accessories_parser = subparsers.add_parser("get_accessories")
+    get_accessories_parser = subparsers.add_parser(
+        "get_accessories",
+        help="List all accessories, services and characteristics for a paired device",
+    )
     get_accessories_parser.set_defaults(func=get_accessories)
     setup_parser_for_pairing(get_accessories_parser)
     get_accessories_parser.add_argument(
@@ -485,7 +495,10 @@ async def main(argv: Optional[List[str]] = None) -> None:
     )
 
     # get_characteristics - get only requested characteristics
-    get_char_parser = subparsers.add_parser("get_characteristics")
+    get_char_parser = subparsers.add_parser(
+        "get_characteristics",
+        help="Read an up to date value from a characteristic of a paired device",
+    )
     get_char_parser.set_defaults(func=get_characteristics)
     setup_parser_for_pairing(get_char_parser)
     get_char_parser.add_argument(
@@ -525,7 +538,9 @@ async def main(argv: Optional[List[str]] = None) -> None:
     )
 
     # put_characteristics - set characteristics values
-    put_char_parser = subparsers.add_parser("put_characteristics")
+    put_char_parser = subparsers.add_parser(
+        "put_characteristics", help="Write to a characteristic of a paired device"
+    )
     put_char_parser.set_defaults(func=put_characteristics)
     setup_parser_for_pairing(put_char_parser)
     put_char_parser.add_argument(
@@ -538,12 +553,16 @@ async def main(argv: Optional[List[str]] = None) -> None:
     )
 
     # list_pairings - list all pairings
-    list_pairings_parser = subparsers.add_parser("list_pairings")
+    list_pairings_parser = subparsers.add_parser(
+        "list_pairings", help="List all pairings from a paired device"
+    )
     list_pairings_parser.set_defaults(func=list_pairings)
     setup_parser_for_pairing(list_pairings_parser)
 
     # remove_pairing - remove sub pairing
-    remove_pairing_parser = subparsers.add_parser("remove_pairing")
+    remove_pairing_parser = subparsers.add_parser(
+        "remove_pairing", help="Remove a subpairing from a paired device"
+    )
     remove_pairing_parser.set_defaults(func=remove_pairing)
     setup_parser_for_pairing(remove_pairing_parser)
     remove_pairing_parser.add_argument(
@@ -555,11 +574,15 @@ async def main(argv: Optional[List[str]] = None) -> None:
     )
 
     # unpair - completely unpair the device
-    unpair_parser = subparsers.add_parser("unpair")
+    unpair_parser = subparsers.add_parser(
+        "unpair", help="Completely unpair this device"
+    )
     unpair_parser.set_defaults(func=unpair)
     setup_parser_for_pairing(unpair_parser)
 
-    get_events_parser = subparsers.add_parser("get_events")
+    get_events_parser = subparsers.add_parser(
+        "get_events", help="Monitor changes to characteristics on this device"
+    )
     get_events_parser.set_defaults(func=get_events)
     setup_parser_for_pairing(get_events_parser)
     get_events_parser.add_argument(
@@ -574,12 +597,20 @@ async def main(argv: Optional[List[str]] = None) -> None:
 
     setup_logging(args.loglevel)
 
+    if not hasattr(args, "func"):
+        parser.print_help()
+        sys.exit(1)
+
     if not await args.func(args):
         sys.exit(1)
 
 
-if __name__ == "__main__":
+def sync_main():
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+
+
+if __name__ == "__main__":
+    sync_main()

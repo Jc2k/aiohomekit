@@ -37,6 +37,9 @@ pyupgrade = "^2.7.2"
 [tool.black]
 target-version = ["py37", "py38"]
 
+[tool.poetry.scripts]
+aiohomekitctl = "aiohomekit.__main__:sync_main"
+
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
