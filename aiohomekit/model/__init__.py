@@ -25,7 +25,7 @@ from .characteristics import (
     CharacteristicsTypes,
 )
 from .feature_flags import FeatureFlags
-from .mixin import ToDictMixin, get_id
+from .mixin import get_id
 from .services import Service, ServicesTypes
 
 __all__ = [
@@ -120,7 +120,7 @@ class Characteristics:
         return None
 
 
-class Accessory(ToDictMixin):
+class Accessory:
     def __init__(self):
         self.aid = get_id()
         self._next_id = 0
@@ -238,7 +238,7 @@ class Accessory(ToDictMixin):
         return d
 
 
-class Accessories(ToDictMixin):
+class Accessories:
     def __init__(self) -> None:
         self.accessories = []
 

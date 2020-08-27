@@ -22,7 +22,6 @@ import struct
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from aiohomekit.exceptions import CharacteristicPermissionError, FormatError
-from aiohomekit.model.mixin import ToDictMixin
 from aiohomekit.protocol.statuscodes import HapStatusCodes
 from aiohomekit.protocol.tlv import TLV, TlvParseException
 
@@ -59,7 +58,7 @@ INTEGER_TYPES = [
 NUMBER_TYPES = INTEGER_TYPES + [CharacteristicFormats.float]
 
 
-class Characteristic(ToDictMixin):
+class Characteristic:
     def __init__(self, service: "Service", characteristic_type: str, **kwargs) -> None:
         self.service = service
         self.iid = service.accessory.get_next_id()
