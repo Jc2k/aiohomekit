@@ -84,6 +84,10 @@ jobs:
         os: [Ubuntu, MacOS, Windows]
         python-version: [3.7, 3.8]
 
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+
     steps:
     - name: Check out code from GitHub
       uses: actions/checkout@v2
@@ -126,5 +130,14 @@ jobs:
 
     - name: Run pytest
       shell: bash
-      run: poetry run python -m pytest -v
+      run: poetry run python -m pytest --cov=. --cov-report=xml
 
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        env_vars: OS,PYTHON
+        name: codecov-umbrella
+        fail_ci_if_error: true
+        path_to_write_report: ./coverage/codecov_report.gz
