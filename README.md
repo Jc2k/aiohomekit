@@ -1,6 +1,6 @@
 # aiohomekit
 
-[![Build Status](https://travis-ci.com/Jc2k/aiohomekit.svg?branch=master)](https://travis-ci.com/Jc2k/aiohomekit)  | [![codecov](https://codecov.io/gh/Jc2k/aiohomekit/branch/master/graph/badge.svg)](https://codecov.io/gh/Jc2k/aiohomekit)
+![CI](https://github.com/Jc2k/aiohomekit/workflows/CI/badge.svg?event=push) [![codecov](https://codecov.io/gh/Jc2k/aiohomekit/branch/master/graph/badge.svg)](https://codecov.io/gh/Jc2k/aiohomekit)
 
 This library implements the HomeKit protocol for controlling Homekit accessories using asyncio.
 
@@ -17,7 +17,7 @@ It's published on pypi as `aiohomekit` but its still under early development - p
 
 ### Does this support BLE accessories?
 
-No. Eventually we hope to via aioble which provides an asyncio bluetooth abstraction that works on Linux, macOS and Windows.
+No. Eventually we hope to via [aioble](https://github.com/detectlabs/aioble) which provides an asyncio bluetooth abstraction that works on Linux, macOS and Windows.
 
 ### Can i use this to make a homekit accessory?
 
@@ -29,7 +29,7 @@ No, this is just the client part. You should use one the of other implementation
 
 ### Why don't you use library X instead?
 
-At the time of writing this is the only python 3.7/3.8 asyncio HAP client.
+At the time of writing this is the only python 3.7/3.8 asyncio HAP client with events support.
 
 
 ## Thanks
