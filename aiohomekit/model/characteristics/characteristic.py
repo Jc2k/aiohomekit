@@ -18,7 +18,6 @@ import base64
 import binascii
 from decimal import ROUND_HALF_UP, Decimal, localcontext
 from distutils.util import strtobool
-import struct
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from aiohomekit.exceptions import CharacteristicPermissionError, FormatError
