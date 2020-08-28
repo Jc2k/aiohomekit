@@ -1,0 +1,706 @@
+[
+    {
+        "aid": 1,
+        "services": [
+            {
+                "iid": 1,
+                "type": "0000003E-0000-1000-8000-0026BB765291",
+                "characteristics": [
+                    {
+                        "iid": 2,
+                        "type": "00000014-0000-1000-8000-0026BB765291",
+                        "description": "Identify",
+                        "perms": [
+                            "pw"
+                        ],
+                        "format": "bool"
+                    },
+                    {
+                        "iid": 3,
+                        "type": "00000020-0000-1000-8000-0026BB765291",
+                        "description": "Manufacturer",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "Home Assistant"
+                    },
+                    {
+                        "iid": 4,
+                        "type": "00000021-0000-1000-8000-0026BB765291",
+                        "description": "Model",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "Bridge"
+                    },
+                    {
+                        "iid": 5,
+                        "type": "00000023-0000-1000-8000-0026BB765291",
+                        "description": "Name",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "HASS Bridge V0N6"
+                    },
+                    {
+                        "iid": 6,
+                        "type": "00000030-0000-1000-8000-0026BB765291",
+                        "description": "SerialNumber",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "homekit.bridge"
+                    },
+                    {
+                        "iid": 7,
+                        "type": "00000052-0000-1000-8000-0026BB765291",
+                        "description": "FirmwareRevision",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "0.115.0.dev0"
+                    }
+                ],
+                "stype": "accessory-information"
+            }
+        ]
+    },
+    {
+        "aid": 2018094878,
+        "services": [
+            {
+                "iid": 1,
+                "type": "0000003E-0000-1000-8000-0026BB765291",
+                "characteristics": [
+                    {
+                        "iid": 2,
+                        "type": "00000014-0000-1000-8000-0026BB765291",
+                        "description": "Identify",
+                        "perms": [
+                            "pw"
+                        ],
+                        "format": "bool"
+                    },
+                    {
+                        "iid": 3,
+                        "type": "00000020-0000-1000-8000-0026BB765291",
+                        "description": "Manufacturer",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "Default-Manufacturer"
+                    },
+                    {
+                        "iid": 4,
+                        "type": "00000021-0000-1000-8000-0026BB765291",
+                        "description": "Model",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "Default-Model"
+                    },
+                    {
+                        "iid": 5,
+                        "type": "00000023-0000-1000-8000-0026BB765291",
+                        "description": "Name",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "IPCamera"
+                    },
+                    {
+                        "iid": 6,
+                        "type": "00000030-0000-1000-8000-0026BB765291",
+                        "description": "SerialNumber",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "camera.ipcamera_humidity"
+                    },
+                    {
+                        "iid": 7,
+                        "type": "00000052-0000-1000-8000-0026BB765291",
+                        "description": "FirmwareRevision",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "0.0.0"
+                    }
+                ],
+                "stype": "accessory-information"
+            },
+            {
+                "iid": 8,
+                "type": "00000112-0000-1000-8000-0026BB765291",
+                "characteristics": [
+                    {
+                        "iid": 9,
+                        "type": "00000119-0000-1000-8000-0026BB765291",
+                        "description": "Volume",
+                        "perms": [
+                            "pr",
+                            "pw",
+                            "ev"
+                        ],
+                        "format": "uint8",
+                        "minValue": 0,
+                        "minStep": 1,
+                        "maxValue": 100,
+                        "unit": "percentage",
+                        "value": 0
+                    },
+                    {
+                        "iid": 10,
+                        "type": "0000011A-0000-1000-8000-0026BB765291",
+                        "description": "Mute",
+                        "perms": [
+                            "pr",
+                            "pw",
+                            "ev"
+                        ],
+                        "format": "bool",
+                        "value": false
+                    }
+                ],
+                "stype": "microphone"
+            },
+            {
+                "iid": 11,
+                "type": "00000110-0000-1000-8000-0026BB765291",
+                "characteristics": [
+                    {
+                        "iid": 12,
+                        "type": "00000114-0000-1000-8000-0026BB765291",
+                        "description": "SupportedVideoStreamConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AdABAQACFQMBAAEBAAEBAQEBAgIBAAIBAQIBAgMMAQJAAQICtAADAg8AAwwBAkABAgLwAAMCDwADDAECQAECArQAAwIeAAMMAQJAAQIC8AADAh4AAwwBAuABAgIOAQMCHgADDAEC4AECAmgBAwIeAAMMAQKAAgICaAEDAh4AAwwBAoACAgLgAQMCHgADDAECAAQCAkACAwIeAAMMAQIABAICAAMDAh4AAwwBAgAFAgLQAgMCHgADDAECAAUCAsADAwIeAAMMAQKABwICOAQDAh4A"
+                    },
+                    {
+                        "iid": 13,
+                        "type": "00000115-0000-1000-8000-0026BB765291",
+                        "description": "SupportedAudioStreamConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AQ4BAQMCCQEBAQIBAAMBAgEOAQEDAgkBAQECAQADAQECAQA="
+                    },
+                    {
+                        "iid": 14,
+                        "type": "00000116-0000-1000-8000-0026BB765291",
+                        "description": "SupportedRTPConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AgEA"
+                    },
+                    {
+                        "iid": 15,
+                        "type": "00000117-0000-1000-8000-0026BB765291",
+                        "description": "SelectedRTPStreamConfiguration",
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "tlv8",
+                        "value": ""
+                    },
+                    {
+                        "iid": 16,
+                        "type": "00000120-0000-1000-8000-0026BB765291",
+                        "description": "StreamingStatus",
+                        "perms": [
+                            "pr",
+                            "ev"
+                        ],
+                        "format": "tlv8",
+                        "value": "AQEA"
+                    },
+                    {
+                        "iid": 17,
+                        "type": "00000118-0000-1000-8000-0026BB765291",
+                        "description": "SetupEndpoints",
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "tlv8",
+                        "value": ""
+                    }
+                ],
+                "stype": "camera-rtp-stream-management"
+            },
+            {
+                "iid": 18,
+                "type": "00000110-0000-1000-8000-0026BB765291",
+                "characteristics": [
+                    {
+                        "iid": 19,
+                        "type": "00000114-0000-1000-8000-0026BB765291",
+                        "description": "SupportedVideoStreamConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AdABAQACFQMBAAEBAAEBAQEBAgIBAAIBAQIBAgMMAQJAAQICtAADAg8AAwwBAkABAgLwAAMCDwADDAECQAECArQAAwIeAAMMAQJAAQIC8AADAh4AAwwBAuABAgIOAQMCHgADDAEC4AECAmgBAwIeAAMMAQKAAgICaAEDAh4AAwwBAoACAgLgAQMCHgADDAECAAQCAkACAwIeAAMMAQIABAICAAMDAh4AAwwBAgAFAgLQAgMCHgADDAECAAUCAsADAwIeAAMMAQKABwICOAQDAh4A"
+                    },
+                    {
+                        "iid": 20,
+                        "type": "00000115-0000-1000-8000-0026BB765291",
+                        "description": "SupportedAudioStreamConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AQ4BAQMCCQEBAQIBAAMBAgEOAQEDAgkBAQECAQADAQECAQA="
+                    },
+                    {
+                        "iid": 21,
+                        "type": "00000116-0000-1000-8000-0026BB765291",
+                        "description": "SupportedRTPConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AgEA"
+                    },
+                    {
+                        "iid": 22,
+                        "type": "00000117-0000-1000-8000-0026BB765291",
+                        "description": "SelectedRTPStreamConfiguration",
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "tlv8",
+                        "value": ""
+                    },
+                    {
+                        "iid": 23,
+                        "type": "00000120-0000-1000-8000-0026BB765291",
+                        "description": "StreamingStatus",
+                        "perms": [
+                            "pr",
+                            "ev"
+                        ],
+                        "format": "tlv8",
+                        "value": "AQEA"
+                    },
+                    {
+                        "iid": 24,
+                        "type": "00000118-0000-1000-8000-0026BB765291",
+                        "description": "SetupEndpoints",
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "tlv8",
+                        "value": ""
+                    }
+                ],
+                "stype": "camera-rtp-stream-management"
+            },
+            {
+                "iid": 25,
+                "type": "00000110-0000-1000-8000-0026BB765291",
+                "characteristics": [
+                    {
+                        "iid": 26,
+                        "type": "00000114-0000-1000-8000-0026BB765291",
+                        "description": "SupportedVideoStreamConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AdABAQACFQMBAAEBAAEBAQEBAgIBAAIBAQIBAgMMAQJAAQICtAADAg8AAwwBAkABAgLwAAMCDwADDAECQAECArQAAwIeAAMMAQJAAQIC8AADAh4AAwwBAuABAgIOAQMCHgADDAEC4AECAmgBAwIeAAMMAQKAAgICaAEDAh4AAwwBAoACAgLgAQMCHgADDAECAAQCAkACAwIeAAMMAQIABAICAAMDAh4AAwwBAgAFAgLQAgMCHgADDAECAAUCAsADAwIeAAMMAQKABwICOAQDAh4A"
+                    },
+                    {
+                        "iid": 27,
+                        "type": "00000115-0000-1000-8000-0026BB765291",
+                        "description": "SupportedAudioStreamConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AQ4BAQMCCQEBAQIBAAMBAgEOAQEDAgkBAQECAQADAQECAQA="
+                    },
+                    {
+                        "iid": 28,
+                        "type": "00000116-0000-1000-8000-0026BB765291",
+                        "description": "SupportedRTPConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AgEA"
+                    },
+                    {
+                        "iid": 29,
+                        "type": "00000117-0000-1000-8000-0026BB765291",
+                        "description": "SelectedRTPStreamConfiguration",
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "tlv8",
+                        "value": ""
+                    },
+                    {
+                        "iid": 30,
+                        "type": "00000120-0000-1000-8000-0026BB765291",
+                        "description": "StreamingStatus",
+                        "perms": [
+                            "pr",
+                            "ev"
+                        ],
+                        "format": "tlv8",
+                        "value": "AQEA"
+                    },
+                    {
+                        "iid": 31,
+                        "type": "00000118-0000-1000-8000-0026BB765291",
+                        "description": "SetupEndpoints",
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "tlv8",
+                        "value": ""
+                    }
+                ],
+                "stype": "camera-rtp-stream-management"
+            }
+        ]
+    },
+    {
+        "aid": 2246931965,
+        "services": [
+            {
+                "iid": 1,
+                "type": "0000003E-0000-1000-8000-0026BB765291",
+                "characteristics": [
+                    {
+                        "iid": 2,
+                        "type": "00000014-0000-1000-8000-0026BB765291",
+                        "description": "Identify",
+                        "perms": [
+                            "pw"
+                        ],
+                        "format": "bool"
+                    },
+                    {
+                        "iid": 3,
+                        "type": "00000020-0000-1000-8000-0026BB765291",
+                        "description": "Manufacturer",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "Default-Manufacturer"
+                    },
+                    {
+                        "iid": 4,
+                        "type": "00000021-0000-1000-8000-0026BB765291",
+                        "description": "Model",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "Default-Model"
+                    },
+                    {
+                        "iid": 5,
+                        "type": "00000023-0000-1000-8000-0026BB765291",
+                        "description": "Name",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "IPCamera"
+                    },
+                    {
+                        "iid": 6,
+                        "type": "00000030-0000-1000-8000-0026BB765291",
+                        "description": "SerialNumber",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "camera.ipcamera_humidity_2"
+                    },
+                    {
+                        "iid": 7,
+                        "type": "00000052-0000-1000-8000-0026BB765291",
+                        "description": "FirmwareRevision",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "0.0.0"
+                    }
+                ],
+                "stype": "accessory-information"
+            },
+            {
+                "iid": 8,
+                "type": "00000112-0000-1000-8000-0026BB765291",
+                "characteristics": [
+                    {
+                        "iid": 9,
+                        "type": "00000119-0000-1000-8000-0026BB765291",
+                        "description": "Volume",
+                        "perms": [
+                            "pr",
+                            "pw",
+                            "ev"
+                        ],
+                        "format": "uint8",
+                        "minValue": 0,
+                        "minStep": 1,
+                        "maxValue": 100,
+                        "unit": "percentage",
+                        "value": 0
+                    },
+                    {
+                        "iid": 10,
+                        "type": "0000011A-0000-1000-8000-0026BB765291",
+                        "description": "Mute",
+                        "perms": [
+                            "pr",
+                            "pw",
+                            "ev"
+                        ],
+                        "format": "bool",
+                        "value": false
+                    }
+                ],
+                "stype": "microphone"
+            },
+            {
+                "iid": 11,
+                "type": "00000110-0000-1000-8000-0026BB765291",
+                "characteristics": [
+                    {
+                        "iid": 12,
+                        "type": "00000114-0000-1000-8000-0026BB765291",
+                        "description": "SupportedVideoStreamConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AdABAQACFQMBAAEBAAEBAQEBAgIBAAIBAQIBAgMMAQJAAQICtAADAg8AAwwBAkABAgLwAAMCDwADDAECQAECArQAAwIeAAMMAQJAAQIC8AADAh4AAwwBAuABAgIOAQMCHgADDAEC4AECAmgBAwIeAAMMAQKAAgICaAEDAh4AAwwBAoACAgLgAQMCHgADDAECAAQCAkACAwIeAAMMAQIABAICAAMDAh4AAwwBAgAFAgLQAgMCHgADDAECAAUCAsADAwIeAAMMAQKABwICOAQDAh4A"
+                    },
+                    {
+                        "iid": 13,
+                        "type": "00000115-0000-1000-8000-0026BB765291",
+                        "description": "SupportedAudioStreamConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AQ4BAQMCCQEBAQIBAAMBAgEOAQEDAgkBAQECAQADAQECAQA="
+                    },
+                    {
+                        "iid": 14,
+                        "type": "00000116-0000-1000-8000-0026BB765291",
+                        "description": "SupportedRTPConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AgEA"
+                    },
+                    {
+                        "iid": 15,
+                        "type": "00000117-0000-1000-8000-0026BB765291",
+                        "description": "SelectedRTPStreamConfiguration",
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "tlv8",
+                        "value": ""
+                    },
+                    {
+                        "iid": 16,
+                        "type": "00000120-0000-1000-8000-0026BB765291",
+                        "description": "StreamingStatus",
+                        "perms": [
+                            "pr",
+                            "ev"
+                        ],
+                        "format": "tlv8",
+                        "value": "AQEA"
+                    },
+                    {
+                        "iid": 17,
+                        "type": "00000118-0000-1000-8000-0026BB765291",
+                        "description": "SetupEndpoints",
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "tlv8",
+                        "value": ""
+                    }
+                ],
+                "stype": "camera-rtp-stream-management"
+            },
+            {
+                "iid": 18,
+                "type": "00000110-0000-1000-8000-0026BB765291",
+                "characteristics": [
+                    {
+                        "iid": 19,
+                        "type": "00000114-0000-1000-8000-0026BB765291",
+                        "description": "SupportedVideoStreamConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AdABAQACFQMBAAEBAAEBAQEBAgIBAAIBAQIBAgMMAQJAAQICtAADAg8AAwwBAkABAgLwAAMCDwADDAECQAECArQAAwIeAAMMAQJAAQIC8AADAh4AAwwBAuABAgIOAQMCHgADDAEC4AECAmgBAwIeAAMMAQKAAgICaAEDAh4AAwwBAoACAgLgAQMCHgADDAECAAQCAkACAwIeAAMMAQIABAICAAMDAh4AAwwBAgAFAgLQAgMCHgADDAECAAUCAsADAwIeAAMMAQKABwICOAQDAh4A"
+                    },
+                    {
+                        "iid": 20,
+                        "type": "00000115-0000-1000-8000-0026BB765291",
+                        "description": "SupportedAudioStreamConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AQ4BAQMCCQEBAQIBAAMBAgEOAQEDAgkBAQECAQADAQECAQA="
+                    },
+                    {
+                        "iid": 21,
+                        "type": "00000116-0000-1000-8000-0026BB765291",
+                        "description": "SupportedRTPConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AgEA"
+                    },
+                    {
+                        "iid": 22,
+                        "type": "00000117-0000-1000-8000-0026BB765291",
+                        "description": "SelectedRTPStreamConfiguration",
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "tlv8",
+                        "value": ""
+                    },
+                    {
+                        "iid": 23,
+                        "type": "00000120-0000-1000-8000-0026BB765291",
+                        "description": "StreamingStatus",
+                        "perms": [
+                            "pr",
+                            "ev"
+                        ],
+                        "format": "tlv8",
+                        "value": "AQEA"
+                    },
+                    {
+                        "iid": 24,
+                        "type": "00000118-0000-1000-8000-0026BB765291",
+                        "description": "SetupEndpoints",
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "tlv8",
+                        "value": ""
+                    }
+                ],
+                "stype": "camera-rtp-stream-management"
+            },
+            {
+                "iid": 25,
+                "type": "00000110-0000-1000-8000-0026BB765291",
+                "characteristics": [
+                    {
+                        "iid": 26,
+                        "type": "00000114-0000-1000-8000-0026BB765291",
+                        "description": "SupportedVideoStreamConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AdABAQACFQMBAAEBAAEBAQEBAgIBAAIBAQIBAgMMAQJAAQICtAADAg8AAwwBAkABAgLwAAMCDwADDAECQAECArQAAwIeAAMMAQJAAQIC8AADAh4AAwwBAuABAgIOAQMCHgADDAEC4AECAmgBAwIeAAMMAQKAAgICaAEDAh4AAwwBAoACAgLgAQMCHgADDAECAAQCAkACAwIeAAMMAQIABAICAAMDAh4AAwwBAgAFAgLQAgMCHgADDAECAAUCAsADAwIeAAMMAQKABwICOAQDAh4A"
+                    },
+                    {
+                        "iid": 27,
+                        "type": "00000115-0000-1000-8000-0026BB765291",
+                        "description": "SupportedAudioStreamConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AQ4BAQMCCQEBAQIBAAMBAgEOAQEDAgkBAQECAQADAQECAQA="
+                    },
+                    {
+                        "iid": 28,
+                        "type": "00000116-0000-1000-8000-0026BB765291",
+                        "description": "SupportedRTPConfiguration",
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "tlv8",
+                        "value": "AgEA"
+                    },
+                    {
+                        "iid": 29,
+                        "type": "00000117-0000-1000-8000-0026BB765291",
+                        "description": "SelectedRTPStreamConfiguration",
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "tlv8",
+                        "value": ""
+                    },
+                    {
+                        "iid": 30,
+                        "type": "00000120-0000-1000-8000-0026BB765291",
+                        "description": "StreamingStatus",
+                        "perms": [
+                            "pr",
+                            "ev"
+                        ],
+                        "format": "tlv8",
+                        "value": "AQEA"
+                    },
+                    {
+                        "iid": 31,
+                        "type": "00000118-0000-1000-8000-0026BB765291",
+                        "description": "SetupEndpoints",
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "tlv8",
+                        "value": ""
+                    }
+                ],
+                "stype": "camera-rtp-stream-management"
+            }
+        ]
+    }
+]
+

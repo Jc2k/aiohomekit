@@ -209,8 +209,6 @@ class TLVStruct:
             if value is None:
                 continue
 
-            print(struct_field.name, value)
-
             tlv_type = struct_field.metadata["tlv_type"]
             py_type = struct_field.type
 

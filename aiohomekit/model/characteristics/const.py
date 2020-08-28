@@ -142,3 +142,46 @@ class SessionControlCommandValues(enum.IntEnum):
     SUSPEND_SESSION = 2
     RESUME_SESSION = 3
     RECONFIGURE_SESSION = 4
+
+
+class VideoCodecTypeValues(enum.IntEnum):
+
+    H264 = 0
+
+
+class ProfileIDValues(enum.IntEnum):
+
+    """
+    The type of H.264 profile used.
+
+    3-255 are vendor specific.
+    """
+
+    CONTRAINED_BASELINE_PROFILE = 0
+    MAIN_PROFILE = 1
+    HIGH_PROFILE = 2
+
+
+class ProfileSupportLevelValues(enum.IntEnum):
+
+    """
+    3-255 are reserved by Apple.
+    """
+
+    THREE_ONE = 0
+    THREE_TWO = 1
+    FOUR = 2
+
+
+class PacketizationModeValues(enum.IntEnum):
+    """
+    1 - 255 are reserved by Apple.
+    """
+
+    NON_INTERLEAVED_MODE = 0
+
+
+class CVOEnabledValues(enum.IntEnum):
+
+    NOT_SUPPORTED = 0
+    SUPPORTED = 1

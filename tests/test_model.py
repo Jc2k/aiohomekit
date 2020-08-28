@@ -18,7 +18,19 @@ import base64
 
 from aiohomekit.model import Accessories
 from aiohomekit.model.characteristics import CharacteristicsTypes
-from aiohomekit.model.characteristics.const import StreamingStatusValues
+from aiohomekit.model.characteristics.const import (
+    PacketizationModeValues,
+    ProfileIDValues,
+    ProfileSupportLevelValues,
+    StreamingStatusValues,
+    VideoCodecTypeValues,
+)
+from aiohomekit.model.characteristics.structs import (
+    SupportedVideoStreamConfiguration,
+    VideoAttrs,
+    VideoCodecParameters,
+    VideoConfigConfiguration,
+)
 from aiohomekit.model.services import ServicesTypes
 
 
@@ -267,23 +279,40 @@ def test_build_update_minStep_clamping_synthetic_int():
 
 
 def test_tlv8_struct():
-    a = Accessories.from_file("tests/fixtures/camera.json")
-    service = a.aid(1).services.iid(16)
+    a = Accessories.from_file("tests/fixtures/home_assistant_bridge_camera.json")
+    service = a.aid(2018094878).services.iid(11)
 
     streaming_status = service.value(CharacteristicsTypes.STREAMING_STATUS)
     assert streaming_status.status == StreamingStatusValues.AVAILABLE
 
-    session_control = service.value(
+    video_stream_config = service.value(
         CharacteristicsTypes.SUPPORTED_VIDEO_STREAM_CONFIGURATION
     )
-    assert session_control.config[0].codec_type == 0
+
+    assert video_stream_config == SupportedVideoStreamConfiguration(
+        config=[
+            VideoConfigConfiguration(
+                codec_type=VideoCodecTypeValues.H264,
+                codec_params=[
+                    VideoCodecParameters(
+                        profile_id=ProfileIDValues.HIGH_PROFILE,
+                        level=ProfileSupportLevelValues.FOUR,
+                        packetization_mode=PacketizationModeValues.NON_INTERLEAVED_MODE,
+                        cvo_enabled=None,
+                        cvo_id=None,
+                    )
+                ],
+                video_attrs=[VideoAttrs(width=1920, height=1080, fps=30)],
+            )
+        ]
+    )
 
 
 def test_tlv8_struct_re_encode():
     a = Accessories.from_file("tests/fixtures/camera.json")
     service = a.aid(1).services.iid(16)
 
-    session_control = service.value(
+    video_stream_config = service.value(
         CharacteristicsTypes.SUPPORTED_VIDEO_STREAM_CONFIGURATION
     )
 
@@ -294,4 +323,4 @@ def test_tlv8_struct_re_encode():
         "gLwAAMBDwAAAwsBAkABAgK0AAMBHg=="
     )
 
-    assert raw == session_control.encode()
+    assert raw == video_stream_config.encode()

@@ -18,7 +18,15 @@ from typing import Sequence
 
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16
 
-from .const import SessionControlCommandValues, StreamingStatusValues
+from .const import (
+    CVOEnabledValues,
+    PacketizationModeValues,
+    ProfileIDValues,
+    ProfileSupportLevelValues,
+    SessionControlCommandValues,
+    StreamingStatusValues,
+    VideoCodecTypeValues,
+)
 
 
 @dataclass
@@ -53,10 +61,10 @@ class SelectedRTPStreamConfiguration(TLVStruct):
 
 @dataclass
 class VideoCodecParameters(TLVStruct):
-    profile_id: u8 = tlv_entry(1)
-    level: u8 = tlv_entry(2)
-    packetization_mode: u8 = tlv_entry(3)
-    cvo_enabled: u8 = tlv_entry(4)
+    profile_id: ProfileIDValues = tlv_entry(1)
+    level: ProfileSupportLevelValues = tlv_entry(2)
+    packetization_mode: PacketizationModeValues = tlv_entry(3)
+    cvo_enabled: CVOEnabledValues = tlv_entry(4)
     cvo_id: u8 = tlv_entry(5)
 
 
@@ -69,9 +77,9 @@ class VideoAttrs(TLVStruct):
 
 @dataclass
 class VideoConfigConfiguration(TLVStruct):
-    codec_type: u8 = tlv_entry(1)
+    codec_type: VideoCodecTypeValues = tlv_entry(1)
     codec_params: Sequence[VideoCodecParameters] = tlv_entry(2)
-    video_attrs: VideoAttrs = tlv_entry(3)
+    video_attrs: Sequence[VideoAttrs] = tlv_entry(3)
 
 
 @dataclass
