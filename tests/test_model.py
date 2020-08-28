@@ -26,6 +26,9 @@ from aiohomekit.model.characteristics.const import (
     VideoCodecTypeValues,
 )
 from aiohomekit.model.characteristics.structs import (
+    AudioCodecConfiguration,
+    AudioCodecParameters,
+    SupportedAudioStreamConfiguration,
     SupportedVideoStreamConfiguration,
     VideoAttrs,
     VideoCodecParameters,
@@ -305,6 +308,24 @@ def test_tlv8_struct():
                 video_attrs=[VideoAttrs(width=1920, height=1080, fps=30)],
             )
         ]
+    )
+
+    audio_stream_config = service.value(
+        CharacteristicsTypes.SUPPORTED_AUDIO_CONFIGURATION
+    )
+
+    assert audio_stream_config == SupportedAudioStreamConfiguration(
+        config=[
+            AudioCodecConfiguration(
+                codec=3,
+                parameters=[
+                    AudioCodecParameters(
+                        audio_channels=1, bit_rate=0, sample_rate=1, rtp_time=None
+                    )
+                ],
+            )
+        ],
+        comfort_noise=0,
     )
 
 

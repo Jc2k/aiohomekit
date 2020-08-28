@@ -3,6 +3,7 @@
 from .structs import (
     SelectedRTPStreamConfiguration,
     StreamingStatus,
+    SupportedAudioStreamConfiguration,
     SupportedVideoStreamConfiguration,
 )
 
@@ -734,6 +735,7 @@ characteristics = {
         "description": "Supported Audio Stream Configuration",
         "perms": ["pr"],
         "format": "tlv8",
+        "struct": SupportedAudioStreamConfiguration,
     },
     "00000116-0000-1000-8000-0026BB765291": {
         "name": "SUPPORTED_RTP_CONFIGURATION",

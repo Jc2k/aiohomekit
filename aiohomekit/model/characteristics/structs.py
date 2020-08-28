@@ -60,6 +60,34 @@ class SelectedRTPStreamConfiguration(TLVStruct):
 
 
 @dataclass
+class AudioCodecParameters(TLVStruct):
+
+    audio_channels: u8 = tlv_entry(1)
+    bit_rate: u8 = tlv_entry(2)
+    sample_rate: u8 = tlv_entry(3)
+    rtp_time: u8 = tlv_entry(4)
+
+
+@dataclass
+class AudioCodecConfiguration(TLVStruct):
+
+    codec: u8 = tlv_entry(1)
+    parameters: Sequence[AudioCodecParameters] = tlv_entry(2)
+
+
+@dataclass
+class SupportedAudioStreamConfiguration(TLVStruct):
+
+    """
+    UUID 00000115-0000-1000-8000-0026BB765291
+    Type public.hap.characteristic.supported-audio-stream-configuration
+    """
+
+    config: Sequence[AudioCodecConfiguration] = tlv_entry(1)
+    comfort_noise: u8 = tlv_entry(2)
+
+
+@dataclass
 class VideoCodecParameters(TLVStruct):
     profile_id: ProfileIDValues = tlv_entry(1)
     level: ProfileSupportLevelValues = tlv_entry(2)

@@ -17,9 +17,12 @@ enrichment = {
     "00000117-0000-1000-8000-0026BB765291": {
         "struct": ".structs.SelectedRTPStreamConfiguration"
     },
+    "00000115-0000-1000-8000-0026BB765291": {
+        "struct": ".structs.SupportedAudioStreamConfiguration"
+    },
     "00000114-0000-1000-8000-0026BB765291": {
         "struct": ".structs.SupportedVideoStreamConfiguration"
-    }
+    },
 }
 
 
