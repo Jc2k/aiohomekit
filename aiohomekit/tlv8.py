@@ -232,30 +232,14 @@ class TLVStruct:
         # And not rebuild it every time decode() is called
         tlv_types = {field.metadata["tlv_type"]: field for field in fields(cls)}
 
-        while offset < len(encoded_struct):
-            type = encoded_struct[offset]
+        for offset, type, length, value in tlv_iterator(encoded_struct):
             if type not in tlv_types:
                 raise TlvParseException(f"Unknown TLV type {type} for {cls}")
 
             py_type = tlv_types[type].type
             deserializer = find_deserializer(py_type)
 
-            length = encoded_struct[offset + 1]
-            value = encoded_struct[offset + 2 :][:length]
-
-            # If length is 255 the next chunks may be part of same value
-            # Iterate until the type changes
-            while length == 255:
-                peek_offset = offset + 2 + length
-                if encoded_struct[peek_offset] != type:
-                    break
-                offset = peek_offset
-                length = encoded_struct[offset + 1]
-                value += encoded_struct[offset + 2 :][:length]
-
             kwargs[tlv_types[type].name] = deserializer(py_type, value)
-
-            offset += 2 + length
 
         return cls(**kwargs)
 
