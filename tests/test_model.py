@@ -19,9 +19,12 @@ import base64
 from aiohomekit.model import Accessories
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.characteristics.const import (
+    AudioCodecValues,
+    BitRateValues,
     PacketizationModeValues,
     ProfileIDValues,
     ProfileSupportLevelValues,
+    SampleRateValues,
     StreamingStatusValues,
     VideoCodecTypeValues,
 )
@@ -317,10 +320,13 @@ def test_tlv8_struct():
     assert audio_stream_config == SupportedAudioStreamConfiguration(
         config=[
             AudioCodecConfiguration(
-                codec=3,
+                codec=AudioCodecValues.OPUS,
                 parameters=[
                     AudioCodecParameters(
-                        audio_channels=1, bit_rate=0, sample_rate=1, rtp_time=None
+                        audio_channels=1,
+                        bit_rate=BitRateValues.VARIABLE,
+                        sample_rate=SampleRateValues.SIXTEEN_KHZ,
+                        rtp_time=None,
                     )
                 ],
             )

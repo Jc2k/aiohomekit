@@ -19,10 +19,13 @@ from typing import Sequence
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16
 
 from .const import (
+    AudioCodecValues,
+    BitRateValues,
     CVOEnabledValues,
     PacketizationModeValues,
     ProfileIDValues,
     ProfileSupportLevelValues,
+    SampleRateValues,
     SessionControlCommandValues,
     StreamingStatusValues,
     VideoCodecTypeValues,
@@ -63,15 +66,15 @@ class SelectedRTPStreamConfiguration(TLVStruct):
 class AudioCodecParameters(TLVStruct):
 
     audio_channels: u8 = tlv_entry(1)
-    bit_rate: u8 = tlv_entry(2)
-    sample_rate: u8 = tlv_entry(3)
+    bit_rate: BitRateValues = tlv_entry(2)
+    sample_rate: SampleRateValues = tlv_entry(3)
     rtp_time: u8 = tlv_entry(4)
 
 
 @dataclass
 class AudioCodecConfiguration(TLVStruct):
 
-    codec: u8 = tlv_entry(1)
+    codec: AudioCodecValues = tlv_entry(1)
     parameters: Sequence[AudioCodecParameters] = tlv_entry(2)
 
 

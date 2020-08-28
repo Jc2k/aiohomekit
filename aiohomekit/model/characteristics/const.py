@@ -185,3 +185,28 @@ class CVOEnabledValues(enum.IntEnum):
 
     NOT_SUPPORTED = 0
     SUPPORTED = 1
+
+
+class AudioCodecValues(enum.IntEnum):
+
+    """
+    7-255 reserved for Apple.
+    """
+
+    AAC_ELD = 2
+    OPUS = 3
+    AMR = 5
+    AMR_WB = 6
+
+
+class BitRateValues(enum.IntEnum):
+
+    VARIABLE = 0
+    CONSTANT = 1
+
+
+class SampleRateValues(enum.IntEnum):
+
+    EIGHT_KHZ = 0
+    SIXTEEN_KHZ = 1
+    TWENTY_FOUR_KHZ = 2
