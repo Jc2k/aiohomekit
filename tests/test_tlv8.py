@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import IntEnum
 
-from aiohomekit.tlv8 import TLVStruct, tlv_entry
+from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8
 
 
 def test_example_1():
@@ -9,7 +9,7 @@ def test_example_1():
 
     @dataclass
     class DummyStruct(TLVStruct):
-        state: int = tlv_entry(7)
+        state: u8 = tlv_entry(7)
         message: str = tlv_entry(1)
 
     raw = b"\x07\x01\x03\x01\x05\x68\x65\x6c\x6c\x6f"
@@ -27,7 +27,7 @@ def test_example_2():
 
     @dataclass
     class DummyStruct(TLVStruct):
-        state: int = tlv_entry(6)
+        state: u8 = tlv_entry(6)
         certificate: str = tlv_entry(9)
         identifier: str = tlv_entry(1)
 

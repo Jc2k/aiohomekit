@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+import base64
+
 from aiohomekit.model import Accessories
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.characteristics.const import StreamingStatusValues
@@ -275,3 +277,21 @@ def test_tlv8_struct():
         CharacteristicsTypes.SUPPORTED_VIDEO_STREAM_CONFIGURATION
     )
     assert session_control.config[0].codec_type == 0
+
+
+def test_tlv8_struct_re_encode():
+    a = Accessories.from_file("tests/fixtures/camera.json")
+    service = a.aid(1).services.iid(16)
+
+    session_control = service.value(
+        CharacteristicsTypes.SUPPORTED_VIDEO_STREAM_CONFIGURATION
+    )
+
+    raw = base64.b64decode(
+        "AcUBAQACHQEBAAAAAQEBAAABAQICAQAAAAIBAQAAAgECAwEAAwsBAoAHAgI4BAMBHgAAAwsBAgAFAgL"
+        "AAwMBHgAAAwsBAgAFAgLQAgMBHgAAAwsBAgAEAgIAAwMBHgAAAwsBAoACAgLgAQMBHgAAAwsBAoACAg"
+        "JoAQMBHgAAAwsBAuABAgJoAQMBHgAAAwsBAuABAgIOAQMBHgAAAwsBAkABAgLwAAMBHgAAAwsBAkABA"
+        "gLwAAMBDwAAAwsBAkABAgK0AAMBHg=="
+    )
+
+    assert raw == session_control.encode()

@@ -1,12 +1,45 @@
+from collections import abc
 from dataclasses import field, fields
 import enum
 from functools import lru_cache
 import struct
-from typing import Any, Callable, Dict, Iterable, Sequence, TypeVar, _GenericAlias
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Generic,
+    Iterable,
+    Sequence,
+    TypeVar,
+    _GenericAlias,
+)
 
 SerializerCallback = Callable[[type, Any], bytes]
 DeserializerCallback = Callable[[type, bytes], Any]
 T = TypeVar("T")
+
+
+class u8(int):
+    pass
+
+
+class u16(int):
+    pass
+
+
+def get_origin(tp):
+    """
+    Returns the containing type
+
+    get_origin(int) == None
+    get_origin(Sequence[int]) == collections.abc.Sequence
+    """
+    if isinstance(tp, _GenericAlias):
+        return tp.__origin__ if tp.__origin__ is not ClassVar else None
+    if tp is Generic:
+        return Generic
+    return None
 
 
 class TlvParseException(Exception):
@@ -43,7 +76,11 @@ def tlv_iterator(encoded_struct: bytes) -> Iterable:
         offset += 2 + length
 
 
-def deserialize_int(value_type: type, value: bytes) -> int:
+def deserialize_u8(value_type: type, value: bytes) -> int:
+    return int.from_bytes(value, "little")
+
+
+def deserialize_u16(value_type: type, value: bytes) -> int:
     return int.from_bytes(value, "little")
 
 
@@ -52,7 +89,7 @@ def deserialize_str(value_type: type, value: bytes) -> str:
 
 
 def deserialize_int_enum(value_type: type, value: bytes) -> enum.IntEnum:
-    int_value = deserialize_int(value_type, value)
+    int_value = deserialize_u8(value_type, value)
     return value_type(int_value)
 
 
@@ -86,8 +123,12 @@ def deserialize_typing_sequence(
     return results
 
 
-def serialize_int(value_type: type, value: int) -> bytes:
+def serialize_u8(value_type: type, value: int) -> bytes:
     return struct.pack("B", value)
+
+
+def serialize_u16(value_type: type, value: int) -> bytes:
+    return struct.pack("H", value)
 
 
 def serialize_str(value_type: type, value: str) -> bytes:
@@ -95,15 +136,27 @@ def serialize_str(value_type: type, value: str) -> bytes:
 
 
 def serialize_int_enum(value_type: type, value: enum.IntEnum) -> bytes:
-    return serialize_int(value_type, int(value))
+    return serialize_u8(value_type, int(value))
 
 
 def serialize_tlv_struct(value_type: type, value: "TLVStruct") -> bytes:
     return value.encode()
 
 
-def serialize_typing_sequence(value_type: type, value: bytes) -> Sequence["TLVStruct"]:
-    return value_type.decode(value)
+def serialize_typing_sequence(value_type: type, value: Sequence) -> bytes:
+    if not value:
+        return b""
+
+    value_iter = iter(value)
+
+    result = bytearray()
+    result.extend(next(value_iter).encode())
+
+    for val in value_iter:
+        result.extend(b"\x00\x00")
+        result.extend(val.encode())
+
+    return bytes(result)
 
 
 def tlv_entry(type: int, **kwargs):
@@ -112,9 +165,12 @@ def tlv_entry(type: int, **kwargs):
 
 @lru_cache(maxsize=100)
 def find_serializer(py_type: type):
-    superclasses = [py_type]
-    if hasattr(py_type, "__mro__"):
+    if get_origin(py_type):
+        superclasses = [get_origin(py_type)]
+    elif hasattr(py_type, "__mro__"):
         superclasses = py_type.__mro__
+    else:
+        superclasses = [py_type]
 
     for klass in superclasses:
         if klass in SERIALIZERS:
@@ -125,13 +181,12 @@ def find_serializer(py_type: type):
 
 @lru_cache(maxsize=100)
 def find_deserializer(py_type: type):
-    if isinstance(py_type, _GenericAlias):
-        if py_type._name == "Sequence":
-            return deserialize_typing_sequence
-
-    superclasses = [py_type]
-    if hasattr(py_type, "__mro__"):
+    if get_origin(py_type):
+        superclasses = [get_origin(py_type)]
+    elif hasattr(py_type, "__mro__"):
         superclasses = py_type.__mro__
+    else:
+        superclasses = [py_type]
 
     for klass in superclasses:
         if klass in DESERIALIZERS:
@@ -149,11 +204,18 @@ class TLVStruct:
         result = bytearray()
 
         for struct_field in fields(self):
+            value = getattr(self, struct_field.name)
+
+            if value is None:
+                continue
+
+            print(struct_field.name, value)
+
             tlv_type = struct_field.metadata["tlv_type"]
             py_type = struct_field.type
 
             serializer = find_serializer(py_type)
-            encoded = serializer(py_type, getattr(self, struct_field.name))
+            encoded = serializer(py_type, value)
 
             for offset in range(0, len(encoded), 255):
                 chunk = encoded[offset : offset + 255]
@@ -201,17 +263,19 @@ class TLVStruct:
 
 
 DESERIALIZERS: Dict[type, DeserializerCallback] = {
-    int: deserialize_int,
+    u8: deserialize_u8,
+    u16: deserialize_u16,
     str: deserialize_str,
     enum.IntEnum: deserialize_int_enum,
     TLVStruct: deserialize_tlv_struct,
-    Sequence: deserialize_typing_sequence,
+    abc.Sequence: deserialize_typing_sequence,
 }
 
 SERIALIZERS: Dict[type, SerializerCallback] = {
-    int: serialize_int,
+    u8: serialize_u8,
+    u16: serialize_u16,
     str: serialize_str,
     enum.IntEnum: serialize_int_enum,
     TLVStruct: serialize_tlv_struct,
-    Sequence: serialize_typing_sequence,
+    abc.Sequence: serialize_typing_sequence,
 }
