@@ -16,7 +16,7 @@
 from dataclasses import dataclass
 from typing import Sequence
 
-from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16
+from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16, u32
 
 from .const import (
     AudioCodecValues,
@@ -46,49 +46,10 @@ class SessionControl(TLVStruct):
 
 
 @dataclass
-class SelectedVideoParameters(TLVStruct):
-    pass
-
-
-@dataclass
-class SelectedAudioParameters(TLVStruct):
-    pass
-
-
-@dataclass
-class SelectedRTPStreamConfiguration(TLVStruct):
-
-    control: SessionControl = tlv_entry(1)
-    video_params: SelectedVideoParameters = tlv_entry(2)
-    audio_params: SelectedAudioParameters = tlv_entry(3)
-
-
-@dataclass
-class AudioCodecParameters(TLVStruct):
-
-    audio_channels: u8 = tlv_entry(1)
-    bit_rate: BitRateValues = tlv_entry(2)
-    sample_rate: SampleRateValues = tlv_entry(3)
-    rtp_time: u8 = tlv_entry(4)
-
-
-@dataclass
-class AudioCodecConfiguration(TLVStruct):
-
-    codec: AudioCodecValues = tlv_entry(1)
-    parameters: Sequence[AudioCodecParameters] = tlv_entry(2)
-
-
-@dataclass
-class SupportedAudioStreamConfiguration(TLVStruct):
-
-    """
-    UUID 00000115-0000-1000-8000-0026BB765291
-    Type public.hap.characteristic.supported-audio-stream-configuration
-    """
-
-    config: Sequence[AudioCodecConfiguration] = tlv_entry(1)
-    comfort_noise: u8 = tlv_entry(2)
+class VideoAttrs(TLVStruct):
+    width: u16 = tlv_entry(1)
+    height: u16 = tlv_entry(2)
+    fps: u8 = tlv_entry(3)
 
 
 @dataclass
@@ -101,10 +62,53 @@ class VideoCodecParameters(TLVStruct):
 
 
 @dataclass
-class VideoAttrs(TLVStruct):
-    width: u16 = tlv_entry(1)
-    height: u16 = tlv_entry(2)
-    fps: u8 = tlv_entry(3)
+class AudioCodecParameters(TLVStruct):
+
+    audio_channels: u8 = tlv_entry(1)
+    bit_rate: BitRateValues = tlv_entry(2)
+    sample_rate: SampleRateValues = tlv_entry(3)
+    rtp_time: u8 = tlv_entry(4)
+
+
+@dataclass
+class VideoRTPParameters(TLVStruct):
+    payload_type: u8 = tlv_entry(1)
+    ssrc: u32 = tlv_entry(2)
+    max_bitrate: u16 = tlv_entry(3)
+    min_rtcp_interval: float = tlv_entry(4)
+    max_mtu: u16 = tlv_entry(5)
+
+
+@dataclass
+class SelectedVideoParameters(TLVStruct):
+    codec_type: VideoCodecTypeValues = tlv_entry(1)
+    codec_parameters: VideoCodecParameters = tlv_entry(2)
+    video_attrs: VideoAttrs = tlv_entry(3)
+    rtp_params: VideoRTPParameters = tlv_entry(4)
+
+
+@dataclass
+class AudioRTPParameters(TLVStruct):
+    payload_type: u8 = tlv_entry(1)
+    ssrc: u32 = tlv_entry(2)
+    max_bitrate: u16 = tlv_entry(3)
+    min_rtcp_interval: float = tlv_entry(4)
+    comfort_noise_payload_type: u8 = tlv_entry(6)
+
+
+@dataclass
+class SelectedAudioParameters(TLVStruct):
+    codec_type: AudioCodecValues = tlv_entry(1)
+    codec_parameters: AudioCodecParameters = tlv_entry(2)
+    rtp_params: AudioRTPParameters = tlv_entry(3)
+    comfort_noise: u8 = tlv_entry(4)
+
+
+@dataclass
+class AudioCodecConfiguration(TLVStruct):
+
+    codec: AudioCodecValues = tlv_entry(1)
+    parameters: Sequence[AudioCodecParameters] = tlv_entry(2)
 
 
 @dataclass
@@ -126,6 +130,18 @@ class SupportedVideoStreamConfiguration(TLVStruct):
 
 
 @dataclass
+class SupportedAudioStreamConfiguration(TLVStruct):
+
+    """
+    UUID 00000115-0000-1000-8000-0026BB765291
+    Type public.hap.characteristic.supported-audio-stream-configuration
+    """
+
+    config: Sequence[AudioCodecConfiguration] = tlv_entry(1)
+    comfort_noise: u8 = tlv_entry(2)
+
+
+@dataclass
 class SupportedRTPConfiguration(TLVStruct):
 
     """
@@ -134,3 +150,16 @@ class SupportedRTPConfiguration(TLVStruct):
     """
 
     srtp_crypto_suite: SRTPCryptoSuiteValues = tlv_entry(2)
+
+
+@dataclass
+class SelectedRTPStreamConfiguration(TLVStruct):
+
+    """
+    UUID 00000117-0000-1000-8000-0026BB765291
+    Type public.hap.characteristic.selected-rtp-stream-configuration
+    """
+
+    control: SessionControl = tlv_entry(1)
+    video_params: SelectedVideoParameters = tlv_entry(2)
+    audio_params: SelectedAudioParameters = tlv_entry(3)

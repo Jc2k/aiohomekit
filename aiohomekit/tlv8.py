@@ -28,6 +28,10 @@ class u16(int):
     pass
 
 
+class u32(int):
+    pass
+
+
 def get_origin(tp):
     """
     Returns the containing type
@@ -98,6 +102,10 @@ def deserialize_u16(value_type: type, value: bytes) -> int:
     return int.from_bytes(value, "little")
 
 
+def deserialize_u32(value_type: type, value: bytes) -> int:
+    return int.from_bytes(value, "little")
+
+
 def deserialize_str(value_type: type, value: bytes) -> str:
     return value.decode("utf-8")
 
@@ -129,6 +137,10 @@ def serialize_u8(value_type: type, value: int) -> bytes:
 
 def serialize_u16(value_type: type, value: int) -> bytes:
     return struct.pack("H", value)
+
+
+def serialize_u32(value_type: type, value: int) -> bytes:
+    return struct.pack("I", value)
 
 
 def serialize_str(value_type: type, value: str) -> bytes:
@@ -247,6 +259,7 @@ class TLVStruct:
 DESERIALIZERS: Dict[type, DeserializerCallback] = {
     u8: deserialize_u8,
     u16: deserialize_u16,
+    u32: deserialize_u32,
     str: deserialize_str,
     enum.IntEnum: deserialize_int_enum,
     TLVStruct: deserialize_tlv_struct,
@@ -256,6 +269,7 @@ DESERIALIZERS: Dict[type, DeserializerCallback] = {
 SERIALIZERS: Dict[type, SerializerCallback] = {
     u8: serialize_u8,
     u16: serialize_u16,
+    u32: serialize_u32,
     str: serialize_str,
     enum.IntEnum: serialize_int_enum,
     TLVStruct: serialize_tlv_struct,
