@@ -25,6 +25,7 @@ from aiohomekit.model.characteristics.const import (
     ProfileIDValues,
     ProfileSupportLevelValues,
     SampleRateValues,
+    SRTPCryptoSuiteValues,
     StreamingStatusValues,
     VideoCodecTypeValues,
 )
@@ -32,6 +33,7 @@ from aiohomekit.model.characteristics.structs import (
     AudioCodecConfiguration,
     AudioCodecParameters,
     SupportedAudioStreamConfiguration,
+    SupportedRTPConfiguration,
     SupportedVideoStreamConfiguration,
     VideoAttrs,
     VideoCodecParameters,
@@ -333,6 +335,30 @@ def test_tlv8_struct():
         ],
         comfort_noise=0,
     )
+
+    rtp_config = service.value(CharacteristicsTypes.SUPPORTED_RTP_CONFIGURATION)
+
+    assert rtp_config == [
+        SupportedRTPConfiguration(
+            srtp_crypto_suite=SRTPCryptoSuiteValues.AES_CM_128_HMAC_SHA1_80,
+        ),
+    ]
+
+
+def test_tlv8_struct_bare_array():
+    a = Accessories.from_file("tests/fixtures/camera.json")
+    service = a.aid(1).services.iid(16)
+
+    rtp_config = service.value(CharacteristicsTypes.SUPPORTED_RTP_CONFIGURATION)
+
+    assert rtp_config == [
+        SupportedRTPConfiguration(
+            srtp_crypto_suite=SRTPCryptoSuiteValues.DISABLED,
+        ),
+        SupportedRTPConfiguration(
+            srtp_crypto_suite=SRTPCryptoSuiteValues.AES_CM_128_HMAC_SHA1_80,
+        ),
+    ]
 
 
 def test_tlv8_struct_re_encode():

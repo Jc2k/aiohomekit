@@ -76,6 +76,20 @@ def tlv_iterator(encoded_struct: bytes) -> Iterable:
         offset += 2 + length
 
 
+def tlv_array(encoded_array: bytes, separator: int = 0) -> Iterable[bytes]:
+    start = 0
+
+    for offset, type, length, chunk_value in tlv_iterator(encoded_array):
+        if type == separator:
+            yield encoded_array[start:offset]
+            start = offset + 2
+            continue
+
+    item = encoded_array[start:]
+    if item:
+        yield item
+
+
 def deserialize_u8(value_type: type, value: bytes) -> int:
     return int.from_bytes(value, "little")
 
@@ -102,23 +116,9 @@ def deserialize_typing_sequence(
 ) -> Sequence["TLVStruct"]:
     inner_type = value_type.__args__[0]
 
-    start = 0
-    end = 0
-
     results = []
-
-    for offset, type, length, chunk_value in tlv_iterator(value):
-        end = offset
-
-        if type == 0:
-            item = inner_type.decode(value[start:end])
-            results.append(item)
-            start = end + 2
-            continue
-
-    item = value[start:]
-    if item:
-        results.append(inner_type.decode(item))
+    for inner_value in tlv_array(value):
+        results.append(inner_type.decode(inner_value))
 
     return results
 

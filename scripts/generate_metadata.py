@@ -17,6 +17,10 @@ enrichment = {
     "00000117-0000-1000-8000-0026BB765291": {
         "struct": ".structs.SelectedRTPStreamConfiguration"
     },
+    "00000116-0000-1000-8000-0026BB765291": {
+        "struct": ".structs.SupportedRTPConfiguration",
+        "array": True,
+    },
     "00000115-0000-1000-8000-0026BB765291": {
         "struct": ".structs.SupportedAudioStreamConfiguration"
     },
@@ -92,6 +96,10 @@ with open("aiohomekit/model/characteristics/data.py", "w") as fp:
         if struct:
             _, frm = struct.rsplit(".", 1)
             fp.write(f"        \"struct\": {frm},\n")
+
+        array = enrichment.get(char_uuid, {}).get("array")
+        if array:
+            fp.write(f"        \"array\": {array},\n")
 
         if "unit" in char:
             unit = json.dumps(char["unit"])

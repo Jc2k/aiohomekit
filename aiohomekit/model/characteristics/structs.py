@@ -27,6 +27,7 @@ from .const import (
     ProfileSupportLevelValues,
     SampleRateValues,
     SessionControlCommandValues,
+    SRTPCryptoSuiteValues,
     StreamingStatusValues,
     VideoCodecTypeValues,
 )
@@ -122,3 +123,14 @@ class SupportedVideoStreamConfiguration(TLVStruct):
     """
 
     config: Sequence[VideoConfigConfiguration] = tlv_entry(1)
+
+
+@dataclass
+class SupportedRTPConfiguration(TLVStruct):
+
+    """
+    UUID 00000116-0000-1000-8000-0026BB765291
+    Type public.hap.characteristic.supported-rtp-configuration
+    """
+
+    srtp_crypto_suite: SRTPCryptoSuiteValues = tlv_entry(2)

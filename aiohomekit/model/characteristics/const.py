@@ -210,3 +210,10 @@ class SampleRateValues(enum.IntEnum):
     EIGHT_KHZ = 0
     SIXTEEN_KHZ = 1
     TWENTY_FOUR_KHZ = 2
+
+
+class SRTPCryptoSuiteValues(enum.IntEnum):
+
+    AES_CM_128_HMAC_SHA1_80 = 0
+    AES_256_CM_HMAC_SHA1_80 = 1
+    DISABLED = 2

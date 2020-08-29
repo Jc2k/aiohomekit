@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 from aiohomekit.exceptions import CharacteristicPermissionError, FormatError
 from aiohomekit.protocol.statuscodes import HapStatusCodes
 from aiohomekit.protocol.tlv import TLV, TlvParseException
+from aiohomekit.tlv8 import tlv_array
 
 from .characteristic_formats import CharacteristicFormats
 from .characteristic_types import CharacteristicsTypes
@@ -136,10 +137,15 @@ class Characteristic:
         This function sets the value of this characteristic. Permissions are checked first
         """
         if self.format == CharacteristicFormats.tlv8:
+            extra_data = characteristics.get(self.type, {})
+
             new_val = base64.b64decode(new_val)
-            struct = characteristics.get(self.type, {}).get("struct")
+            struct = extra_data.get("struct")
             if struct:
-                new_val = struct.decode(new_val)
+                if extra_data.get("array"):
+                    new_val = [struct.decode(new_val) for new_val in tlv_array(new_val)]
+                else:
+                    new_val = struct.decode(new_val)
 
         self.value = new_val
 
