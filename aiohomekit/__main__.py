@@ -25,27 +25,18 @@ import sys
 from typing import List, Optional
 
 from .controller import Controller
+from .exceptions import HomeKitException
 from .model.characteristics import CharacteristicsTypes
 from .model.services import ServicesTypes
 
 logger = logging.getLogger(__name__)
 
 
-def pin_from_parameter(number):
-    def tmp():
-        return number
-
-    return tmp
-
-
 def pin_from_keyboard():
-    def tmp():
-        read_pin = ""
-        while re.match(r"^\d{3}-\d{2}-\d{3}$", read_pin) is None:
-            read_pin = input("Enter device pin (XXX-YY-ZZZ): ")
-        return read_pin
-
-    return tmp
+    read_pin = ""
+    while re.match(r"^\d{3}-\d{2}-\d{3}$", read_pin) is None:
+        read_pin = input("Enter device pin (XXX-YY-ZZZ): ")
+    return read_pin
 
 
 def setup_logging(level: None) -> None:
@@ -134,23 +125,31 @@ async def pair_ip(args):
         print(f'"{args.alias}" is a already known alias')
         return False
 
-    if args.pin:
-        pin_function = pin_from_parameter(args.pin)
-    else:
-        pin_function = pin_from_keyboard()
-
     discovery = await controller.find_ip_by_device_id(args.device)
 
     try:
         finish_pairing = await discovery.start_pairing(args.alias)
-        pairing = await finish_pairing(pin_function())
-        await pairing.list_accessories_and_characteristics()
-        controller.save_data(args.file)
-        print(f'Pairing for "{args.alias}" was established.')
-    except Exception:
-        logging.exception("Error whilst pairing")
+    except HomeKitException as e:
+        print(str(e))
         return False
 
+    pin = args.pin if args.pin else pin_from_keyboard()
+
+    try:
+        pairing = await finish_pairing(pin)
+    except HomeKitException as e:
+        print(str(e))
+        return False
+
+    try:
+        await pairing.list_accessories_and_characteristics()
+    except HomeKitException as e:
+        print(str(e))
+        return False
+
+    controller.save_data(args.file)
+
+    print(f'Pairing for "{args.alias}" was established.')
     return True
 
 
