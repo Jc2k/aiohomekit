@@ -14,10 +14,16 @@
 # limitations under the License.
 #
 
+import enum
+
 __all__ = ["HttpContentTypes", "HttpStatusCodes"]
 
 
-class _HttpContentTypes:
+class HttpContentTypes(str, enum.Enum):
+    """
+    Collection of HTTP content types as used in HTTP headers
+    """
+
     JSON = "application/hap+json"
     TLV = "application/pairing+tlv8"
 
@@ -59,4 +65,3 @@ class _HttpStatusCodes:
 
 
 HttpStatusCodes = _HttpStatusCodes()
-HttpContentTypes = _HttpContentTypes

@@ -42,7 +42,7 @@ target-version = ["py37", "py38"]
 aiohomekitctl = "aiohomekit.__main__:sync_main"
 
 [tool.coverage.run]
-omit = ["tests"]
+omit = ["tests/*"]
 
 [tool.isort]
 profile = "black"

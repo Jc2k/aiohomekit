@@ -25,6 +25,7 @@ from aiohomekit.exceptions import (
     UnknownError,
     UnpairedError,
 )
+from aiohomekit.http import HttpContentTypes
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.protocol import error_handler
@@ -458,7 +459,7 @@ class IpPairing(AbstractPairing):
     async def image(self, accessory, width, height):
         resp = await self.connection.post(
             "/resource",
-            content_type="application/json",
+            content_type=HttpContentTypes.JSON,
             body=json.dumps(
                 {
                     "aid": accessory,
