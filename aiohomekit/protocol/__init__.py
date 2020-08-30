@@ -68,38 +68,6 @@ def error_handler(error: bytearray, stage: str):
         raise InvalidError(stage)
 
 
-def create_ip_pair_setup_write(connection):
-    def write_http(request, expected):
-        body = TLV.encode_list(request)
-        logging.debug("write message: %s", TLV.to_string(TLV.decode_bytes(body)))
-        connection.putrequest("POST", "/pair-setup", skip_accept_encoding=True)
-        connection.putheader("Content-Type", "application/pairing+tlv8")
-        connection.putheader("Content-Length", len(body))
-        connection.endheaders(body)
-        resp = connection.getresponse()
-        response_tlv = TLV.decode_bytes(resp.read(), expected)
-        logging.debug("response: %s", TLV.to_string(response_tlv))
-        return response_tlv
-
-    return write_http
-
-
-def create_ip_pair_verify_write(connection):
-    def write_http(request, expected):
-        body = TLV.encode_list(request)
-        logging.debug("write message: %s", TLV.to_string(TLV.decode_bytes(body)))
-        connection.putrequest("POST", "/pair-verify", skip_accept_encoding=True)
-        connection.putheader("Content-Type", "application/pairing+tlv8")
-        connection.putheader("Content-Length", len(body))
-        connection.endheaders(body)
-        resp = connection.getresponse()
-        response_tlv = TLV.decode_bytes(resp.read(), expected)
-        logging.debug("response: %s", TLV.to_string(response_tlv))
-        return response_tlv
-
-    return write_http
-
-
 def handle_state_step(tlv_dict, expected_state):
     actual_state = tlv_dict.get(TLV.kTLVType_State)
 
