@@ -20,6 +20,7 @@ import asyncio
 import json
 import locale
 import logging
+import pathlib
 import re
 import sys
 from typing import List, Optional
@@ -30,6 +31,9 @@ from .model.characteristics import CharacteristicsTypes
 from .model.services import ServicesTypes
 
 logger = logging.getLogger(__name__)
+
+XDG_DATA_HOME = pathlib.Path.home() / ".local" / "share"
+DEFAULT_PAIRING_FILE = XDG_DATA_HOME / "aiohomekit" / "pairing.json"
 
 
 def pin_from_keyboard():
@@ -407,8 +411,9 @@ def setup_parser_for_pairing(parser: ArgumentParser) -> None:
     parser.add_argument(
         "-f",
         action="store",
-        required=True,
+        required=False,
         dest="file",
+        default=DEFAULT_PAIRING_FILE,
         help="File with the pairing data",
     )
     parser.add_argument(

@@ -17,6 +17,7 @@
 import json
 from json.decoder import JSONDecodeError
 import logging
+import pathlib
 import re
 from typing import Dict
 
@@ -176,9 +177,7 @@ class Controller:
         except JSONDecodeError:
             raise ConfigLoadingError(f'Cannot parse "{filename}" as JSON file')
         except FileNotFoundError:
-            raise ConfigLoadingError(
-                f'Could not open "{filename}" because it does not exist'
-            )
+            pass
 
     def save_data(self, filename: str) -> None:
         """
@@ -191,6 +190,12 @@ class Controller:
         for pairing_id in self.pairings:
             # package visibility like in java would be nice here
             data[pairing_id] = self.pairings[pairing_id]._get_pairing_data()
+
+        path = pathlib.Path(filename)
+
+        if not path.parent.exists():
+            path.parent.mkdir()
+
         try:
             with open(filename, "w") as output_fp:
                 json.dump(data, output_fp, indent="  ")
