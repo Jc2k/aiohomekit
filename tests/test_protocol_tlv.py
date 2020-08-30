@@ -179,48 +179,6 @@ class TestTLV(unittest.TestCase):
         ]
         self.assertRaises(ValueError, TLV.encode_list, val)
 
-    def test_reorder_1(self):
-        val = [
-            [TLV.kTLVType_State, TLV.M3],
-            [TLV.kTLVType_Salt, (16 * "a").encode()],
-            [TLV.kTLVType_PublicKey, (384 * "b").encode()],
-        ]
-        tmp = TLV.reorder(
-            val, [TLV.kTLVType_State, TLV.kTLVType_PublicKey, TLV.kTLVType_Salt]
-        )
-        self.assertEqual(tmp[0][0], TLV.kTLVType_State)
-        self.assertEqual(tmp[0][1], TLV.M3)
-        self.assertEqual(tmp[1][0], TLV.kTLVType_PublicKey)
-        self.assertEqual(tmp[1][1], (384 * "b").encode())
-        self.assertEqual(tmp[2][0], TLV.kTLVType_Salt)
-        self.assertEqual(tmp[2][1], (16 * "a").encode())
-
-    def test_reorder_2(self):
-        val = [
-            [TLV.kTLVType_State, TLV.M3],
-            [TLV.kTLVType_Salt, (16 * "a").encode()],
-            [TLV.kTLVType_PublicKey, (384 * "b").encode()],
-        ]
-        tmp = TLV.reorder(val, [TLV.kTLVType_State, TLV.kTLVType_Salt])
-        self.assertEqual(tmp[0][0], TLV.kTLVType_State)
-        self.assertEqual(tmp[0][1], TLV.M3)
-        self.assertEqual(tmp[1][0], TLV.kTLVType_Salt)
-        self.assertEqual(tmp[1][1], (16 * "a").encode())
-
-    def test_reorder_3(self):
-        val = [
-            [TLV.kTLVType_State, TLV.M3],
-            [TLV.kTLVType_Salt, (16 * "a").encode()],
-            [TLV.kTLVType_PublicKey, (384 * "b").encode()],
-        ]
-        tmp = TLV.reorder(
-            val, [TLV.kTLVType_State, TLV.kTLVType_Error, TLV.kTLVType_Salt]
-        )
-        self.assertEqual(tmp[0][0], TLV.kTLVType_State)
-        self.assertEqual(tmp[0][1], TLV.M3)
-        self.assertEqual(tmp[1][0], TLV.kTLVType_Salt)
-        self.assertEqual(tmp[1][1], (16 * "a").encode())
-
     def test_filter(self):
         example = bytes(bytearray.fromhex("060103" + "010203"))
         expected = [

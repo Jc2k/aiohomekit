@@ -196,35 +196,6 @@ class TLV:
             res += "]\n"
         return res
 
-    @staticmethod
-    def reorder(
-        tlv_array: Union[
-            List[Union[List[Union[int, bytearray]], List[Union[int, bytes]]]],
-            List[List[Union[int, bytearray]]],
-        ],
-        preferred_order: List[int],
-    ) -> Union[
-        List[Union[List[Union[int, bytearray]], List[Union[int, bytes]]]],
-        List[List[Union[int, bytearray]]],
-    ]:
-        """
-        This function is used to reorder the key value pairs of a TLV list according to a preferred order. If key from
-        the preferred_order list is not found, it is ignored. If a pair's key is not in the preferred order list it is
-        ignored as well.
-
-        It is mostly used, if some accessory does not respect the order mentioned in the specification.
-
-        :param tlv_array: a list of tupels containing key and value of the TLV
-        :param preferred_order: a list of keys describing how the key value pairs should be sorted.
-        :return: a TLV list containing only pairs whose key was in the preferred order list sorted by that order.
-        """
-        tmp = []
-        for key in preferred_order:
-            for item in tlv_array:
-                if item[0] == key:
-                    tmp.append(item)
-        return tmp
-
 
 class TlvParseException(Exception):
     """Raised upon parse error with some TLV"""

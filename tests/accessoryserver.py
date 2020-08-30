@@ -52,6 +52,15 @@ from aiohomekit.protocol import TLV
 from aiohomekit.protocol.statuscodes import HapStatusCodes
 
 
+def tlv_reorder(tlv_array, preferred_order):
+    tmp = []
+    for key in preferred_order:
+        for item in tlv_array:
+            if item[0] == key:
+                tmp.append(item)
+    return tmp
+
+
 class AccessoryServer(ThreadingMixIn, HTTPServer):
     """
     This server makes accessories accessible via the HomeKit protocol.
@@ -862,7 +871,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
         d_req = TLV.decode_bytes(self.body)
 
         # Order is not consistent, so force things in to order specified in spec
-        d_req = TLV.reorder(
+        d_req = tlv_reorder(
             d_req,
             [TLV.kTLVType_State, TLV.kTLVType_PublicKey, TLV.kTLVType_EncryptedData],
         )
@@ -1046,7 +1055,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
         d_req = TLV.decode_bytes(self.body)
 
         # Order is not consistent, so force things in to order specified in spec
-        d_req = TLV.reorder(
+        d_req = tlv_reorder(
             d_req,
             [
                 TLV.kTLVType_State,
@@ -1246,7 +1255,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
         d_req = TLV.decode_bytes(self.body)
 
         # Order is not consistent, so force things in to order specified in spec
-        d_req = TLV.reorder(
+        d_req = tlv_reorder(
             d_req,
             [
                 TLV.kTLVType_State,
