@@ -22,6 +22,7 @@ from aiohomekit.controller.pairing import AbstractPairing
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
+    InvalidError,
     UnknownError,
     UnpairedError,
 )
@@ -407,13 +408,15 @@ class IpPairing(AbstractPairing):
             (TLV.kTLVType_Permissions, permissions),
         ]
 
-        data = await self.connection.post_tlv("/pairings", request_tlv)
+        data = dict(await self.connection.post_tlv("/pairings", request_tlv))
 
-        if len(data) == 1 and data[0][1] == TLV.M2:
-            return True
+        if data.get(TLV.kTLVType_State, TLV.M2) != TLV.M2:
+            raise InvalidError("Unexpected state after add pairing request")
 
-        # Map TLV error codes to an exception
-        error_handler(data[0][1], data[1][0])
+        if TLV.kTLVType_Error in data:
+            error_handler(data[TLV.kTLVType_Error], "M2")
+
+        return True
 
     async def remove_pairing(self, pairingId):
         """
@@ -437,24 +440,17 @@ class IpPairing(AbstractPairing):
             (TLV.kTLVType_Identifier, pairingId.encode("utf-8")),
         ]
 
-        data = await self.connection.post_tlv("/pairings", request_tlv)
+        data = dict(await self.connection.post_tlv("/pairings", request_tlv))
 
-        # act upon the response (the same is returned for IP and BLE accessories)
-        # handle the result, spec says, if it has only one entry with state == M2 we unpaired, else its an error.
-        logging.debug("response data: %s", data)
+        if data.get(TLV.kTLVType_State, TLV.M2) != TLV.M2:
+            raise InvalidError("Unexpected state after removing pairing request")
 
-        if len(data) == 1 and data[0][0] == TLV.kTLVType_State and data[0][1] == TLV.M2:
-            return True
+        if TLV.kTLVType_Error in data:
+            if data[TLV.kTLVType_Error] == TLV.kTLVError_Authentication:
+                raise AuthenticationError("Remove pairing failed: insufficient access")
+            raise UnknownError("Remove pairing failed: unknown error")
 
-        await self.connection.close()
-
-        if (
-            data[1][0] == TLV.kTLVType_Error
-            and data[1][1] == TLV.kTLVError_Authentication
-        ):
-            raise AuthenticationError("Remove pairing failed: missing authentication")
-
-        raise UnknownError("Remove pairing failed: unknown error")
+        return True
 
     async def image(self, accessory, width, height):
         resp = await self.connection.post(
