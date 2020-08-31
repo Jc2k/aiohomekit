@@ -189,7 +189,7 @@ class Controller:
         data = {}
         for pairing_id in self.pairings:
             # package visibility like in java would be nice here
-            data[pairing_id] = self.pairings[pairing_id]._get_pairing_data()
+            data[pairing_id] = self.pairings[pairing_id].pairing_data
 
         path = pathlib.Path(filename)
 

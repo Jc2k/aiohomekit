@@ -15,7 +15,6 @@
 #
 
 import abc
-from typing import Any, Dict
 
 
 class AbstractPairing(abc.ABC):
@@ -23,14 +22,6 @@ class AbstractPairing(abc.ABC):
         self.controller = controller
         self.listeners = set()
         self.subscriptions = set()
-
-    def _get_pairing_data(self) -> Dict[str, Any]:
-        """
-        This method returns the internal pairing data. DO NOT mess around with it.
-
-        :return: a dict containing the data
-        """
-        return self.pairing_data
 
     @abc.abstractmethod
     async def close(self):
