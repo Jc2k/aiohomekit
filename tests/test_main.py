@@ -15,7 +15,7 @@ async def test_help():
     printed = stdout.write.call_args[0][0]
 
     assert printed.startswith("usage: ")
-    assert "discover_ip" in printed
+    assert "discover-ip" in printed
 
 
 async def test_get_accessories(pairing):
@@ -50,7 +50,7 @@ async def test_put_characteristic(pairing):
 
 async def test_list_pairings(pairing):
     with mock.patch("sys.stdout") as stdout:
-        await main(["list_pairings", "-f", "pairing.json", "-a", "alias"])
+        await main(["list-pairings", "-f", "pairing.json", "-a", "alias"])
     printed = "".join(write[0][0] for write in stdout.write.call_args_list)
     assert printed == (
         "Pairing Id: decc6fa3-de3e-41c9-adba-ef7409821bfc\n"
