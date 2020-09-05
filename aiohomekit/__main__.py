@@ -443,7 +443,7 @@ async def main(argv: Optional[List[str]] = None) -> None:
 
     # discover_ip
     discover_parser = subparsers.add_parser(
-        "discover_ip", help="Find HomeKit devices accessible by LAN/WiFi"
+        "discover-ip", help="Find HomeKit devices accessible by LAN/WiFi"
     )
     discover_parser.set_defaults(func=discover_ip)
     discover_parser.add_argument(
@@ -465,7 +465,7 @@ async def main(argv: Optional[List[str]] = None) -> None:
 
     # pair_ip
     pair_parser = subparsers.add_parser(
-        "pair_ip", help="Pair with a HomeKit device accessible on your LAN/WiFi"
+        "pair-ip", help="Pair with a HomeKit device accessible on your LAN/WiFi"
     )
     pair_parser.set_defaults(func=pair_ip)
     setup_parser_for_pairing(pair_parser)
@@ -573,14 +573,14 @@ async def main(argv: Optional[List[str]] = None) -> None:
 
     # list_pairings - list all pairings
     list_pairings_parser = subparsers.add_parser(
-        "list_pairings", help="List all pairings from a paired device"
+        "list-pairings", help="List all pairings from a paired device"
     )
     list_pairings_parser.set_defaults(func=list_pairings)
     setup_parser_for_pairing(list_pairings_parser)
 
     # remove_pairing - remove sub pairing
     remove_pairing_parser = subparsers.add_parser(
-        "remove_pairing", help="Remove a subpairing from a paired device"
+        "remove-pairing", help="Remove a subpairing from a paired device"
     )
     remove_pairing_parser.set_defaults(func=remove_pairing)
     setup_parser_for_pairing(remove_pairing_parser)
