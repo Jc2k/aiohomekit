@@ -250,10 +250,7 @@ class HomeKitConnection:
         if not self._connector:
             return
         self._connector.cancel()
-        try:
-            await self._connector
-        except asyncio.CancelledError:
-            pass
+        await self._connector
         self._connector = None
 
     async def get(self, target):
@@ -490,7 +487,7 @@ class HomeKitConnection:
                 raise
 
             except asyncio.CancelledError:
-                raise
+                return
 
             except HomeKitException:
                 logger.debug(
