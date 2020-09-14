@@ -377,3 +377,17 @@ def test_tlv8_struct_re_encode():
     )
 
     assert raw == video_stream_config.encode()
+
+
+def test_set_value():
+    """
+    At the moment a bunch of tests in Home Assistant rely on Char.set_value
+    """
+    accessories = Accessories.from_file("tests/fixtures/koogeek_ls1.json")
+
+    on_char = accessories.aid(1).characteristics.iid(8)
+    assert on_char.value is False
+
+    on_char.value = True
+
+    assert on_char.value is True

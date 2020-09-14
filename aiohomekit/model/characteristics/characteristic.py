@@ -153,6 +153,10 @@ class Characteristic:
 
         return self._value
 
+    @value.setter
+    def value(self, value):
+        self.set_value(value)
+
     def validate_value(self, new_val):
         try:
             # convert input to python int if it is any kind of int
