@@ -223,8 +223,18 @@ class HomeKitConnection:
     def is_connected(self):
         return self.transport and self.protocol and not self.closed
 
-    def start_connector(self):
-        if self._connector:
+    def _start_connector(self):
+        """
+        Start a reconnect background task.
+
+        This function is *not* thread safe. It should only be called on the main thread
+        where the event loop is running. If it is not there is a race where multiple
+        reconnect tasks could run at once.
+
+        This function **will not** start another reconnect thread if one is already
+        running. Or if it is already connected.
+        """
+        if self._connector or self.is_connected:
             return
 
         def done_callback(result):
@@ -240,13 +250,29 @@ class HomeKitConnection:
         self._connector.add_done_callback(done_callback)
 
     async def ensure_connection(self):
+        """
+        Waits for a connection to the device.
+
+        If connected and authenticated returns immediately.
+
+        Otherwise, if a reconnection is in progress wait for it to complete.
+
+        Otherwise, start a reconnection and wait for it.
+        """
         if self.is_connected:
             return
         self.closing = False
-        self.start_connector()
+        self._start_connector()
         await asyncio.shield(self._connector)
 
-    async def stop_connector(self):
+    async def _stop_connector(self):
+        """
+        Cancels any active reconnect tasks.
+
+        If no active reconnect tasks it will return immediately.
+
+        Otherwise it will wait for the task to end.
+        """
         if not self._connector:
             return
         self._connector.cancel()
@@ -425,7 +451,7 @@ class HomeKitConnection:
         """
         self.closing = True
 
-        await self.stop_connector()
+        await self._stop_connector()
 
         if self.transport:
             self.transport.close()
@@ -441,7 +467,7 @@ class HomeKitConnection:
         logger.debug("Connection %r lost.", self)
 
         if not self.closing:
-            self.start_connector()
+            self._start_connector()
 
         if self.closing:
             self.closed = True
