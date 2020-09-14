@@ -83,30 +83,30 @@ class Characteristic:
         self.valid_values = self._get_configuration(kwargs, "valid_values", None)
         self.valid_values_range = None
 
-        self.value = None
+        self._value = None
 
         if CharacteristicPermissions.paired_read not in self.perms:
             return
 
         if "value" in kwargs:
-            self.value = kwargs["value"]
+            self._value = kwargs["value"]
             return
 
         if self.valid_values:
-            self.value = self.valid_values[0]
+            self._value = self.valid_values[0]
             return
 
-        self.value = DEFAULT_FOR_TYPE.get(self.format, None)
+        self._value = DEFAULT_FOR_TYPE.get(self.format, None)
 
         if self.minValue:
-            if not self.value:
-                self.value = self.minValue
-            self.value = max(self.value, self.minValue)
+            if not self._value:
+                self._value = self.minValue
+            self._value = max(self._value, self.minValue)
 
         if self.maxValue:
-            if not self.value:
-                self.value = self.maxValue
-            self.value = min(self.value, self.maxValue)
+            if not self._value:
+                self._value = self.maxValue
+            self._value = min(self._value, self.maxValue)
 
     def _get_configuration(
         self,
@@ -147,7 +147,11 @@ class Characteristic:
                 else:
                     new_val = struct.decode(new_val)
 
-        self.value = new_val
+        self._value = new_val
+
+    @property
+    def value(self):
+        return self._value
 
     def validate_value(self, new_val):
         try:
