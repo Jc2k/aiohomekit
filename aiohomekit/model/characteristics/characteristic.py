@@ -134,23 +134,23 @@ class Characteristic:
 
     def set_value(self, new_val):
         """
-        This function sets the value of this characteristic. Permissions are checked first
+        This function sets the value of this characteristic.
         """
-        if self.format == CharacteristicFormats.tlv8:
-            extra_data = characteristics.get(self.type, {})
-
-            new_val = base64.b64decode(new_val)
-            struct = extra_data.get("struct")
-            if struct:
-                if extra_data.get("array"):
-                    new_val = [struct.decode(new_val) for new_val in tlv_array(new_val)]
-                else:
-                    new_val = struct.decode(new_val)
-
         self._value = new_val
 
     @property
     def value(self):
+        if self.format == CharacteristicFormats.tlv8:
+            extra_data = characteristics.get(self.type, {})
+
+            new_val = base64.b64decode(self._value)
+            struct = extra_data.get("struct")
+            if struct:
+                if extra_data.get("array"):
+                    return [struct.decode(new_val) for new_val in tlv_array(new_val)]
+                else:
+                    return struct.decode(new_val)
+
         return self._value
 
     def validate_value(self, new_val):
