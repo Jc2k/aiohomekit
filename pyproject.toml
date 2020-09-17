@@ -19,7 +19,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.7"
-cryptography = "^2.9.2"
+cryptography = ">=2.9.2"
 zeroconf = {version = ">= 0.28.0"}
 
 [tool.poetry.dev-dependencies]
