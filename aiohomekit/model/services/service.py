@@ -41,10 +41,7 @@ class Characteristics:
         matches = iter(self)
 
         if char_types:
-            char_types = [
-                (c if len(c) == 36 else CharacteristicsTypes.get_uuid(c))
-                for c in char_types
-            ]
+            char_types = [CharacteristicsTypes.get_uuid(c) for c in char_types]
             matches = filter(lambda char: char.type in char_types, matches)
 
         return matches

@@ -455,6 +455,8 @@ class _CharacteristicsTypes:
         elif item_name.upper() in self._characteristics:
             short = item_name.upper()
         else:
+            if len(orig_item) == 36:
+                return orig_item
             raise KeyError(f"No UUID found for Item {orig_item}")
 
         medium = "0" * (8 - len(short)) + short
