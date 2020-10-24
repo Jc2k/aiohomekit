@@ -133,7 +133,7 @@ def test_get_by_vendor_characteristic_types():
     )
 
     found = service.has(CharacteristicsTypes.Vendor.VOCOLINC_HUMIDIFIER_SPRAY_LEVEL)
-    assert found == True
+    assert found is True
 
     char = service.characteristics.first(
         char_types=[CharacteristicsTypes.Vendor.VOCOLINC_HUMIDIFIER_SPRAY_LEVEL]
