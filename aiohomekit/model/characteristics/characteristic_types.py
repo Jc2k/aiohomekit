@@ -203,6 +203,18 @@ class _CharacteristicsTypes:
         # Watts
         KOOGEEK_REALTIME_ENERGY = "4AAAF931-0DEC-11E5-B939-0800200C9A66"
 
+        # VOCOLinc
+        VOCOLINC_HUMIDIFIER_SPRAY_LEVEL = "69D52519-0A4E-4898-8335-4739F9116D0A"
+        VOCOLINC_HUMIDIFIER_TIMER_SETTING = "F84B3138-E44F-49B9-AA91-9E1736C247C0"
+        VOCOLINC_HUMIDIFIER_COUNTDOWN = "43CE176B-2933-4034-98A7-AD215BEEBF2F"
+
+        VOCOLINC_LIGHTBULB_LIGHT_TIMER_SETTING = "A30DFE91-271A-42A5-88BA-00E3FF5488AD"
+        VOCOLINC_LIGHTBULB_LIGHT_EFFECT_MODE = "146889FC-7C42-429B-93AB-E80F79759E90"
+        VOCOLINC_LIGHTBULB_LIGHT_EFFECT_FLAG = "9D4B479D-9EFB-4739-98F3-B33E6543BF7B"
+        VOCOLINC_LIGHTBULB_FLASHING_MODE = "2C42B339-6EC9-4ED5-8DBF-FFCCC721B144"
+        VOCOLINC_LIGHTBULB_SMOOTHING_MODE = "A3663C89-DC18-42EF-8297-910A4C0C9B61"
+        VOCOLINC_LIGHTBULB_BREATHING_MODE = "6533B15C-AECB-455F-8896-20B125390F61"
+
     def __init__(self) -> None:
         self.baseUUID = "-0000-1000-8000-0026BB765291"
         self._characteristics = {
@@ -443,6 +455,8 @@ class _CharacteristicsTypes:
         elif item_name.upper() in self._characteristics:
             short = item_name.upper()
         else:
+            if len(orig_item) == 36:
+                return orig_item
             raise KeyError(f"No UUID found for Item {orig_item}")
 
         medium = "0" * (8 - len(short)) + short

@@ -123,6 +123,24 @@ def test_get_by_characteristic_types():
     assert char.value == name
 
 
+def test_get_by_vendor_characteristic_types():
+    spray_level = 5
+
+    a = Accessories.from_file("tests/fixtures/vocolinc_flowerbud.json").aid(1)
+
+    service = a.services.first(
+        service_type=ServicesTypes.HUMIDIFIER_DEHUMIDIFIER,
+    )
+
+    found = service.has(CharacteristicsTypes.Vendor.VOCOLINC_HUMIDIFIER_SPRAY_LEVEL)
+    assert found is True
+
+    char = service.characteristics.first(
+        char_types=[CharacteristicsTypes.Vendor.VOCOLINC_HUMIDIFIER_SPRAY_LEVEL]
+    )
+    assert char.value == spray_level
+
+
 def test_get_by_linked():
     name = "Hue dimmer switch button 3"
     a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
