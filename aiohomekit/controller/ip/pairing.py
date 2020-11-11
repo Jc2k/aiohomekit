@@ -22,6 +22,8 @@ from aiohomekit.controller.pairing import AbstractPairing
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
+    HttpErrorResponse,
+    HttpException,
     InvalidError,
     UnknownError,
     UnpairedError,
@@ -445,16 +447,29 @@ class IpPairing(AbstractPairing):
         return True
 
     async def image(self, accessory, width, height):
-        resp = await self.connection.post(
-            "/resource",
-            content_type=HttpContentTypes.JSON,
-            body=json.dumps(
-                {
-                    "aid": accessory,
-                    "resource-type": "image",
-                    "image-width": width,
-                    "image-height": height,
-                }
-            ).encode("utf-8"),
-        )
+        await self._ensure_connected()
+
+        try:
+            resp = await self.connection.post(
+                "/resource",
+                content_type=HttpContentTypes.JSON,
+                body=json.dumps(
+                    {
+                        "aid": accessory,
+                        "resource-type": "image",
+                        "image-width": width,
+                        "image-height": height,
+                    }
+                ).encode("utf-8"),
+            )
+
+        except HttpException:
+            return None
+
+        except HttpErrorResponse:
+            return None
+
+        except AccessoryDisconnectedError:
+            return None
+
         return resp.body

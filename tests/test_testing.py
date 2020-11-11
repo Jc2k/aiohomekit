@@ -139,3 +139,11 @@ async def test_events_are_filtered():
     pairing.testing.update_named_service("Light Strip", {CharacteristicsTypes.ON: True})
 
     assert callback.call_args_list == []
+
+
+async def test_camera():
+    accessories = Accessories.from_file("tests/fixtures/koogeek_ls1.json")
+    controller = FakeController()
+    pairing = await controller.add_paired_device(accessories, "alias")
+    result = await pairing.image(1, 640, 480)
+    assert len(result) > 0

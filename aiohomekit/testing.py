@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+import base64
 import logging
 from typing import Dict
 
@@ -25,6 +26,11 @@ from aiohomekit.model import Accessories
 from aiohomekit.model.characteristics import CharacteristicsTypes
 
 _LOGGER = logging.getLogger(__name__)
+
+FAKE_CAMERA_IMAGE = (
+    b"/9j/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRE"
+    b"NDg8QEBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k="
+)
 
 
 class FakeDiscovery:
@@ -226,6 +232,9 @@ class FakePairing(AbstractPairing):
         """Fake implementation of put_characteristics."""
         self.testing.update_aid_iid(characteristics)
         return {}
+
+    async def image(self, accessory, width, height):
+        return base64.b64decode(FAKE_CAMERA_IMAGE)
 
 
 class FakeController(Controller):

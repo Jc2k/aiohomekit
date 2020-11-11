@@ -98,7 +98,8 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
                 http_name = self.current_response.get_http_name().lower()
                 if http_name == "http":
                     next_callback = self.result_cbs.pop(0)
-                    next_callback.set_result(self.current_response)
+                    if not next_callback.done():
+                        next_callback.set_result(self.current_response)
                 elif http_name == "event":
                     self.connection.event_received(self.current_response)
                 else:
@@ -431,6 +432,8 @@ class HomeKitConnection:
         # https://github.com/jlusiardi/homekit_python/issues/16
 
         async with self._concurrency_limit:
+            if not self.protocol:
+                raise AccessoryDisconnectedError("Tried to send while not connected")
             logger.debug("%s: raw request: %r", self.host, request_bytes)
             resp = await self.protocol.send_bytes(request_bytes)
 
