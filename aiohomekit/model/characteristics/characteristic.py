@@ -243,7 +243,7 @@ class Characteristic:
             "format": self.format,
         }
         if CharacteristicPermissions.paired_read in self.perms:
-            d["value"] = self.value
+            d["value"] = self._value
         if self.ev:
             d["ev"] = self.ev
         if self.description:
