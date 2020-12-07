@@ -250,15 +250,15 @@ class Characteristic:
             d["description"] = self.description
         if self.unit:
             d["unit"] = self.unit
-        if self.minValue:
+        if self.minValue is not None:
             d["minValue"] = self.minValue
-        if self.maxValue:
+        if self.maxValue is not None:
             d["maxValue"] = self.maxValue
-        if self.minStep:
+        if self.minStep is not None:
             d["minStep"] = self.minStep
         if self.maxLen and self.format in [CharacteristicFormats.string]:
             d["maxLen"] = self.maxLen
-        if self.valid_values:
+        if self.valid_values is not None:
             d["valid-values"] = self.valid_values
         return d
 
