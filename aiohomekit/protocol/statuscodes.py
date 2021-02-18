@@ -52,6 +52,9 @@ class _HapStatusCodes:
         self._categories_rev = {self._codes[k]: k for k in self._codes.keys()}
 
     def __getitem__(self, item):
+        # Some HAP implementations return
+        # positive values for error code (myq)
+        item = abs(item) * -1
         if item in self._codes:
             return self._codes[item]
 
