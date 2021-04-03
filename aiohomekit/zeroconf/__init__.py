@@ -74,7 +74,7 @@ class CollectingListener:
 
         self.data.append(info)
 
-        if not self._device_id:
+        if not self._device_id or b"id" not in info.properties:
             return
 
         if info.properties[b"id"].decode() == self._device_id:
@@ -261,8 +261,9 @@ def _find_data_for_device_id(
     found_device_event.wait(timeout=max_seconds)
 
     try:
-        data = listener.get_data()
-        for info in data:
+        for info in listener.get_data():
+            if b"id" not in info.properties:
+                continue
             if info.properties[b"id"].decode() == device_id:
                 logging.debug("Located Homekit IP accessory %s", info.properties)
                 return _build_data_from_service_info(info)
