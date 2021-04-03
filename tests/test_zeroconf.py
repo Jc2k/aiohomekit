@@ -23,6 +23,7 @@ from zeroconf import BadTypeInNameException, Error, ServiceInfo
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.zeroconf import (
+    async_find_data_for_device_id,
     async_find_device_ip_and_port,
     discover_homekit_devices,
     get_from_properties,
@@ -204,6 +205,103 @@ def test_discover_homekit_devices_shared_zeroconf(mock_zeroconf):
             "statusflags": "Accessory has been paired.",
         }
     ]
+
+
+async def test_async_find_data_for_device_id_matches(mock_zeroconf):
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"1",
+        b"ci": b"5",
+        b"sf": b"0",
+    }
+    info = ServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    mock_zeroconf.get_service_info.return_value = info
+
+    result = await async_find_data_for_device_id(
+        device_id="00:00:01:00:00:02", max_seconds=0, zeroconf_instance=mock_zeroconf
+    )
+
+    assert result == {
+        "address": "127.0.0.1",
+        "c#": "1",
+        "category": "Lightbulb",
+        "ci": "5",
+        "ff": 0,
+        "flags": FeatureFlags(0),
+        "id": "00:00:01:00:00:02",
+        "md": "unittest",
+        "name": "foo2._hap._tcp.local.",
+        "port": 1234,
+        "pv": "1.0",
+        "s#": "1",
+        "sf": "0",
+        "statusflags": "Accessory has been paired.",
+    }
+
+
+async def test_async_find_data_for_device_id_does_not_match(mock_zeroconf):
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:03",
+        b"md": b"unittest",
+        b"s#": b"1",
+        b"ci": b"5",
+        b"sf": b"0",
+    }
+    info = ServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    mock_zeroconf.get_service_info.return_value = info
+
+    with pytest.raises(AccessoryNotFoundError):
+        await async_find_data_for_device_id(
+            device_id="00:00:01:00:00:02",
+            max_seconds=0,
+            zeroconf_instance=mock_zeroconf,
+        )
+
+
+async def test_async_find_data_for_device_id_info_without_id(mock_zeroconf):
+    desc = {
+        b"c#": b"1",
+        b"md": b"unittest",
+        b"s#": b"1",
+        b"ci": b"5",
+        b"sf": b"0",
+    }
+    info = ServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    mock_zeroconf.get_service_info.return_value = info
+
+    with pytest.raises(AccessoryNotFoundError):
+        await async_find_data_for_device_id(
+            device_id="00:00:01:00:00:02",
+            max_seconds=0,
+            zeroconf_instance=mock_zeroconf,
+        )
 
 
 def test_existing_key():
