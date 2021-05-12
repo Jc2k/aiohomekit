@@ -15,7 +15,7 @@
 #
 
 import socket
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 from zeroconf import BadTypeInNameException, Error, ServiceInfo
@@ -302,6 +302,54 @@ async def test_async_find_data_for_device_id_info_without_id(mock_zeroconf):
             max_seconds=0,
             zeroconf_instance=mock_zeroconf,
         )
+
+
+async def test_async_find_data_for_device_id_with_active_service_browser(mock_zeroconf):
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"1",
+        b"ci": b"5",
+        b"sf": b"0",
+    }
+    mock_zeroconf.cache = MagicMock(
+        names=MagicMock(return_value=["foo2._hap._tcp.local."])
+    )
+    with patch(
+        "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
+    ), patch(
+        "aiohomekit.zeroconf.ServiceInfo.load_from_cache", return_value=True
+    ) as mock_load_from_cache, patch(
+        "aiohomekit.zeroconf.ServiceInfo.properties", PropertyMock(return_value=desc)
+    ), patch(
+        "aiohomekit.zeroconf.ServiceInfo.addresses",
+        PropertyMock(return_value=[socket.inet_aton("127.0.0.1")]),
+    ):
+        result = await async_find_data_for_device_id(
+            device_id="00:00:01:00:00:02",
+            max_seconds=0,
+            zeroconf_instance=mock_zeroconf,
+        )
+
+    assert mock_load_from_cache.called
+
+    assert result == {
+        "address": "127.0.0.1",
+        "c#": "1",
+        "category": "Lightbulb",
+        "ci": "5",
+        "ff": 0,
+        "flags": FeatureFlags(0),
+        "id": "00:00:01:00:00:02",
+        "md": "unittest",
+        "name": "foo2._hap._tcp.local.",
+        "port": None,
+        "pv": "1.0",
+        "s#": "1",
+        "sf": "0",
+        "statusflags": "Accessory has been paired.",
+    }
 
 
 def test_existing_key():
