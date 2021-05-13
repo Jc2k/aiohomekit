@@ -22,7 +22,7 @@ from functools import partial
 import logging
 import threading
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from zeroconf import Error, ServiceBrowser, ServiceInfo, Zeroconf
 
@@ -37,23 +37,22 @@ logger = logging.getLogger(__name__)
 
 
 class CollectingListener:
-    """
-    Helper class to collect all zeroconf announcements.
-    """
+    """Helper class to collect all zeroconf announcements."""
 
     def __init__(self, max_attempts=2, device_id=None, found_device_event=None) -> None:
+        """Init the listener."""
         self.data = []
         self._max_attempts = max_attempts
         self._device_id = device_id
         self._found_device_event = found_device_event
 
     def remove_service(self, zeroconf, zeroconf_type, name):
-        """A device is no longer visible via zeroconf."""
+        """Remove a device that is no longer visible via zeroconf."""
         # this is ignored since not interested in disappearing stuff
         pass
 
     def add_service(self, zeroconf, zeroconf_type, name):
-        """A device became visible via zeroconf."""
+        """Add a device that became visible via zeroconf."""
         info = None
         attempts = 0
         while info is None and attempts < self._max_attempts:
@@ -91,22 +90,38 @@ class CollectingListener:
         return self.data
 
 
-def _async_device_data_zeroconf_cache(
-    device_id: str, zeroconf: Zeroconf
-) -> Dict[str, Any]:
-    """Find a homekit device in the zeroconf cache."""
+def _async_homekit_devices_from_cache(
+    zeroconf: Zeroconf, filter_func: Callable = None
+) -> List[Dict[str, Any]]:
+    """Return all homekit devices in the cache."""
+    devices = []
     for name in zeroconf.cache.names():
         if not name.endswith(HAP_TYPE):
             continue
         info = ServiceInfo(HAP_TYPE, name)
         info.load_from_cache(zeroconf)
-        if b"id" not in info.properties:
+        if (
+            not _service_info_is_homekit_device(info)
+            or filter_func
+            and not filter_func(info)
+        ):
             continue
-        if info.properties[b"id"].decode() == device_id:
-            logging.debug("Located Homekit IP accessory %s", info.properties)
-            return _build_data_from_service_info(info)
+        devices.append(_build_data_from_service_info(info))
+    return devices
 
-    raise AccessoryNotFoundError("Device not found from active ServiceBrower")
+
+def _async_device_data_zeroconf_cache(
+    device_id: str, zeroconf: Zeroconf
+) -> Dict[str, Any]:
+    """Find a homekit device in the zeroconf cache."""
+    device_id_bytes = device_id.encode()
+    devices = _async_homekit_devices_from_cache(
+        zeroconf, lambda info: info.properties[b"id"] == device_id_bytes
+    )
+    if not devices:
+        raise AccessoryNotFoundError("Device not found from active ServiceBrower")
+    logging.debug("Located Homekit IP accessory %s", devices[0])
+    return devices[0]
 
 
 def get_from_properties(
@@ -115,7 +130,8 @@ def get_from_properties(
     default: Optional[Union[int, str]] = None,
     case_sensitive: bool = True,
 ) -> Optional[str]:
-    """
+    """Convert zeroconf properties to our format.
+
     This function looks up the key in the given zeroconf service information properties. Those are a dict between bytes.
     The key to lookup is therefore also of type bytes.
     :param props: a dict from bytes to bytes.
@@ -141,11 +157,17 @@ def get_from_properties(
     return None
 
 
+def _service_info_is_homekit_device(service_info: ServiceInfo) -> bool:
+    props = service_info.properties
+    return b"c#" in props and b"md" in props and b"id" in props
+
+
 def discover_homekit_devices(
-    max_seconds: int = 10, zeroconf_instance: "Zeroconf" = None
+    max_seconds: int = 10, zeroconf_instance: Zeroconf = None
 ) -> List[Any]:
-    """
-    This method discovers all HomeKit Accessories. It browses for devices in the _hap._tcp.local. domain and checks if
+    """Discovers all HomeKit Accessories.
+
+    It browses for devices in the _hap._tcp.local. domain and checks if
     all required fields are set in the text record. It one field is missing, it will be excluded from the result list.
 
     :param max_seconds: the number of seconds we will wait for the devices to be discovered
@@ -158,10 +180,9 @@ def discover_homekit_devices(
     tmp = []
     try:
         for info in listener.get_data():
-            data = _build_data_from_service_info(info)
-
-            if "c#" not in data or "md" not in data:
+            if not _service_info_is_homekit_device(info):
                 continue
+            data = _build_data_from_service_info(info)
             logging.debug("found Homekit IP accessory %s", data)
             tmp.append(data)
     finally:
@@ -190,8 +211,7 @@ def _build_data_from_service_info(service_info) -> Dict[str, Any]:
 
 
 def decode_discovery_properties(props: Dict[bytes, bytes]) -> Dict[str, str]:
-    """
-    This method decodes unicode bytes in _hap._tcp Bonjour TXT record keys to python strings.
+    """Decode unicode bytes in _hap._tcp Bonjour TXT record keys to python strings.
 
     :params: a dictionary of key/value TXT records from Bonjour discovery. These are assumed
     to be bytes type.
@@ -204,8 +224,7 @@ def decode_discovery_properties(props: Dict[bytes, bytes]) -> Dict[str, str]:
 
 
 def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, int]]:
-    """
-    This method normalizes and parses _hap._tcp Bonjour TXT record keys.
+    """Normalize and parse _hap._tcp Bonjour TXT record keys.
 
     This is done automatically if you are using the discovery features built in to the library. If you are
     integrating into an existing system it may already do its own Bonjour discovery. In that case you can
@@ -263,10 +282,11 @@ def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, in
 
 
 def _find_data_for_device_id(
-    device_id: str, max_seconds: int = 10, zeroconf_instance: "Zeroconf" = None
+    device_id: str, max_seconds: int = 10, zeroconf_instance: Zeroconf = None
 ) -> Tuple[str, int]:
-    """
-    Try to find a HomeKit Accessory via Bonjour. The process is time boxed by the second parameter which sets an upper
+    """Try to find a HomeKit Accessory via Bonjour.
+
+    The process is time boxed by the second parameter which sets an upper
     limit of `max_seconds` before it times out. The runtime of the function may be longer because of the Bonjour
     handling code.
     """
@@ -277,12 +297,13 @@ def _find_data_for_device_id(
     )
     service_browser = ServiceBrowser(zeroconf, HAP_TYPE, listener)
     found_device_event.wait(timeout=max_seconds)
+    device_id_bytes = device_id.encode()
 
     try:
         for info in listener.get_data():
-            if b"id" not in info.properties:
+            if not _service_info_is_homekit_device(info):
                 continue
-            if info.properties[b"id"].decode() == device_id:
+            if info.properties[b"id"] == device_id_bytes:
                 logging.debug("Located Homekit IP accessory %s", info.properties)
                 return _build_data_from_service_info(info)
     finally:
@@ -304,6 +325,7 @@ def async_zeroconf_has_hap_service_browser(zeroconf_instance: Zeroconf) -> bool:
 async def async_find_device_ip_and_port(
     device_id: str, max_seconds: int = 10, zeroconf_instance: Zeroconf = None
 ) -> Tuple[str, int]:
+    """Find the ip and port for a device id."""
     data = await async_find_data_for_device_id(
         device_id, max_seconds, zeroconf_instance
     )
@@ -313,6 +335,7 @@ async def async_find_device_ip_and_port(
 async def async_find_data_for_device_id(
     device_id: str, max_seconds: int = 10, zeroconf_instance: Zeroconf = None
 ) -> Dict[str, Any]:
+    """Find normalized data (properties) for a device id."""
     if zeroconf_instance and async_zeroconf_has_hap_service_browser(zeroconf_instance):
         return _async_device_data_zeroconf_cache(device_id, zeroconf_instance)
 
@@ -321,6 +344,23 @@ async def async_find_data_for_device_id(
         partial(
             _find_data_for_device_id,
             device_id=device_id,
+            max_seconds=max_seconds,
+            zeroconf_instance=zeroconf_instance,
+        ),
+    )
+
+
+async def async_discover_homekit_devices(
+    max_seconds=10, zeroconf_instance: Zeroconf = None
+):
+    """Discover all homekit devices available to zeroconf/bonjour."""
+    if zeroconf_instance and async_zeroconf_has_hap_service_browser(zeroconf_instance):
+        return _async_homekit_devices_from_cache(zeroconf_instance)
+
+    return await asyncio.get_event_loop().run_in_executor(
+        None,
+        partial(
+            discover_homekit_devices,
             max_seconds=max_seconds,
             zeroconf_instance=zeroconf_instance,
         ),
