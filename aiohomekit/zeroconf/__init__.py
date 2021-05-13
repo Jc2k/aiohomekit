@@ -171,9 +171,9 @@ def discover_homekit_devices(
     :param max_seconds: the number of seconds we will wait for the devices to be discovered
     :return: a list of dicts containing all fields as described in table 5.7 page 69
     """
-    zc = zeroconf_instance or Zeroconf()
+    our_zc = zeroconf_instance or Zeroconf()
     listener = CollectingListener()
-    service_browser = ServiceBrowser(zc, HAP_TYPE, listener)
+    service_browser = ServiceBrowser(our_zc, HAP_TYPE, listener)
     sleep(max_seconds)
     tmp = []
     try:
@@ -186,7 +186,7 @@ def discover_homekit_devices(
     finally:
         service_browser.cancel()
         if not zeroconf_instance:
-            zc.close()
+            our_zc.close()
     return tmp
 
 
@@ -269,12 +269,12 @@ def _find_data_for_device_id(
     limit of `max_seconds` before it times out. The runtime of the function may be longer because of the Bonjour
     handling code.
     """
-    zc = zeroconf_instance or Zeroconf()
+    our_zc = zeroconf_instance or Zeroconf()
     found_device_event = threading.Event()
     listener = CollectingListener(
         device_id=device_id, found_device_event=found_device_event
     )
-    service_browser = ServiceBrowser(zc, HAP_TYPE, listener)
+    service_browser = ServiceBrowser(our_zc, HAP_TYPE, listener)
     found_device_event.wait(timeout=max_seconds)
     device_id_bytes = device_id.encode()
 
@@ -288,7 +288,7 @@ def _find_data_for_device_id(
     finally:
         service_browser.cancel()
         if not zeroconf_instance:
-            zc.close()
+            our_zc.close()
 
     raise AccessoryNotFoundError("Device not found via Bonjour within 10 seconds")
 
