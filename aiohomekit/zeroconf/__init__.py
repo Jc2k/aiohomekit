@@ -100,11 +100,9 @@ def _async_homekit_devices_from_cache(
             continue
         info = ServiceInfo(HAP_TYPE, name)
         info.load_from_cache(zeroconf)
-        if (
-            not _service_info_is_homekit_device(info)
-            or filter_func
-            and not filter_func(info)
-        ):
+        if not _service_info_is_homekit_device(info):
+            continue
+        if filter_func and not filter_func(info):
             continue
         devices.append(_build_data_from_service_info(info))
     return devices
@@ -173,9 +171,9 @@ def discover_homekit_devices(
     :param max_seconds: the number of seconds we will wait for the devices to be discovered
     :return: a list of dicts containing all fields as described in table 5.7 page 69
     """
-    zeroconf = zeroconf_instance or Zeroconf()
+    zc = zeroconf_instance or Zeroconf()
     listener = CollectingListener()
-    service_browser = ServiceBrowser(zeroconf, HAP_TYPE, listener)
+    service_browser = ServiceBrowser(zc, HAP_TYPE, listener)
     sleep(max_seconds)
     tmp = []
     try:
@@ -188,7 +186,7 @@ def discover_homekit_devices(
     finally:
         service_browser.cancel()
         if not zeroconf_instance:
-            zeroconf.close()
+            zc.close()
     return tmp
 
 
@@ -217,10 +215,7 @@ def decode_discovery_properties(props: Dict[bytes, bytes]) -> Dict[str, str]:
     to be bytes type.
     :return: A dictionary of key/value TXT records from Bonjour discovery. These are now str.
     """
-    out = {}
-    for k, value in props.items():
-        out[k.decode("utf-8")] = value.decode("utf-8")
-    return out
+    return {k.decode("utf-8"): value.decode("utf-8") for k, value in props.items()}
 
 
 def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, int]]:
@@ -237,9 +232,10 @@ def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, in
     data = {}
 
     # stuff taken from the Bonjour TXT record (see table 5-7 on page 69)
-    conf_number = get_from_properties(props, "c#", case_sensitive=False)
-    if conf_number:
-        data["c#"] = conf_number
+    for prop in ("c#", "id", "md", "s#", "ci", "sf"):
+        prop_val = get_from_properties(props, prop, case_sensitive=False)
+        if prop_val:
+            data[prop] = prop_val
 
     feature_flags = get_from_properties(props, "ff", case_sensitive=False)
     if feature_flags:
@@ -249,34 +245,17 @@ def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, in
     data["ff"] = flags
     data["flags"] = FeatureFlags(flags)
 
-    dev_id = get_from_properties(props, "id", case_sensitive=False)
-    if dev_id:
-        data["id"] = dev_id
-
-    model_name = get_from_properties(props, "md", case_sensitive=False)
-    if model_name:
-        data["md"] = model_name
-
     protocol_version = get_from_properties(
         props, "pv", case_sensitive=False, default="1.0"
     )
     if protocol_version:
         data["pv"] = protocol_version
 
-    status = get_from_properties(props, "s#", case_sensitive=False)
-    if status:
-        data["s#"] = status
+    if "sf" in data:
+        data["statusflags"] = IpStatusFlags[int(data["sf"])]
 
-    status_flag = get_from_properties(props, "sf", case_sensitive=False)
-    if status_flag:
-        data["sf"] = status_flag
-        data["statusflags"] = IpStatusFlags[int(status_flag)]
-
-    category_id = get_from_properties(props, "ci", case_sensitive=False)
-    if category_id:
-        category = props["ci"]
-        data["ci"] = category
-        data["category"] = Categories[int(category)]
+    if "ci" in data:
+        data["category"] = Categories[int(data["ci"])]
 
     return data
 
@@ -290,12 +269,12 @@ def _find_data_for_device_id(
     limit of `max_seconds` before it times out. The runtime of the function may be longer because of the Bonjour
     handling code.
     """
-    zeroconf = zeroconf_instance or Zeroconf()
+    zc = zeroconf_instance or Zeroconf()
     found_device_event = threading.Event()
     listener = CollectingListener(
         device_id=device_id, found_device_event=found_device_event
     )
-    service_browser = ServiceBrowser(zeroconf, HAP_TYPE, listener)
+    service_browser = ServiceBrowser(zc, HAP_TYPE, listener)
     found_device_event.wait(timeout=max_seconds)
     device_id_bytes = device_id.encode()
 
@@ -309,7 +288,7 @@ def _find_data_for_device_id(
     finally:
         service_browser.cancel()
         if not zeroconf_instance:
-            zeroconf.close()
+            zc.close()
 
     raise AccessoryNotFoundError("Device not found via Bonjour within 10 seconds")
 

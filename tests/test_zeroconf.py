@@ -51,7 +51,7 @@ async def test_find_no_device(mock_zeroconf):
 
 
 async def test_find_with_device(mock_zeroconf):
-    desc = {b"id": b"00:00:02:00:00:02"}
+    desc = {b"id": b"00:00:02:00:00:02", b"c#": b"1", b"md": b"any"}
     info = ServiceInfo(
         "_hap._tcp.local.",
         "foo1._hap._tcp.local.",
