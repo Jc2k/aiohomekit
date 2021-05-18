@@ -297,10 +297,10 @@ def _find_data_for_device_id(
 
 def async_zeroconf_has_hap_service_browser(zeroconf_instance: Zeroconf) -> bool:
     """Check to see if the zeroconf instance has an active HAP ServiceBrowser."""
-    for listener in zeroconf_instance.listeners:
-        if isinstance(listener, ServiceBrowser) and HAP_TYPE in listener.types:
-            return True
-    return False
+    return any(
+        isinstance(listener, ServiceBrowser) and HAP_TYPE in listener.types
+        for listener in zeroconf_instance.listeners
+    )
 
 
 async def async_find_device_ip_and_port(
