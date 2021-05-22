@@ -1,5 +1,7 @@
 import asyncio
 
+from aiohomekit.protocol.statuscodes import HapStatusCodes
+
 
 async def test_list_accessories(pairing):
     accessories = await pairing.list_accessories_and_characteristics()
@@ -120,6 +122,19 @@ async def test_receiving_events(pairings):
     await asyncio.wait_for(ev.wait(), 5)
 
     assert event_value == {(1, 9): {"value": True}}
+
+
+async def test_subscribe_invalid_iid(pairing):
+    """
+    Test that can get an error when subscribing to an invalid iid.
+    """
+    result = await pairing.subscribe([(1, 999999)])
+    assert result == {
+        (1, 999999): {
+            "description": "Resource does not exist.",
+            "status": HapStatusCodes.RESOURCE_NOT_EXIST,
+        }
+    }
 
 
 async def test_list_pairings(pairing):

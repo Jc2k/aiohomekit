@@ -829,19 +829,17 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
         if changed:
             self.server.write_event(changed, self.session_id)
 
-        if len(result["characteristics"]) == errors:
-            self.send_response(HttpStatusCodes.BAD_REQUEST)
-        elif len(result["characteristics"]) > errors > 0:
-            self.send_response(HttpStatusCodes.MULTI_STATUS)
-        else:
+        if errors == 0:
             self.send_response(HttpStatusCodes.NO_CONTENT)
             self.end_headers()
-        if errors > 0:
-            result_bytes = json.dumps(result).encode()
-            self.send_header("Content-Type", "application/hap+json")
-            self.send_header("Content-Length", len(result_bytes))
-            self.end_headers()
-            self.wfile.write(result_bytes)
+            return
+
+        result_bytes = json.dumps(result).encode()
+        self.send_response(HttpStatusCodes.MULTI_STATUS)
+        self.send_header("Content-Type", "application/hap+json")
+        self.send_header("Content-Length", len(result_bytes))
+        self.end_headers()
+        self.wfile.write(result_bytes)
 
     def _post_identify(self):
         if self.server.data.is_paired:
