@@ -143,7 +143,10 @@ class AccessoryServer(ThreadingMixIn, HTTPServer):
             port=self.data.port,
             properties=desc,
         )
-        self.zeroconf.unregister_service(self.zeroconf_info)
+        try:
+            self.zeroconf.unregister_service(self.zeroconf_info)
+        except KeyError:
+            pass
         self.zeroconf.register_service(self.zeroconf_info, allow_name_change=True)
 
     def unpublish_device(self):
