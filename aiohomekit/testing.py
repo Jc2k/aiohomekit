@@ -20,8 +20,8 @@ from typing import Dict
 
 from aiohomekit import exceptions
 from aiohomekit.controller import Controller
-from aiohomekit.controller.pairing import AbstractPairing
 from aiohomekit.controller.ip.connection import HomeKitConnection
+from aiohomekit.controller.pairing import AbstractPairing
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Accessories
 from aiohomekit.model.characteristics import CharacteristicsTypes
