@@ -195,7 +195,7 @@ class FakePairing(AbstractPairing):
 
         self.testing = PairingTester(self)
 
-    def close(self):
+    async def close(self):
         pass
 
     async def identify(self):
