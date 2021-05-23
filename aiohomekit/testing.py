@@ -21,6 +21,7 @@ from typing import Dict
 from aiohomekit import exceptions
 from aiohomekit.controller import Controller
 from aiohomekit.controller.pairing import AbstractPairing
+from aiohomekit.controller.ip.connection import HomeKitConnection
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Accessories
 from aiohomekit.model.characteristics import CharacteristicsTypes
@@ -189,6 +190,9 @@ class FakePairing(AbstractPairing):
         """Create a fake pairing from an accessory model."""
         super().__init__(controller)
 
+        self.connection = HomeKitConnection(None, "fake_host", 1234)
+        self.connection.transport = "mock_transport"
+        self.connection.protocol = "mock_protocol"
         self.accessories = accessories
         self.pairing_data: Dict[str, AbstractPairing] = {}
         self.available = True
