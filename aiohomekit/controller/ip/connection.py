@@ -259,16 +259,21 @@ class HomeKitConnection:
 
         If a reconnect is not a progress, the connect loop is started.
         """
-        if self.is_connected:
-            return
         if self._reconnect_wait_task:
             # If a reconnect wait is running, cancel it so the reconnect
             # tries right away
             self._reconnect_wait_task.cancel()
             self._reconnect_wait_task = None
             return
+        self._start_reconnecting()
+
+    def _start_reconnecting(self):
+        """Start reconnecting."""
+        if self.is_connected:
+            return False
         self.closing = False
         self._start_connector()
+        return True
 
     async def ensure_connection(self):
         """
@@ -280,11 +285,8 @@ class HomeKitConnection:
 
         Otherwise, start a reconnection and wait for it.
         """
-        if self.is_connected:
-            return
-        self.closing = False
-        self._start_connector()
-        await asyncio.shield(self._connector)
+        if self._start_reconnecting():
+            await asyncio.shield(self._connector)
 
     async def _stop_connector(self):
         """
