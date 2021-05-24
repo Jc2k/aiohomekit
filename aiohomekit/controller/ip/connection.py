@@ -219,6 +219,7 @@ class HomeKitConnection:
         self.is_secure = False
 
         self._concurrency_limit = asyncio.Semaphore(concurrency_limit)
+        self._reconnect_wait_task = None
 
     @property
     def is_connected(self):
@@ -249,6 +250,24 @@ class HomeKitConnection:
 
         self._connector = asyncio.ensure_future(self._reconnect())
         self._connector.add_done_callback(done_callback)
+
+    async def reconnect_soon(self):
+        """Reconnect to the device if disconnected.
+
+        If a reconnect is in progress, the reconnection wait is canceled
+        and the reconnect proceeds.
+
+        If a reconnect is not a progress, the connect loop is started.
+        """
+        if self.is_connected:
+            return
+        if self._reconnect_wait_task:
+            # If a reconnect wait is running, cancel it so the reconnect
+            # tries right away
+            self._reconnect_wait_task.cancel()
+            self._reconnect_wait_task = None
+        else:
+            self._start_connector()
 
     async def ensure_connection(self):
         """
@@ -501,10 +520,14 @@ class HomeKitConnection:
             await self.owner.connection_made(False)
 
     async def _reconnect(self):
-        # FIXME: How to integrate discovery here?
-        # There is aiozeroconf but that doesn't work on Windows until python 3.9
-        # In HASS, zeroconf is a service provided by HASS itself and want to be able to
-        # leverage that instead.
+        # When the device is seen by zeroconf, call reconnect_soon
+        # to force the reconnect wait to be canceled and _connect_once
+        # will be called soon.
+        #
+        # If an active service browser is running the entry that zeroconf
+        # saw will already be in the cache and will be available to
+        # _connect_once without having to do I/O
+        #
         interval = 0.5
 
         while not self.closing:
@@ -529,7 +552,14 @@ class HomeKitConnection:
                 )
 
             interval = min(60, 1.5 * interval)
-            await asyncio.sleep(interval)
+            self._reconnect_wait_task = asyncio.ensure_future(asyncio.sleep(interval))
+
+            try:
+                await self._reconnect_wait_task
+            except asyncio.CancelledError:
+                pass
+            finally:
+                self._reconnect_wait_task = None
 
     def event_received(self, event):
         if not self.owner:
