@@ -531,6 +531,7 @@ class HomeKitConnection:
         #
         interval = 0.5
 
+        logger.debug("Starting reconnect loop to %s:%s", self.host, self.port)
         while not self.closing:
             try:
                 return await self._connect_once()

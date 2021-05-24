@@ -1,5 +1,6 @@
 import asyncio
 from unittest import mock
+import pytest
 
 from aiohomekit.protocol.statuscodes import HapStatusCodes
 
@@ -71,7 +72,7 @@ async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing):
 
     with mock.patch(
         "aiohomekit.controller.ip.connection.HomeKitConnection._connect_once",
-        side_effect=asyncio.CancelledError,
+        side_effect=asyncio.TimeoutError,
     ):
         pairing.connection.transport.close()
         await asyncio.sleep(0)
@@ -79,7 +80,10 @@ async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing):
 
         for _ in range(3):
             await pairing.connection.reconnect_soon()
-            await asyncio.wait_for(pairing.connection._connector, timeout=0.3)
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(
+                    asyncio.shield(pairing.connection._connector), timeout=0.2
+                )
             assert not pairing.connection.is_connected
 
     await pairing.connection.reconnect_soon()
