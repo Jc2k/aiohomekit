@@ -1,5 +1,6 @@
 import asyncio
 from unittest import mock
+
 import pytest
 
 from aiohomekit.protocol.statuscodes import HapStatusCodes
