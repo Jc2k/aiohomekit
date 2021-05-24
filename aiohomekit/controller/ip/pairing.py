@@ -40,6 +40,9 @@ from .connection import SecureHomeKitConnection
 logger = logging.getLogger(__name__)
 
 
+EMPTY_EVENT = {}
+
+
 def format_characteristic_list(data):
     tmp = {}
     for c in data["characteristics"]:
@@ -74,8 +77,9 @@ class IpPairing(AbstractPairing):
         self.supports_subscribe = True
 
     def event_received(self, event):
-        event = format_characteristic_list(event)
+        self._callback_listeners(format_characteristic_list(event))
 
+    def _callback_listeners(self, event):
         for listener in self.listeners:
             try:
                 listener(event)
@@ -85,6 +89,9 @@ class IpPairing(AbstractPairing):
     async def connection_made(self, secure):
         if not secure:
             return
+
+        # Let our listeners know the connection is available again
+        self._callback_listeners(EMPTY_EVENT)
 
         if self.subscriptions:
             await self.subscribe(self.subscriptions)
