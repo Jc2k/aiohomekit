@@ -53,7 +53,7 @@ async def test_reconnect_soon_after_disconnected(pairing):
     await pairing.connection.reconnect_soon()
     await pairing.connection.reconnect_soon()
 
-    await asyncio.wait(pairing.connection._connector, 1)
+    await asyncio.wait_for(pairing.connection._connector, timeout=0.5)
     assert pairing.connection.is_connected
 
     characteristics = await pairing.get_characteristics([(1, 9)])

@@ -55,6 +55,11 @@ async def controller_and_unpaired_accessory(request, loop):
     # Make sure get_id() numbers are stable between tests
     model_mixin.id_counter = 0
 
+    for i in range(100):
+        if port_ready(51842):
+            break
+        time.sleep(0.1)
+
     httpd = AccessoryServer(config_file.name, None)
     accessory = Accessory.create_with_info(
         "Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1"
@@ -67,11 +72,6 @@ async def controller_and_unpaired_accessory(request, loop):
     t.start()
 
     controller = Controller()
-
-    for i in range(10):
-        if port_ready(51842):
-            break
-        time.sleep(1)
 
     with mock.patch("aiohomekit.zeroconf._find_data_for_device_id") as find:
         find.return_value = {
