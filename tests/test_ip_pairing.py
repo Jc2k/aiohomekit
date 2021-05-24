@@ -29,6 +29,32 @@ async def test_get_characteristics_after_failure(pairing):
     assert characteristics[(1, 9)] == {"value": False}
 
     pairing.connection.transport.close()
+    await asyncio.sleep(0)
+    assert not pairing.connection.is_connected
+
+    characteristics = await pairing.get_characteristics([(1, 9)])
+
+    assert characteristics[(1, 9)] == {"value": False}
+
+
+async def test_reconnect_soon_after_disconnected(pairing):
+    characteristics = await pairing.get_characteristics([(1, 9)])
+
+    assert characteristics[(1, 9)] == {"value": False}
+
+    assert pairing.connection.is_connected
+
+    pairing.connection.transport.close()
+    await asyncio.sleep(0)
+    assert not pairing.connection.is_connected
+
+    # Ensure we can safely call multiple times
+    await pairing.connection.reconnect_soon()
+    await pairing.connection.reconnect_soon()
+    await pairing.connection.reconnect_soon()
+
+    await pairing.connection._connector
+    assert pairing.connection.is_connected
 
     characteristics = await pairing.get_characteristics([(1, 9)])
 

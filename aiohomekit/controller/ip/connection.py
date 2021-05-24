@@ -266,8 +266,9 @@ class HomeKitConnection:
             # tries right away
             self._reconnect_wait_task.cancel()
             self._reconnect_wait_task = None
-        else:
-            self._start_connector()
+            return
+        self.closing = False
+        self._start_connector()
 
     async def ensure_connection(self):
         """
