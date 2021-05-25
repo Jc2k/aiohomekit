@@ -1,4 +1,7 @@
 import asyncio
+from unittest import mock
+
+import pytest
 
 from aiohomekit.protocol.statuscodes import HapStatusCodes
 
@@ -29,6 +32,64 @@ async def test_get_characteristics_after_failure(pairing):
     assert characteristics[(1, 9)] == {"value": False}
 
     pairing.connection.transport.close()
+    await asyncio.sleep(0)
+    assert not pairing.connection.is_connected
+
+    characteristics = await pairing.get_characteristics([(1, 9)])
+
+    assert characteristics[(1, 9)] == {"value": False}
+
+
+async def test_reconnect_soon_after_disconnected(pairing):
+    characteristics = await pairing.get_characteristics([(1, 9)])
+
+    assert characteristics[(1, 9)] == {"value": False}
+
+    assert pairing.connection.is_connected
+
+    pairing.connection.transport.close()
+    await asyncio.sleep(0)
+    assert not pairing.connection.is_connected
+
+    # Ensure we can safely call multiple times
+    await pairing.connection.reconnect_soon()
+    await pairing.connection.reconnect_soon()
+    await pairing.connection.reconnect_soon()
+
+    await asyncio.wait_for(pairing.connection._connector, timeout=0.5)
+    assert pairing.connection.is_connected
+
+    characteristics = await pairing.get_characteristics([(1, 9)])
+
+    assert characteristics[(1, 9)] == {"value": False}
+
+
+async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing):
+    characteristics = await pairing.get_characteristics([(1, 9)])
+
+    assert characteristics[(1, 9)] == {"value": False}
+
+    assert pairing.connection.is_connected
+
+    with mock.patch(
+        "aiohomekit.controller.ip.connection.HomeKitConnection._connect_once",
+        side_effect=asyncio.TimeoutError,
+    ):
+        pairing.connection.transport.close()
+        await asyncio.sleep(0)
+        assert not pairing.connection.is_connected
+
+        for _ in range(3):
+            await pairing.connection.reconnect_soon()
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(
+                    asyncio.shield(pairing.connection._connector), timeout=0.2
+                )
+            assert not pairing.connection.is_connected
+
+    await pairing.connection.reconnect_soon()
+    await asyncio.wait_for(pairing.connection._connector, timeout=0.5)
+    assert pairing.connection.is_connected
 
     characteristics = await pairing.get_characteristics([(1, 9)])
 

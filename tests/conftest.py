@@ -33,6 +33,20 @@ def port_ready(port):
     return False
 
 
+def wait_for_port_available(port: int):
+    for i in range(100):
+        if not port_ready(port):
+            break
+        time.sleep(0.1)
+
+
+def wait_for_server_online(port: int):
+    for i in range(100):
+        if port_ready(port):
+            break
+        time.sleep(0.1)
+
+
 @pytest.fixture
 async def controller_and_unpaired_accessory(request, loop):
     config_file = tempfile.NamedTemporaryFile(delete=False)
@@ -55,6 +69,8 @@ async def controller_and_unpaired_accessory(request, loop):
     # Make sure get_id() numbers are stable between tests
     model_mixin.id_counter = 0
 
+    wait_for_port_available(51842)
+
     httpd = AccessoryServer(config_file.name, None)
     accessory = Accessory.create_with_info(
         "Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1"
@@ -66,12 +82,9 @@ async def controller_and_unpaired_accessory(request, loop):
     t = threading.Thread(target=httpd.serve_forever)
     t.start()
 
-    controller = Controller()
+    wait_for_server_online(51842)
 
-    for i in range(10):
-        if port_ready(51842):
-            break
-        time.sleep(1)
+    controller = Controller()
 
     with mock.patch("aiohomekit.zeroconf._find_data_for_device_id") as find:
         find.return_value = {
@@ -123,6 +136,8 @@ async def controller_and_paired_accessory(request, loop):
     # Make sure get_id() numbers are stable between tests
     model_mixin.id_counter = 0
 
+    wait_for_port_available(51842)
+
     httpd = AccessoryServer(config_file.name, None)
     accessory = Accessory.create_with_info(
         "Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1"
@@ -133,6 +148,8 @@ async def controller_and_paired_accessory(request, loop):
 
     t = threading.Thread(target=httpd.serve_forever)
     t.start()
+
+    wait_for_server_online(51842)
 
     controller_file = tempfile.NamedTemporaryFile(delete=False)
     controller_file.write(
@@ -154,11 +171,6 @@ async def controller_and_paired_accessory(request, loop):
     controller = Controller()
     controller.load_data(controller_file.name)
     config_file.close()
-
-    for i in range(10):
-        if port_ready(51842):
-            break
-        time.sleep(1)
 
     with mock.patch("aiohomekit.zeroconf._find_data_for_device_id") as find:
         find.return_value = {
