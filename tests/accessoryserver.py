@@ -49,7 +49,7 @@ from aiohomekit.http import HttpStatusCodes
 from aiohomekit.model import Accessories, Categories
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.protocol import TLV
-from aiohomekit.protocol.statuscodes import HapStatusCodes
+from aiohomekit.protocol.statuscodes import HapStatusCode
 
 
 def tlv_reorder(tlv_array, preferred_order):
@@ -635,7 +635,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                                 {
                                     "aid": aid,
                                     "iid": cid,
-                                    "status": HapStatusCodes.INVALID_VALUE,
+                                    "status": HapStatusCode.INVALID_VALUE.value,
                                 }
                             )
                             errors += 1
@@ -644,7 +644,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                                 {
                                     "aid": aid,
                                     "iid": cid,
-                                    "status": HapStatusCodes.CANT_READ_WRITE_ONLY,
+                                    "status": HapStatusCode.CANT_READ_WRITE_ONLY.value,
                                 }
                             )
                             errors += 1
@@ -659,7 +659,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                                 {
                                     "aid": aid,
                                     "iid": cid,
-                                    "status": HapStatusCodes.OUT_OF_RESOURCES,
+                                    "status": HapStatusCode.OUT_OF_RESOURCES.value,
                                 }
                             )
                             errors += 1
@@ -687,7 +687,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                         {
                             "aid": aid,
                             "iid": cid,
-                            "status": HapStatusCodes.RESOURCE_NOT_EXIST,
+                            "status": HapStatusCode.RESOURCE_NOT_EXIST.value,
                         }
                     )
                     errors += 1
@@ -766,7 +766,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                                     {
                                         "aid": aid,
                                         "iid": cid,
-                                        "status": HapStatusCodes.NOTIFICATION_NOT_SUPPORTED,
+                                        "status": HapStatusCode.NOTIFICATION_NOT_SUPPORTED.value,
                                     }
                                 )
 
@@ -781,7 +781,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                             try:
                                 if "pw" not in characteristic.perms:
                                     raise CharacteristicPermissionError(
-                                        HapStatusCodes.CANT_WRITE_READ_ONLY
+                                        HapStatusCode.CANT_WRITE_READ_ONLY.value
                                     )
                                 new_val = characteristic.validate_value(
                                     characteristic_to_set["value"]
@@ -796,7 +796,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                                     {
                                         "aid": aid,
                                         "iid": cid,
-                                        "status": HapStatusCodes.INVALID_VALUE,
+                                        "status": HapStatusCode.INVALID_VALUE.value,
                                     }
                                 )
                                 errors += 1
@@ -811,7 +811,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                                     {
                                         "aid": aid,
                                         "iid": cid,
-                                        "status": HapStatusCodes.OUT_OF_RESOURCES,
+                                        "status": HapStatusCode.OUT_OF_RESOURCES.value,
                                     }
                                 )
                                 errors += 1
@@ -821,7 +821,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                     {
                         "aid": aid,
                         "iid": cid,
-                        "status": HapStatusCodes.RESOURCE_NOT_EXIST,
+                        "status": HapStatusCode.RESOURCE_NOT_EXIST.value,
                     }
                 )
                 errors += 1
@@ -844,7 +844,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
     def _post_identify(self):
         if self.server.data.is_paired:
             result_bytes = json.dumps(
-                {"status": HapStatusCodes.INSUFFICIENT_PRIVILEGES}
+                {"status": HapStatusCode.INSUFFICIENT_PRIVILEGES.value}
             ).encode()
             self.send_response(HttpStatusCodes.BAD_REQUEST)
             self.send_header("Content-Type", "application/hap+json")

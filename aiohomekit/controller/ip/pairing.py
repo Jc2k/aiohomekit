@@ -34,7 +34,7 @@ from aiohomekit.http import HttpContentTypes
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.protocol import error_handler
-from aiohomekit.protocol.statuscodes import HapStatusCodes
+from aiohomekit.protocol.statuscodes import HAP_STATUS_CODE_DESCRIPTIONS, to_status_code
 from aiohomekit.protocol.tlv import TLV
 
 from .connection import SecureHomeKitConnection
@@ -55,7 +55,7 @@ def format_characteristic_list(data):
         if "status" in c and c["status"] == 0:
             del c["status"]
         if "status" in c and c["status"] != 0:
-            c["description"] = HapStatusCodes[c["status"]]
+            c["description"] = HAP_STATUS_CODE_DESCRIPTIONS[to_status_code(c["status"])]
         tmp[key] = c
     return tmp
 
@@ -276,7 +276,9 @@ class IpPairing(AbstractPairing):
             data = {
                 (d["aid"], d["iid"]): {
                     "status": d["status"],
-                    "description": HapStatusCodes[d["status"]],
+                    "description": HAP_STATUS_CODE_DESCRIPTIONS[
+                        to_status_code(d["status"])
+                    ],
                 }
                 for d in response["characteristics"]
             }
@@ -343,7 +345,9 @@ class IpPairing(AbstractPairing):
                 for row in response.get("characteristics", []):
                     status[(row["aid"], row["iid"])] = {
                         "status": row["status"],
-                        "description": HapStatusCodes[row["status"]],
+                        "description": HAP_STATUS_CODE_DESCRIPTIONS[
+                            to_status_code(row["status"])
+                        ],
                     }
 
         return status

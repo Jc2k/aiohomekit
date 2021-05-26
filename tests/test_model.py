@@ -40,6 +40,7 @@ from aiohomekit.model.characteristics.structs import (
     VideoConfigConfiguration,
 )
 from aiohomekit.model.services import ServicesTypes
+from aiohomekit.protocol.statuscodes import HapStatusCode
 
 
 def test_hue_bridge():
@@ -185,6 +186,21 @@ def test_process_changes():
     accessories.process_changes({(1, 8): {"value": True}})
 
     assert on_char.value is True
+
+
+def test_process_changes_error():
+    accessories = Accessories.from_file("tests/fixtures/koogeek_ls1.json")
+
+    on_char = accessories.aid(1).characteristics.iid(8)
+    assert on_char.value is False
+    assert on_char.status == HapStatusCode.SUCCESS
+
+    accessories.process_changes(
+        {(1, 8): {"status": HapStatusCode.UNABLE_TO_COMMUNICATE.value}}
+    )
+
+    assert on_char.value is False
+    assert on_char.status == HapStatusCode.UNABLE_TO_COMMUNICATE
 
 
 def test_valid_vals_preserved():

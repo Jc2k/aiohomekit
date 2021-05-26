@@ -19,7 +19,7 @@ import uuid
 from aiohomekit.exceptions import AlreadyPairedError
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
-from aiohomekit.protocol.statuscodes import HapStatusCodes
+from aiohomekit.protocol.statuscodes import HAP_STATUS_CODE_DESCRIPTIONS, to_status_code
 
 from .connection import HomeKitConnection
 from .pairing import IpPairing
@@ -122,11 +122,11 @@ class IpDiscovery:
         if not response:
             return True
 
-        code = response["code"]
+        code = to_status_code(response["code"])
 
         raise AlreadyPairedError(
             "Identify failed because: {reason} ({code}).".format(
-                reason=HapStatusCodes[code],
+                reason=HAP_STATUS_CODE_DESCRIPTIONS[code],
                 code=code,
             )
         )

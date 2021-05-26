@@ -17,6 +17,8 @@
 import json
 from typing import Any, Dict, Iterable, List, Optional
 
+from aiohomekit.protocol.statuscodes import to_status_code
+
 from .categories import Categories
 from .characteristics import (
     Characteristic,
@@ -290,4 +292,4 @@ class Accessories:
                 char.set_value(value["value"])
                 continue
 
-            # Later on also handle error states here.
+            char.status = to_status_code(value.get("status", 0))

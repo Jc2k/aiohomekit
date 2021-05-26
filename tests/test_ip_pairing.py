@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from aiohomekit.protocol.statuscodes import HapStatusCodes
+from aiohomekit.protocol.statuscodes import HapStatusCode
 
 
 async def test_list_accessories(pairing):
@@ -193,7 +193,7 @@ async def test_subscribe_invalid_iid(pairing):
     assert result == {
         (1, 999999): {
             "description": "Resource does not exist.",
-            "status": HapStatusCodes.RESOURCE_NOT_EXIST,
+            "status": HapStatusCode.RESOURCE_NOT_EXIST.value,
         }
     }
 
