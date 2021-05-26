@@ -14,39 +14,29 @@
 # limitations under the License.
 #
 
-import enum
+from aiohomekit.enum import EnumWithDescription
 
 
-class HapStatusCode(enum.Enum):
+class HapStatusCode(EnumWithDescription):
 
-    SUCCESS = 0
-    INSUFFICIENT_PRIVILEGES = -70401
-    UNABLE_TO_COMMUNICATE = -70402
-    RESOURCE_BUSY = -70403
-    CANT_WRITE_READ_ONLY = -70404
-    CANT_READ_WRITE_ONLY = -70405
-    NOTIFICATION_NOT_SUPPORTED = -70406
-    OUT_OF_RESOURCES = -70407
-    TIMED_OUT = -70408
-    RESOURCE_NOT_EXIST = -70409
-    INVALID_VALUE = -70410
-    INSUFFICIENT_AUTH = -70411
-
-
-HAP_STATUS_CODE_DESCRIPTIONS = {
-    HapStatusCode.SUCCESS: "This specifies a success for the request.",
-    HapStatusCode.INSUFFICIENT_PRIVILEGES: "Request denied due to insufficient privileges.",
-    HapStatusCode.UNABLE_TO_COMMUNICATE: "Unable to communicate with requested service, e.g. the power to the accessory was turned off.",
-    HapStatusCode.RESOURCE_BUSY: "Resource is busy, try again.",
-    HapStatusCode.CANT_WRITE_READ_ONLY: "Cannot write to read only characteristic.",
-    HapStatusCode.CANT_READ_WRITE_ONLY: "Cannot read from a write only characteristic.",
-    HapStatusCode.NOTIFICATION_NOT_SUPPORTED: "Notification is not supported for characteristic.",
-    HapStatusCode.OUT_OF_RESOURCES: "Out of resources to process request.",
-    HapStatusCode.TIMED_OUT: "Operation timed out.",
-    HapStatusCode.RESOURCE_NOT_EXIST: "Resource does not exist.",
-    HapStatusCode.INVALID_VALUE: "Accessory received an invalid value in a write request.",
-    HapStatusCode.INSUFFICIENT_AUTH: "Insufficient Authorization.",
-}
+    SUCCESS = 0, "This specifies a success for the request."
+    INSUFFICIENT_PRIVILEGES = -70401, "Request denied due to insufficient privileges."
+    UNABLE_TO_COMMUNICATE = (
+        -70402,
+        "Unable to communicate with requested service, e.g. the power to the accessory was turned off.",
+    )
+    RESOURCE_BUSY = -70403, "Resource is busy, try again."
+    CANT_WRITE_READ_ONLY = -70404, "Cannot write to read only characteristic."
+    CANT_READ_WRITE_ONLY = -70405, "Cannot read from a write only characteristic."
+    NOTIFICATION_NOT_SUPPORTED = (
+        -70406,
+        "Notification is not supported for characteristic.",
+    )
+    OUT_OF_RESOURCES = -70407, "Out of resources to process request."
+    TIMED_OUT = -70408, "Operation timed out."
+    RESOURCE_NOT_EXIST = -70409, "Resource does not exist."
+    INVALID_VALUE = -70410, "Accessory received an invalid value in a write request."
+    INSUFFICIENT_AUTH = -70411, "Insufficient Authorization."
 
 
 def to_status_code(status_code: int) -> HapStatusCode:
