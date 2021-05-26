@@ -15,8 +15,10 @@
 #
 
 import asyncio
+from itertools import groupby
 import json
 import logging
+from operator import itemgetter
 
 from aiohomekit.controller.pairing import AbstractPairing
 from aiohomekit.exceptions import (
@@ -299,18 +301,43 @@ class IpPairing(AbstractPairing):
             )
             return {}
 
-        status = {}
-        # We do one at a time to match what iOS does
-        # even though its really inefficient
-        # https://github.com/home-assistant/core/issues/37996
-        for (aid, iid) in characteristics:
-            data = {"characteristics": [{"aid": aid, "iid": iid, "ev": True}]}
-            try:
-                response = await self.connection.put_json("/characteristics", data)
-            except AccessoryDisconnectedError:
-                self.supports_subscribe = False
-                break
+        try:
+            return await self._update_subscriptions(characteristics, True)
+        except AccessoryDisconnectedError:
+            self.supports_subscribe = False
+            return {}
 
+    async def unsubscribe(self, characteristics):
+        if not self.connection.is_connected:
+            # If not connected no need to unsubscribe
+            await super().unsubscribe(characteristics)
+            return {}
+
+        await self._ensure_connected()
+        char_set = set(characteristics)
+        status = await self._update_subscriptions(characteristics, False)
+        for id_tuple in status:
+            char_set.discard(id_tuple)
+
+        await super().unsubscribe(char_set)
+        return status
+
+    async def _update_subscriptions(self, characteristics, ev):
+        """Subscribe or unsubscribe to characteristics."""
+        status = {}
+        # We do one aid at a time to match what iOS does
+        # even though its inefficient
+        # https://github.com/home-assistant/core/issues/37996
+
+        for _, aid_iids in groupby(characteristics, key=itemgetter(0)):
+            response = await self.connection.put_json(
+                "/characteristics",
+                {
+                    "characteristics": [
+                        {"aid": aid, "iid": iid, "ev": ev} for aid, iid in aid_iids
+                    ]
+                },
+            )
             if response:
                 # An empty body is a success response
                 for row in response.get("characteristics", []):
@@ -320,38 +347,6 @@ class IpPairing(AbstractPairing):
                     }
 
         return status
-
-    async def unsubscribe(self, characteristics):
-        if not self.connection.is_connected:
-            # If not connected no need to unsubscribe
-            await super().unsubscribe(characteristics)
-            return {}
-
-        await self._ensure_connected()
-
-        data = []
-        for (aid, iid) in characteristics:
-            data.append({"aid": aid, "iid": iid, "ev": False})
-
-        data = {"characteristics": data}
-
-        response = await self.connection.put_json("/characteristics", data)
-
-        char_set = set(characteristics)
-        tmp = {}
-
-        if response:
-            for row in response:
-                id_tuple = (row["aid"], row["iid"])
-                tmp[id_tuple] = {
-                    "status": row["status"],
-                    "description": HapStatusCodes[row["status"]],
-                }
-                char_set.discard(id_tuple)
-
-        await super().unsubscribe(char_set)
-
-        return tmp
 
     async def identify(self):
         """
