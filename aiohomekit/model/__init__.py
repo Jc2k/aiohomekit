@@ -177,6 +177,10 @@ class Accessory:
     def firmware_revision(self):
         return self.accessory_information.value(CharacteristicsTypes.FIRMWARE_REVISION)
 
+    @property
+    def available(self):
+        return all(s.available for s in self.services)
+
     @classmethod
     def create_from_dict(cls, data: Dict[str, Any]) -> "Accessory":
         accessory = cls()
@@ -290,6 +294,5 @@ class Accessories:
 
             if "value" in value:
                 char.set_value(value["value"])
-                continue
 
             char.status = to_status_code(value.get("status", 0))

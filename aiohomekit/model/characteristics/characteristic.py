@@ -138,6 +138,10 @@ class Characteristic:
     def status(self, status: HapStatusCode):
         self._status = status
 
+    @property
+    def available(self) -> bool:
+        return self._status != HapStatusCode.UNABLE_TO_COMMUNICATE
+
     def set_events(self, new_val):
         self.ev = new_val
 
