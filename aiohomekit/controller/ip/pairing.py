@@ -229,7 +229,7 @@ class IpPairing(AbstractPairing):
             await self.list_accessories_and_characteristics()
 
         url = "/characteristics?id=" + ",".join(
-            [str(x[0]) + "." + str(x[1]) for x in characteristics]
+            str(x[0]) + "." + str(x[1]) for x in characteristics
         )
         if include_meta:
             url += "&meta=1"

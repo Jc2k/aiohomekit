@@ -45,7 +45,7 @@ class HttpResponse:
         self._raw_response += part
         pos = self._raw_response.find(b"\r\n")
 
-        while pos != -1 and self._state < HttpResponse.STATE_DONE:
+        while pos != -1 and self._state < HttpResponse.STATE_BODY:
             line = self._raw_response[:pos]
             self._raw_response = self._raw_response[pos + 2 :]
             if self._state == HttpResponse.STATE_PRE_STATUS:
@@ -73,30 +73,33 @@ class HttpResponse:
                 elif name == "Content-Length":
                     self._content_length = int(value)
                 self.headers.append((name, value))
-
-            elif self._state == HttpResponse.STATE_BODY:
-                if self._is_chunked:
-                    length = int(line, 16)
-                    if length + 2 > len(self._raw_response):
-                        self._raw_response = line + b"\r\n" + self._raw_response
-                        # the remaining bytes in raw response are not sufficient. bail out and wait for an other call.
-                        break
-                    if length == 0:
-                        self._had_empty_chunk = True
-                        self._state = HttpResponse.STATE_DONE
-                        self._raw_response = self._raw_response[length + 2 :]
-                    else:
-                        line = self._raw_response[:length]
-                        self.body += line
-                        self._raw_response = self._raw_response[length + 2 :]
-                if self._content_length > -1:
-                    self.body += self._raw_response
-                    self._raw_response = bytearray()
-
             else:
                 raise HttpException("Unknown parser state")
 
             pos = self._raw_response.find(b"\r\n")
+
+        if self._state == HttpResponse.STATE_BODY and self._is_chunked:
+            pos = self._raw_response.find(b"\r\n")
+            while pos > -1:
+                line = self._raw_response[:pos]
+                self._raw_response = self._raw_response[pos + 2 :]
+                length = int(line, 16)
+                if length + 2 > len(self._raw_response):
+                    self._raw_response = line + b"\r\n" + self._raw_response
+                    # the remaining bytes in raw response are not sufficient. bail out and wait for an other call.
+                    break
+
+                if length == 0:
+                    self._had_empty_chunk = True
+                    self._state = HttpResponse.STATE_DONE
+                    self._raw_response = self._raw_response[length + 2 :]
+                    break
+
+                line = self._raw_response[:length]
+                self.body += line
+                self._raw_response = self._raw_response[length + 2 :]
+
+                pos = self._raw_response.find(b"\r\n")
 
         if self._state == HttpResponse.STATE_BODY and self._content_length > 0:
             remaining = self._content_length - len(self.body)

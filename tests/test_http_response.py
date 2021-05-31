@@ -206,7 +206,7 @@ def test_example_lines():
         b"Content-Length: 95\r\n",
         b"Connection: keep-alive\r\n",
         b"\r\n",
-        b'{"characteristics":[{"aid":1,"iid":10,"value":35},'
+        b'{"characteristics":[{"aid":1,"iid":10,"value":35},',
         b'{"aid":1,"iid":13,"value":36.0999984741211}]}',
     ]
     res = parse(parts)
@@ -312,3 +312,22 @@ def test_example_multi_status_3():
         ]
     )
     assert res.code == 207
+
+
+def test_newline_in_payload():
+    parts = [
+        b"HTTP/1.1 200 OK\r\n",
+        b"Content-Type: application/hap+json\r\n",
+        b"Content-Length: 97\r\n",
+        b"Connection: keep-alive\r\n",
+        b"\r\n",
+        b'{"characteristics":[{"aid":1,"iid":10,"value":35},\r\n',
+        b'{"aid":1,"iid":13,"value":36.0999984741211}]}',
+    ]
+    res = parse(parts)
+    assert res.code == 200
+    assert res.get_http_name() == "HTTP"
+    assert (
+        res.body
+        == b'{"characteristics":[{"aid":1,"iid":10,"value":35},\r\n{"aid":1,"iid":13,"value":36.0999984741211}]}'
+    )
