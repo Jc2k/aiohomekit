@@ -412,7 +412,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
         event = [
             "EVENT/1.0 200 OK",
             "Content-Type: application/hap+json",
-            "Content-Length: {}".format(len(body)),
+            f"Content-Length: {len(body)}",
             "",
             body,
         ]
