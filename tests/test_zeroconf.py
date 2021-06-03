@@ -23,6 +23,7 @@ from zeroconf import BadTypeInNameException, Error, ServiceInfo
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.zeroconf import (
+    USE_SERVICE_BROWSER,
     async_discover_homekit_devices,
     async_find_data_for_device_id,
     async_find_device_ip_and_port,
@@ -118,6 +119,7 @@ async def test_async_discover_homekit_devices(mock_zeroconf):
     ]
 
 
+@pytest.mark.skipif(not USE_SERVICE_BROWSER, reason="Need zeroconf 0.32.0 to fix")
 async def test_async_discover_homekit_devices_with_service_browser_running(
     mock_zeroconf,
 ):
@@ -465,6 +467,7 @@ async def test_async_find_data_for_device_id_info_without_id(mock_zeroconf):
         )
 
 
+@pytest.mark.skipif(not USE_SERVICE_BROWSER, reason="Need zeroconf 0.32.0 to fix")
 async def test_async_find_data_for_device_id_with_active_service_browser(mock_zeroconf):
     desc = {
         b"c#": b"1",
@@ -514,6 +517,7 @@ async def test_async_find_data_for_device_id_with_active_service_browser(mock_ze
     }
 
 
+@pytest.mark.skipif(not USE_SERVICE_BROWSER, reason="Need zeroconf 0.32.0 to fix")
 async def test_async_find_data_for_device_id_with_active_service_browser_no_match(
     mock_zeroconf,
 ):

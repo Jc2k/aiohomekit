@@ -33,6 +33,11 @@ from aiohomekit.model.status_flags import IpStatusFlags
 
 HAP_TYPE = "_hap._tcp.local."
 
+# Re-enable the usage of the service browser cache
+# once zeroconf 0.32.0 along with forcing a refresh
+# See https://github.com/jstasiak/python-zeroconf/blob/master/examples/async_service_info_request.py
+USE_SERVICE_BROWSER = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -317,7 +322,11 @@ async def async_find_data_for_device_id(
     device_id: str, max_seconds: int = 10, zeroconf_instance: Zeroconf = None
 ) -> Dict[str, Any]:
     """Find normalized data (properties) for a device id."""
-    if zeroconf_instance and async_zeroconf_has_hap_service_browser(zeroconf_instance):
+    if (
+        USE_SERVICE_BROWSER
+        and zeroconf_instance
+        and async_zeroconf_has_hap_service_browser(zeroconf_instance)
+    ):
         return _async_device_data_zeroconf_cache(device_id, zeroconf_instance)
 
     return await asyncio.get_event_loop().run_in_executor(
@@ -335,7 +344,11 @@ async def async_discover_homekit_devices(
     max_seconds=10, zeroconf_instance: Zeroconf = None
 ):
     """Discover all homekit devices available to zeroconf/bonjour."""
-    if zeroconf_instance and async_zeroconf_has_hap_service_browser(zeroconf_instance):
+    if (
+        USE_SERVICE_BROWSER
+        and zeroconf_instance
+        and async_zeroconf_has_hap_service_browser(zeroconf_instance)
+    ):
         return _async_homekit_devices_from_cache(zeroconf_instance)
 
     return await asyncio.get_event_loop().run_in_executor(
