@@ -25,6 +25,7 @@ from time import sleep
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from zeroconf import Error, ServiceBrowser, ServiceInfo, Zeroconf
+from zeroconf.asyncio import AsyncZeroconf, AsyncServiceInfo
 
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Categories
@@ -90,16 +91,21 @@ class CollectingListener:
         return self.data
 
 
-def _async_homekit_devices_from_cache(
-    zeroconf: Zeroconf, filter_func: Callable = None
+async def _async_homekit_devices_from_cache(
+    aiozc: AsyncZeroconf, filter_func: Callable = None
 ) -> List[Dict[str, Any]]:
     """Return all homekit devices in the cache."""
-    devices = []
-    for name in zeroconf.cache.names():
+    infos = []
+    for name in aiozc.zeroconf.cache.names():
         if not name.endswith(HAP_TYPE):
             continue
-        info = ServiceInfo(HAP_TYPE, name)
-        info.load_from_cache(zeroconf)
+        infos.append(AsyncServiceInfo(HAP_TYPE, name))
+
+    tasks = [info.async_request(aiozc, 3000) for info in infos]
+    await asyncio.gather(*tasks)
+
+    devices = []
+    for info in infos:
         if not _service_info_is_homekit_device(info):
             continue
         if filter_func and not filter_func(info):
@@ -108,13 +114,13 @@ def _async_homekit_devices_from_cache(
     return devices
 
 
-def _async_device_data_zeroconf_cache(
-    device_id: str, zeroconf: Zeroconf
+async def _async_device_data_zeroconf_cache(
+    device_id: str, aiozc: AsyncZeroconf
 ) -> Dict[str, Any]:
     """Find a homekit device in the zeroconf cache."""
     device_id_bytes = device_id.encode()
-    devices = _async_homekit_devices_from_cache(
-        zeroconf, lambda info: info.properties[b"id"] == device_id_bytes
+    devices = await _async_homekit_devices_from_cache(
+        aiozc, lambda info: info.properties[b"id"] == device_id_bytes
     )
     if not devices:
         raise AccessoryNotFoundError("Device not found from active ServiceBrower")
@@ -163,8 +169,8 @@ def _service_info_is_homekit_device(service_info: ServiceInfo) -> bool:
     )
 
 
-def discover_homekit_devices(
-    max_seconds: int = 10, zeroconf_instance: Zeroconf = None
+async def async_discover_homekit_devices(
+    max_seconds: int = 10, async_zeroconf_instance: AsyncZeroconf = None
 ) -> List[Any]:
     """Discovers all HomeKit Accessories.
 
@@ -174,9 +180,14 @@ def discover_homekit_devices(
     :param max_seconds: the number of seconds we will wait for the devices to be discovered
     :return: a list of dicts containing all fields as described in table 5.7 page 69
     """
-    our_zc = zeroconf_instance or Zeroconf()
+    if async_zeroconf_instance and async_zeroconf_has_hap_service_browser(
+        async_zeroconf_instance
+    ):
+        return await _async_homekit_devices_from_cache(async_zeroconf_instance)
+
+    our_aiozc = async_zeroconf_instance or AsyncZeroconf()
     listener = CollectingListener()
-    service_browser = ServiceBrowser(our_zc, HAP_TYPE, listener)
+    service_browser = ServiceBrowser(our_aiozc.zeroconf, HAP_TYPE, listener)
     sleep(max_seconds)
     tmp = []
     try:
@@ -188,8 +199,8 @@ def discover_homekit_devices(
             tmp.append(data)
     finally:
         service_browser.cancel()
-        if not zeroconf_instance:
-            our_zc.close()
+        if not async_zeroconf_instance:
+            await our_aiozc.async_close()
     return tmp
 
 
@@ -296,30 +307,36 @@ def _find_data_for_device_id(
     raise AccessoryNotFoundError("Device not found via Bonjour within 10 seconds")
 
 
-def async_zeroconf_has_hap_service_browser(zeroconf_instance: Zeroconf) -> bool:
+def async_zeroconf_has_hap_service_browser(
+    async_zeroconf_instance: AsyncZeroconf,
+) -> bool:
     """Check to see if the zeroconf instance has an active HAP ServiceBrowser."""
     return any(
         isinstance(listener, ServiceBrowser) and HAP_TYPE in listener.types
-        for listener in zeroconf_instance.listeners
+        for listener in async_zeroconf_instance.zeroconf.listeners
     )
 
 
 async def async_find_device_ip_and_port(
-    device_id: str, max_seconds: int = 10, zeroconf_instance: Zeroconf = None
+    device_id: str, max_seconds: int = 10, async_zeroconf_instance: AsyncZeroconf = None
 ) -> Tuple[str, int]:
     """Find the ip and port for a device id."""
     data = await async_find_data_for_device_id(
-        device_id, max_seconds, zeroconf_instance
+        device_id, max_seconds, async_zeroconf_instance
     )
     return (data["address"], data["port"])
 
 
 async def async_find_data_for_device_id(
-    device_id: str, max_seconds: int = 10, zeroconf_instance: Zeroconf = None
+    device_id: str, max_seconds: int = 10, async_zeroconf_instance: AsyncZeroconf = None
 ) -> Dict[str, Any]:
     """Find normalized data (properties) for a device id."""
-    if zeroconf_instance and async_zeroconf_has_hap_service_browser(zeroconf_instance):
-        return _async_device_data_zeroconf_cache(device_id, zeroconf_instance)
+    if async_zeroconf_instance and async_zeroconf_has_hap_service_browser(
+        async_zeroconf_instance
+    ):
+        return await _async_device_data_zeroconf_cache(
+            device_id, async_zeroconf_instance
+        )
 
     return await asyncio.get_event_loop().run_in_executor(
         None,
@@ -327,23 +344,6 @@ async def async_find_data_for_device_id(
             _find_data_for_device_id,
             device_id=device_id,
             max_seconds=max_seconds,
-            zeroconf_instance=zeroconf_instance,
-        ),
-    )
-
-
-async def async_discover_homekit_devices(
-    max_seconds=10, zeroconf_instance: Zeroconf = None
-):
-    """Discover all homekit devices available to zeroconf/bonjour."""
-    if zeroconf_instance and async_zeroconf_has_hap_service_browser(zeroconf_instance):
-        return _async_homekit_devices_from_cache(zeroconf_instance)
-
-    return await asyncio.get_event_loop().run_in_executor(
-        None,
-        partial(
-            discover_homekit_devices,
-            max_seconds=max_seconds,
-            zeroconf_instance=zeroconf_instance,
+            zeroconf_instance=async_zeroconf_instance.zeroconf,
         ),
     )
