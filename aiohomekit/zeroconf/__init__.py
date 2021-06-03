@@ -156,7 +156,8 @@ def get_from_properties(
 
 
 def _service_info_is_homekit_device(service_info: ServiceInfo) -> bool:
-    props = service_info.properties
+    props = {key.lower() for key in service_info.properties.keys()}
+
     return (
         service_info.addresses and b"c#" in props and b"md" in props and b"id" in props
     )

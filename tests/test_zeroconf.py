@@ -23,6 +23,7 @@ from zeroconf import BadTypeInNameException, Error, ServiceInfo
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.zeroconf import (
+    _service_info_is_homekit_device,
     async_discover_homekit_devices,
     async_find_data_for_device_id,
     async_find_device_ip_and_port,
@@ -584,3 +585,25 @@ def test_non_existing_key_with_default_non_string():
     props = {"c#": "259"}
     val = get_from_properties(props, "s#", default=1)
     assert "1" == val
+
+
+def test_is_homekit_device_case_insensitive():
+    desc = {
+        b"C#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"1",
+        b"ci": b"5",
+        b"sf": b"0",
+    }
+    info = ServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+
+    assert _service_info_is_homekit_device(info)
