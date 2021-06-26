@@ -14,51 +14,35 @@
 # limitations under the License.
 #
 
+from aiohomekit.enum import EnumWithDescription
 
-class _HapStatusCodes:
-    """
-    This data is taken from Table 5-12 HAP Satus Codes on page 80.
-    """
 
-    SUCCESS = 0
-    INSUFFICIENT_PRIVILEGES = -70401
-    UNABLE_TO_COMMUNICATE = -70402
-    RESOURCE_BUSY = -70403
-    CANT_WRITE_READ_ONLY = -70404
-    CANT_READ_WRITE_ONLY = -70405
-    NOTIFICATION_NOT_SUPPORTED = -70406
-    OUT_OF_RESOURCES = -70407
-    TIMED_OUT = -70408
-    RESOURCE_NOT_EXIST = -70409
-    INVALID_VALUE = -70410
-    INSUFFICIENT_AUTH = -70411
+class HapStatusCode(EnumWithDescription):
 
-    def __init__(self) -> None:
-        self._codes = {
-            _HapStatusCodes.SUCCESS: "This specifies a success for the request.",
-            _HapStatusCodes.INSUFFICIENT_PRIVILEGES: "Request denied due to insufficient privileges.",
-            _HapStatusCodes.UNABLE_TO_COMMUNICATE: "Unable to communicate with requested service, e.g. the power to the accessory was turned off.",
-            _HapStatusCodes.RESOURCE_BUSY: "Resource is busy, try again.",
-            _HapStatusCodes.CANT_WRITE_READ_ONLY: "Cannot write to read only characteristic.",
-            _HapStatusCodes.CANT_READ_WRITE_ONLY: "Cannot read from a write only characteristic.",
-            _HapStatusCodes.NOTIFICATION_NOT_SUPPORTED: "Notification is not supported for characteristic.",
-            _HapStatusCodes.OUT_OF_RESOURCES: "Out of resources to process request.",
-            _HapStatusCodes.TIMED_OUT: "Operation timed out.",
-            _HapStatusCodes.RESOURCE_NOT_EXIST: "Resource does not exist.",
-            _HapStatusCodes.INVALID_VALUE: "Accessory received an invalid value in a write request.",
-            _HapStatusCodes.INSUFFICIENT_AUTH: "Insufficient Authorization.",
-        }
+    SUCCESS = 0, "This specifies a success for the request."
+    INSUFFICIENT_PRIVILEGES = -70401, "Request denied due to insufficient privileges."
+    UNABLE_TO_COMMUNICATE = (
+        -70402,
+        "Unable to communicate with requested service, e.g. the power to the accessory was turned off.",
+    )
+    RESOURCE_BUSY = -70403, "Resource is busy, try again."
+    CANT_WRITE_READ_ONLY = -70404, "Cannot write to read only characteristic."
+    CANT_READ_WRITE_ONLY = -70405, "Cannot read from a write only characteristic."
+    NOTIFICATION_NOT_SUPPORTED = (
+        -70406,
+        "Notification is not supported for characteristic.",
+    )
+    OUT_OF_RESOURCES = -70407, "Out of resources to process request."
+    TIMED_OUT = -70408, "Operation timed out."
+    RESOURCE_NOT_EXIST = -70409, "Resource does not exist."
+    INVALID_VALUE = -70410, "Accessory received an invalid value in a write request."
+    INSUFFICIENT_AUTH = -70411, "Insufficient Authorization."
 
-        self._categories_rev = {self._codes[k]: k for k in self._codes.keys()}
 
-    def __getitem__(self, item):
-        # Some HAP implementations return
-        # positive values for error code (myq)
-        item = abs(item) * -1
-        if item in self._codes:
-            return self._codes[item]
-
-        raise KeyError(f"Item {item} not found")
+def to_status_code(status_code: int) -> HapStatusCode:
+    # Some HAP implementations return positive values for error code (myq)
+    status_code = abs(status_code) * -1
+    return HapStatusCode(status_code)
 
 
 class _HapBleStatusCodes:
@@ -97,5 +81,4 @@ class _HapBleStatusCodes:
         raise KeyError(f"Item {item} not found")
 
 
-HapStatusCodes = _HapStatusCodes()
 HapBleStatusCodes = _HapBleStatusCodes()

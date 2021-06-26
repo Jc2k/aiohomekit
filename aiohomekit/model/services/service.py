@@ -155,3 +155,7 @@ class Service:
             d["linked"] = linked
 
         return d
+
+    @property
+    def available(self) -> bool:
+        return all(c.available for c in self.characteristics)

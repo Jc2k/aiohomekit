@@ -17,6 +17,8 @@
 import json
 from typing import Any, Dict, Iterable, List, Optional
 
+from aiohomekit.protocol.statuscodes import to_status_code
+
 from .categories import Categories
 from .characteristics import (
     Characteristic,
@@ -175,6 +177,10 @@ class Accessory:
     def firmware_revision(self):
         return self.accessory_information.value(CharacteristicsTypes.FIRMWARE_REVISION)
 
+    @property
+    def available(self):
+        return all(s.available for s in self.services)
+
     @classmethod
     def create_from_dict(cls, data: Dict[str, Any]) -> "Accessory":
         accessory = cls()
@@ -288,6 +294,5 @@ class Accessories:
 
             if "value" in value:
                 char.set_value(value["value"])
-                continue
 
-            # Later on also handle error states here.
+            char.status = to_status_code(value.get("status", 0))

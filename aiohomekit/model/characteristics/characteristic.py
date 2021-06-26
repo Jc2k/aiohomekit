@@ -21,7 +21,7 @@ from distutils.util import strtobool
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from aiohomekit.exceptions import CharacteristicPermissionError, FormatError
-from aiohomekit.protocol.statuscodes import HapStatusCodes
+from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.protocol.tlv import TLV, TlvParseException
 from aiohomekit.tlv8 import tlv_array
 
@@ -84,6 +84,7 @@ class Characteristic:
         self.valid_values_range = None
 
         self._value = None
+        self._status = HapStatusCode(0)
 
         if CharacteristicPermissions.paired_read not in self.perms:
             return
@@ -128,6 +129,18 @@ class Characteristic:
             return CharacteristicsTypes.get_short(self.type)
         except KeyError:
             return None
+
+    @property
+    def status(self) -> HapStatusCode:
+        return self._status
+
+    @status.setter
+    def status(self, status: HapStatusCode):
+        self._status = status
+
+    @property
+    def available(self) -> bool:
+        return self._status != HapStatusCode.UNABLE_TO_COMMUNICATE
 
     def set_events(self, new_val):
         self.ev = new_val
@@ -175,7 +188,7 @@ class Characteristic:
             if self.format == CharacteristicFormats.bool:
                 new_val = strtobool(str(new_val))
         except ValueError:
-            raise FormatError(HapStatusCodes.INVALID_VALUE)
+            raise FormatError(HapStatusCode.INVALID_VALUE)
 
         if self.format in [
             CharacteristicFormats.uint64,
@@ -186,9 +199,9 @@ class Characteristic:
             CharacteristicFormats.float,
         ]:
             if self.minValue is not None and new_val < self.minValue:
-                raise FormatError(HapStatusCodes.INVALID_VALUE)
+                raise FormatError(HapStatusCode.INVALID_VALUE)
             if self.maxValue is not None and self.maxValue < new_val:
-                raise FormatError(HapStatusCodes.INVALID_VALUE)
+                raise FormatError(HapStatusCode.INVALID_VALUE)
             if self.minStep is not None:
                 tmp = new_val
 
@@ -198,27 +211,27 @@ class Characteristic:
 
                 # use Decimal to calculate the module because it has not the precision problem as float...
                 if Decimal(str(tmp)) % Decimal(str(self.minStep)) != 0:
-                    raise FormatError(HapStatusCodes.INVALID_VALUE)
+                    raise FormatError(HapStatusCode.INVALID_VALUE)
             if self.valid_values is not None and new_val not in self.valid_values:
-                raise FormatError(HapStatusCodes.INVALID_VALUE)
+                raise FormatError(HapStatusCode.INVALID_VALUE)
             if self.valid_values_range is not None and not (
                 self.valid_values_range[0] <= new_val <= self.valid_values_range[1]
             ):
-                raise FormatError(HapStatusCodes.INVALID_VALUE)
+                raise FormatError(HapStatusCode.INVALID_VALUE)
 
         if self.format == CharacteristicFormats.data:
             try:
                 byte_data = base64.decodebytes(new_val.encode())
             except binascii.Error:
-                raise FormatError(HapStatusCodes.INVALID_VALUE)
+                raise FormatError(HapStatusCode.INVALID_VALUE)
             except Exception:
-                raise FormatError(HapStatusCodes.OUT_OF_RESOURCES)
+                raise FormatError(HapStatusCode.OUT_OF_RESOURCES)
             if self.maxDataLen < len(byte_data):
-                raise FormatError(HapStatusCodes.INVALID_VALUE)
+                raise FormatError(HapStatusCode.INVALID_VALUE)
 
         if self.format == CharacteristicFormats.string:
             if len(new_val) > self.maxLen:
-                raise FormatError(HapStatusCodes.INVALID_VALUE)
+                raise FormatError(HapStatusCode.INVALID_VALUE)
 
         return new_val
 
@@ -232,7 +245,7 @@ class Characteristic:
         :return: the value of the characteristic
         """
         if CharacteristicPermissions.paired_read not in self.perms:
-            raise CharacteristicPermissionError(HapStatusCodes.CANT_READ_WRITE_ONLY)
+            raise CharacteristicPermissionError(HapStatusCode.CANT_READ_WRITE_ONLY)
         return self.value
 
     def to_accessory_and_service_list(self):
