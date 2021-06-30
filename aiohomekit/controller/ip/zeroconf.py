@@ -25,7 +25,4 @@ with zeroconf.
 This also means we don't need to add any extra dependencies.
 """
 
-from aiohomekit.zeroconf import (  # noqa: F401
-    async_discover_homekit_devices,
-    discover_homekit_devices,
-)
+from aiohomekit.zeroconf import async_discover_homekit_devices  # noqa: F401

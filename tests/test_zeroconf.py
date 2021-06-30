@@ -15,10 +15,19 @@
 #
 
 import socket
+import sys
 from unittest.mock import MagicMock, PropertyMock, patch
 
+if sys.version_info[:2] < (3, 8):
+    from asynctest.mock import CoroutineMock  # noqa
+
+    AsyncMock = CoroutineMock  # noqa: F405
+else:
+    from unittest.mock import AsyncMock  # noqa
+
 import pytest
-from zeroconf import BadTypeInNameException, Error, ServiceInfo
+from zeroconf import BadTypeInNameException, Error
+from zeroconf.asyncio import AsyncServiceInfo
 
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model.feature_flags import FeatureFlags
@@ -27,34 +36,41 @@ from aiohomekit.zeroconf import (
     async_discover_homekit_devices,
     async_find_data_for_device_id,
     async_find_device_ip_and_port,
-    discover_homekit_devices,
     get_from_properties,
 )
 
 
 @pytest.fixture
-def mock_zeroconf():
+def mock_asynczeroconf():
     """Mock zeroconf."""
 
     def browser(zeroconf, service, handler):
-        handler.add_service(zeroconf, service, f"name.{service}")
-        return MagicMock()
+        handler.add_service(zeroconf.zeroconf, service, f"name.{service}")
+        async_browser = MagicMock()
+        async_browser.async_cancel = AsyncMock()
+        return async_browser
 
-    with patch("aiohomekit.zeroconf.ServiceBrowser") as mock_browser:
+    with patch("aiohomekit.zeroconf.AsyncServiceBrowser") as mock_browser:
         mock_browser.side_effect = browser
 
-        with patch("aiohomekit.zeroconf.Zeroconf") as mock_zc:
-            yield mock_zc.return_value
+        with patch("aiohomekit.zeroconf.AsyncZeroconf") as mock_zc:
+            zc = mock_zc.return_value
+            zc.async_register_service = AsyncMock()
+            zc.async_close = AsyncMock()
+            zeroconf = MagicMock()
+            zeroconf.async_wait_for_start = AsyncMock()
+            zc.zeroconf = zeroconf
+            yield zc
 
 
-async def test_find_no_device(mock_zeroconf):
+async def test_find_no_device(mock_asynczeroconf):
     with pytest.raises(AccessoryNotFoundError):
-        await async_find_device_ip_and_port("00:00:00:00:00:00", 0)
+        await async_find_device_ip_and_port("00:00:00:00:00:00", 1)
 
 
-async def test_find_with_device(mock_zeroconf):
+async def test_find_with_device(mock_asynczeroconf):
     desc = {b"id": b"00:00:02:00:00:02", b"c#": b"1", b"md": b"any"}
-    info = ServiceInfo(
+    info = AsyncServiceInfo(
         "_hap._tcp.local.",
         "foo1._hap._tcp.local.",
         addresses=[socket.inet_aton("127.0.0.1")],
@@ -63,21 +79,22 @@ async def test_find_with_device(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
-
-    result = await async_find_device_ip_and_port("00:00:02:00:00:02", 0)
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_find_device_ip_and_port("00:00:02:00:00:02", 1)
     assert result == ("127.0.0.1", 1234)
 
 
 @pytest.mark.parametrize("exception", [OSError, Error, BadTypeInNameException])
-async def test_find_with_device_get_service_info_throws(exception, mock_zeroconf):
-    mock_zeroconf.get_service_info.side_effect = exception
+async def test_find_with_device_async_get_service_info_throws(
+    exception, mock_asynczeroconf
+):
+    with patch(
+        "aiohomekit.zeroconf.AsyncServiceInfo", side_effect=exception
+    ), pytest.raises(AccessoryNotFoundError):
+        await async_find_device_ip_and_port("00:00:02:00:00:02", 1)
 
-    with pytest.raises(AccessoryNotFoundError):
-        await async_find_device_ip_and_port("00:00:02:00:00:02", 0)
 
-
-async def test_async_discover_homekit_devices(mock_zeroconf):
+async def test_async_discover_homekit_devices(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
         b"id": b"00:00:01:00:00:02",
@@ -86,7 +103,7 @@ async def test_async_discover_homekit_devices(mock_zeroconf):
         b"ci": b"5",
         b"sf": b"0",
     }
-    info = ServiceInfo(
+    info = AsyncServiceInfo(
         "_hap._tcp.local.",
         "foo2._hap._tcp.local.",
         addresses=[socket.inet_aton("127.0.0.1")],
@@ -95,9 +112,8 @@ async def test_async_discover_homekit_devices(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
-
-    result = await async_discover_homekit_devices(max_seconds=0)
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_discover_homekit_devices(max_seconds=1)
 
     assert result == [
         {
@@ -120,7 +136,7 @@ async def test_async_discover_homekit_devices(mock_zeroconf):
 
 
 async def test_async_discover_homekit_devices_with_service_browser_running(
-    mock_zeroconf,
+    mock_asynczeroconf,
 ):
     desc = {
         b"c#": b"1",
@@ -130,7 +146,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
         b"ci": b"5",
         b"sf": b"0",
     }
-    info = ServiceInfo(
+    info = AsyncServiceInfo(
         "_hap._tcp.local.",
         "foo2._hap._tcp.local.",
         addresses=[socket.inet_aton("127.0.0.1")],
@@ -140,14 +156,14 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
         priority=0,
     )
 
-    mock_zeroconf.cache = MagicMock(
+    mock_asynczeroconf.zeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._hap._tcp.local."])
     )
-    with patch("aiohomekit.zeroconf.ServiceInfo", return_value=info), patch(
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info), patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ):
         result = await async_discover_homekit_devices(
-            max_seconds=0, zeroconf_instance=mock_zeroconf
+            max_seconds=1, async_zeroconf_instance=mock_asynczeroconf
         )
 
     assert result == [
@@ -171,7 +187,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
 
 
 async def test_async_discover_homekit_devices_with_service_browser_running_not_hap_device(
-    mock_zeroconf,
+    mock_asynczeroconf,
 ):
     desc = {
         b"c#": b"1",
@@ -181,7 +197,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running_not_h
         b"ci": b"5",
         b"sf": b"0",
     }
-    info = ServiceInfo(
+    info = AsyncServiceInfo(
         "_nothap._tcp.local.",
         "foo2._nothap._tcp.local.",
         addresses=[socket.inet_aton("127.0.0.1")],
@@ -191,21 +207,21 @@ async def test_async_discover_homekit_devices_with_service_browser_running_not_h
         priority=0,
     )
 
-    mock_zeroconf.cache = MagicMock(
+    mock_asynczeroconf.zeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._nothap._tcp.local."])
     )
-    with patch("aiohomekit.zeroconf.ServiceInfo", return_value=info), patch(
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info), patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ):
         result = await async_discover_homekit_devices(
-            max_seconds=0, zeroconf_instance=mock_zeroconf
+            max_seconds=1, async_zeroconf_instance=mock_asynczeroconf
         )
 
     assert result == []
 
 
 async def test_async_discover_homekit_devices_with_service_browser_running_invalid_device(
-    mock_zeroconf,
+    mock_asynczeroconf,
 ):
     desc = {
         b"c#": b"1",
@@ -214,7 +230,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running_inval
         b"ci": b"5",
         b"sf": b"0",
     }
-    info = ServiceInfo(
+    info = AsyncServiceInfo(
         "_hap._tcp.local.",
         "foo2._hap._tcp.local.",
         addresses=[socket.inet_aton("127.0.0.1")],
@@ -224,29 +240,28 @@ async def test_async_discover_homekit_devices_with_service_browser_running_inval
         priority=0,
     )
 
-    mock_zeroconf.cache = MagicMock(
+    mock_asynczeroconf.zeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._hap._tcp.local."])
     )
-    with patch("aiohomekit.zeroconf.ServiceInfo", return_value=info), patch(
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info), patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ):
         result = await async_discover_homekit_devices(
-            max_seconds=0, zeroconf_instance=mock_zeroconf
+            max_seconds=1, async_zeroconf_instance=mock_asynczeroconf
         )
 
     assert result == []
 
 
-def test_discover_homekit_devices(mock_zeroconf):
+async def test_discover_homekit_devices_missing_c(mock_asynczeroconf):
     desc = {
-        b"c#": b"1",
         b"id": b"00:00:01:00:00:02",
         b"md": b"unittest",
         b"s#": b"1",
         b"ci": b"5",
         b"sf": b"0",
     }
-    info = ServiceInfo(
+    info = AsyncServiceInfo(
         "_hap._tcp.local.",
         "foo2._hap._tcp.local.",
         addresses=[socket.inet_aton("127.0.0.1")],
@@ -255,9 +270,57 @@ def test_discover_homekit_devices(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_discover_homekit_devices(max_seconds=1)
 
-    result = discover_homekit_devices(max_seconds=0)
+    assert result == []
+
+
+async def test_async_discover_homekit_devices_missing_md(mock_asynczeroconf):
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"s#": b"1",
+        b"ci": b"5",
+        b"sf": b"0",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_discover_homekit_devices(max_seconds=1)
+
+    assert result == []
+
+
+async def test_discover_homekit_devices_shared_zeroconf(mock_asynczeroconf):
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"1",
+        b"ci": b"5",
+        b"sf": b"0",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_discover_homekit_devices(
+            max_seconds=1, async_zeroconf_instance=mock_asynczeroconf
+        )
 
     assert result == [
         {
@@ -279,55 +342,7 @@ def test_discover_homekit_devices(mock_zeroconf):
     ]
 
 
-def test_discover_homekit_devices_missing_c(mock_zeroconf):
-    desc = {
-        b"id": b"00:00:01:00:00:02",
-        b"md": b"unittest",
-        b"s#": b"1",
-        b"ci": b"5",
-        b"sf": b"0",
-    }
-    info = ServiceInfo(
-        "_hap._tcp.local.",
-        "foo2._hap._tcp.local.",
-        addresses=[socket.inet_aton("127.0.0.1")],
-        port=1234,
-        properties=desc,
-        weight=0,
-        priority=0,
-    )
-    mock_zeroconf.get_service_info.return_value = info
-
-    result = discover_homekit_devices(max_seconds=0)
-
-    assert result == []
-
-
-def test_discover_homekit_devices_missing_md(mock_zeroconf):
-    desc = {
-        b"c#": b"1",
-        b"id": b"00:00:01:00:00:02",
-        b"s#": b"1",
-        b"ci": b"5",
-        b"sf": b"0",
-    }
-    info = ServiceInfo(
-        "_hap._tcp.local.",
-        "foo2._hap._tcp.local.",
-        addresses=[socket.inet_aton("127.0.0.1")],
-        port=1234,
-        properties=desc,
-        weight=0,
-        priority=0,
-    )
-    mock_zeroconf.get_service_info.return_value = info
-
-    result = discover_homekit_devices(max_seconds=0)
-
-    assert result == []
-
-
-def test_discover_homekit_devices_shared_zeroconf(mock_zeroconf):
+async def test_async_find_data_for_device_id_matches(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
         b"id": b"00:00:01:00:00:02",
@@ -336,7 +351,7 @@ def test_discover_homekit_devices_shared_zeroconf(mock_zeroconf):
         b"ci": b"5",
         b"sf": b"0",
     }
-    info = ServiceInfo(
+    info = AsyncServiceInfo(
         "_hap._tcp.local.",
         "foo2._hap._tcp.local.",
         addresses=[socket.inet_aton("127.0.0.1")],
@@ -345,53 +360,12 @@ def test_discover_homekit_devices_shared_zeroconf(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
-
-    result = discover_homekit_devices(max_seconds=0, zeroconf_instance=mock_zeroconf)
-
-    assert result == [
-        {
-            "address": "127.0.0.1",
-            "c#": "1",
-            "category": "Lightbulb",
-            "ci": "5",
-            "ff": 0,
-            "flags": FeatureFlags(0),
-            "id": "00:00:01:00:00:02",
-            "md": "unittest",
-            "name": "foo2._hap._tcp.local.",
-            "port": 1234,
-            "pv": "1.0",
-            "s#": "1",
-            "sf": "0",
-            "statusflags": "Accessory has been paired.",
-        }
-    ]
-
-
-async def test_async_find_data_for_device_id_matches(mock_zeroconf):
-    desc = {
-        b"c#": b"1",
-        b"id": b"00:00:01:00:00:02",
-        b"md": b"unittest",
-        b"s#": b"1",
-        b"ci": b"5",
-        b"sf": b"0",
-    }
-    info = ServiceInfo(
-        "_hap._tcp.local.",
-        "foo2._hap._tcp.local.",
-        addresses=[socket.inet_aton("127.0.0.1")],
-        port=1234,
-        properties=desc,
-        weight=0,
-        priority=0,
-    )
-    mock_zeroconf.get_service_info.return_value = info
-
-    result = await async_find_data_for_device_id(
-        device_id="00:00:01:00:00:02", max_seconds=0, zeroconf_instance=mock_zeroconf
-    )
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_find_data_for_device_id(
+            device_id="00:00:01:00:00:02",
+            max_seconds=1,
+            async_zeroconf_instance=mock_asynczeroconf,
+        )
 
     assert result == {
         "address": "127.0.0.1",
@@ -411,7 +385,7 @@ async def test_async_find_data_for_device_id_matches(mock_zeroconf):
     }
 
 
-async def test_async_find_data_for_device_id_does_not_match(mock_zeroconf):
+async def test_async_find_data_for_device_id_does_not_match(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
         b"id": b"00:00:01:00:00:03",
@@ -420,7 +394,7 @@ async def test_async_find_data_for_device_id_does_not_match(mock_zeroconf):
         b"ci": b"5",
         b"sf": b"0",
     }
-    info = ServiceInfo(
+    info = AsyncServiceInfo(
         "_hap._tcp.local.",
         "foo2._hap._tcp.local.",
         addresses=[socket.inet_aton("127.0.0.1")],
@@ -429,17 +403,16 @@ async def test_async_find_data_for_device_id_does_not_match(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        with pytest.raises(AccessoryNotFoundError):
+            await async_find_data_for_device_id(
+                device_id="00:00:01:00:00:02",
+                max_seconds=1,
+                async_zeroconf_instance=mock_asynczeroconf,
+            )
 
-    with pytest.raises(AccessoryNotFoundError):
-        await async_find_data_for_device_id(
-            device_id="00:00:01:00:00:02",
-            max_seconds=0,
-            zeroconf_instance=mock_zeroconf,
-        )
 
-
-async def test_async_find_data_for_device_id_info_without_id(mock_zeroconf):
+async def test_async_find_data_for_device_id_info_without_id(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
         b"md": b"unittest",
@@ -447,7 +420,7 @@ async def test_async_find_data_for_device_id_info_without_id(mock_zeroconf):
         b"ci": b"5",
         b"sf": b"0",
     }
-    info = ServiceInfo(
+    info = AsyncServiceInfo(
         "_hap._tcp.local.",
         "foo2._hap._tcp.local.",
         addresses=[socket.inet_aton("127.0.0.1")],
@@ -456,17 +429,18 @@ async def test_async_find_data_for_device_id_info_without_id(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        with pytest.raises(AccessoryNotFoundError):
+            await async_find_data_for_device_id(
+                device_id="00:00:01:00:00:02",
+                max_seconds=1,
+                async_zeroconf_instance=mock_asynczeroconf,
+            )
 
-    with pytest.raises(AccessoryNotFoundError):
-        await async_find_data_for_device_id(
-            device_id="00:00:01:00:00:02",
-            max_seconds=0,
-            zeroconf_instance=mock_zeroconf,
-        )
 
-
-async def test_async_find_data_for_device_id_with_active_service_browser(mock_zeroconf):
+async def test_async_find_data_for_device_id_with_active_service_browser(
+    mock_asynczeroconf,
+):
     desc = {
         b"c#": b"1",
         b"id": b"00:00:01:00:00:02",
@@ -476,23 +450,24 @@ async def test_async_find_data_for_device_id_with_active_service_browser(mock_ze
         b"ff": b"3",
         b"sf": b"0",
     }
-    mock_zeroconf.cache = MagicMock(
+    mock_asynczeroconf.zeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._hap._tcp.local."])
     )
     with patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ), patch(
-        "aiohomekit.zeroconf.ServiceInfo.load_from_cache", return_value=True
+        "aiohomekit.zeroconf.AsyncServiceInfo.load_from_cache", return_value=True
     ) as mock_load_from_cache, patch(
-        "aiohomekit.zeroconf.ServiceInfo.properties", PropertyMock(return_value=desc)
+        "aiohomekit.zeroconf.AsyncServiceInfo.properties",
+        PropertyMock(return_value=desc),
     ), patch(
-        "aiohomekit.zeroconf.ServiceInfo.addresses",
+        "aiohomekit.zeroconf.AsyncServiceInfo.addresses",
         PropertyMock(return_value=[socket.inet_aton("127.0.0.1")]),
     ):
         result = await async_find_data_for_device_id(
             device_id="00:00:01:00:00:02",
-            max_seconds=0,
-            zeroconf_instance=mock_zeroconf,
+            max_seconds=1,
+            async_zeroconf_instance=mock_asynczeroconf,
         )
 
     assert mock_load_from_cache.called
@@ -516,7 +491,7 @@ async def test_async_find_data_for_device_id_with_active_service_browser(mock_ze
 
 
 async def test_async_find_data_for_device_id_with_active_service_browser_no_match(
-    mock_zeroconf,
+    mock_asynczeroconf,
 ):
     desc = {
         b"c#": b"1",
@@ -526,25 +501,26 @@ async def test_async_find_data_for_device_id_with_active_service_browser_no_matc
         b"ci": b"5",
         b"sf": b"0",
     }
-    mock_zeroconf.cache = MagicMock(
+    mock_asynczeroconf.zeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._hap._tcp.local."])
     )
     with patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ), patch(
-        "aiohomekit.zeroconf.ServiceInfo.load_from_cache", return_value=True
+        "aiohomekit.zeroconf.AsyncServiceInfo.load_from_cache", return_value=True
     ) as mock_load_from_cache, patch(
-        "aiohomekit.zeroconf.ServiceInfo.properties", PropertyMock(return_value=desc)
+        "aiohomekit.zeroconf.AsyncServiceInfo.properties",
+        PropertyMock(return_value=desc),
     ), patch(
-        "aiohomekit.zeroconf.ServiceInfo.addresses",
+        "aiohomekit.zeroconf.AsyncServiceInfo.addresses",
         PropertyMock(return_value=[socket.inet_aton("127.0.0.1")]),
     ), pytest.raises(
         AccessoryNotFoundError
     ):
         await async_find_data_for_device_id(
             device_id="00:00:01:00:00:02",
-            max_seconds=0,
-            zeroconf_instance=mock_zeroconf,
+            max_seconds=1,
+            async_zeroconf_instance=mock_asynczeroconf,
         )
 
     assert mock_load_from_cache.called
@@ -596,7 +572,7 @@ def test_is_homekit_device_case_insensitive():
         b"ci": b"5",
         b"sf": b"0",
     }
-    info = ServiceInfo(
+    info = AsyncServiceInfo(
         "_hap._tcp.local.",
         "foo2._hap._tcp.local.",
         addresses=[socket.inet_aton("127.0.0.1")],

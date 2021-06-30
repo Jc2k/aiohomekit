@@ -43,14 +43,14 @@ class Controller:
     This class represents a HomeKit controller (normally your iPhone or iPad).
     """
 
-    def __init__(self, ble_adapter: str = "hci0", zeroconf_instance=None) -> None:
+    def __init__(self, ble_adapter: str = "hci0", async_zeroconf_instance=None) -> None:
         """
         Initialize an empty controller. Use 'load_data()' to load the pairing data.
 
         :param ble_adapter: the bluetooth adapter to be used (defaults to hci0)
         """
         self.pairings = {}
-        self._zeroconf_instance = zeroconf_instance
+        self._async_zeroconf_instance = async_zeroconf_instance
         self.ble_adapter = ble_adapter
         self.logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ class Controller:
         if not IP_TRANSPORT_SUPPORTED:
             raise TransportNotSupportedError("IP")
         devices = await async_discover_homekit_devices(
-            max_seconds, zeroconf_instance=self._zeroconf_instance
+            max_seconds, async_zeroconf_instance=self._async_zeroconf_instance
         )
         tmp = []
         for device in devices:
@@ -96,7 +96,7 @@ class Controller:
         device = await async_find_data_for_device_id(
             device_id=device_id,
             max_seconds=max_seconds,
-            zeroconf_instance=self._zeroconf_instance,
+            async_zeroconf_instance=self._async_zeroconf_instance,
         )
         return IpDiscovery(self, device)
 

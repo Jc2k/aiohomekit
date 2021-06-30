@@ -3,10 +3,16 @@ import errno
 import logging
 import os
 import socket
+import sys
 import tempfile
 import threading
 import time
 from unittest import mock
+
+if sys.version_info[:2] < (3, 8):
+    from asynctest.mock import patch  # noqa
+else:
+    from unittest.mock import patch  # noqa
 
 import pytest
 
@@ -86,7 +92,7 @@ async def controller_and_unpaired_accessory(request, loop):
 
     controller = Controller()
 
-    with mock.patch("aiohomekit.zeroconf._find_data_for_device_id") as find:
+    with patch("aiohomekit.zeroconf._async_find_data_for_device_id") as find:
         find.return_value = {
             "address": "127.0.0.1",
             "port": 51842,
@@ -172,7 +178,7 @@ async def controller_and_paired_accessory(request, loop):
     controller.load_data(controller_file.name)
     config_file.close()
 
-    with mock.patch("aiohomekit.zeroconf._find_data_for_device_id") as find:
+    with patch("aiohomekit.zeroconf._async_find_data_for_device_id") as find:
         find.return_value = {
             "address": "127.0.0.1",
             "port": 51842,
@@ -207,7 +213,7 @@ async def pairing(controller_and_paired_accessory):
 
 @pytest.fixture
 async def pairings(request, controller_and_paired_accessory, loop):
-    """ Returns a pairing of pairngs. """
+    """Returns a pairing of pairngs."""
     left = controller_and_paired_accessory.get_pairings()["alias"]
 
     right = IpPairing(left.controller, left.pairing_data)
