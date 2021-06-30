@@ -86,7 +86,7 @@ async def controller_and_unpaired_accessory(request, loop):
 
     controller = Controller()
 
-    with mock.patch("aiohomekit.zeroconf._find_data_for_device_id") as find:
+    with mock.patch("aiohomekit.zeroconf._async_find_data_for_device_id") as find:
         find.return_value = {
             "address": "127.0.0.1",
             "port": 51842,
@@ -172,7 +172,7 @@ async def controller_and_paired_accessory(request, loop):
     controller.load_data(controller_file.name)
     config_file.close()
 
-    with mock.patch("aiohomekit.zeroconf._find_data_for_device_id") as find:
+    with mock.patch("aiohomekit.zeroconf._async_find_data_for_device_id") as find:
         find.return_value = {
             "address": "127.0.0.1",
             "port": 51842,
