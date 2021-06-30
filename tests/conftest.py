@@ -207,7 +207,7 @@ async def pairing(controller_and_paired_accessory):
 
 @pytest.fixture
 async def pairings(request, controller_and_paired_accessory, loop):
-    """ Returns a pairing of pairngs. """
+    """Returns a pairing of pairngs."""
     left = controller_and_paired_accessory.get_pairings()["alias"]
 
     right = IpPairing(left.controller, left.pairing_data)

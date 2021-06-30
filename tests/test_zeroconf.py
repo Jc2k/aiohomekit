@@ -253,47 +253,6 @@ async def test_async_discover_homekit_devices_with_service_browser_running_inval
     assert result == []
 
 
-async def test_async_discover_homekit_devices(mock_asynczeroconf):
-    desc = {
-        b"c#": b"1",
-        b"id": b"00:00:01:00:00:02",
-        b"md": b"unittest",
-        b"s#": b"1",
-        b"ci": b"5",
-        b"sf": b"0",
-    }
-    info = AsyncServiceInfo(
-        "_hap._tcp.local.",
-        "foo2._hap._tcp.local.",
-        addresses=[socket.inet_aton("127.0.0.1")],
-        port=1234,
-        properties=desc,
-        weight=0,
-        priority=0,
-    )
-    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
-        result = await async_discover_homekit_devices(max_seconds=1)
-
-    assert result == [
-        {
-            "address": "127.0.0.1",
-            "c#": "1",
-            "category": "Lightbulb",
-            "ci": "5",
-            "ff": 0,
-            "flags": FeatureFlags(0),
-            "id": "00:00:01:00:00:02",
-            "md": "unittest",
-            "name": "foo2._hap._tcp.local.",
-            "port": 1234,
-            "pv": "1.0",
-            "s#": "1",
-            "sf": "0",
-            "statusflags": "Accessory has been paired.",
-        }
-    ]
-
-
 async def test_discover_homekit_devices_missing_c(mock_asynczeroconf):
     desc = {
         b"id": b"00:00:01:00:00:02",
