@@ -492,7 +492,7 @@ async def test_async_find_data_for_device_id_with_active_service_browser(
         b"ff": b"3",
         b"sf": b"0",
     }
-    mock_asynczeroconf.cache = MagicMock(
+    mock_asynczeroconf.zeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._hap._tcp.local."])
     )
     with patch(
@@ -543,7 +543,7 @@ async def test_async_find_data_for_device_id_with_active_service_browser_no_matc
         b"ci": b"5",
         b"sf": b"0",
     }
-    mock_asynczeroconf.cache = MagicMock(
+    mock_asynczeroconf.zeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._hap._tcp.local."])
     )
     with patch(
