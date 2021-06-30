@@ -15,7 +15,15 @@
 #
 
 import socket
-from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+import sys
+from unittest.mock import MagicMock, PropertyMock, patch
+
+if sys.version_info[:2] < (3, 8):
+    from asynctest.mock import CoroutineMock  # noqa
+
+    AsyncMock = CoroutineMock  # noqa: F405
+else:
+    from unittest.mock import AsyncMock  # noqa
 
 import pytest
 from zeroconf import BadTypeInNameException, Error
