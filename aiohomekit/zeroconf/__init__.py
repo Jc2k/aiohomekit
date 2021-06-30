@@ -327,6 +327,6 @@ async def async_find_data_for_device_id(
             device_id, async_zeroconf_instance
         )
 
-    await _async_find_data_for_device_id(
+    return await _async_find_data_for_device_id(
         device_id, max_seconds, async_zeroconf_instance
     )

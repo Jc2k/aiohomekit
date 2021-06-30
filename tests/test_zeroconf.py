@@ -57,7 +57,7 @@ def mock_asynczeroconf():
 
 async def test_find_no_device(mock_asynczeroconf):
     with pytest.raises(AccessoryNotFoundError):
-        await async_find_device_ip_and_port("00:00:00:00:00:00", 0)
+        await async_find_device_ip_and_port("00:00:00:00:00:00", 1)
 
 
 async def test_find_with_device(mock_asynczeroconf):
@@ -72,7 +72,7 @@ async def test_find_with_device(mock_asynczeroconf):
         priority=0,
     )
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
-        result = await async_find_device_ip_and_port("00:00:02:00:00:02", 0)
+        result = await async_find_device_ip_and_port("00:00:02:00:00:02", 1)
     assert result == ("127.0.0.1", 1234)
 
 
@@ -80,10 +80,10 @@ async def test_find_with_device(mock_asynczeroconf):
 async def test_find_with_device_async_get_service_info_throws(
     exception, mock_asynczeroconf
 ):
-    mock_asynczeroconf.async_get_service_info.side_effect = exception
-
-    with pytest.raises(AccessoryNotFoundError):
-        await async_find_device_ip_and_port("00:00:02:00:00:02", 0)
+    with patch(
+        "aiohomekit.zeroconf.AsyncServiceInfo", side_effect=exception
+    ), pytest.raises(AccessoryNotFoundError):
+        await async_find_device_ip_and_port("00:00:02:00:00:02", 1)
 
 
 async def test_async_discover_homekit_devices(mock_asynczeroconf):
@@ -105,7 +105,7 @@ async def test_async_discover_homekit_devices(mock_asynczeroconf):
         priority=0,
     )
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
-        result = await async_discover_homekit_devices(max_seconds=0)
+        result = await async_discover_homekit_devices(max_seconds=1)
 
     assert result == [
         {
@@ -155,7 +155,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ):
         result = await async_discover_homekit_devices(
-            max_seconds=0, async_zeroconf_instance=mock_asynczeroconf
+            max_seconds=1, async_zeroconf_instance=mock_asynczeroconf
         )
 
     assert result == [
@@ -206,7 +206,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running_not_h
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ):
         result = await async_discover_homekit_devices(
-            max_seconds=0, async_zeroconf_instance=mock_asynczeroconf
+            max_seconds=1, async_zeroconf_instance=mock_asynczeroconf
         )
 
     assert result == []
@@ -239,7 +239,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running_inval
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ):
         result = await async_discover_homekit_devices(
-            max_seconds=0, async_zeroconf_instance=mock_asynczeroconf
+            max_seconds=1, async_zeroconf_instance=mock_asynczeroconf
         )
 
     assert result == []
@@ -264,7 +264,7 @@ async def test_async_discover_homekit_devices(mock_asynczeroconf):
         priority=0,
     )
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
-        result = await async_discover_homekit_devices(max_seconds=0)
+        result = await async_discover_homekit_devices(max_seconds=1)
 
     assert result == [
         {
@@ -304,7 +304,7 @@ async def test_discover_homekit_devices_missing_c(mock_asynczeroconf):
         priority=0,
     )
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
-        result = await async_discover_homekit_devices(max_seconds=0)
+        result = await async_discover_homekit_devices(max_seconds=1)
 
     assert result == []
 
@@ -327,7 +327,7 @@ async def test_async_discover_homekit_devices_missing_md(mock_asynczeroconf):
         priority=0,
     )
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
-        result = await async_discover_homekit_devices(max_seconds=0)
+        result = await async_discover_homekit_devices(max_seconds=1)
 
     assert result == []
 
@@ -352,7 +352,7 @@ async def test_discover_homekit_devices_shared_zeroconf(mock_asynczeroconf):
     )
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
         result = await async_discover_homekit_devices(
-            max_seconds=0, async_zeroconf_instance=mock_asynczeroconf
+            max_seconds=1, async_zeroconf_instance=mock_asynczeroconf
         )
 
     assert result == [
@@ -396,7 +396,7 @@ async def test_async_find_data_for_device_id_matches(mock_asynczeroconf):
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
         result = await async_find_data_for_device_id(
             device_id="00:00:01:00:00:02",
-            max_seconds=0,
+            max_seconds=1,
             async_zeroconf_instance=mock_asynczeroconf,
         )
 
@@ -440,7 +440,7 @@ async def test_async_find_data_for_device_id_does_not_match(mock_asynczeroconf):
         with pytest.raises(AccessoryNotFoundError):
             await async_find_data_for_device_id(
                 device_id="00:00:01:00:00:02",
-                max_seconds=0,
+                max_seconds=1,
                 async_zeroconf_instance=mock_asynczeroconf,
             )
 
@@ -466,7 +466,7 @@ async def test_async_find_data_for_device_id_info_without_id(mock_asynczeroconf)
         with pytest.raises(AccessoryNotFoundError):
             await async_find_data_for_device_id(
                 device_id="00:00:01:00:00:02",
-                max_seconds=0,
+                max_seconds=1,
                 async_zeroconf_instance=mock_asynczeroconf,
             )
 
@@ -499,7 +499,7 @@ async def test_async_find_data_for_device_id_with_active_service_browser(
     ):
         result = await async_find_data_for_device_id(
             device_id="00:00:01:00:00:02",
-            max_seconds=0,
+            max_seconds=1,
             async_zeroconf_instance=mock_asynczeroconf,
         )
 
@@ -552,7 +552,7 @@ async def test_async_find_data_for_device_id_with_active_service_browser_no_matc
     ):
         await async_find_data_for_device_id(
             device_id="00:00:01:00:00:02",
-            max_seconds=0,
+            max_seconds=1,
             async_zeroconf_instance=mock_asynczeroconf,
         )
 
