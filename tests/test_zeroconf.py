@@ -52,7 +52,8 @@ def mock_asynczeroconf():
             zeroconf = MagicMock()
             zeroconf.async_wait_for_start = AsyncMock()
             zc.zeroconf = zeroconf
-            yield zc            
+            yield zc
+
 
 async def test_find_no_device(mock_asynczeroconf):
     with pytest.raises(AccessoryNotFoundError):
@@ -499,7 +500,8 @@ async def test_async_find_data_for_device_id_with_active_service_browser(
     ), patch(
         "aiohomekit.zeroconf.AsyncServiceInfo.load_from_cache", return_value=True
     ) as mock_load_from_cache, patch(
-        "aiohomekit.zeroconf.AsyncServiceInfo.properties", PropertyMock(return_value=desc)
+        "aiohomekit.zeroconf.AsyncServiceInfo.properties",
+        PropertyMock(return_value=desc),
     ), patch(
         "aiohomekit.zeroconf.AsyncServiceInfo.addresses",
         PropertyMock(return_value=[socket.inet_aton("127.0.0.1")]),
@@ -549,7 +551,8 @@ async def test_async_find_data_for_device_id_with_active_service_browser_no_matc
     ), patch(
         "aiohomekit.zeroconf.AsyncServiceInfo.load_from_cache", return_value=True
     ) as mock_load_from_cache, patch(
-        "aiohomekit.zeroconf.AsyncServiceInfo.properties", PropertyMock(return_value=desc)
+        "aiohomekit.zeroconf.AsyncServiceInfo.properties",
+        PropertyMock(return_value=desc),
     ), patch(
         "aiohomekit.zeroconf.AsyncServiceInfo.addresses",
         PropertyMock(return_value=[socket.inet_aton("127.0.0.1")]),
