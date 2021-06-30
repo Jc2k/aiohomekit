@@ -27,32 +27,31 @@ from aiohomekit.zeroconf import (
     async_discover_homekit_devices,
     async_find_data_for_device_id,
     async_find_device_ip_and_port,
-    discover_homekit_devices,
     get_from_properties,
 )
 
 
 @pytest.fixture
-def mock_zeroconf():
+def mock_asynczeroconf():
     """Mock zeroconf."""
 
     def browser(zeroconf, service, handler):
         handler.add_service(zeroconf, service, f"name.{service}")
         return MagicMock()
 
-    with patch("aiohomekit.zeroconf.ServiceBrowser") as mock_browser:
+    with patch("aiohomekit.zeroconf.AsyncServiceBrowser") as mock_browser:
         mock_browser.side_effect = browser
 
-        with patch("aiohomekit.zeroconf.Zeroconf") as mock_zc:
+        with patch("aiohomekit.zeroconf.AsyncZeroconf") as mock_zc:
             yield mock_zc.return_value
 
 
-async def test_find_no_device(mock_zeroconf):
+async def test_find_no_device(mock_asynczeroconf):
     with pytest.raises(AccessoryNotFoundError):
         await async_find_device_ip_and_port("00:00:00:00:00:00", 0)
 
 
-async def test_find_with_device(mock_zeroconf):
+async def test_find_with_device(mock_asynczeroconf):
     desc = {b"id": b"00:00:02:00:00:02", b"c#": b"1", b"md": b"any"}
     info = ServiceInfo(
         "_hap._tcp.local.",
@@ -63,21 +62,21 @@ async def test_find_with_device(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
+    mock_asynczeroconf.async_get_service_info.return_value = info
 
     result = await async_find_device_ip_and_port("00:00:02:00:00:02", 0)
     assert result == ("127.0.0.1", 1234)
 
 
 @pytest.mark.parametrize("exception", [OSError, Error, BadTypeInNameException])
-async def test_find_with_device_get_service_info_throws(exception, mock_zeroconf):
-    mock_zeroconf.get_service_info.side_effect = exception
+async def test_find_with_device_async_get_service_info_throws(exception, mock_asynczeroconf):
+    mock_asynczeroconf.async_get_service_info.side_effect = exception
 
     with pytest.raises(AccessoryNotFoundError):
         await async_find_device_ip_and_port("00:00:02:00:00:02", 0)
 
 
-async def test_async_discover_homekit_devices(mock_zeroconf):
+async def test_async_discover_homekit_devices(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
         b"id": b"00:00:01:00:00:02",
@@ -95,7 +94,7 @@ async def test_async_discover_homekit_devices(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
+    mock_asynczeroconf.async_get_service_info.return_value = info
 
     result = await async_discover_homekit_devices(max_seconds=0)
 
@@ -120,7 +119,7 @@ async def test_async_discover_homekit_devices(mock_zeroconf):
 
 
 async def test_async_discover_homekit_devices_with_service_browser_running(
-    mock_zeroconf,
+    mock_asynczeroconf,
 ):
     desc = {
         b"c#": b"1",
@@ -140,14 +139,14 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
         priority=0,
     )
 
-    mock_zeroconf.cache = MagicMock(
+    mock_asynczeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._hap._tcp.local."])
     )
     with patch("aiohomekit.zeroconf.ServiceInfo", return_value=info), patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ):
         result = await async_discover_homekit_devices(
-            max_seconds=0, zeroconf_instance=mock_zeroconf
+            max_seconds=0, zeroconf_instance=mock_asynczeroconf
         )
 
     assert result == [
@@ -171,7 +170,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
 
 
 async def test_async_discover_homekit_devices_with_service_browser_running_not_hap_device(
-    mock_zeroconf,
+    mock_asynczeroconf,
 ):
     desc = {
         b"c#": b"1",
@@ -191,21 +190,21 @@ async def test_async_discover_homekit_devices_with_service_browser_running_not_h
         priority=0,
     )
 
-    mock_zeroconf.cache = MagicMock(
+    mock_asynczeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._nothap._tcp.local."])
     )
     with patch("aiohomekit.zeroconf.ServiceInfo", return_value=info), patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ):
         result = await async_discover_homekit_devices(
-            max_seconds=0, zeroconf_instance=mock_zeroconf
+            max_seconds=0, zeroconf_instance=mock_asynczeroconf
         )
 
     assert result == []
 
 
 async def test_async_discover_homekit_devices_with_service_browser_running_invalid_device(
-    mock_zeroconf,
+    mock_asynczeroconf,
 ):
     desc = {
         b"c#": b"1",
@@ -224,20 +223,20 @@ async def test_async_discover_homekit_devices_with_service_browser_running_inval
         priority=0,
     )
 
-    mock_zeroconf.cache = MagicMock(
+    mock_asynczeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._hap._tcp.local."])
     )
     with patch("aiohomekit.zeroconf.ServiceInfo", return_value=info), patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ):
         result = await async_discover_homekit_devices(
-            max_seconds=0, zeroconf_instance=mock_zeroconf
+            max_seconds=0, zeroconf_instance=mock_asynczeroconf
         )
 
     assert result == []
 
 
-def test_discover_homekit_devices(mock_zeroconf):
+async def test_async_discover_homekit_devices(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
         b"id": b"00:00:01:00:00:02",
@@ -255,9 +254,9 @@ def test_discover_homekit_devices(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
+    mock_asynczeroconf.async_get_service_info.return_value = info
 
-    result = discover_homekit_devices(max_seconds=0)
+    result = await async_discover_homekit_devices(max_seconds=0)
 
     assert result == [
         {
@@ -279,7 +278,7 @@ def test_discover_homekit_devices(mock_zeroconf):
     ]
 
 
-def test_discover_homekit_devices_missing_c(mock_zeroconf):
+async def test_discover_homekit_devices_missing_c(mock_asynczeroconf):
     desc = {
         b"id": b"00:00:01:00:00:02",
         b"md": b"unittest",
@@ -296,14 +295,14 @@ def test_discover_homekit_devices_missing_c(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
+    mock_asynczeroconf.async_get_service_info.return_value = info
 
-    result = discover_homekit_devices(max_seconds=0)
+    result = await async_discover_homekit_devices(max_seconds=0)
 
     assert result == []
 
 
-def test_discover_homekit_devices_missing_md(mock_zeroconf):
+async def test_async_discover_homekit_devices_missing_md(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
         b"id": b"00:00:01:00:00:02",
@@ -320,14 +319,14 @@ def test_discover_homekit_devices_missing_md(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
+    mock_asynczeroconf.async_get_service_info.return_value = info
 
-    result = discover_homekit_devices(max_seconds=0)
+    result = await async_discover_homekit_devices(max_seconds=0)
 
     assert result == []
 
 
-def test_discover_homekit_devices_shared_zeroconf(mock_zeroconf):
+async def test_discover_homekit_devices_shared_zeroconf(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
         b"id": b"00:00:01:00:00:02",
@@ -345,9 +344,9 @@ def test_discover_homekit_devices_shared_zeroconf(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
+    mock_asynczeroconf.async_get_service_info.return_value = info
 
-    result = discover_homekit_devices(max_seconds=0, zeroconf_instance=mock_zeroconf)
+    result = await async_discover_homekit_devices(max_seconds=0, zeroconf_instance=mock_asynczeroconf)
 
     assert result == [
         {
@@ -369,7 +368,7 @@ def test_discover_homekit_devices_shared_zeroconf(mock_zeroconf):
     ]
 
 
-async def test_async_find_data_for_device_id_matches(mock_zeroconf):
+async def test_async_find_data_for_device_id_matches(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
         b"id": b"00:00:01:00:00:02",
@@ -387,10 +386,10 @@ async def test_async_find_data_for_device_id_matches(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
+    mock_asynczeroconf.async_get_service_info.return_value = info
 
     result = await async_find_data_for_device_id(
-        device_id="00:00:01:00:00:02", max_seconds=0, zeroconf_instance=mock_zeroconf
+        device_id="00:00:01:00:00:02", max_seconds=0, zeroconf_instance=mock_asynczeroconf
     )
 
     assert result == {
@@ -411,7 +410,7 @@ async def test_async_find_data_for_device_id_matches(mock_zeroconf):
     }
 
 
-async def test_async_find_data_for_device_id_does_not_match(mock_zeroconf):
+async def test_async_find_data_for_device_id_does_not_match(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
         b"id": b"00:00:01:00:00:03",
@@ -429,17 +428,17 @@ async def test_async_find_data_for_device_id_does_not_match(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
+    mock_asynczeroconf.async_get_service_info.return_value = info
 
     with pytest.raises(AccessoryNotFoundError):
         await async_find_data_for_device_id(
             device_id="00:00:01:00:00:02",
             max_seconds=0,
-            zeroconf_instance=mock_zeroconf,
+            zeroconf_instance=mock_asynczeroconf,
         )
 
 
-async def test_async_find_data_for_device_id_info_without_id(mock_zeroconf):
+async def test_async_find_data_for_device_id_info_without_id(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
         b"md": b"unittest",
@@ -456,17 +455,17 @@ async def test_async_find_data_for_device_id_info_without_id(mock_zeroconf):
         weight=0,
         priority=0,
     )
-    mock_zeroconf.get_service_info.return_value = info
+    mock_asynczeroconf.async_get_service_info.return_value = info
 
     with pytest.raises(AccessoryNotFoundError):
         await async_find_data_for_device_id(
             device_id="00:00:01:00:00:02",
             max_seconds=0,
-            zeroconf_instance=mock_zeroconf,
+            zeroconf_instance=mock_asynczeroconf,
         )
 
 
-async def test_async_find_data_for_device_id_with_active_service_browser(mock_zeroconf):
+async def test_async_find_data_for_device_id_with_active_service_browser(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
         b"id": b"00:00:01:00:00:02",
@@ -476,7 +475,7 @@ async def test_async_find_data_for_device_id_with_active_service_browser(mock_ze
         b"ff": b"3",
         b"sf": b"0",
     }
-    mock_zeroconf.cache = MagicMock(
+    mock_asynczeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._hap._tcp.local."])
     )
     with patch(
@@ -492,7 +491,7 @@ async def test_async_find_data_for_device_id_with_active_service_browser(mock_ze
         result = await async_find_data_for_device_id(
             device_id="00:00:01:00:00:02",
             max_seconds=0,
-            zeroconf_instance=mock_zeroconf,
+            zeroconf_instance=mock_asynczeroconf,
         )
 
     assert mock_load_from_cache.called
@@ -516,7 +515,7 @@ async def test_async_find_data_for_device_id_with_active_service_browser(mock_ze
 
 
 async def test_async_find_data_for_device_id_with_active_service_browser_no_match(
-    mock_zeroconf,
+    mock_asynczeroconf,
 ):
     desc = {
         b"c#": b"1",
@@ -526,7 +525,7 @@ async def test_async_find_data_for_device_id_with_active_service_browser_no_matc
         b"ci": b"5",
         b"sf": b"0",
     }
-    mock_zeroconf.cache = MagicMock(
+    mock_asynczeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._hap._tcp.local."])
     )
     with patch(
@@ -544,7 +543,7 @@ async def test_async_find_data_for_device_id_with_active_service_browser_no_matc
         await async_find_data_for_device_id(
             device_id="00:00:01:00:00:02",
             max_seconds=0,
-            zeroconf_instance=mock_zeroconf,
+            zeroconf_instance=mock_asynczeroconf,
         )
 
     assert mock_load_from_cache.called

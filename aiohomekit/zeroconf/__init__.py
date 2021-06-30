@@ -18,14 +18,14 @@
 
 from _socket import inet_ntoa
 import asyncio
-from functools import partial
+import contextlib
 import logging
 import threading
-from time import sleep
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from zeroconf import Error, ServiceBrowser, ServiceInfo, Zeroconf
-from zeroconf.asyncio import AsyncZeroconf, AsyncServiceInfo
+from zeroconf import Error, ServiceBrowser, Zeroconf
+
+from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf, AsyncServiceInfo
 
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Categories
@@ -34,16 +34,17 @@ from aiohomekit.model.status_flags import IpStatusFlags
 
 HAP_TYPE = "_hap._tcp.local."
 
+_TIMEOUT_MS = 3000
+
 logger = logging.getLogger(__name__)
 
 
 class CollectingListener:
     """Helper class to collect all zeroconf announcements."""
 
-    def __init__(self, max_attempts=2, device_id=None, found_device_event=None) -> None:
+    def __init__(self, device_id=None, found_device_event=None) -> None:
         """Init the listener."""
         self.data = []
-        self._max_attempts = max_attempts
         self._device_id = device_id
         self._found_device_event = found_device_event
 
@@ -54,39 +55,27 @@ class CollectingListener:
 
     def add_service(self, zeroconf, zeroconf_type, name):
         """Add a device that became visible via zeroconf."""
-        info = None
-        attempts = 0
-        while info is None and attempts < self._max_attempts:
-            try:
-                info = zeroconf.get_service_info(zeroconf_type, name)
-            except Error:
-                logger.warning(
-                    "Cannot finish discovering %s as it has an invalid discovery record",
-                    name,
-                )
-                break
-            except OSError:
-                break
-            attempts += 1
+        asyncio.ensure_future(self.async_add_service(zeroconf, zeroconf_type, name))
 
-        if not info:
+    async def async_add_service(self, zeroconf, zeroconf_type, name):
+        """Add a device that became visible via zeroconf."""
+        # AsyncServiceInfo already tries 3x
+        info = AsyncServiceInfo(zeroconf_type, name)
+        await info.async_request(aiozc.zeroconf, _TIMEOUT_MS)
+        if not _service_info_is_homekit_device(info):
             return
 
         self.data.append(info)
-
-        if not self._device_id or b"id" not in info.properties:
-            return
-
         if info.properties[b"id"].decode() == self._device_id:
             self._found_device_event.set()
 
     update_service = add_service
 
-    def get_data(self) -> List[ServiceInfo]:
+    def get_data(self) -> List[AsyncServiceInfo]:
         """
         Use this method to get the data of the collected announcements.
 
-        :return: a List of zeroconf.ServiceInfo instances
+        :return: a List of zeroconf.AsyncServiceInfo instances
         """
         return self.data
 
@@ -94,14 +83,14 @@ class CollectingListener:
 async def _async_homekit_devices_from_cache(
     aiozc: AsyncZeroconf, filter_func: Callable = None
 ) -> List[Dict[str, Any]]:
-    """Return all homekit devices in the cache."""
+    """Return all homekit devices in the cache, updating any missing data as needed."""
     infos = []
     for name in aiozc.zeroconf.cache.names():
         if not name.endswith(HAP_TYPE):
             continue
         infos.append(AsyncServiceInfo(HAP_TYPE, name))
 
-    tasks = [info.async_request(aiozc, 3000) for info in infos]
+    tasks = [info.async_request(aiozc.zeroconf, _TIMEOUT_MS) for info in infos]
     await asyncio.gather(*tasks)
 
     devices = []
@@ -161,9 +150,8 @@ def get_from_properties(
     return None
 
 
-def _service_info_is_homekit_device(service_info: ServiceInfo) -> bool:
-    props = {key.lower() for key in service_info.properties.keys()}
-
+def _service_info_is_homekit_device(service_info: AsyncServiceInfo) -> bool:
+    props = service_info.properties
     return (
         service_info.addresses and b"c#" in props and b"md" in props and b"id" in props
     )
@@ -187,8 +175,8 @@ async def async_discover_homekit_devices(
 
     our_aiozc = async_zeroconf_instance or AsyncZeroconf()
     listener = CollectingListener()
-    service_browser = ServiceBrowser(our_aiozc.zeroconf, HAP_TYPE, listener)
-    sleep(max_seconds)
+    service_browser = AsyncServiceBrowser(our_aiozc.zeroconf, HAP_TYPE, listener)
+    await asyncio.sleep(max_seconds)
     tmp = []
     try:
         for info in listener.get_data():
@@ -198,7 +186,7 @@ async def async_discover_homekit_devices(
             logging.debug("found Homekit IP accessory %s", data)
             tmp.append(data)
     finally:
-        service_browser.cancel()
+        await service_browser.async_cancel()
         if not async_zeroconf_instance:
             await our_aiozc.async_close()
     return tmp
@@ -274,8 +262,8 @@ def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, in
     return data
 
 
-def _find_data_for_device_id(
-    device_id: str, max_seconds: int = 10, zeroconf_instance: Zeroconf = None
+async def _async_find_data_for_device_id(
+    device_id: str, max_seconds: int = 10, async_zeroconf_instance: AsyncZeroconf = None
 ) -> Tuple[str, int]:
     """Try to find a HomeKit Accessory via Bonjour.
 
@@ -283,13 +271,12 @@ def _find_data_for_device_id(
     limit of `max_seconds` before it times out. The runtime of the function may be longer because of the Bonjour
     handling code.
     """
-    our_zc = zeroconf_instance or Zeroconf()
-    found_device_event = threading.Event()
-    listener = CollectingListener(
-        device_id=device_id, found_device_event=found_device_event
-    )
-    service_browser = ServiceBrowser(our_zc, HAP_TYPE, listener)
-    found_device_event.wait(timeout=max_seconds)
+    our_aio_zc = async_zeroconf_instance or AsyncZeroconf()
+    found_device_event = asyncio.Event()
+    listener = CollectingListener(device_id=device_id, found_device_event=found_device_event)
+    async_service_browser = AsyncServiceBrowser(our_aio_zc, HAP_TYPE, listener)
+    with contextlib.suppress(asyncio.TimeoutError):
+        await asyncio.wait_for(found_device_event.wait(), timeout=max_seconds)
     device_id_bytes = device_id.encode()
 
     try:
@@ -300,9 +287,9 @@ def _find_data_for_device_id(
                 logging.debug("Located Homekit IP accessory %s", info.properties)
                 return _build_data_from_service_info(info)
     finally:
-        service_browser.cancel()
-        if not zeroconf_instance:
-            our_zc.close()
+        await async_service_browser.async_cancel()
+        if not async_zeroconf_instance:
+            await our_aio_zc.async_close()
 
     raise AccessoryNotFoundError("Device not found via Bonjour within 10 seconds")
 
@@ -312,7 +299,7 @@ def async_zeroconf_has_hap_service_browser(
 ) -> bool:
     """Check to see if the zeroconf instance has an active HAP ServiceBrowser."""
     return any(
-        isinstance(listener, ServiceBrowser) and HAP_TYPE in listener.types
+        isinstance(listener, (ServiceBrowser, AsyncServiceBrowser)) and HAP_TYPE in listener.types
         for listener in async_zeroconf_instance.zeroconf.listeners
     )
 
@@ -338,12 +325,4 @@ async def async_find_data_for_device_id(
             device_id, async_zeroconf_instance
         )
 
-    return await asyncio.get_event_loop().run_in_executor(
-        None,
-        partial(
-            _find_data_for_device_id,
-            device_id=device_id,
-            max_seconds=max_seconds,
-            zeroconf_instance=async_zeroconf_instance.zeroconf,
-        ),
-    )
+    await _async_find_data_for_device_id(device_id, max_seconds, async_zeroconf_instance)
