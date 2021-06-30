@@ -20,10 +20,9 @@ from _socket import inet_ntoa
 import asyncio
 import contextlib
 import logging
-import threading
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from zeroconf import Error, ServiceBrowser, Zeroconf
+from zeroconf import ServiceBrowser
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.exceptions import AccessoryNotFoundError
@@ -60,7 +59,7 @@ class CollectingListener:
         """Add a device that became visible via zeroconf."""
         # AsyncServiceInfo already tries 3x
         info = AsyncServiceInfo(zeroconf_type, name)
-        await info.async_request(aiozc.zeroconf, _TIMEOUT_MS)
+        await info.async_request(zeroconf, _TIMEOUT_MS)
         if not _service_info_is_homekit_device(info):
             return
 
