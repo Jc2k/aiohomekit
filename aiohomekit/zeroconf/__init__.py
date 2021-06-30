@@ -24,8 +24,7 @@ import threading
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from zeroconf import Error, ServiceBrowser, Zeroconf
-
-from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf, AsyncServiceInfo
+from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Categories
@@ -273,7 +272,9 @@ async def _async_find_data_for_device_id(
     """
     our_aio_zc = async_zeroconf_instance or AsyncZeroconf()
     found_device_event = asyncio.Event()
-    listener = CollectingListener(device_id=device_id, found_device_event=found_device_event)
+    listener = CollectingListener(
+        device_id=device_id, found_device_event=found_device_event
+    )
     async_service_browser = AsyncServiceBrowser(our_aio_zc, HAP_TYPE, listener)
     with contextlib.suppress(asyncio.TimeoutError):
         await asyncio.wait_for(found_device_event.wait(), timeout=max_seconds)
@@ -299,7 +300,8 @@ def async_zeroconf_has_hap_service_browser(
 ) -> bool:
     """Check to see if the zeroconf instance has an active HAP ServiceBrowser."""
     return any(
-        isinstance(listener, (ServiceBrowser, AsyncServiceBrowser)) and HAP_TYPE in listener.types
+        isinstance(listener, (ServiceBrowser, AsyncServiceBrowser))
+        and HAP_TYPE in listener.types
         for listener in async_zeroconf_instance.zeroconf.listeners
     )
 
@@ -325,4 +327,6 @@ async def async_find_data_for_device_id(
             device_id, async_zeroconf_instance
         )
 
-    await _async_find_data_for_device_id(device_id, max_seconds, async_zeroconf_instance)
+    await _async_find_data_for_device_id(
+        device_id, max_seconds, async_zeroconf_instance
+    )
