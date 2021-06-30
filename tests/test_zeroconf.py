@@ -148,7 +148,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
         priority=0,
     )
 
-    mock_asynczeroconf.cache = MagicMock(
+    mock_asynczeroconf.zeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._hap._tcp.local."])
     )
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info), patch(
@@ -199,7 +199,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running_not_h
         priority=0,
     )
 
-    mock_asynczeroconf.cache = MagicMock(
+    mock_asynczeroconf.zeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._nothap._tcp.local."])
     )
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info), patch(
@@ -232,7 +232,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running_inval
         priority=0,
     )
 
-    mock_asynczeroconf.cache = MagicMock(
+    mock_asynczeroconf.zeroconf.cache = MagicMock(
         names=MagicMock(return_value=["foo2._hap._tcp.local."])
     )
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info), patch(
