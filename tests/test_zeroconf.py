@@ -69,7 +69,9 @@ async def test_find_with_device(mock_asynczeroconf):
 
 
 @pytest.mark.parametrize("exception", [OSError, Error, BadTypeInNameException])
-async def test_find_with_device_async_get_service_info_throws(exception, mock_asynczeroconf):
+async def test_find_with_device_async_get_service_info_throws(
+    exception, mock_asynczeroconf
+):
     mock_asynczeroconf.async_get_service_info.side_effect = exception
 
     with pytest.raises(AccessoryNotFoundError):
@@ -346,7 +348,9 @@ async def test_discover_homekit_devices_shared_zeroconf(mock_asynczeroconf):
     )
     mock_asynczeroconf.async_get_service_info.return_value = info
 
-    result = await async_discover_homekit_devices(max_seconds=0, zeroconf_instance=mock_asynczeroconf)
+    result = await async_discover_homekit_devices(
+        max_seconds=0, zeroconf_instance=mock_asynczeroconf
+    )
 
     assert result == [
         {
@@ -389,7 +393,9 @@ async def test_async_find_data_for_device_id_matches(mock_asynczeroconf):
     mock_asynczeroconf.async_get_service_info.return_value = info
 
     result = await async_find_data_for_device_id(
-        device_id="00:00:01:00:00:02", max_seconds=0, zeroconf_instance=mock_asynczeroconf
+        device_id="00:00:01:00:00:02",
+        max_seconds=0,
+        zeroconf_instance=mock_asynczeroconf,
     )
 
     assert result == {
@@ -465,7 +471,9 @@ async def test_async_find_data_for_device_id_info_without_id(mock_asynczeroconf)
         )
 
 
-async def test_async_find_data_for_device_id_with_active_service_browser(mock_asynczeroconf):
+async def test_async_find_data_for_device_id_with_active_service_browser(
+    mock_asynczeroconf,
+):
     desc = {
         b"c#": b"1",
         b"id": b"00:00:01:00:00:02",
