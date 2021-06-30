@@ -37,7 +37,7 @@ def mock_asynczeroconf():
     """Mock zeroconf."""
 
     def browser(zeroconf, service, handler):
-        handler.add_service(zeroconf, service, f"name.{service}")
+        handler.add_service(zeroconf.zeroconf, service, f"name.{service}")
         async_browser = MagicMock()
         async_browser.async_cancel = AsyncMock()
         return async_browser
@@ -71,9 +71,8 @@ async def test_find_with_device(mock_asynczeroconf):
         weight=0,
         priority=0,
     )
-    mock_asynczeroconf.async_get_service_info.return_value = info
-
-    result = await async_find_device_ip_and_port("00:00:02:00:00:02", 0)
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_find_device_ip_and_port("00:00:02:00:00:02", 0)
     assert result == ("127.0.0.1", 1234)
 
 
@@ -105,9 +104,8 @@ async def test_async_discover_homekit_devices(mock_asynczeroconf):
         weight=0,
         priority=0,
     )
-    mock_asynczeroconf.async_get_service_info.return_value = info
-
-    result = await async_discover_homekit_devices(max_seconds=0)
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_discover_homekit_devices(max_seconds=0)
 
     assert result == [
         {
@@ -265,9 +263,8 @@ async def test_async_discover_homekit_devices(mock_asynczeroconf):
         weight=0,
         priority=0,
     )
-    mock_asynczeroconf.async_get_service_info.return_value = info
-
-    result = await async_discover_homekit_devices(max_seconds=0)
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_discover_homekit_devices(max_seconds=0)
 
     assert result == [
         {
@@ -306,9 +303,8 @@ async def test_discover_homekit_devices_missing_c(mock_asynczeroconf):
         weight=0,
         priority=0,
     )
-    mock_asynczeroconf.async_get_service_info.return_value = info
-
-    result = await async_discover_homekit_devices(max_seconds=0)
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_discover_homekit_devices(max_seconds=0)
 
     assert result == []
 
@@ -330,9 +326,8 @@ async def test_async_discover_homekit_devices_missing_md(mock_asynczeroconf):
         weight=0,
         priority=0,
     )
-    mock_asynczeroconf.async_get_service_info.return_value = info
-
-    result = await async_discover_homekit_devices(max_seconds=0)
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_discover_homekit_devices(max_seconds=0)
 
     assert result == []
 
@@ -355,11 +350,10 @@ async def test_discover_homekit_devices_shared_zeroconf(mock_asynczeroconf):
         weight=0,
         priority=0,
     )
-    mock_asynczeroconf.async_get_service_info.return_value = info
-
-    result = await async_discover_homekit_devices(
-        max_seconds=0, async_zeroconf_instance=mock_asynczeroconf
-    )
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_discover_homekit_devices(
+            max_seconds=0, async_zeroconf_instance=mock_asynczeroconf
+        )
 
     assert result == [
         {
@@ -399,13 +393,12 @@ async def test_async_find_data_for_device_id_matches(mock_asynczeroconf):
         weight=0,
         priority=0,
     )
-    mock_asynczeroconf.async_get_service_info.return_value = info
-
-    result = await async_find_data_for_device_id(
-        device_id="00:00:01:00:00:02",
-        max_seconds=0,
-        async_zeroconf_instance=mock_asynczeroconf,
-    )
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        result = await async_find_data_for_device_id(
+            device_id="00:00:01:00:00:02",
+            max_seconds=0,
+            async_zeroconf_instance=mock_asynczeroconf,
+        )
 
     assert result == {
         "address": "127.0.0.1",
@@ -443,14 +436,13 @@ async def test_async_find_data_for_device_id_does_not_match(mock_asynczeroconf):
         weight=0,
         priority=0,
     )
-    mock_asynczeroconf.async_get_service_info.return_value = info
-
-    with pytest.raises(AccessoryNotFoundError):
-        await async_find_data_for_device_id(
-            device_id="00:00:01:00:00:02",
-            max_seconds=0,
-            async_zeroconf_instance=mock_asynczeroconf,
-        )
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        with pytest.raises(AccessoryNotFoundError):
+            await async_find_data_for_device_id(
+                device_id="00:00:01:00:00:02",
+                max_seconds=0,
+                async_zeroconf_instance=mock_asynczeroconf,
+            )
 
 
 async def test_async_find_data_for_device_id_info_without_id(mock_asynczeroconf):
@@ -470,14 +462,13 @@ async def test_async_find_data_for_device_id_info_without_id(mock_asynczeroconf)
         weight=0,
         priority=0,
     )
-    mock_asynczeroconf.async_get_service_info.return_value = info
-
-    with pytest.raises(AccessoryNotFoundError):
-        await async_find_data_for_device_id(
-            device_id="00:00:01:00:00:02",
-            max_seconds=0,
-            async_zeroconf_instance=mock_asynczeroconf,
-        )
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info):
+        with pytest.raises(AccessoryNotFoundError):
+            await async_find_data_for_device_id(
+                device_id="00:00:01:00:00:02",
+                max_seconds=0,
+                async_zeroconf_instance=mock_asynczeroconf,
+            )
 
 
 async def test_async_find_data_for_device_id_with_active_service_browser(

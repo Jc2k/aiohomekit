@@ -60,6 +60,7 @@ class CollectingListener:
         # AsyncServiceInfo already tries 3x
         info = AsyncServiceInfo(zeroconf_type, name)
         await info.async_request(zeroconf, _TIMEOUT_MS)
+
         if not _service_info_is_homekit_device(info):
             return
 
