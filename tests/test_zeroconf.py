@@ -148,7 +148,17 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
     }
     info = AsyncServiceInfo(
         "_hap._tcp.local.",
-        "foo2._hap._tcp.local.",
+        "foo._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+
+    info2 = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "Foo2._hap._tcp.local.",
         addresses=[socket.inet_aton("127.0.0.1")],
         port=1234,
         properties=desc,
@@ -157,10 +167,15 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
     )
 
     mock_asynczeroconf.zeroconf.cache = MagicMock(
-        names=MagicMock(return_value=["foo2._hap._tcp.local.", "_hap._tcp.local."])
+        get_all_by_details=MagicMock(
+            return_value=[
+                MagicMock(alias="foo._hap._tcp.local."),
+                MagicMock(alias="Foo2._hap._tcp.local."),
+            ]
+        )
     )
     with patch(
-        "aiohomekit.zeroconf.AsyncServiceInfo", return_value=info
+        "aiohomekit.zeroconf.AsyncServiceInfo", side_effect=[info, info2]
     ) as asyncserviceinfo_mock, patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ):
@@ -178,17 +193,34 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
             "flags": FeatureFlags(0),
             "id": "00:00:01:00:00:02",
             "md": "unittest",
-            "name": "foo2._hap._tcp.local.",
+            "name": "foo._hap._tcp.local.",
             "port": 1234,
             "pv": "1.0",
             "s#": "1",
             "sf": "0",
             "statusflags": "Accessory has been paired.",
-        }
+        },
+        {
+            "address": "127.0.0.1",
+            "c#": "1",
+            "category": "Lightbulb",
+            "ci": "5",
+            "ff": 0,
+            "flags": FeatureFlags(0),
+            "id": "00:00:01:00:00:02",
+            "md": "unittest",
+            "name": "Foo2._hap._tcp.local.",
+            "port": 1234,
+            "pv": "1.0",
+            "s#": "1",
+            "sf": "0",
+            "statusflags": "Accessory has been paired.",
+        },
     ]
 
     assert asyncserviceinfo_mock.mock_calls == [
-        call("_hap._tcp.local.", "foo2._hap._tcp.local.")
+        call("_hap._tcp.local.", "foo._hap._tcp.local."),
+        call("_hap._tcp.local.", "Foo2._hap._tcp.local."),
     ]
 
 
@@ -214,7 +246,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running_not_h
     )
 
     mock_asynczeroconf.zeroconf.cache = MagicMock(
-        names=MagicMock(return_value=["foo2._nothap._tcp.local."])
+        get_all_by_details=MagicMock(return_value=[])
     )
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info), patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
@@ -247,7 +279,11 @@ async def test_async_discover_homekit_devices_with_service_browser_running_inval
     )
 
     mock_asynczeroconf.zeroconf.cache = MagicMock(
-        names=MagicMock(return_value=["foo2._hap._tcp.local."])
+        get_all_by_details=MagicMock(
+            return_value=[
+                MagicMock(alias="foo2._hap._tcp.local."),
+            ]
+        )
     )
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info), patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
@@ -457,7 +493,11 @@ async def test_async_find_data_for_device_id_with_active_service_browser(
         b"sf": b"0",
     }
     mock_asynczeroconf.zeroconf.cache = MagicMock(
-        names=MagicMock(return_value=["foo2._hap._tcp.local."])
+        get_all_by_details=MagicMock(
+            return_value=[
+                MagicMock(alias="foo2._hap._tcp.local."),
+            ]
+        )
     )
     with patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
@@ -508,7 +548,11 @@ async def test_async_find_data_for_device_id_with_active_service_browser_no_matc
         b"sf": b"0",
     }
     mock_asynczeroconf.zeroconf.cache = MagicMock(
-        names=MagicMock(return_value=["foo2._hap._tcp.local."])
+        get_all_by_details=MagicMock(
+            return_value=[
+                MagicMock(alias="foo2._hap._tcp.local."),
+            ]
+        )
     )
     with patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
