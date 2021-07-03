@@ -85,7 +85,7 @@ async def _async_homekit_devices_from_cache(
     """Return all homekit devices in the cache, updating any missing data as needed."""
     infos = []
     for name in aiozc.zeroconf.cache.names():
-        if not name.endswith(HAP_TYPE):
+        if not name.endswith(HAP_TYPE) or name == HAP_TYPE:
             continue
         infos.append(AsyncServiceInfo(HAP_TYPE, name))
 

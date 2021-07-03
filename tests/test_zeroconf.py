@@ -16,7 +16,7 @@
 
 import socket
 import sys
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, call, patch
 
 if sys.version_info[:2] < (3, 8):
     from asynctest.mock import CoroutineMock  # noqa
@@ -157,9 +157,11 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
     )
 
     mock_asynczeroconf.zeroconf.cache = MagicMock(
-        names=MagicMock(return_value=["foo2._hap._tcp.local."])
+        names=MagicMock(return_value=["foo2._hap._tcp.local.", "_hap._tcp.local."])
     )
-    with patch("aiohomekit.zeroconf.AsyncServiceInfo", return_value=info), patch(
+    with patch(
+        "aiohomekit.zeroconf.AsyncServiceInfo", return_value=info
+    ) as asyncserviceinfo_mock, patch(
         "aiohomekit.zeroconf.async_zeroconf_has_hap_service_browser", return_value=True
     ):
         result = await async_discover_homekit_devices(
@@ -183,6 +185,10 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
             "sf": "0",
             "statusflags": "Accessory has been paired.",
         }
+    ]
+
+    assert asyncserviceinfo_mock.mock_calls == [
+        call("_hap._tcp.local.", "foo2._hap._tcp.local.")
     ]
 
 
