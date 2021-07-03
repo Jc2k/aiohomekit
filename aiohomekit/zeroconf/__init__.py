@@ -31,6 +31,8 @@ from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import IpStatusFlags
 
 HAP_TYPE = "_hap._tcp.local."
+CLASS_IN = 1
+TYPE_PTR = 12
 
 _TIMEOUT_MS = 3000
 
@@ -83,12 +85,12 @@ async def _async_homekit_devices_from_cache(
     aiozc: AsyncZeroconf, filter_func: Callable = None
 ) -> List[Dict[str, Any]]:
     """Return all homekit devices in the cache, updating any missing data as needed."""
-    infos = []
-    for name in aiozc.zeroconf.cache.names():
-        if not name.endswith(HAP_TYPE) or name == HAP_TYPE:
-            continue
-        infos.append(AsyncServiceInfo(HAP_TYPE, name))
-
+    infos = [
+        AsyncServiceInfo(HAP_TYPE, record.alias)
+        for record in aiozc.zeroconf.cache.get_all_by_details(
+            HAP_TYPE, TYPE_PTR, CLASS_IN
+        )
+    ]
     tasks = [info.async_request(aiozc.zeroconf, _TIMEOUT_MS) for info in infos]
     await asyncio.gather(*tasks)
 
