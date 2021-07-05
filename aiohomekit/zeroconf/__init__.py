@@ -277,7 +277,7 @@ async def _async_find_data_for_device_id(
     listener = CollectingListener(
         device_id=device_id, found_device_event=found_device_event
     )
-    async_service_browser = AsyncServiceBrowser(our_aio_zc, HAP_TYPE, listener)
+    async_service_browser = AsyncServiceBrowser(our_aio_zc.zeroconf, HAP_TYPE, listener)
     with contextlib.suppress(asyncio.TimeoutError):
         await asyncio.wait_for(found_device_event.wait(), timeout=max_seconds)
     device_id_bytes = device_id.encode()

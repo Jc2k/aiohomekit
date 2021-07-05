@@ -45,7 +45,10 @@ def mock_asynczeroconf():
     """Mock zeroconf."""
 
     def browser(zeroconf, service, handler):
-        handler.add_service(zeroconf.zeroconf, service, f"name.{service}")
+        # Make sure we get the right mocked object
+        if hasattr("zeroconf", "_extract_mock_name"):  # required python 3.7+
+            assert zeroconf._extract_mock_name() == "zeroconf_mock"
+        handler.add_service(zeroconf, service, f"name.{service}")
         async_browser = MagicMock()
         async_browser.async_cancel = AsyncMock()
         return async_browser
@@ -57,7 +60,7 @@ def mock_asynczeroconf():
             zc = mock_zc.return_value
             zc.async_register_service = AsyncMock()
             zc.async_close = AsyncMock()
-            zeroconf = MagicMock()
+            zeroconf = MagicMock(name="zeroconf_mock")
             zeroconf.async_wait_for_start = AsyncMock()
             zc.zeroconf = zeroconf
             yield zc
