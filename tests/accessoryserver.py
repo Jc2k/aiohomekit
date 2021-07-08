@@ -610,6 +610,13 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
         result = {"characteristics": []}
 
+        if len(ids) != len(set(ids)):
+            self.log_message(
+                "duplicate iid detected - this breaks some accessories: %s", ids
+            )
+            self.send_response(HttpStatusCodes.BAD_REQUEST)
+            return
+
         errors = 0
         for id_pair in ids:
             id_pair = id_pair.split(".")

@@ -26,6 +26,11 @@ async def test_get_characteristics(pairing):
     assert characteristics[(1, 9)] == {"value": False}
 
 
+async def test_duplicate_get_characteristics(pairing):
+    characteristics = await pairing.get_characteristics([(1, 9), (1, 9)])
+    assert characteristics[(1, 9)] == {"value": False}
+
+
 async def test_get_characteristics_after_failure(pairing):
     characteristics = await pairing.get_characteristics([(1, 9)])
 
