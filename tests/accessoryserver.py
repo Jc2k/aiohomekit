@@ -711,6 +711,10 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             self.send_response(HttpStatusCodes.OK)
 
         result_bytes = json.dumps(result).encode()
+
+        # Some accessories don't even generate valid JSON, so our test harness shouldn't either
+        result_bytes = result_bytes.replace(b"]", b",]")
+
         self.send_header("Content-Type", "application/hap+json")
         self.send_header("Content-Length", len(result_bytes))
         self.end_headers()
