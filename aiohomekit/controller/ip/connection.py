@@ -18,8 +18,6 @@ import asyncio
 import json
 import logging
 
-import commentjson
-
 from aiohomekit.crypto.chacha20poly1305 import (
     chacha20_aead_decrypt,
     chacha20_aead_encrypt,
@@ -33,6 +31,7 @@ from aiohomekit.exceptions import (
     HttpErrorResponse,
     TimeoutError,
 )
+import aiohomekit.hkjson as hkjson
 from aiohomekit.http import HttpContentTypes
 from aiohomekit.http.response import HttpResponse
 from aiohomekit.protocol import get_session_keys
@@ -317,7 +316,7 @@ class HomeKitConnection:
     async def get_json(self, target):
         response = await self.get(target)
         body = response.body.decode("utf-8")
-        return commentjson.loads(body)
+        return hkjson.loads(body)
 
     async def put(self, target, body, content_type=HttpContentTypes.JSON):
         """
@@ -350,7 +349,7 @@ class HomeKitConnection:
             )
 
         try:
-            parsed = commentjson.loads(decoded)
+            parsed = hkjson.loads(decoded)
         except json.JSONDecodeError:
             self.transport.close()
             raise AccessoryDisconnectedError(
@@ -389,7 +388,7 @@ class HomeKitConnection:
             return {}
 
         try:
-            parsed = commentjson.loads(decoded)
+            parsed = hkjson.loads(decoded)
         except json.JSONDecodeError:
             self.transport.close()
             raise AccessoryDisconnectedError(
@@ -578,7 +577,7 @@ class HomeKitConnection:
             return
 
         try:
-            parsed = commentjson.loads(decoded)
+            parsed = hkjson.loads(decoded)
         except json.JSONDecodeError:
             return
 
