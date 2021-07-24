@@ -25,6 +25,7 @@ from aiohomekit.controller.pairing import AbstractPairing
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Accessories
 from aiohomekit.model.characteristics import CharacteristicsTypes
+from aiohomekit.protocol.statuscodes import HapStatusCode
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -222,20 +223,28 @@ class FakePairing(AbstractPairing):
 
         results = {}
         for aid, cid in characteristics:
-            for accessory in self.accessories:
-                if aid != accessory.aid:
-                    continue
-                for service in accessory.services:
-                    for char in service.characteristics:
-                        if char.iid != cid:
-                            continue
-                        results[(aid, cid)] = {"value": char.get_value()}
+            accessory = self.accessories.aid(aid)
+            char = accessory.characteristics.iid(cid)
+            if char.status != HapStatusCode.SUCCESS:
+                results[(aid, cid)] = {"status": char.status.value}
+                continue
+            results[(aid, cid)] = {"value": char.get_value()}
+
         return results
 
     async def put_characteristics(self, characteristics):
         """Fake implementation of put_characteristics."""
-        self.testing.update_aid_iid(characteristics)
-        return {}
+        filtered = []
+        results = {}
+        for (aid, cid, value) in characteristics:
+            accessory = self.accessories.aid(aid)
+            char = accessory.characteristics.iid(cid)
+            if char.status != HapStatusCode.SUCCESS:
+                results[(aid, cid)] = {"status": char.status.value}
+                continue
+            filtered.append((aid, cid, value))
+        self.testing.update_aid_iid(filtered)
+        return results
 
     async def image(self, accessory, width, height):
         return base64.b64decode(FAKE_CAMERA_IMAGE)

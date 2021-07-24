@@ -3,6 +3,7 @@ from unittest import mock
 from aiohomekit.model import Accessories, Accessory
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
+from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.testing import FakeController
 
 
@@ -36,6 +37,40 @@ async def test_get_and_set():
 
     chars = await pairing.get_characteristics([(1, 10)])
     assert chars == {(1, 10): {"value": 1}}
+
+
+async def test_get_failure():
+    accessories = Accessories.from_file("tests/fixtures/koogeek_ls1.json")
+
+    char = accessories.aid(1).characteristics.iid(10)
+    char.status = HapStatusCode.UNABLE_TO_COMMUNICATE
+
+    controller = FakeController()
+    device = controller.add_device(accessories)
+
+    discovery = await controller.find_ip_by_device_id(device.device_id)
+    finish_pairing = await discovery.start_pairing("alias")
+    pairing = await finish_pairing("111-22-333")
+
+    chars = await pairing.get_characteristics([(1, 10)])
+    assert chars == {(1, 10): {"status": -70402}}
+
+
+async def test_put_failure():
+    accessories = Accessories.from_file("tests/fixtures/koogeek_ls1.json")
+
+    char = accessories.aid(1).characteristics.iid(10)
+    char.status = HapStatusCode.UNABLE_TO_COMMUNICATE
+
+    controller = FakeController()
+    device = controller.add_device(accessories)
+
+    discovery = await controller.find_ip_by_device_id(device.device_id)
+    finish_pairing = await discovery.start_pairing("alias")
+    pairing = await finish_pairing("111-22-333")
+
+    chars = await pairing.put_characteristics([(1, 10, 1)])
+    assert chars == {(1, 10): {"status": -70402}}
 
 
 async def test_update_named_service_events():
