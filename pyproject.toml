@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aiohomekit"
-version = "0.6.0"
+version = "0.6.1"
 description = "An asyncio HomeKit client"
 authors = ["John Carr <john.carr@unrouted.co.uk>"]
 license = "Apache-2.0"
