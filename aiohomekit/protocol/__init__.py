@@ -43,6 +43,8 @@ from aiohomekit.exceptions import (
 )
 from aiohomekit.protocol.tlv import TLV
 
+logger = logging.getLogger(__name__)
+
 
 def error_handler(error: bytearray, stage: str):
     """
@@ -134,6 +136,45 @@ def perform_pair_setup_part1(
     return response_tlv[TLV.kTLVType_Salt], response_tlv[TLV.kTLVType_PublicKey]
 
 
+def validate_mfi(session_key, response_tlv):
+    # If pairing method is PairSetupWithAuth there should be an EncryptedData TLV in M4
+    # It should have a signature and a certificate from an Apple secure co-processor.
+    decrypted = chacha20_aead_decrypt(
+        bytes(),
+        session_key,
+        b"PS-Msg04",
+        bytes([0, 0, 0, 0]),
+        response_tlv[TLV.kTLVType_EncryptedData],
+    )
+
+    if not decrypted:
+        logger.debug(
+            "Device returned kTLVType_EncryptedData during M4 but could not decrypt"
+        )
+        return
+
+    sub_tlv = TLV.decode_bytes(decrypted)
+
+    if TLV.kTLVType_Signature not in sub_tlv:
+        logger.debug(
+            "QUIRK: M4: Device returned kTLVType_EncryptedData, but did not contain kTLVType_Signature"
+        )
+        return
+
+    if TLV.kTLVType_Certificate not in sub_tlv:
+        logger.debug(
+            "QUIRK: M4: Device returned kTLVType_Signature but not kTLVType_Certificate"
+        )
+        return
+
+    # Certificate appears to be X509 in DER format but with some sort of PKCS7 pre-amble.
+    # cryptography doesn't seem to support that yet.
+
+    logger.debug(
+        "Found seemingly valid MFI kTLVType_Signature; we don't validate this yet"
+    )
+
+
 def perform_pair_setup_part2(
     pin: str, ios_pairing_id: str, salt: bytearray, server_public_key: bytearray
 ) -> Generator[Tuple[List[Tuple[int, bytearray]], List[int]], None, Dict[str, str]]:
@@ -163,7 +204,12 @@ def perform_pair_setup_part2(
         (TLV.kTLVType_Proof, SrpClient.to_byte_array(client_proof)),
     ]
 
-    step4_expectations = [TLV.kTLVType_State, TLV.kTLVType_Error, TLV.kTLVType_Proof]
+    step4_expectations = [
+        TLV.kTLVType_State,
+        TLV.kTLVType_Error,
+        TLV.kTLVType_Proof,
+        TLV.kTLVType_EncryptedData,
+    ]
     response_tlv = yield (response_tlv, step4_expectations)
 
     #
@@ -204,6 +250,9 @@ def perform_pair_setup_part2(
         "Pair-Setup-Encrypt-Salt",
         "Pair-Setup-Encrypt-Info",
     )
+
+    # if TLV.kTLVType_EncryptedData in response_tlv:
+    #     validate_mfi(session_key, response_tlv)
 
     ios_device_pairing_id = ios_pairing_id.encode()
     ios_device_info = ios_device_x + ios_device_pairing_id + ios_device_public_bytes
