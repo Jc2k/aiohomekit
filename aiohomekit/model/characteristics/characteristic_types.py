@@ -202,6 +202,11 @@ class _CharacteristicsTypes:
         EVE_DEGREE_AIR_PRESSURE = "E863F10F-079E-48FF-8F27-9C2605A29F52"
         EVE_DEGREE_ELEVATION = "E863F130-079E-48FF-8F27-9C2605A29F52"
 
+        # HAA - Home Accessory Architect
+        # https://github.com/RavenSystem/esp-homekit-devices
+        HAA_SETUP = "F0000102-0218-2017-81BF-AF2B7C833922"
+        HAA_UPDATE = "F0000101-0218-2017-81BF-AF2B7C833922"
+
         # Koogeek
         # Watts
         KOOGEEK_REALTIME_ENERGY = "4AAAF931-0DEC-11E5-B939-0800200C9A66"
