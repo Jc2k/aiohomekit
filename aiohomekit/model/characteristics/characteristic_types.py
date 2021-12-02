@@ -223,6 +223,33 @@ class _CharacteristicsTypes:
         VOCOLINC_LIGHTBULB_FLASHING_MODE = "2C42B339-6EC9-4ED5-8DBF-FFCCC721B144"
         VOCOLINC_LIGHTBULB_SMOOTHING_MODE = "A3663C89-DC18-42EF-8297-910A4C0C9B61"
         VOCOLINC_LIGHTBULB_BREATHING_MODE = "6533B15C-AECB-455F-8896-20B125390F61"
+        
+        # Ecobee
+        # r/o, uint8 - current mode - home(0)/sleep(1)/away(2)/temp(3)
+        ECOBEE_CURRENT_MODE = "B7DDB9A3-54BB-4572-91D2-F1F5B0510F8C"
+        # r/w, float - home heat temperature between 7.2 and 26.1
+        ECOBEE_HOME_TARGET_HEAT = "E4489BBC-5227-4569-93E5-B345E3E5508F"
+        # r/w, float - home cool temperature between 18.3 and 33.3
+        ECOBEE_HOME_TARGET_COOL = "7D381BAA-20F9-40E5-9BE9-AEB92D4BECEF"
+        # r/w, float - sleep heat temperature between 7.2 and 26.1
+        ECOBEE_SLEEP_TARGET_HEAT = "73AAB542-892A-4439-879A-D2A883724B69"
+        # r/w, float - sleep cool temperature between 18.3 and 33.3
+        ECOBEE_SLEEP_TARGET_COOL = "5DA985F0-898A-4850-B987-B76C6C78D670"
+        # r/w, float - away heat temp between 7.2 and 26.1
+        ECOBEE_AWAY_TARGET_HEAT = "05B97374-6DC0-439B-A0FA-CA33F612D425"
+        # r/w, float - away cool temp between 18.3 and 33.3
+        ECOBEE_AWAY_TARGET_COOL = "A251F6E7-AC46-4190-9C5D-3D06277BDF9F"
+        # w/o, uint8 - set hold schedule mode - home(0)/sleep(1)/away(2)
+        ECOBEE_SET_HOLD_SCHEDULE = "1B300BC2-CFFC-47FF-89F9-BD6CCF5F2853"
+        # r/w, string - 2014-01-03T00:00:00-07:00T
+        ECOBEE_TIMESTAMP = "1621F556-1367-443C-AF19-82AF018E99DE"
+        # w/o, bool - true to clear hold mode, false does nothing
+        ECOBEE_CLEAR_HOLD = "FA128DE6-9D7D-49A4-B6D8-4E4E234DEE38"
+        # r/w, 100 for on, 0 for off/auto
+        # https://support.ecobee.com/s/articles/Multi-Speed-Fan-installations
+        ECOBEE_FAN_WRITE_SPEED = "C35DA3C0-E004-40E3-B153-46655CDD9214"
+        # r/o, Mirrors status of above
+        ECOBEE_FAN_READ_SPEED = "48F62AEC-4171-4B4A-8F0E-1EEB6708B3FB"
 
     def __init__(self) -> None:
         self.baseUUID = "-0000-1000-8000-0026BB765291"
