@@ -253,7 +253,7 @@ class _CharacteristicsTypes:
 
         # ConnectSense
         # r/o, float - amps between 0 and 20
-        CONNECTSENSE_ENERGY_AMPERE = "00000004-0000-1000-8000-001D4B474349"
+        CONNECTSENSE_ENERGY_AMPS = "00000004-0000-1000-8000-001D4B474349"
         # r/o, uint32 - state timer - in epoch format
         CONNECTSENSE_STATE_TIMER = "00000005-0000-1000-8000-001D4B474349"
         # r/o, unit32 - total amps
@@ -261,7 +261,7 @@ class _CharacteristicsTypes:
         # r/o, float - volts between 0 and 130
         CONNECTSENSE_ENERGY_VOLTAGE = "00000008-0000-1000-8000-001D4B474349"
         # r/o, float - amps between 0 and 20 on 20a in-wall outlet
-        CONNECTSENSE_ENERGY_AMPERE_20 = "00000009-0000-1000-8000-001D4B474349"
+        CONNECTSENSE_ENERGY_AMPS_20 = "00000009-0000-1000-8000-001D4B474349"
         # r/o, float - watts
         CONNECTSENSE_ENERGY_WATT = "0000000A-0000-1000-8000-001D4B474349"
         # r/o, int - power factor between 0 and 100
