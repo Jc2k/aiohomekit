@@ -252,12 +252,22 @@ class _CharacteristicsTypes:
         ECOBEE_FAN_READ_SPEED = "48F62AEC-4171-4B4A-8F0E-1EEB6708B3FB"
 
         # ConnectSense
+        # r/o, uint32 - state timer - in epoch format
         CONNECTSENSE_STATE_TIMER = "00000005-0000-1000-8000-001D4B474349"
+        # r/o, float - volts between 0 and 130
         CONNECTSENSE_ENERGY_VOLTAGE = "00000008-0000-1000-8000-001D4B474349"
+        # r/o, float - amps between 0 and 20
         CONNECTSENSE_ENERGY_AMPERE = "00000009-0000-1000-8000-001D4B474349"
+        # r/o, float - watts
         CONNECTSENSE_ENERGY_WATT = "0000000A-0000-1000-8000-001D4B474349"
-        CONNECTSENSE_ENERGY_PWR_FACTOR = "0000000B-0000-1000-8000-001D4B474349"
+        # r/o, int - power factor between 0 and 100
+        CONNECTSENSE_ENERGY_POWER_FACTOR = "0000000B-0000-1000-8000-001D4B474349"
+        # r/o, float - kilowatt hours between 0 and 7743802671740404396
         CONNECTSENSE_ENERGY_KW_HOUR = "0000000C-0000-1000-8000-001D4B474349"
+        # r/o, string - outlet assigned name
+        CONNECTSENSE_ASSIGNED_NAME = "0000000E-0000-1000-8000-001D4B474349"
+        # r/o, uint32 - device type 
+        CONNECTSENSE_DEVICE_TYPE = "0000000F-0000-1000-8000-001D4B474349"
 
     def __init__(self) -> None:
         self.baseUUID = "-0000-1000-8000-0026BB765291"
