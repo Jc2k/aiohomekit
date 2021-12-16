@@ -270,7 +270,7 @@ class _CharacteristicsTypes:
         CONNECTSENSE_ENERGY_KW_HOUR = "0000000C-0000-1000-8000-001D4B474349"
         # r/o, string - outlet assigned name
         CONNECTSENSE_ASSIGNED_NAME = "0000000E-0000-1000-8000-001D4B474349"
-        # r/o, uint32 - device type 
+        # r/o, uint32 - device type attached to outlet
         CONNECTSENSE_DEVICE_TYPE = "0000000F-0000-1000-8000-001D4B474349"
 
     def __init__(self) -> None:
