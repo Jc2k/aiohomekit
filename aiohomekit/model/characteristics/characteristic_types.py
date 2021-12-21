@@ -273,6 +273,11 @@ class _CharacteristicsTypes:
         # r/o, uint32 - device type attached to outlet
         CONNECTSENSE_DEVICE_TYPE = "0000000F-0000-1000-8000-001D4B474349"
 
+        # r/w, uint32, percentage
+        AQARA_GATEWAY_VOLUME = "EE56B186-B0D3-528E-8C79-C21FC9BCF437"
+        # r/w, bool
+        AQARA_PAIRING_MODE = "B1C09E4C-E202-4827-B343-B0F32F727CFF"
+
     def __init__(self) -> None:
         self.baseUUID = "-0000-1000-8000-0026BB765291"
         self._characteristics = {
