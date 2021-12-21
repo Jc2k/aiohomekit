@@ -170,6 +170,8 @@ class _ServicesTypes:
         elif item_name.upper() in self._services:
             short = item_name.upper()
         else:
+            if len(orig_item) == 36:
+                return orig_item.upper()
             raise KeyError(f"No UUID found for Item {orig_item}")
 
         medium = "0" * (8 - len(short)) + short
