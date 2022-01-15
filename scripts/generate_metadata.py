@@ -115,7 +115,7 @@ with open("aiohomekit/model/characteristics/data.py", "w") as fp:
 
         if "step_value" in char:
             step_value = json.dumps(char["step_value"])
-            fp.write(f"        \"step_value\": {step_value},\n")
+            fp.write(f"        \"min_step\": {step_value},\n")
 
         fp.write("    },\n")
         pass

@@ -34,7 +34,7 @@ characteristics = {
         "format": "float",
         "max_value": 1000,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000065-0000-1000-8000-0026BB765291": {
         "name": "AIR_PARTICULATE_SIZE",
@@ -62,7 +62,7 @@ characteristics = {
         "unit": "percentage",
         "max_value": 100,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000008-0000-1000-8000-0026BB765291": {
         "name": "BRIGHTNESS",
@@ -72,7 +72,7 @@ characteristics = {
         "unit": "percentage",
         "max_value": 100,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000092-0000-1000-8000-0026BB765291": {
         "name": "CARBON_DIOXIDE_DETECTED",
@@ -131,7 +131,7 @@ characteristics = {
         "format": "uint32",
         "max_value": 500,
         "min_value": 140,
-        "step_value": 1,
+        "min_step": 1,
     },
     "0000006A-0000-1000-8000-0026BB765291": {
         "name": "CONTACT_SENSOR_STATE",
@@ -147,7 +147,7 @@ characteristics = {
         "unit": "celsius",
         "max_value": 35,
         "min_value": 10,
-        "step_value": 0.1,
+        "min_step": 0.1,
     },
     "000000A9-0000-1000-8000-0026BB765291": {
         "name": "CURRENT_AIR_PURIFIER_STATE",
@@ -196,7 +196,7 @@ characteristics = {
         "unit": "arcdegrees",
         "max_value": 90,
         "min_value": -90,
-        "step_value": 1,
+        "min_step": 1,
     },
     "000000B3-0000-1000-8000-0026BB765291": {
         "name": "CURRENT_HUMIDIFIER_DEHUMIDIFIER_STATE",
@@ -212,7 +212,7 @@ characteristics = {
         "unit": "percentage",
         "max_value": 100,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000010-0000-1000-8000-0026BB765291": {
         "name": "CURRENT_RELATIVE_HUMIDITY",
@@ -222,7 +222,7 @@ characteristics = {
         "unit": "percentage",
         "max_value": 100,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "000000AA-0000-1000-8000-0026BB765291": {
         "name": "CURRENT_SLAT_STATE",
@@ -238,7 +238,7 @@ characteristics = {
         "unit": "celsius",
         "max_value": 100,
         "min_value": 0,
-        "step_value": 0.1,
+        "min_step": 0.1,
     },
     "000000C1-0000-1000-8000-0026BB765291": {
         "name": "CURRENT_TILT_ANGLE",
@@ -248,7 +248,7 @@ characteristics = {
         "unit": "arcdegrees",
         "max_value": 90,
         "min_value": -90,
-        "step_value": 1,
+        "min_step": 1,
     },
     "0000006E-0000-1000-8000-0026BB765291": {
         "name": "CURRENT_VERTICAL_TILT_ANGLE",
@@ -258,7 +258,7 @@ characteristics = {
         "unit": "arcdegrees",
         "max_value": 90,
         "min_value": -90,
-        "step_value": 1,
+        "min_step": 1,
     },
     "0000011D-0000-1000-8000-0026BB765291": {
         "name": "DIGITAL_ZOOM",
@@ -300,7 +300,7 @@ characteristics = {
         "unit": "celsius",
         "max_value": 25,
         "min_value": 0,
-        "step_value": 0.1,
+        "min_step": 0.1,
     },
     "0000006F-0000-1000-8000-0026BB765291": {
         "name": "HOLD_POSITION",
@@ -316,7 +316,7 @@ characteristics = {
         "unit": "arcdegrees",
         "max_value": 360,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000014-0000-1000-8000-0026BB765291": {
         "name": "IDENTIFY",
@@ -338,7 +338,7 @@ characteristics = {
         "unit": "arcdegrees",
         "max_value": 270,
         "min_value": 0,
-        "step_value": 90,
+        "min_step": 90,
     },
     "000000D2-0000-1000-8000-0026BB765291": {
         "name": "IN_USE",
@@ -444,7 +444,7 @@ characteristics = {
         "format": "float",
         "max_value": 1000,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000024-0000-1000-8000-0026BB765291": {
         "name": "OBSTRUCTION_DETECTED",
@@ -483,7 +483,7 @@ characteristics = {
         "format": "float",
         "max_value": 1000,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "0000004C-0000-1000-8000-0026BB765291": {
         "name": "PAIR_SETUP",
@@ -516,7 +516,7 @@ characteristics = {
         "format": "float",
         "max_value": 1000,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "000000C6-0000-1000-8000-0026BB765291": {
         "name": "PM2_5_DENSITY",
@@ -525,7 +525,7 @@ characteristics = {
         "format": "float",
         "max_value": 1000,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000072-0000-1000-8000-0026BB765291": {
         "name": "POSITION_STATE",
@@ -553,7 +553,7 @@ characteristics = {
         "unit": "percentage",
         "max_value": 100,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "000000CA-0000-1000-8000-0026BB765291": {
         "name": "RELATIVE_HUMIDITY_HUMIDIFIER_THRESHOLD",
@@ -563,7 +563,7 @@ characteristics = {
         "unit": "percentage",
         "max_value": 100,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "000000D4-0000-1000-8000-0026BB765291": {
         "name": "REMAINING_DURATION",
@@ -572,7 +572,7 @@ characteristics = {
         "format": "uint32",
         "max_value": 3600,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "000000AD-0000-1000-8000-0026BB765291": {
         "name": "RESET_FILTER_INDICATION",
@@ -581,7 +581,7 @@ characteristics = {
         "format": "uint8",
         "max_value": 1,
         "min_value": 1,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000028-0000-1000-8000-0026BB765291": {
         "name": "ROTATION_DIRECTION",
@@ -597,7 +597,7 @@ characteristics = {
         "unit": "percentage",
         "max_value": 100,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "0000002F-0000-1000-8000-0026BB765291": {
         "name": "SATURATION",
@@ -607,7 +607,7 @@ characteristics = {
         "unit": "percentage",
         "max_value": 100,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "0000008E-0000-1000-8000-0026BB765291": {
         "name": "SECURITY_SYSTEM_ALARM_TYPE",
@@ -616,7 +616,7 @@ characteristics = {
         "format": "uint8",
         "max_value": 1,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000066-0000-1000-8000-0026BB765291": {
         "name": "SECURITY_SYSTEM_CURRENT_STATE",
@@ -650,7 +650,7 @@ characteristics = {
         "format": "uint8",
         "max_value": 255,
         "min_value": 1,
-        "step_value": 1,
+        "min_step": 1,
     },
     "000000CD-0000-1000-8000-0026BB765291": {
         "name": "SERVICE_LABEL_NAMESPACE",
@@ -665,7 +665,7 @@ characteristics = {
         "format": "uint32",
         "max_value": 3600,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000118-0000-1000-8000-0026BB765291": {
         "name": "SETUP_ENDPOINTS",
@@ -729,7 +729,7 @@ characteristics = {
         "format": "float",
         "max_value": 1000,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000115-0000-1000-8000-0026BB765291": {
         "name": "SUPPORTED_AUDIO_STREAM_CONFIGURATION",
@@ -803,7 +803,7 @@ characteristics = {
         "unit": "arcdegrees",
         "max_value": 90,
         "min_value": -90,
-        "step_value": 1,
+        "min_step": 1,
     },
     "000000B4-0000-1000-8000-0026BB765291": {
         "name": "TARGET_HUMIDIFIER_DEHUMIDIFIER_STATE",
@@ -819,7 +819,7 @@ characteristics = {
         "unit": "percentage",
         "max_value": 100,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000034-0000-1000-8000-0026BB765291": {
         "name": "TARGET_RELATIVE_HUMIDITY",
@@ -829,7 +829,7 @@ characteristics = {
         "unit": "percentage",
         "max_value": 100,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "000000BE-0000-1000-8000-0026BB765291": {
         "name": "TARGET_SLAT_STATE",
@@ -845,7 +845,7 @@ characteristics = {
         "unit": "celsius",
         "max_value": 38,
         "min_value": 10,
-        "step_value": 0.1,
+        "min_step": 0.1,
     },
     "000000C2-0000-1000-8000-0026BB765291": {
         "name": "TARGET_TILT_ANGLE",
@@ -855,7 +855,7 @@ characteristics = {
         "unit": "arcdegrees",
         "max_value": 90,
         "min_value": -90,
-        "step_value": 1,
+        "min_step": 1,
     },
     "0000007D-0000-1000-8000-0026BB765291": {
         "name": "TARGET_VERTICAL_TILT_ANGLE",
@@ -865,7 +865,7 @@ characteristics = {
         "unit": "arcdegrees",
         "max_value": 90,
         "min_value": -90,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000036-0000-1000-8000-0026BB765291": {
         "name": "TEMPERATURE_DISPLAY_UNITS",
@@ -892,7 +892,7 @@ characteristics = {
         "format": "float",
         "max_value": 1000,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "00000119-0000-1000-8000-0026BB765291": {
         "name": "VOLUME",
@@ -902,7 +902,7 @@ characteristics = {
         "unit": "percentage",
         "max_value": 100,
         "min_value": 0,
-        "step_value": 1,
+        "min_step": 1,
     },
     "000000B5-0000-1000-8000-0026BB765291": {
         "name": "WATER_LEVEL",
