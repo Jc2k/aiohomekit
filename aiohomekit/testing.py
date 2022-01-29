@@ -126,7 +126,7 @@ class PairingTester:
         Finds a named service then sets characteristics by type.
 
         pairing.test.update_named_service("kitchen lamp", {
-            CharacteristicTypes.ON: True
+            CharacteristicsTypes.ON: True
         })
 
         Triggers events if enabled.

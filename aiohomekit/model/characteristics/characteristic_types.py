@@ -14,9 +14,6 @@
 # limitations under the License.
 #
 
-from typing import Union
-import uuid
-
 
 class _CharacteristicsTypes:
     """
@@ -442,20 +439,6 @@ class _CharacteristicsTypes:
             "704": "public.hap.characteristic.thread-control-point",
         }
 
-        self._characteristics_rev = {
-            self._characteristics[k]: k for k in self._characteristics.keys()
-        }
-
-    def __getitem__(self, item: Union[str, int]) -> str:
-        if item in self._characteristics:
-            return self._characteristics[item]
-
-        if item in self._characteristics_rev:
-            return self._characteristics_rev[item]
-
-        # https://docs.python.org/3.5/reference/datamodel.html#object.__getitem__ say, KeyError should be raised
-        raise KeyError(f"Unknown Characteristic {item}?")
-
     def get_short(self, uuid: str) -> str:
         """
         Returns the short type for a given UUID. That means that "0000006D-0000-1000-8000-0026BB765291" and "6D" both
@@ -483,63 +466,32 @@ class _CharacteristicsTypes:
         full and short UUID consult chapter 5.6.1 page 72 of the specification. It also supports to pass through full
         non-HomeKit UUIDs.
 
-        :param item_name: either the type name (e.g. "public.hap.characteristic.position.current") or the short UUID as
-                          string or a HomeKit specific full UUID.
+        :param item_name: the short UUID as string or a HomeKit specific full UUID.
         :return: the short UUID (e.g. "6D" instead of "0000006D-0000-1000-8000-0026BB765291")
         :raises KeyError: if the input is neither a UUID nor a type name. Specific error is given in the message.
         """
-        orig_item = item_name
+
         if item_name.upper().endswith(self.baseUUID):
             item_name = item_name.upper()
             item_name = item_name.split("-", 1)[0]
             return item_name.lstrip("0")
 
-        if item_name.upper() in self._characteristics:
-            item_name = item_name.upper()
-            return item_name
-
-        if item_name.lower() in self._characteristics_rev:
-            item_name = item_name.lower()
-            return self._characteristics_rev[item_name]
-
-        try:
-            uuid.UUID(f"{{{item_name}}}")
-            return item_name
-        except ValueError:
-            raise KeyError(f"No short UUID found for Item {orig_item}")
+        return item_name.upper()
 
     def get_uuid(self, item_name: str) -> str:
         """
-        Returns the full length UUID for either a shorted UUID or textual characteristic type name. For information on
-        full and short UUID consult chapter 5.6.1 page 72 of the specification. It also supports to pass through full
-        HomeKit UUIDs.
+        Returns the a normalized UUID.
 
-        Shorted UUID means also leading zeros are stripped.
-
-        :param item_name: either the type name (e.g. "public.hap.characteristic.position.current") or the short UUID or
-                          a HomeKit specific full UUID.
-        :return: the full UUID (e.g. "0000006D-0000-1000-8000-0026BB765291")
-        :raises KeyError: if the input is neither a short UUID nor a type name. Specific error is given in the message.
+        This includes postfixing -0000-1000-8000-0026BB765291 and ensuring the case.
         """
-        orig_item = item_name
-        # if we get a full length uuid with the proper base and a known short one, this should also work.
-        if item_name.upper().endswith(self.baseUUID):
-            item_name = item_name.upper()
-            item_name = item_name.split("-", 1)[0]
-            item_name = item_name.lstrip("0")
+        if len(item_name) == 36:
+            return item_name.upper()
 
-        if item_name.lower() in self._characteristics_rev:
-            short = self._characteristics_rev[item_name.lower()]
-        elif item_name.upper() in self._characteristics:
-            short = item_name.upper()
-        else:
-            if len(orig_item) == 36:
-                return orig_item.upper()
-            raise KeyError(f"No UUID found for Item {orig_item}")
+        if len(item_name) <= 8:
+            prefix = "0" * (8 - len(item_name))
+            return f"{prefix}{item_name}{self.baseUUID}"
 
-        medium = "0" * (8 - len(short)) + short
-        long = medium + self.baseUUID
-        return long
+        raise KeyError(f"{item_name} not a valid UUID or short UUID")
 
 
 #
