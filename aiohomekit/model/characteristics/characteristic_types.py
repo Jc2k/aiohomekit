@@ -59,6 +59,7 @@ class _CharacteristicsTypes:
     CURRENT_HUMIDIFIER_DEHUMIDIFIER_STATE = "B3"
     # derived from https://github.com/KhaosT/HAP-NodeJS/blob/master/src/lib/gen/HomeKit-TV.ts
     CURRENT_MEDIA_STATE = "E0"
+    CURRENT_TRANSPORT = "228"
     DENSITY_NO2 = "C4"
     DENSITY_OZONE = "C3"
     DENSITY_PM10 = "C7"
@@ -171,6 +172,9 @@ class _CharacteristicsTypes:
     TEMPERATURE_HEATING_THRESHOLD = "12"
     TEMPERATURE_TARGET = "35"
     TEMPERATURE_UNITS = "36"
+    THREAD_CONTROL_POINT = "704"
+    THREAD_STATUS = "703"
+    THREAD_NODE_CAPABILITIES = "702"
     TILT_CURRENT = "C1"
     TILT_TARGET = "C2"
     TYPE_SLAT = "C0"
@@ -432,6 +436,10 @@ class _CharacteristicsTypes:
             "132": "public.hap.characteristic.siri-input-type",
             "136": "public.hap.characteristic.display-order",
             "137": "public.hap.characteristic.target-media-state",
+            "228": "public.hap.characteristic.current-transport",
+            "702": "public.hap.characteristic.thread-node-capabilities",
+            "703": "public.hap.characteristic.thread-status",
+            "704": "public.hap.characteristic.thread-control-point",
         }
 
         self._characteristics_rev = {

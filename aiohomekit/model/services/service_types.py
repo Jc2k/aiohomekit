@@ -59,6 +59,7 @@ class _ServicesTypes:
     TELEVISION = "D8"
     TEMPERATURE_SENSOR = "8A"
     THERMOSTAT = "4A"
+    THHREAD_TRANSPORT = "701"
     VALVE = "D0"
     WINDOW = "8B"
     WINDOW_COVERING = "8C"
@@ -115,6 +116,7 @@ class _ServicesTypes:
             "127": "public.hap.service.audio-stream-management",
             "129": "public.hap.service.data-stream-transport-management",
             "133": "public.hap.service.siri",
+            "701": "public.hap.service.thread-transport",
         }
 
         self._services_rev = {self._services[k]: k for k in self._services.keys()}
