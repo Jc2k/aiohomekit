@@ -126,7 +126,7 @@ from aiohomekit.model.services import ServicesTypes
 
 for serv in data.get('Services', []):
     name = serv['Name'].replace(" ", "_").upper()
-    short = ServicesTypes.get_short_uuid(serv['UUID'])
+    short = ServicesTypes.get_uuid(serv['UUID'])
     print(f'{name} = "{short}"')
 
 

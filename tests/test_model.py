@@ -90,7 +90,7 @@ def test_linked_services():
 
     service = a.services.first(service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH)
     assert len(service.linked) > 0
-    assert service.linked[0].short_type == ServicesTypes.SERVICE_LABEL
+    assert service.linked[0].type == "000000CC-0000-1000-8000-0026BB765291"
 
 
 def test_get_by_name():

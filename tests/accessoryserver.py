@@ -47,7 +47,6 @@ from aiohomekit.exceptions import (
 )
 from aiohomekit.http import HttpStatusCodes
 from aiohomekit.model import Accessories, Categories
-from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.protocol import TLV
 from aiohomekit.protocol.statuscodes import HapStatusCode
 
@@ -677,9 +676,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                                 cid,
                             ) in self.subscriptions
                         if include_type:
-                            result["characteristics"][-1][
-                                "type"
-                            ] = CharacteristicsTypes.get_short_uuid(characteristic.type)
+                            result["characteristics"][-1]["type"] = characteristic.type
                         if perms:
                             result["characteristics"][-1][
                                 "perms"

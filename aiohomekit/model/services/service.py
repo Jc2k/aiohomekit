@@ -21,8 +21,6 @@ from aiohomekit.model.characteristics.characteristic import check_convert_value
 from aiohomekit.model.services.data import services
 from aiohomekit.model.services.service_types import ServicesTypes
 
-from .types import ServiceShortUUID
-
 if TYPE_CHECKING:
     from aiohomekit.model import Accessory
 
@@ -84,13 +82,6 @@ class Service:
         except KeyError:
             pass
         return char_type in self.characteristics_by_type
-
-    @property
-    def short_type(self) -> ServiceShortUUID:
-        try:
-            return ServicesTypes.get_short_uuid(self.type)
-        except KeyError:
-            return self.type
 
     def value(self, char_type, default_value=None):
         try:
