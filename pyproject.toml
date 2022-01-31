@@ -13,12 +13,12 @@ classifiers = [
     "Topic :: Home Automation",
     "Intended Audience :: Developers",
     "Intended Audience :: End Users/Desktop",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8"
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10"
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.9"
 cryptography = ">=2.9.2"
 zeroconf = ">=0.32.0"
 commentjson = "^0.9.0"
@@ -39,7 +39,7 @@ asynctest = "^0.13.0"
 aiohttp = "^3.8.1"
 
 [tool.black]
-target-version = ["py37", "py38"]
+target-version = ["py39", "py310"]
 
 [tool.poetry.scripts]
 aiohomekitctl = "aiohomekit.__main__:sync_main"

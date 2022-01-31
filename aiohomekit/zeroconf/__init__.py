@@ -15,12 +15,13 @@
 #
 
 """Helpers for detecing homekit devices via zeroconf."""
+from __future__ import annotations
 
 from _socket import inet_ntoa
 import asyncio
 import contextlib
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable
 
 from zeroconf import ServiceBrowser
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
@@ -72,7 +73,7 @@ class CollectingListener:
 
     update_service = add_service
 
-    def get_data(self) -> List[AsyncServiceInfo]:
+    def get_data(self) -> list[AsyncServiceInfo]:
         """
         Use this method to get the data of the collected announcements.
 
@@ -83,7 +84,7 @@ class CollectingListener:
 
 async def _async_homekit_devices_from_cache(
     aiozc: AsyncZeroconf, filter_func: Callable = None
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Return all homekit devices in the cache, updating any missing data as needed."""
     infos = [
         AsyncServiceInfo(HAP_TYPE, record.alias)
@@ -106,7 +107,7 @@ async def _async_homekit_devices_from_cache(
 
 async def _async_device_data_zeroconf_cache(
     device_id: str, aiozc: AsyncZeroconf
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Find a homekit device in the zeroconf cache."""
     device_id_bytes = device_id.encode()
     devices = await _async_homekit_devices_from_cache(
@@ -119,11 +120,11 @@ async def _async_device_data_zeroconf_cache(
 
 
 def get_from_properties(
-    props: Dict[str, str],
+    props: dict[str, str],
     key: str,
-    default: Optional[Union[int, str]] = None,
+    default: int | str | None = None,
     case_sensitive: bool = True,
-) -> Optional[str]:
+) -> str | None:
     """Convert zeroconf properties to our format.
 
     This function looks up the key in the given zeroconf service information properties. Those are a dict between bytes.
@@ -160,7 +161,7 @@ def _service_info_is_homekit_device(service_info: AsyncServiceInfo) -> bool:
 
 async def async_discover_homekit_devices(
     max_seconds: int = 10, async_zeroconf_instance: AsyncZeroconf = None
-) -> List[Any]:
+) -> list[Any]:
     """Discovers all HomeKit Accessories.
 
     It browses for devices in the _hap._tcp.local. domain and checks if
@@ -193,7 +194,7 @@ async def async_discover_homekit_devices(
     return tmp
 
 
-def _build_data_from_service_info(service_info) -> Dict[str, Any]:
+def _build_data_from_service_info(service_info) -> dict[str, Any]:
     """Construct data from service_info."""
     # from Bonjour discovery
     data = {
@@ -211,7 +212,7 @@ def _build_data_from_service_info(service_info) -> Dict[str, Any]:
     return data
 
 
-def decode_discovery_properties(props: Dict[bytes, bytes]) -> Dict[str, str]:
+def decode_discovery_properties(props: dict[bytes, bytes]) -> dict[str, str]:
     """Decode unicode bytes in _hap._tcp Bonjour TXT record keys to python strings.
 
     :params: a dictionary of key/value TXT records from Bonjour discovery. These are assumed
@@ -221,7 +222,7 @@ def decode_discovery_properties(props: Dict[bytes, bytes]) -> Dict[str, str]:
     return {k.decode("utf-8"): value.decode("utf-8") for k, value in props.items()}
 
 
-def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, int]]:
+def parse_discovery_properties(props: dict[str, str]) -> dict[str, str | int]:
     """Normalize and parse _hap._tcp Bonjour TXT record keys.
 
     This is done automatically if you are using the discovery features built in to the library. If you are
@@ -265,7 +266,7 @@ def parse_discovery_properties(props: Dict[str, str]) -> Dict[str, Union[str, in
 
 async def _async_find_data_for_device_id(
     device_id: str, max_seconds: int = 10, async_zeroconf_instance: AsyncZeroconf = None
-) -> Tuple[str, int]:
+) -> tuple[str, int]:
     """Try to find a HomeKit Accessory via Bonjour.
 
     The process is time boxed by the second parameter which sets an upper
@@ -310,7 +311,7 @@ def async_zeroconf_has_hap_service_browser(
 
 async def async_find_device_ip_and_port(
     device_id: str, max_seconds: int = 10, async_zeroconf_instance: AsyncZeroconf = None
-) -> Tuple[str, int]:
+) -> tuple[str, int]:
     """Find the ip and port for a device id."""
     data = await async_find_data_for_device_id(
         device_id, max_seconds, async_zeroconf_instance
@@ -320,7 +321,7 @@ async def async_find_device_ip_and_port(
 
 async def async_find_data_for_device_id(
     device_id: str, max_seconds: int = 10, async_zeroconf_instance: AsyncZeroconf = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Find normalized data (properties) for a device id."""
     if async_zeroconf_instance and async_zeroconf_has_hap_service_browser(
         async_zeroconf_instance

@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import base64
 import logging
-from typing import Dict
 
 from aiohomekit import exceptions
 from aiohomekit.controller import Controller
@@ -37,7 +37,7 @@ FAKE_CAMERA_IMAGE = (
 
 class FakeDiscovery:
     def __init__(
-        self, controller: "FakeController", device_id: str, accessories: Accessories
+        self, controller: FakeController, device_id: str, accessories: Accessories
     ):
         self.controller = controller
         self.device_id = device_id
@@ -195,7 +195,7 @@ class FakePairing(AbstractPairing):
         self.connection.transport = "mock_transport"
         self.connection.protocol = "mock_protocol"
         self.accessories = accessories
-        self.pairing_data: Dict[str, AbstractPairing] = {}
+        self.pairing_data: dict[str, AbstractPairing] = {}
         self.available = True
 
         self.testing = PairingTester(self)

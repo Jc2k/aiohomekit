@@ -13,9 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import json
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Iterable
 
 from aiohomekit.protocol.statuscodes import to_status_code
 
@@ -41,7 +42,7 @@ __all__ = [
 
 class Services:
     def __init__(self):
-        self._services: List[Service] = []
+        self._services: list[Service] = []
 
     def __iter__(self):
         return iter(self._services)
@@ -53,10 +54,10 @@ class Services:
         self,
         *,
         service_type: str = None,
-        characteristics: Dict[str, str] = None,
+        characteristics: dict[str, str] = None,
         parent_service: Service = None,
         child_service: Service = None,
-        order_by: Optional[List[str]] = None,
+        order_by: list[str] | None = None,
     ) -> Iterable[Service]:
         matches = iter(self._services)
 
@@ -90,7 +91,7 @@ class Services:
         self,
         *,
         service_type: str = None,
-        characteristics: Dict[str, str] = None,
+        characteristics: dict[str, str] = None,
         parent_service: Service = None,
         child_service: Service = None,
     ) -> Service:
@@ -114,7 +115,7 @@ class Characteristics:
     def __init__(self, services):
         self._services = services
 
-    def iid(self, iid: int) -> Optional[Characteristic]:
+    def iid(self, iid: int) -> Characteristic | None:
         for service in self._services:
             for char in service.characteristics:
                 if char.iid == iid:
@@ -137,7 +138,7 @@ class Accessory:
         model: str,
         serial_number: str,
         firmware_revision: str,
-    ) -> "Accessory":
+    ) -> Accessory:
         self = cls()
 
         accessory_info = self.add_service(ServicesTypes.ACCESSORY_INFORMATION)
@@ -182,7 +183,7 @@ class Accessory:
         return all(s.available for s in self.services)
 
     @classmethod
-    def create_from_dict(cls, data: Dict[str, Any]) -> "Accessory":
+    def create_from_dict(cls, data: dict[str, Any]) -> Accessory:
         accessory = cls()
         accessory.aid = data["aid"]
 
@@ -230,7 +231,7 @@ class Accessory:
         return self._next_id
 
     def add_service(
-        self, service_type: str, name: Optional[str] = None, add_required: bool = False
+        self, service_type: str, name: str | None = None, add_required: bool = False
     ) -> Service:
         service = Service(self, service_type, name=name, add_required=add_required)
         self.services.append(service)
@@ -255,12 +256,12 @@ class Accessories:
         return self.accessories[idx]
 
     @classmethod
-    def from_file(cls, path) -> "Accessories":
+    def from_file(cls, path) -> Accessories:
         with open(path) as fp:
             return cls.from_list(json.load(fp))
 
     @classmethod
-    def from_list(cls, accessories) -> "Accessories":
+    def from_list(cls, accessories) -> Accessories:
         self = cls()
         for accessory in accessories:
             self.add_accessory(Accessory.create_from_dict(accessory))

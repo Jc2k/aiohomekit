@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import json
 from json.decoder import JSONDecodeError
 import logging
 import pathlib
 import re
-from typing import Dict
 
 from ..const import BLE_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
 from ..exceptions import (
@@ -130,7 +130,7 @@ class Controller:
         for p in self.pairings:
             await self.pairings[p].close()
 
-    def load_pairing(self, alias: str, pairing_data: Dict[str, str]) -> AbstractPairing:
+    def load_pairing(self, alias: str, pairing_data: dict[str, str]) -> AbstractPairing:
         """
         Loads a pairing instance from a pairing data dict.
         """
@@ -150,7 +150,7 @@ class Controller:
         connection_type = pairing_data["Connection"]
         raise NotImplementedError(f"{connection_type} support")
 
-    def get_pairings(self) -> Dict[str, IpPairing]:
+    def get_pairings(self) -> dict[str, IpPairing]:
         """
         Returns a dict containing all pairings known to the controller.
 

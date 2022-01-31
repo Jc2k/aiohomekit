@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import abc
 from dataclasses import field, fields
 import enum
@@ -7,7 +9,6 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Dict,
     Generic,
     Iterable,
     Sequence,
@@ -115,13 +116,11 @@ def deserialize_int_enum(value_type: type, value: bytes) -> enum.IntEnum:
     return value_type(int_value)
 
 
-def deserialize_tlv_struct(value_type: type, value: bytes) -> "TLVStruct":
+def deserialize_tlv_struct(value_type: type, value: bytes) -> TLVStruct:
     return value_type.decode(value)
 
 
-def deserialize_typing_sequence(
-    value_type: type, value: bytes
-) -> Sequence["TLVStruct"]:
+def deserialize_typing_sequence(value_type: type, value: bytes) -> Sequence[TLVStruct]:
     inner_type = value_type.__args__[0]
 
     results = []
@@ -151,7 +150,7 @@ def serialize_int_enum(value_type: type, value: enum.IntEnum) -> bytes:
     return serialize_u8(value_type, int(value))
 
 
-def serialize_tlv_struct(value_type: type, value: "TLVStruct") -> bytes:
+def serialize_tlv_struct(value_type: type, value: TLVStruct) -> bytes:
     return value.encode()
 
 
@@ -256,7 +255,7 @@ class TLVStruct:
         return cls(**kwargs)
 
 
-DESERIALIZERS: Dict[type, DeserializerCallback] = {
+DESERIALIZERS: dict[type, DeserializerCallback] = {
     u8: deserialize_u8,
     u16: deserialize_u16,
     u32: deserialize_u32,
@@ -266,7 +265,7 @@ DESERIALIZERS: Dict[type, DeserializerCallback] = {
     abc.Sequence: deserialize_typing_sequence,
 }
 
-SERIALIZERS: Dict[type, SerializerCallback] = {
+SERIALIZERS: dict[type, SerializerCallback] = {
     u8: serialize_u8,
     u16: serialize_u16,
     u32: serialize_u32,

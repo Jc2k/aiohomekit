@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import base64
 import binascii
 from decimal import ROUND_HALF_UP, Decimal, localcontext
 from distutils.util import strtobool
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 from aiohomekit.exceptions import CharacteristicPermissionError, FormatError
 from aiohomekit.protocol.statuscodes import HapStatusCode
@@ -59,7 +60,7 @@ NUMBER_TYPES = INTEGER_TYPES + [CharacteristicFormats.float]
 
 
 class Characteristic:
-    def __init__(self, service: "Service", characteristic_type: str, **kwargs) -> None:
+    def __init__(self, service: Service, characteristic_type: str, **kwargs) -> None:
         self.service = service
         self.iid = service.accessory.get_next_id()
         try:
@@ -111,10 +112,10 @@ class Characteristic:
 
     def _get_configuration(
         self,
-        kwargs: Dict[str, Any],
+        kwargs: dict[str, Any],
         key: str,
-        default: Optional[Any] = None,
-    ) -> Optional[Any]:
+        default: Any | None = None,
+    ) -> Any | None:
         if key in kwargs:
             return kwargs[key]
         if self.type not in characteristics:

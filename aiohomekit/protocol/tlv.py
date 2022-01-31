@@ -13,8 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
+
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -94,13 +96,11 @@ class TLV:
     kTLVHAPParamHAPValidValuesRangeDescriptor = 0x12
 
     @staticmethod
-    def decode_bytes(
-        bs: Union[bytearray, bytes], expected: Optional[List[int]] = None
-    ) -> list:
+    def decode_bytes(bs: bytearray | bytes, expected: list[int] | None = None) -> list:
         return TLV.decode_bytearray(bytearray(bs), expected)
 
     @staticmethod
-    def decode_bytearray(ba: bytearray, expected: Optional[List[int]] = None) -> list:
+    def decode_bytearray(ba: bytearray, expected: list[int] | None = None) -> list:
         result = []
         # do not influence caller!
         tail = ba.copy()

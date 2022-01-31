@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 from binascii import hexlify
 import logging
-from typing import Any, Dict, Generator, List, Tuple, Union
+from typing import Any, Generator
 
 from cryptography import exceptions as cryptography_exceptions
 from cryptography.hazmat.primitives import serialization
@@ -89,7 +90,7 @@ def handle_state_step(tlv_dict, expected_state):
 def perform_pair_setup_part1(
     with_auth: bool = True,
 ) -> Generator[
-    Tuple[List[Tuple[int, bytearray]], List[int]], None, Tuple[bytearray, bytearray]
+    tuple[list[tuple[int, bytearray]], list[int]], None, tuple[bytearray, bytearray]
 ]:
     """
     Performs a pair setup operation as described in chapter 4.7 page 39 ff.
@@ -177,7 +178,7 @@ def validate_mfi(session_key, response_tlv):
 
 def perform_pair_setup_part2(
     pin: str, ios_pairing_id: str, salt: bytearray, server_public_key: bytearray
-) -> Generator[Tuple[List[Tuple[int, bytearray]], List[int]], None, Dict[str, str]]:
+) -> Generator[tuple[list[tuple[int, bytearray]], list[int]], None, dict[str, str]]:
     """
     Performs a pair setup operation as described in chapter 4.7 page 39 ff.
 
@@ -350,14 +351,14 @@ def perform_pair_setup_part2(
 
 
 def get_session_keys(
-    pairing_data: Dict[str, Union[str, int, List[Any]]]
+    pairing_data: dict[str, str | int | list[Any]]
 ) -> Generator[
-    Union[
-        Tuple[List[Union[Tuple[int, bytearray], Tuple[int, bytes]]], List[int]],
-        Tuple[List[Tuple[int, bytearray]], List[int]],
-    ],
+    (
+        tuple[list[tuple[int, bytearray] | tuple[int, bytes]], list[int]]
+        | tuple[list[tuple[int, bytearray]], list[int]]
+    ),
     None,
-    Tuple[bytes, bytes],
+    tuple[bytes, bytes],
 ]:
     """
     HomeKit Controller state machine to perform a pair verify operation as described in chapter 4.8 page 47 ff.

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import argparse
 from argparse import ArgumentParser, Namespace
@@ -23,7 +24,6 @@ import logging
 import pathlib
 import re
 import sys
-from typing import List, Optional
 
 from .controller import Controller
 from .exceptions import HomeKitException
@@ -405,7 +405,7 @@ def setup_parser_for_pairing(parser: ArgumentParser) -> None:
     )
 
 
-async def main(argv: Optional[List[str]] = None) -> None:
+async def main(argv: list[str] | None = None) -> None:
     argv = argv or sys.argv[1:]
 
     parser = argparse.ArgumentParser(

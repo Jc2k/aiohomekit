@@ -18,7 +18,8 @@
 Implements the ChaCha20 stream cipher and the Poly1350 authenticator. More information can be found on
 https://tools.ietf.org/html/rfc7539. See HomeKit spec page 51.
 """
-from typing import Tuple, Union
+
+from __future__ import annotations
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
@@ -26,7 +27,7 @@ from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
 def chacha20_aead_encrypt(
     aad: bytes, key: bytes, iv: bytes, constant: bytes, plaintext: bytes
-) -> Tuple[bytearray, bytes]:
+) -> tuple[bytearray, bytes]:
     """
     The encrypt method for chacha20 aead as required by the Apple specification. The 96-bit nonce from RFC7539 is
     formed from the constant and the initialisation vector.
@@ -53,7 +54,7 @@ def chacha20_aead_encrypt(
 
 def chacha20_aead_decrypt(
     aad: bytes, key: bytes, iv: bytes, constant: bytes, ciphertext: bytes
-) -> Union[bool, bytearray]:
+) -> bool | bytearray:
     """
     The decrypt method for chacha20 aead as required by the Apple specification. The 96-bit nonce from RFC7539 is
     formed from the constant and the initialisation vector.
