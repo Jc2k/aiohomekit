@@ -27,8 +27,6 @@ from typing import List, Optional
 
 from .controller import Controller
 from .exceptions import HomeKitException
-from .model.characteristics import CharacteristicsTypes
-from .model.services import ServicesTypes
 
 logger = logging.getLogger(__name__)
 
@@ -187,11 +185,7 @@ async def get_accessories(args: Namespace) -> bool:
             for service in accessory["services"]:
                 s_type = service["type"]
                 s_iid = service["iid"]
-                print(
-                    "{aid}.{iid}: >{stype}<".format(
-                        aid=aid, iid=s_iid, stype=ServicesTypes.get_short(s_type)
-                    )
-                )
+                print(f"{aid}.{s_iid}: >{s_type}<")
 
                 for characteristic in service["characteristics"]:
                     c_iid = characteristic["iid"]
@@ -199,17 +193,7 @@ async def get_accessories(args: Namespace) -> bool:
                     c_type = characteristic["type"]
                     perms = ",".join(characteristic["perms"])
                     desc = characteristic.get("description", "")
-                    c_type = CharacteristicsTypes.get_short(c_type)
-                    print(
-                        "  {aid}.{iid}: {value} ({description}) >{ctype}< [{perms}]".format(
-                            aid=aid,
-                            iid=c_iid,
-                            value=value,
-                            ctype=c_type,
-                            perms=perms,
-                            description=desc,
-                        )
-                    )
+                    print(f"  {aid}.{c_iid}: {value} ({desc}) >{c_type}< [{perms}]")
     return True
 
 

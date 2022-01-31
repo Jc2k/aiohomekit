@@ -22,7 +22,7 @@ async def test_get_accessories(pairing):
     with mock.patch("sys.stdout") as stdout:
         await main(["accessories", "-f", "pairing.json", "-a", "alias"])
     printed = stdout.write.call_args_list[0][0][0]
-    assert printed.startswith("1.1: >accessory-information")
+    assert printed.startswith("1.1: >0000003E-0000-1000-8000-0026BB765291")
 
     with mock.patch("sys.stdout") as stdout:
         await main(["accessories", "-f", "pairing.json", "-a", "alias", "-o", "json"])

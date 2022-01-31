@@ -131,24 +131,6 @@ class _ServicesTypes:
         # raise KeyError('Item {item} not found'.format_map(item=item))
         return f"Unknown Service: {item}"
 
-    def get_short(self, item: str) -> str:
-        """
-        get the short version of the service name (aka the last segment of the name) or if this is not in the list of
-        services it returns 'Unknown Service: XX'.
-
-        :param item: the items full UUID
-        :return: the last segment of the service name or a hint that it is unknown
-        """
-        orig_item = item
-        item = item.upper()
-        if item.endswith(self.baseUUID):
-            item = item.split("-", 1)[0]
-            item = item.lstrip("0")
-
-        if item in self._services:
-            return self._services[item].split(".")[-1]
-        return f"Unknown Service: {orig_item}"
-
     def get_uuid(self, item_name: str) -> str:
         """
         Returns the full length UUID for either a shorted UUID or textual characteristic type name. For information on

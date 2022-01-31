@@ -26,25 +26,6 @@ def test_get_uuid_forward():
     )
 
 
-def test_get_short():
-    assert CharacteristicsTypes.get_short(CharacteristicsTypes.ON) == "on"
-    assert (
-        CharacteristicsTypes.get_short(
-            CharacteristicsTypes.get_uuid(CharacteristicsTypes.ON)
-        )
-        == "on"
-    )
-    assert (
-        CharacteristicsTypes.get_short(CharacteristicsTypes.DOOR_STATE_TARGET)
-        == "door-state.target"
-    )
-    assert (
-        CharacteristicsTypes.get_short(CharacteristicsTypes.AIR_PURIFIER_STATE_CURRENT)
-        == "air-purifier.state.current"
-    )
-    assert CharacteristicsTypes.get_short("1a") == "lock-management.auto-secure-timeout"
-
-
 def test_get_uuid_full_uuid():
     assert "0000006D-0000-1000-8000-0026BB765291" == CharacteristicsTypes.get_uuid(
         "0000006D-0000-1000-8000-0026BB765291"
@@ -75,17 +56,3 @@ def test_get_short_uuid_passthrough():
         "0000006D-1234-1234-1234-012345678901"
         == CharacteristicsTypes.get_short_uuid("0000006D-1234-1234-1234-012345678901")
     )
-
-
-def test_get_short_full_uuid():
-    assert "position.current" == CharacteristicsTypes.get_short(
-        "0000006D-0000-1000-8000-0026BB765291"
-    )
-
-
-def test_get_short_short_uuid():
-    assert "position.current" == CharacteristicsTypes.get_short("6D")
-
-
-def test_get_short_unknown():
-    assert "Unknown Characteristic 1234" == CharacteristicsTypes.get_short("1234")

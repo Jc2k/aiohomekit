@@ -439,27 +439,6 @@ class _CharacteristicsTypes:
             "704": "public.hap.characteristic.thread-control-point",
         }
 
-    def get_short(self, uuid: str) -> str:
-        """
-        Returns the short type for a given UUID. That means that "0000006D-0000-1000-8000-0026BB765291" and "6D" both
-        translates to "position.current" (after looking up "public.hap.characteristic.position.current").
-
-        if item in self._characteristics:
-            return self._characteristics[item].split('.', 3)[3]
-        :param uuid: the UUID in long form or the shortened version as defined in chapter 5.6.1 page 72.
-        :return: the textual representation
-        """
-        orig_item = uuid
-        uuid = uuid.upper()
-        if uuid.endswith(self.baseUUID):
-            uuid = uuid.split("-", 1)[0]
-            uuid = uuid.lstrip("0")
-
-        if uuid in self._characteristics:
-            return self._characteristics[uuid].split(".", maxsplit=3)[3]
-
-        return f"Unknown Characteristic {orig_item}"
-
     def get_short_uuid(self, item_name: str) -> str:
         """
         Returns the short UUID for either a full UUID or textual characteristic type name. For information on

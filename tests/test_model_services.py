@@ -31,32 +31,6 @@ def test_getitem_notfound():
     assert ServicesTypes["1337"] == "Unknown Service: 1337"
 
 
-def test_get_short():
-    assert (
-        ServicesTypes.get_short("00000086-0000-1000-8000-0026BB765291") == "occupancy"
-    )
-
-
-def test_get_short_lowercase():
-    assert (
-        ServicesTypes.get_short("00000086-0000-1000-8000-0026bb765291") == "occupancy"
-    )
-
-
-def test_get_short_no_baseid():
-    assert (
-        ServicesTypes.get_short("00000023-0000-1000-8000-NOTBASEID")
-        == "Unknown Service: 00000023-0000-1000-8000-NOTBASEID"
-    )
-
-
-def test_get_short_no_service():
-    assert (
-        ServicesTypes.get_short("00000023-0000-1000-8000-0026BB765291")
-        == "Unknown Service: 00000023-0000-1000-8000-0026BB765291"
-    )
-
-
 def test_get_uuid():
     assert (
         ServicesTypes.get_uuid("public.hap.service.doorbell")
