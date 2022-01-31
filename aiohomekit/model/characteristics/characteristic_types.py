@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+BASE_UUID = "-0000-1000-8000-0026BB765291"
+
 
 class CharacteristicsTypes:
 
@@ -271,109 +273,108 @@ class CharacteristicsTypes:
     ZOOM_DIGITAL = "0000011D-0000-1000-8000-0026BB765291"
     ZOOM_OPTICAL = "0000011C-0000-1000-8000-0026BB765291"
 
-    class Vendor:
-        # Vendor specific extensions
+    # Vendor specific extensions
 
-        # Elgato Eve
-        EVE_ENERGY_VOLTAGE = "E863F10A-079E-48FF-8F27-9C2605A29F52"
-        EVE_ENERGY_AMPERE = "E863F126-079E-48FF-8F27-9C2605A29F52"
-        EVE_ENERGY_WATT = "E863F10D-079E-48FF-8F27-9C2605A29F52"
-        EVE_ENERGY_KW_HOUR = "E863F10C-079E-48FF-8F27-9C2605A29F52"
+    # Elgato Eve
+    VENDOR_EVE_ENERGY_VOLTAGE = "E863F10A-079E-48FF-8F27-9C2605A29F52"
+    VENDOR_EVE_ENERGY_AMPERE = "E863F126-079E-48FF-8F27-9C2605A29F52"
+    VENDOR_EVE_ENERGY_WATT = "E863F10D-079E-48FF-8F27-9C2605A29F52"
+    VENDOR_EVE_ENERGY_KW_HOUR = "E863F10C-079E-48FF-8F27-9C2605A29F52"
 
-        # 0 = high, 4 = medium, 7 = low.
-        EVE_MOTION_SENSITIVITY = "E863F120-079E-48FF-8F27-9C2605A29F52"
-        # Persistence of motion indication in seconds
-        EVE_MOTION_DURATION = "E863F12D-079E-48FF-8F27-9C2605A29F52"
+    # 0 = high, 4 = medium, 7 = low.
+    VENDOR_EVE_MOTION_SENSITIVITY = "E863F120-079E-48FF-8F27-9C2605A29F52"
+    # Persistence of motion indication in seconds
+    VENDOR_EVE_MOTION_DURATION = "E863F12D-079E-48FF-8F27-9C2605A29F52"
 
-        EVE_ROOM_AIR_QUALITY_PPM = "E863F10B-079E-48FF-8F27-9C2605A29F52"
+    VENDOR_EVE_ROOM_AIR_QUALITY_PPM = "E863F10B-079E-48FF-8F27-9C2605A29F52"
 
-        EVE_DEGREE_AIR_PRESSURE = "E863F10F-079E-48FF-8F27-9C2605A29F52"
-        EVE_DEGREE_ELEVATION = "E863F130-079E-48FF-8F27-9C2605A29F52"
+    VENDOR_EVE_DEGREE_AIR_PRESSURE = "E863F10F-079E-48FF-8F27-9C2605A29F52"
+    VENDOR_EVE_DEGREE_ELEVATION = "E863F130-079E-48FF-8F27-9C2605A29F52"
 
-        # HAA - Home Accessory Architect
-        # https://github.com/RavenSystem/esp-homekit-devices
-        HAA_SETUP = "F0000102-0218-2017-81BF-AF2B7C833922"
-        HAA_UPDATE = "F0000101-0218-2017-81BF-AF2B7C833922"
+    # HAA - Home Accessory Architect
+    # https://github.com/RavenSystem/esp-homekit-devices
+    VENDOR_HAA_SETUP = "F0000102-0218-2017-81BF-AF2B7C833922"
+    VENDOR_HAA_UPDATE = "F0000101-0218-2017-81BF-AF2B7C833922"
 
-        # Koogeek
-        # Watts
-        KOOGEEK_REALTIME_ENERGY = "4AAAF931-0DEC-11E5-B939-0800200C9A66"
-        KOOGEEK_REALTIME_ENERGY_2 = "7BBBA96E-EB2D-11E5-A837-0800200C9A66"
+    # Koogeek
+    # Watts
+    VENDOR_KOOGEEK_REALTIME_ENERGY = "4AAAF931-0DEC-11E5-B939-0800200C9A66"
+    VENDOR_KOOGEEK_REALTIME_ENERGY_2 = "7BBBA96E-EB2D-11E5-A837-0800200C9A66"
 
-        # VOCOLinc
-        VOCOLINC_HUMIDIFIER_SPRAY_LEVEL = "69D52519-0A4E-4898-8335-4739F9116D0A"
-        VOCOLINC_HUMIDIFIER_TIMER_SETTING = "F84B3138-E44F-49B9-AA91-9E1736C247C0"
-        VOCOLINC_HUMIDIFIER_COUNTDOWN = "43CE176B-2933-4034-98A7-AD215BEEBF2F"
+    # VOCOLinc
+    VENDOR_VOCOLINC_HUMIDIFIER_SPRAY_LEVEL = "69D52519-0A4E-4898-8335-4739F9116D0A"
+    VENDOR_VOCOLINC_HUMIDIFIER_TIMER_SETTING = "F84B3138-E44F-49B9-AA91-9E1736C247C0"
+    VENDOR_VOCOLINC_HUMIDIFIER_COUNTDOWN = "43CE176B-2933-4034-98A7-AD215BEEBF2F"
 
-        VOCOLINC_LIGHTBULB_LIGHT_TIMER_SETTING = "A30DFE91-271A-42A5-88BA-00E3FF5488AD"
-        VOCOLINC_LIGHTBULB_LIGHT_EFFECT_MODE = "146889FC-7C42-429B-93AB-E80F79759E90"
-        VOCOLINC_LIGHTBULB_LIGHT_EFFECT_FLAG = "9D4B479D-9EFB-4739-98F3-B33E6543BF7B"
-        VOCOLINC_LIGHTBULB_FLASHING_MODE = "2C42B339-6EC9-4ED5-8DBF-FFCCC721B144"
-        VOCOLINC_LIGHTBULB_SMOOTHING_MODE = "A3663C89-DC18-42EF-8297-910A4C0C9B61"
-        VOCOLINC_LIGHTBULB_BREATHING_MODE = "6533B15C-AECB-455F-8896-20B125390F61"
+    VENDOR_VOCOLINC_LIGHTBULB_LIGHT_TIMER_SETTING = (
+        "A30DFE91-271A-42A5-88BA-00E3FF5488AD"
+    )
+    VENDOR_VOCOLINC_LIGHTBULB_LIGHT_EFFECT_MODE = "146889FC-7C42-429B-93AB-E80F79759E90"
+    VENDOR_VOCOLINC_LIGHTBULB_LIGHT_EFFECT_FLAG = "9D4B479D-9EFB-4739-98F3-B33E6543BF7B"
+    VENDOR_VOCOLINC_LIGHTBULB_FLASHING_MODE = "2C42B339-6EC9-4ED5-8DBF-FFCCC721B144"
+    VENDOR_VOCOLINC_LIGHTBULB_SMOOTHING_MODE = "A3663C89-DC18-42EF-8297-910A4C0C9B61"
+    VENDOR_VOCOLINC_LIGHTBULB_BREATHING_MODE = "6533B15C-AECB-455F-8896-20B125390F61"
 
-        VOCOLINC_OUTLET_ENERGY = "FC093458-18F0-4B1D-8360-BB68A3FCC9C5"
+    VENDOR_VOCOLINC_OUTLET_ENERGY = "FC093458-18F0-4B1D-8360-BB68A3FCC9C5"
 
-        # Ecobee
-        # r/o, uint8 - current mode - home(0)/sleep(1)/away(2)/temp(3)
-        ECOBEE_CURRENT_MODE = "B7DDB9A3-54BB-4572-91D2-F1F5B0510F8C"
-        # r/w, float - home heat temperature between 7.2 and 26.1
-        ECOBEE_HOME_TARGET_HEAT = "E4489BBC-5227-4569-93E5-B345E3E5508F"
-        # r/w, float - home cool temperature between 18.3 and 33.3
-        ECOBEE_HOME_TARGET_COOL = "7D381BAA-20F9-40E5-9BE9-AEB92D4BECEF"
-        # r/w, float - sleep heat temperature between 7.2 and 26.1
-        ECOBEE_SLEEP_TARGET_HEAT = "73AAB542-892A-4439-879A-D2A883724B69"
-        # r/w, float - sleep cool temperature between 18.3 and 33.3
-        ECOBEE_SLEEP_TARGET_COOL = "5DA985F0-898A-4850-B987-B76C6C78D670"
-        # r/w, float - away heat temp between 7.2 and 26.1
-        ECOBEE_AWAY_TARGET_HEAT = "05B97374-6DC0-439B-A0FA-CA33F612D425"
-        # r/w, float - away cool temp between 18.3 and 33.3
-        ECOBEE_AWAY_TARGET_COOL = "A251F6E7-AC46-4190-9C5D-3D06277BDF9F"
-        # w/o, uint8 - set hold schedule mode - home(0)/sleep(1)/away(2)
-        ECOBEE_SET_HOLD_SCHEDULE = "1B300BC2-CFFC-47FF-89F9-BD6CCF5F2853"
-        # r/w, string - 2014-01-03T00:00:00-07:00T
-        ECOBEE_TIMESTAMP = "1621F556-1367-443C-AF19-82AF018E99DE"
-        # w/o, bool - true to clear hold mode, false does nothing
-        ECOBEE_CLEAR_HOLD = "FA128DE6-9D7D-49A4-B6D8-4E4E234DEE38"
-        # r/w, 100 for on, 0 for off/auto
-        # https://support.ecobee.com/s/articles/Multi-Speed-Fan-installations
-        ECOBEE_FAN_WRITE_SPEED = "C35DA3C0-E004-40E3-B153-46655CDD9214"
-        # r/o, Mirrors status of above
-        ECOBEE_FAN_READ_SPEED = "48F62AEC-4171-4B4A-8F0E-1EEB6708B3FB"
+    # Ecobee
+    # r/o, uint8 - current mode - home(0)/sleep(1)/away(2)/temp(3)
+    VENDOR_ECOBEE_CURRENT_MODE = "B7DDB9A3-54BB-4572-91D2-F1F5B0510F8C"
+    # r/w, float - home heat temperature between 7.2 and 26.1
+    VENDOR_ECOBEE_HOME_TARGET_HEAT = "E4489BBC-5227-4569-93E5-B345E3E5508F"
+    # r/w, float - home cool temperature between 18.3 and 33.3
+    VENDOR_ECOBEE_HOME_TARGET_COOL = "7D381BAA-20F9-40E5-9BE9-AEB92D4BECEF"
+    # r/w, float - sleep heat temperature between 7.2 and 26.1
+    VENDOR_ECOBEE_SLEEP_TARGET_HEAT = "73AAB542-892A-4439-879A-D2A883724B69"
+    # r/w, float - sleep cool temperature between 18.3 and 33.3
+    VENDOR_ECOBEE_SLEEP_TARGET_COOL = "5DA985F0-898A-4850-B987-B76C6C78D670"
+    # r/w, float - away heat temp between 7.2 and 26.1
+    VENDOR_ECOBEE_AWAY_TARGET_HEAT = "05B97374-6DC0-439B-A0FA-CA33F612D425"
+    # r/w, float - away cool temp between 18.3 and 33.3
+    VENDOR_ECOBEE_AWAY_TARGET_COOL = "A251F6E7-AC46-4190-9C5D-3D06277BDF9F"
+    # w/o, uint8 - set hold schedule mode - home(0)/sleep(1)/away(2)
+    VENDOR_ECOBEE_SET_HOLD_SCHEDULE = "1B300BC2-CFFC-47FF-89F9-BD6CCF5F2853"
+    # r/w, string - 2014-01-03T00:00:00-07:00T
+    VENDOR_ECOBEE_TIMESTAMP = "1621F556-1367-443C-AF19-82AF018E99DE"
+    # w/o, bool - true to clear hold mode, false does nothing
+    VENDOR_ECOBEE_CLEAR_HOLD = "FA128DE6-9D7D-49A4-B6D8-4E4E234DEE38"
+    # r/w, 100 for on, 0 for off/auto
+    # https://support.ecobee.com/s/articles/Multi-Speed-Fan-installations
+    VENDOR_ECOBEE_FAN_WRITE_SPEED = "C35DA3C0-E004-40E3-B153-46655CDD9214"
+    # r/o, Mirrors status of above
+    VENDOR_ECOBEE_FAN_READ_SPEED = "48F62AEC-4171-4B4A-8F0E-1EEB6708B3FB"
 
-        # ConnectSense
-        # r/o, float - amps between 0 and 20
-        CONNECTSENSE_ENERGY_AMPS = "00000004-0000-1000-8000-001D4B474349"
-        # r/o, uint32 - state timer - in epoch format
-        CONNECTSENSE_STATE_TIMER = "00000005-0000-1000-8000-001D4B474349"
-        # r/o, unit32 - total amps
-        CONNECTSENSE_TOTAL_AMPS = "00000006-0000-1000-8000-001D4B474349"
-        # r/o, float - volts between 0 and 130
-        CONNECTSENSE_ENERGY_VOLTAGE = "00000008-0000-1000-8000-001D4B474349"
-        # r/o, float - amps between 0 and 20 on 20a in-wall outlet
-        CONNECTSENSE_ENERGY_AMPS_20 = "00000009-0000-1000-8000-001D4B474349"
-        # r/o, float - watts
-        CONNECTSENSE_ENERGY_WATT = "0000000A-0000-1000-8000-001D4B474349"
-        # r/o, int - power factor between 0 and 100
-        CONNECTSENSE_ENERGY_POWER_FACTOR = "0000000B-0000-1000-8000-001D4B474349"
-        # r/o, float - kilowatt hours between 0 and 7743802671740404396
-        CONNECTSENSE_ENERGY_KW_HOUR = "0000000C-0000-1000-8000-001D4B474349"
-        # r/o, string - outlet assigned name
-        CONNECTSENSE_ASSIGNED_NAME = "0000000E-0000-1000-8000-001D4B474349"
-        # r/o, uint32 - device type attached to outlet
-        CONNECTSENSE_DEVICE_TYPE = "0000000F-0000-1000-8000-001D4B474349"
+    # ConnectSense
+    # r/o, float - amps between 0 and 20
+    VENDOR_CONNECTSENSE_ENERGY_AMPS = "00000004-0000-1000-8000-001D4B474349"
+    # r/o, uint32 - state timer - in epoch format
+    VENDOR_CONNECTSENSE_STATE_TIMER = "00000005-0000-1000-8000-001D4B474349"
+    # r/o, unit32 - total amps
+    VENDOR_CONNECTSENSE_TOTAL_AMPS = "00000006-0000-1000-8000-001D4B474349"
+    # r/o, float - volts between 0 and 130
+    VENDOR_CONNECTSENSE_ENERGY_VOLTAGE = "00000008-0000-1000-8000-001D4B474349"
+    # r/o, float - amps between 0 and 20 on 20a in-wall outlet
+    VENDOR_CONNECTSENSE_ENERGY_AMPS_20 = "00000009-0000-1000-8000-001D4B474349"
+    # r/o, float - watts
+    VENDOR_CONNECTSENSE_ENERGY_WATT = "0000000A-0000-1000-8000-001D4B474349"
+    # r/o, int - power factor between 0 and 100
+    VENDOR_CONNECTSENSE_ENERGY_POWER_FACTOR = "0000000B-0000-1000-8000-001D4B474349"
+    # r/o, float - kilowatt hours between 0 and 7743802671740404396
+    VENDOR_CONNECTSENSE_ENERGY_KW_HOUR = "0000000C-0000-1000-8000-001D4B474349"
+    # r/o, string - outlet assigned name
+    VENDOR_CONNECTSENSE_ASSIGNED_NAME = "0000000E-0000-1000-8000-001D4B474349"
+    # r/o, uint32 - device type attached to outlet
+    VENDOR_CONNECTSENSE_DEVICE_TYPE = "0000000F-0000-1000-8000-001D4B474349"
 
-        # r/w, uint32, percentage
-        AQARA_GATEWAY_VOLUME = "EE56B186-B0D3-528E-8C79-C21FC9BCF437"
-        # r/w, bool
-        AQARA_PAIRING_MODE = "B1C09E4C-E202-4827-B343-B0F32F727CFF"
+    # r/w, uint32, percentage
+    VENDOR_AQARA_GATEWAY_VOLUME = "EE56B186-B0D3-528E-8C79-C21FC9BCF437"
+    # r/w, bool
+    VENDOR_AQARA_PAIRING_MODE = "B1C09E4C-E202-4827-B343-B0F32F727CFF"
 
-        # r/w, uint32, percentage
-        AQARA_E1_GATEWAY_VOLUME = "EE56B186-B0D3-488E-8C79-C21FC9BCF437"
-        # r/w, bool
-        AQARA_E1_PAIRING_MODE = "B1C09E4C-E202-4827-B863-B0F32F727CFF"
-
-    BASE_UUID = "-0000-1000-8000-0026BB765291"
+    # r/w, uint32, percentage
+    VENDOR_AQARA_E1_GATEWAY_VOLUME = "EE56B186-B0D3-488E-8C79-C21FC9BCF437"
+    # r/w, bool
+    VENDOR_AQARA_E1_PAIRING_MODE = "B1C09E4C-E202-4827-B863-B0F32F727CFF"
 
     @staticmethod
     def get_short_uuid(item_name: str) -> str:
@@ -387,7 +388,7 @@ class CharacteristicsTypes:
         :raises KeyError: if the input is neither a UUID nor a type name. Specific error is given in the message.
         """
 
-        if item_name.upper().endswith(CharacteristicsTypes.BASE_UUID):
+        if item_name.upper().endswith(BASE_UUID):
             item_name = item_name.upper()
             item_name = item_name.split("-", 1)[0]
             return item_name.lstrip("0")
@@ -406,6 +407,6 @@ class CharacteristicsTypes:
 
         if len(item_name) <= 8:
             prefix = "0" * (8 - len(item_name))
-            return f"{prefix}{item_name}{CharacteristicsTypes.BASE_UUID}"
+            return f"{prefix}{item_name}{BASE_UUID}"
 
         raise KeyError(f"{item_name} not a valid UUID or short UUID")

@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+BASE_UUID = "-0000-1000-8000-0026BB765291"
+
 
 class ServicesTypes:
     """
@@ -101,8 +103,6 @@ class ServicesTypes:
     WI_FI_SATELLITE = "0000020F-0000-1000-8000-0026BB765291"
     WI_FI_TRANSPORT = "0000022A-0000-1000-8000-0026BB765291"
 
-    BASE_UUID = "-0000-1000-8000-0026BB765291"
-
     @staticmethod
     def get_uuid(item_name: str) -> str:
         """
@@ -120,7 +120,7 @@ class ServicesTypes:
 
         if len(item_name) <= 8:
             prefix = "0" * (8 - len(item_name))
-            return f"{prefix}{item_name}{ServicesTypes.BASE_UUID}"
+            return f"{prefix}{item_name}{BASE_UUID}"
 
         raise KeyError(f"{item_name} not a valid UUID or short UUID")
 
@@ -136,7 +136,7 @@ class ServicesTypes:
         :return: the short UUID (e.g. "6D" instead of "0000006D-0000-1000-8000-0026BB765291")
         :raises KeyError: if the input is neither a UUID nor a type name. Specific error is given in the message.
         """
-        if item_name.upper().endswith(ServicesTypes.BASE_UUID):
+        if item_name.upper().endswith(BASE_UUID):
             item_name = item_name.upper()
             item_name = item_name.split("-", 1)[0]
             return item_name.lstrip("0")
