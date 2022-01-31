@@ -3,16 +3,11 @@ import errno
 import logging
 import os
 import socket
-import sys
 import tempfile
 import threading
 import time
 from unittest import mock
-
-if sys.version_info[:2] < (3, 8):
-    from asynctest.mock import patch  # noqa
-else:
-    from unittest.mock import patch  # noqa
+from unittest.mock import patch
 
 import pytest
 
@@ -54,7 +49,7 @@ def wait_for_server_online(port: int):
 
 
 @pytest.fixture
-async def controller_and_unpaired_accessory(request, loop):
+async def controller_and_unpaired_accessory(request, event_loop):
     config_file = tempfile.NamedTemporaryFile(delete=False)
     config_file.write(
         b"""{
@@ -115,7 +110,7 @@ async def controller_and_unpaired_accessory(request, loop):
 
 
 @pytest.fixture
-async def controller_and_paired_accessory(request, loop):
+async def controller_and_paired_accessory(request, event_loop):
     config_file = tempfile.NamedTemporaryFile(delete=False)
     config_file.write(
         b"""{
@@ -212,7 +207,7 @@ async def pairing(controller_and_paired_accessory):
 
 
 @pytest.fixture
-async def pairings(request, controller_and_paired_accessory, loop):
+async def pairings(request, controller_and_paired_accessory, event_loop):
     """Returns a pairing of pairngs."""
     left = controller_and_paired_accessory.get_pairings()["alias"]
 
