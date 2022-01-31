@@ -44,6 +44,10 @@ target-version = ["py39", "py310"]
 [tool.poetry.scripts]
 aiohomekitctl = "aiohomekit.__main__:sync_main"
 
+[tool.pytest.ini_options]
+minversion = "6.0"
+asyncio_mode = "auto"
+
 [tool.coverage.run]
 omit = ["tests/*"]
 
