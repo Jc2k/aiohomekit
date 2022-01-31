@@ -194,7 +194,7 @@ class Controller:
         path = pathlib.Path(filename)
 
         if not path.parent.exists():
-            path.parent.mkdir()
+            path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
             with open(filename, "w") as output_fp:
