@@ -26,6 +26,7 @@ from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Accessories
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.protocol.statuscodes import HapStatusCode
+from aiohomekit.uuid import normalize_uuid
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -108,14 +109,13 @@ class PairingTester:
         self.characteristics = {}
         self.services = {}
 
-        name_uuid = CharacteristicsTypes.get_uuid(CharacteristicsTypes.NAME)
         for accessory in self.pairing.accessories:
             for service in accessory.services:
                 service_map = {}
                 for char in service.characteristics:
                     self.characteristics[(accessory.aid, char.iid)] = char
                     service_map[char.type] = char
-                    if char.type == name_uuid:
+                    if char.type == CharacteristicsTypes.NAME:
                         self.services[char.get_value()] = service_map
 
     def set_events_enabled(self, value):
@@ -138,7 +138,7 @@ class PairingTester:
 
         changed = []
         for uuid, value in new_values.items():
-            uuid = CharacteristicsTypes.get_uuid(uuid)
+            uuid = normalize_uuid(uuid)
 
             if uuid not in service:
                 raise RuntimeError(

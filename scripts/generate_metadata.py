@@ -4,6 +4,8 @@ import json
 import plistlib
 import textwrap
 
+from aiohomekit.uuid import normalize_uuid
+
 
 plist = "/Applications/HomeKit Accessory Simulator.app/Contents/Frameworks/HAPAccessoryKit.framework/Versions/A/Resources/default.metadata.plist"
 with open(plist, "rb") as fp:
@@ -126,7 +128,7 @@ from aiohomekit.model.services import ServicesTypes
 
 for serv in data.get('Services', []):
     name = serv['Name'].replace(" ", "_").upper()
-    short = ServicesTypes.get_uuid(serv['UUID'])
+    short = normalize_uuid(serv['UUID'])
     print(f'{name} = "{short}"')
 
 

@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Iterable, Optional
 from aiohomekit.model.characteristics import Characteristic, CharacteristicsTypes
 from aiohomekit.model.characteristics.characteristic import check_convert_value
 from aiohomekit.model.services.data import services
-from aiohomekit.model.services.service_types import ServicesTypes
+from aiohomekit.uuid import normalize_uuid
 
 if TYPE_CHECKING:
     from aiohomekit.model import Accessory
@@ -39,7 +39,7 @@ class Characteristics:
         matches = iter(self)
 
         if char_types:
-            char_types = [CharacteristicsTypes.get_uuid(c) for c in char_types]
+            char_types = [normalize_uuid(c) for c in char_types]
             matches = filter(lambda char: char.type in char_types, matches)
 
         return matches
@@ -56,10 +56,7 @@ class Service:
         name: Optional[str] = None,
         add_required: bool = False,
     ):
-        try:
-            self.type = ServicesTypes.get_uuid(service_type)
-        except KeyError:
-            self.type = service_type
+        self.type = normalize_uuid(service_type)
 
         self.accessory = accessory
         self.iid = accessory.get_next_id()
@@ -77,17 +74,11 @@ class Service:
                     self.add_char(required)
 
     def has(self, char_type) -> bool:
-        try:
-            char_type = CharacteristicsTypes.get_uuid(char_type)
-        except KeyError:
-            pass
+        char_type = normalize_uuid(char_type)
         return char_type in self.characteristics_by_type
 
     def value(self, char_type, default_value=None):
-        try:
-            char_type = CharacteristicsTypes.get_uuid(char_type)
-        except KeyError:
-            pass
+        char_type = normalize_uuid(char_type)
 
         if char_type not in self.characteristics_by_type:
             return default_value
@@ -95,10 +86,7 @@ class Service:
         return self.characteristics_by_type[char_type].value
 
     def __getitem__(self, key):
-        try:
-            key = CharacteristicsTypes.get_uuid(key)
-        except KeyError:
-            pass
+        key = normalize_uuid(key)
         return self.characteristics_by_type[key]
 
     def add_char(self, char_type: str, **kwargs) -> Characteristic:

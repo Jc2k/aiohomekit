@@ -14,8 +14,6 @@
 # limitations under the License.
 #
 
-BASE_UUID = "-0000-1000-8000-0026BB765291"
-
 
 class ServicesTypes:
     """
@@ -102,43 +100,3 @@ class ServicesTypes:
     WI_FI_ROUTER = "0000020A-0000-1000-8000-0026BB765291"
     WI_FI_SATELLITE = "0000020F-0000-1000-8000-0026BB765291"
     WI_FI_TRANSPORT = "0000022A-0000-1000-8000-0026BB765291"
-
-    @staticmethod
-    def get_uuid(item_name: str) -> str:
-        """
-        Returns the full length UUID for either a shorted UUID or textual characteristic type name. For information on
-        full and short UUID consult chapter 5.6.1 page 72 of the specification. It also supports to pass through full
-        HomeKit UUIDs.
-
-        :param item_name: either the type name (e.g. "public.hap.characteristic.position.current") or the short UUID or
-                          a HomeKit specific full UUID.
-        :return: the full UUID (e.g. "0000006D-0000-1000-8000-0026BB765291")
-        :raises KeyError: if the input is neither a short UUID nor a type name. Specific error is given in the message.
-        """
-        if len(item_name) == 36:
-            return item_name.upper()
-
-        if len(item_name) <= 8:
-            prefix = "0" * (8 - len(item_name))
-            return f"{prefix}{item_name}{BASE_UUID}"
-
-        raise KeyError(f"{item_name} not a valid UUID or short UUID")
-
-    @staticmethod
-    def get_short_uuid(item_name: str) -> str:
-        """
-        Returns the short UUID for either a full UUID or textual service type name. For information on
-        full and short UUID consult chapter 5.6.1 page 72 of the specification. It also supports to pass through full
-        non-HomeKit UUIDs.
-
-        :param item_name: either the type name (e.g. "public.hap.characteristic.position.current") or the short UUID as
-                          string or a HomeKit specific full UUID.
-        :return: the short UUID (e.g. "6D" instead of "0000006D-0000-1000-8000-0026BB765291")
-        :raises KeyError: if the input is neither a UUID nor a type name. Specific error is given in the message.
-        """
-        if item_name.upper().endswith(BASE_UUID):
-            item_name = item_name.upper()
-            item_name = item_name.split("-", 1)[0]
-            return item_name.lstrip("0")
-
-        return item_name.upper()

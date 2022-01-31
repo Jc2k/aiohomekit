@@ -25,9 +25,9 @@ from aiohomekit.exceptions import CharacteristicPermissionError, FormatError
 from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.protocol.tlv import TLV, TlvParseException
 from aiohomekit.tlv8 import tlv_array
+from aiohomekit.uuid import normalize_uuid
 
 from .characteristic_formats import CharacteristicFormats
-from .characteristic_types import CharacteristicsTypes
 from .data import characteristics
 from .permissions import CharacteristicPermissions
 
@@ -63,10 +63,7 @@ class Characteristic:
     def __init__(self, service: Service, characteristic_type: str, **kwargs) -> None:
         self.service = service
         self.iid = service.accessory.get_next_id()
-        try:
-            self.type = CharacteristicsTypes.get_uuid(characteristic_type)
-        except KeyError:
-            self.type = characteristic_type
+        self.type = normalize_uuid(characteristic_type)
 
         self.perms = self._get_configuration(
             kwargs, "perms", [CharacteristicPermissions.paired_read]

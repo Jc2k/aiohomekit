@@ -32,10 +32,10 @@ from aiohomekit.exceptions import (
 )
 from aiohomekit.http import HttpContentTypes
 from aiohomekit.model.characteristics import CharacteristicsTypes
-from aiohomekit.model.services import ServicesTypes
 from aiohomekit.protocol import error_handler
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.protocol.tlv import TLV
+from aiohomekit.uuid import normalize_uuid
 
 from .connection import SecureHomeKitConnection
 
@@ -133,20 +133,10 @@ class IpPairing(AbstractPairing):
 
         for accessory in accessories:
             for service in accessory["services"]:
-                service["type"] = service["type"].upper()
-                try:
-                    service["type"] = ServicesTypes.get_uuid(service["type"])
-                except KeyError:
-                    pass
+                service["type"] = normalize_uuid(service["type"])
 
                 for characteristic in service["characteristics"]:
-                    characteristic["type"] = characteristic["type"].upper()
-                    try:
-                        characteristic["type"] = CharacteristicsTypes.get_uuid(
-                            characteristic["type"]
-                        )
-                    except KeyError:
-                        pass
+                    characteristic["type"] = normalize_uuid(characteristic["type"])
 
         self.pairing_data["accessories"] = accessories
         return accessories
@@ -364,7 +354,7 @@ class IpPairing(AbstractPairing):
             await self.list_accessories_and_characteristics()
 
         # we are looking for a characteristic of the identify type
-        identify_type = CharacteristicsTypes.get_uuid(CharacteristicsTypes.IDENTIFY)
+        identify_type = CharacteristicsTypes.IDENTIFY
 
         # search all accessories, all services and all characteristics
         for accessory in self.pairing_data["accessories"]:
@@ -372,7 +362,7 @@ class IpPairing(AbstractPairing):
             for service in accessory["services"]:
                 for characteristic in service["characteristics"]:
                     iid = characteristic["iid"]
-                    c_type = CharacteristicsTypes.get_uuid(characteristic["type"])
+                    c_type = normalize_uuid(characteristic["type"])
                     if identify_type == c_type:
                         # found the identify characteristic, so let's put a value there
                         if not await self.put_characteristics([(aid, iid, True)]):

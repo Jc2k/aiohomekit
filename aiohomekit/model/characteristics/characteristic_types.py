@@ -14,8 +14,6 @@
 # limitations under the License.
 #
 
-BASE_UUID = "-0000-1000-8000-0026BB765291"
-
 
 class CharacteristicsTypes:
 
@@ -375,38 +373,3 @@ class CharacteristicsTypes:
     VENDOR_AQARA_E1_GATEWAY_VOLUME = "EE56B186-B0D3-488E-8C79-C21FC9BCF437"
     # r/w, bool
     VENDOR_AQARA_E1_PAIRING_MODE = "B1C09E4C-E202-4827-B863-B0F32F727CFF"
-
-    @staticmethod
-    def get_short_uuid(item_name: str) -> str:
-        """
-        Returns the short UUID for either a full UUID or textual characteristic type name. For information on
-        full and short UUID consult chapter 5.6.1 page 72 of the specification. It also supports to pass through full
-        non-HomeKit UUIDs.
-
-        :param item_name: the short UUID as string or a HomeKit specific full UUID.
-        :return: the short UUID (e.g. "6D" instead of "0000006D-0000-1000-8000-0026BB765291")
-        :raises KeyError: if the input is neither a UUID nor a type name. Specific error is given in the message.
-        """
-
-        if item_name.upper().endswith(BASE_UUID):
-            item_name = item_name.upper()
-            item_name = item_name.split("-", 1)[0]
-            return item_name.lstrip("0")
-
-        return item_name.upper()
-
-    @staticmethod
-    def get_uuid(item_name: str) -> str:
-        """
-        Returns the a normalized UUID.
-
-        This includes postfixing -0000-1000-8000-0026BB765291 and ensuring the case.
-        """
-        if len(item_name) == 36:
-            return item_name.upper()
-
-        if len(item_name) <= 8:
-            prefix = "0" * (8 - len(item_name))
-            return f"{prefix}{item_name}{BASE_UUID}"
-
-        raise KeyError(f"{item_name} not a valid UUID or short UUID")

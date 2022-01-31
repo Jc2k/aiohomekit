@@ -19,6 +19,7 @@ import json
 from typing import Any, Iterable
 
 from aiohomekit.protocol.statuscodes import to_status_code
+from aiohomekit.uuid import normalize_uuid
 
 from .categories import Categories
 from .characteristics import (
@@ -62,7 +63,7 @@ class Services:
         matches = iter(self._services)
 
         if service_type:
-            service_type = ServicesTypes.get_uuid(service_type)
+            service_type = normalize_uuid(service_type)
             matches = filter(lambda service: service.type == service_type, matches)
 
         if characteristics:
