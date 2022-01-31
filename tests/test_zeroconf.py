@@ -15,9 +15,7 @@
 #
 
 import socket
-import sys
-from unittest.mock import MagicMock, PropertyMock, call, patch
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, call, patch
 
 import pytest
 from zeroconf import BadTypeInNameException, Error
