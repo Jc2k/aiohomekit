@@ -66,70 +66,6 @@ class _ServicesTypes:
 
     def __init__(self) -> None:
         self.baseUUID = "-0000-1000-8000-0026BB765291"
-        self._services = {
-            "3E": "public.hap.service.accessory-information",
-            "40": "public.hap.service.fan",
-            "41": "public.hap.service.garage-door-opener",
-            "43": "public.hap.service.lightbulb",
-            "44": "public.hap.service.lock-management",
-            "45": "public.hap.service.lock-mechanism",
-            "47": "public.hap.service.outlet",
-            "49": "public.hap.service.switch",
-            "4A": "public.hap.service.thermostat",
-            "55": "public.hap.service.pairing",  # new for ble, homekit spec page 57
-            "7E": "public.hap.service.security-system",
-            "7F": "public.hap.service.sensor.carbon-monoxide",
-            "80": "public.hap.service.sensor.contact",
-            "81": "public.hap.service.door",
-            "82": "public.hap.service.sensor.humidity",
-            "83": "public.hap.service.sensor.leak",
-            "84": "public.hap.service.sensor.light",
-            "85": "public.hap.service.sensor.motion",
-            "86": "public.hap.service.sensor.occupancy",
-            "87": "public.hap.service.sensor.smoke",
-            "89": "public.hap.service.stateless-programmable-switch",
-            "8A": "public.hap.service.sensor.temperature",
-            "8B": "public.hap.service.window",
-            "8C": "public.hap.service.window-covering",
-            "8D": "public.hap.service.sensor.air-quality",
-            "96": "public.hap.service.battery",
-            "97": "public.hap.service.sensor.carbon-dioxide",
-            "A2": "public.hap.service.protocol.information.service",  # new for ble, homekit spec page 126
-            "B7": "public.hap.service.fanv2",
-            "B9": "public.hap.service.vertical-slat",
-            "BA": "public.hap.service.filter-maintenance",
-            "BB": "public.hap.service.air-purifier",
-            "BC": "public.hap.service.heater-cooler",
-            "BD": "public.hap.service.humidifier-dehumidifier",
-            "CC": "public.hap.service.service-label",
-            "CF": "public.hap.service.irrigation-system",
-            "D0": "public.hap.service.valve",
-            "D7": "public.hap.service.faucet",
-            "D8": "public.hap.service.television",
-            "D9": "public.hap.service.input-source",
-            "110": "public.hap.service.camera-rtp-stream-management",
-            "112": "public.hap.service.microphone",
-            "113": "public.hap.service.speaker",
-            "121": "public.hap.service.doorbell",
-            "122": "public.hap.service.target-control-management",
-            "125": "public.hap.service.target-control",
-            "127": "public.hap.service.audio-stream-management",
-            "129": "public.hap.service.data-stream-transport-management",
-            "133": "public.hap.service.siri",
-            "701": "public.hap.service.thread-transport",
-        }
-
-        self._services_rev = {self._services[k]: k for k in self._services.keys()}
-
-    def __getitem__(self, item: str) -> str:
-        if item in self._services:
-            return self._services[item]
-
-        if item in self._services_rev:
-            return self._services_rev[item]
-
-        # raise KeyError('Item {item} not found'.format_map(item=item))
-        return f"Unknown Service: {item}"
 
     def get_uuid(self, item_name: str) -> str:
         """
@@ -142,23 +78,14 @@ class _ServicesTypes:
         :return: the full UUID (e.g. "0000006D-0000-1000-8000-0026BB765291")
         :raises KeyError: if the input is neither a short UUID nor a type name. Specific error is given in the message.
         """
-        orig_item = item_name
-        # if we get a full length uuid with the proper base and a known short one, this should also work.
-        if item_name.upper().endswith(self.baseUUID):
-            item_name = item_name.upper()
-            item_name = item_name.split("-", 1)[0]
-            item_name = item_name.lstrip("0")
+        if len(item_name) == 36:
+            return item_name.upper()
 
-        if item_name.lower() in self._services_rev:
-            short = self._services_rev[item_name.lower()]
-        elif item_name.upper() in self._services:
-            short = item_name.upper()
-        else:
-            raise KeyError(f"No UUID found for Item {orig_item}")
+        if len(item_name) <= 8:
+            prefix = "0" * (8 - len(item_name))
+            return f"{prefix}{item_name}{self.baseUUID}"
 
-        medium = "0" * (8 - len(short)) + short
-        long = medium + self.baseUUID
-        return long
+        raise KeyError(f"{item_name} not a valid UUID or short UUID")
 
     def get_short_uuid(self, item_name: str) -> str:
         """
@@ -171,12 +98,12 @@ class _ServicesTypes:
         :return: the short UUID (e.g. "6D" instead of "0000006D-0000-1000-8000-0026BB765291")
         :raises KeyError: if the input is neither a UUID nor a type name. Specific error is given in the message.
         """
-        uuid = self.get_uuid(item_name)
-        if uuid.upper().endswith(self.baseUUID):
-            uuid = uuid.upper()
-            uuid = uuid.split("-", 1)[0]
-            return uuid.lstrip("0")
-        raise ValueError(uuid)
+        if item_name.upper().endswith(self.baseUUID):
+            item_name = item_name.upper()
+            item_name = item_name.split("-", 1)[0]
+            return item_name.lstrip("0")
+
+        return item_name.upper()
 
 
 #

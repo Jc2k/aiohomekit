@@ -19,33 +19,14 @@ import pytest
 from aiohomekit.model.services import ServicesTypes
 
 
-def test_getitem_forward():
-    assert ServicesTypes["3E"] == "public.hap.service.accessory-information"
-
-
-def test_getitem_reverse():
-    assert ServicesTypes["public.hap.service.accessory-information"] == "3E"
-
-
-def test_getitem_notfound():
-    assert ServicesTypes["1337"] == "Unknown Service: 1337"
-
-
 def test_get_uuid():
-    assert (
-        ServicesTypes.get_uuid("public.hap.service.doorbell")
-        == "00000121-0000-1000-8000-0026BB765291"
-    )
+    assert ServicesTypes.get_uuid("121") == "00000121-0000-1000-8000-0026BB765291"
 
 
 def test_get_uuid_no_service():
     with pytest.raises(Exception):
-        ServicesTypes.get_uuid("public.hap.service.NO_A_SERVICE")
+        ServicesTypes.get_uuid("NO_A_SERVICE")
 
 
 def test_get_short_uuid_from_uuid():
     assert ServicesTypes.get_short_uuid("00000086-0000-1000-8000-0026BB765291") == "86"
-
-
-def test_get_short_uuid_from_name():
-    assert ServicesTypes.get_short_uuid("public.hap.service.doorbell") == "121"
