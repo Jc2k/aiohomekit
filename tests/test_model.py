@@ -52,11 +52,9 @@ def test_hue_bridge():
     assert a.firmware_revision == "45.1.17846"
 
     service = a.services.first(service_type=ServicesTypes.ACCESSORY_INFORMATION)
-    assert service.type_name == "accessory-information"
 
     char = next(iter(service.characteristics))
     assert char.iid == 37
-    assert char.type_name == "name"
     assert char.perms == ["pr"]
     assert char.format == "string"
     assert char.value == "Hue dimmer switch"
@@ -75,11 +73,9 @@ def test_idevices_switch():
     assert a.firmware_revision == "1.2.1"
 
     service = a.services.first(service_type=ServicesTypes.ACCESSORY_INFORMATION)
-    assert service.type_name == "accessory-information"
 
     char = next(iter(service.characteristics))
     assert char.iid == 2
-    assert char.type_name == "name"
     assert char.perms == ["pr"]
     assert char.format == "string"
     assert char.value == "iDevices Switch"

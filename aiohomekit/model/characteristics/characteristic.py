@@ -124,13 +124,6 @@ class Characteristic:
         return characteristics[self.type][key]
 
     @property
-    def type_name(self):
-        try:
-            return CharacteristicsTypes.get_short(self.type)
-        except KeyError:
-            return None
-
-    @property
     def status(self) -> HapStatusCode:
         return self._status
 
