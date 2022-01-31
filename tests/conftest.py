@@ -10,6 +10,7 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
+from zeroconf.asyncio import AsyncZeroconf
 
 from aiohomekit import Controller
 from aiohomekit.controller.ip import IpPairing
@@ -85,7 +86,9 @@ async def controller_and_unpaired_accessory(request, event_loop):
 
     wait_for_server_online(51842)
 
-    controller = Controller()
+    zeroconf = AsyncZeroconf()
+
+    controller = Controller(async_zeroconf_instance=zeroconf)
 
     with patch("aiohomekit.zeroconf._async_find_data_for_device_id") as find:
         find.return_value = {
@@ -102,6 +105,8 @@ async def controller_and_unpaired_accessory(request, event_loop):
         await asyncio.shield(controller.shutdown())
     except asyncio.CancelledError:
         pass
+
+    await zeroconf.async_close()
 
     os.unlink(config_file.name)
 
