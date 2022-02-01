@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from binascii import hexlify
 import logging
-from typing import Any, Generator
+from typing import Any, Callable, Generator
 
 from cryptography import exceptions as cryptography_exceptions
 from cryptography.hazmat.primitives import serialization
@@ -358,7 +358,7 @@ def get_session_keys(
         | tuple[list[tuple[int, bytearray]], list[int]]
     ),
     None,
-    tuple[bytes, bytes],
+    Callable[[str, str], bytes],
 ]:
     """
     HomeKit Controller state machine to perform a pair verify operation as described in chapter 4.8 page 47 ff.
@@ -494,14 +494,8 @@ def get_session_keys(
     response_tlv = dict(response_tlv)
     handle_state_step(response_tlv, TLV.M4)
 
-    # calculate session keys
+    # return function to calculate session keys
+    def derive(salt, info):
+        return hkdf_derive(shared_secret, salt, info)
 
-    controller_to_accessory_key = hkdf_derive(
-        shared_secret, "Control-Salt", "Control-Write-Encryption-Key"
-    )
-
-    accessory_to_controller_key = hkdf_derive(
-        shared_secret, "Control-Salt", "Control-Read-Encryption-Key"
-    )
-
-    return controller_to_accessory_key, accessory_to_controller_key
+    return derive

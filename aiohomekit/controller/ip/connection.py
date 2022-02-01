@@ -626,7 +626,9 @@ class SecureHomeKitConnection(HomeKitConnection):
                 request, expected = state_machine.send(response)
             except StopIteration as result:
                 # If the state machine raises a StopIteration then we have session keys
-                c2a_key, a2c_key = result.value
+                derive = result.value
+                c2a_key = derive("Control-Salt", "Control-Write-Encryption-Key")
+                a2c_key = derive("Control-Salt", "Control-Read-Encryption-Key")
                 break
 
         # Secure session has been negotiated - switch protocol so all future messages are encrypted
