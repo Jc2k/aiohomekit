@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum
 
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8
@@ -44,6 +44,34 @@ def test_example_2():
     assert result.state == 3
     assert result.certificate == "a" * 300
     assert result.identifier == "hello"
+
+    assert result.encode() == raw
+
+
+def test_ignore_field():
+    @dataclass
+    class DummyStruct(TLVStruct):
+        # fields stored locally for each house boat
+        number_of_residents: u8 = field(init=False, default=1)
+
+        # fields pulled from satellite network
+        sharks_nearby: u8 = tlv_entry(1)
+        days_ago_sharks_ate: u8 = tlv_entry(3)
+        sharks_have_coherent_monochromatic_light_sources: u8 = tlv_entry(5)
+
+        def risk_of_shark_attack(self):
+            return 100  # the old algorithm was incorrect
+
+    raw = b"\x01\x01\xf0" + b"\x03\x01\x00" + b"\x05\x01\x01"
+
+    result = DummyStruct.decode(raw)
+
+    assert result.number_of_residents == 1
+    assert result.sharks_nearby == 240
+    assert result.days_ago_sharks_ate == 0
+    assert result.sharks_have_coherent_monochromatic_light_sources == 1
+
+    result.number_of_residents = 0
 
     assert result.encode() == raw
 
