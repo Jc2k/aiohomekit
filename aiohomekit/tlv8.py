@@ -33,6 +33,14 @@ class u32(int):
     pass
 
 
+class u64(int):
+    pass
+
+
+class u128(int):
+    pass
+
+
 def get_origin(tp):
     """
     Returns the containing type
@@ -107,8 +115,20 @@ def deserialize_u32(value_type: type, value: bytes) -> int:
     return int.from_bytes(value, "little")
 
 
+def deserialize_u64(value_type: type, value: bytes) -> int:
+    return int.from_bytes(value, "little")
+
+
+def deserialize_u128(value_type: type, value: bytes) -> int:
+    return int.from_bytes(value, "little")
+
+
 def deserialize_str(value_type: type, value: bytes) -> str:
     return value.decode("utf-8")
+
+
+def deserialize_bytes(value_type: type, value: bytes) -> bytes:
+    return value
 
 
 def deserialize_int_enum(value_type: type, value: bytes) -> enum.IntEnum:
@@ -142,8 +162,20 @@ def serialize_u32(value_type: type, value: int) -> bytes:
     return struct.pack("I", value)
 
 
+def serialize_u64(value_type: type, value: int) -> bytes:
+    return struct.pack("Q", value)
+
+
+def serialize_u128(value_type: type, value: int) -> bytes:
+    return value.to_bytes(length=16, byteorder="little")
+
+
 def serialize_str(value_type: type, value: str) -> bytes:
     return value.encode("utf-8")
+
+
+def serialize_bytes(value_type: type, value: bytes) -> bytes:
+    return value
 
 
 def serialize_int_enum(value_type: type, value: enum.IntEnum) -> bytes:
@@ -259,18 +291,24 @@ DESERIALIZERS: dict[type, DeserializerCallback] = {
     u8: deserialize_u8,
     u16: deserialize_u16,
     u32: deserialize_u32,
+    u64: deserialize_u64,
+    u128: deserialize_u128,
     str: deserialize_str,
     enum.IntEnum: deserialize_int_enum,
     TLVStruct: deserialize_tlv_struct,
     abc.Sequence: deserialize_typing_sequence,
+    bytes: deserialize_bytes,
 }
 
 SERIALIZERS: dict[type, SerializerCallback] = {
     u8: serialize_u8,
     u16: serialize_u16,
     u32: serialize_u32,
+    u64: serialize_u64,
+    u128: serialize_u128,
     str: serialize_str,
     enum.IntEnum: serialize_int_enum,
     TLVStruct: serialize_tlv_struct,
     abc.Sequence: serialize_typing_sequence,
+    bytes: serialize_bytes,
 }
