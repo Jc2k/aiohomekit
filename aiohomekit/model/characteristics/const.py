@@ -217,3 +217,23 @@ class SRTPCryptoSuiteValues(enum.IntEnum):
     AES_CM_128_HMAC_SHA1_80 = 0
     AES_256_CM_HMAC_SHA1_80 = 1
     DISABLED = 2
+
+
+class ThreadNodeCapabilities(enum.IntFlag):
+
+    MINIMAL = 0x01
+    SLEEPY = 0x02
+    FULL = 0x04
+    ROUTER_ELIGIBLE = 0x08
+    BORDER_ROUTER_CAPABLE = 0x10
+
+
+class ThreadStatus(enum.IntFlag):
+
+    DISABLED = 0x01
+    DETACHED = 0x02
+    JOINING = 0x04
+    CHILD = 0x08
+    ROUTER = 0x10
+    LEADER = 0x20
+    BORDER_ROUTER = 0x40
