@@ -1,0 +1,378 @@
+[
+    {
+        "aid": 1,
+        "services": [
+            {
+                "type": "0000003E-0000-1000-8000-0026BB765291",
+                "iid": 1,
+                "characteristics": [
+                    {
+                        "type": "00000014-0000-1000-8000-0026BB765291",
+                        "iid": 2,
+                        "perms": [
+                            "pw"
+                        ],
+                        "format": "bool"
+                    },
+                    {
+                        "type": "00000020-0000-1000-8000-0026BB765291",
+                        "iid": 3,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "Nanoleaf"
+                    },
+                    {
+                        "type": "00000021-0000-1000-8000-0026BB765291",
+                        "iid": 4,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "NL45"
+                    },
+                    {
+                        "type": "00000023-0000-1000-8000-0026BB765291",
+                        "iid": 5,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "Nanoleaf A19 0US9"
+                    },
+                    {
+                        "type": "00000030-0000-1000-8000-0026BB765291",
+                        "iid": 6,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "A00000AA000"
+                    },
+                    {
+                        "type": "00000052-0000-1000-8000-0026BB765291",
+                        "iid": 7,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "1.6.35"
+                    },
+                    {
+                        "type": "00000053-0000-1000-8000-0026BB765291",
+                        "iid": 8,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "1.2.4"
+                    },
+                    {
+                        "type": "34AB8811AC7F4340BAC3FD6A85F9943B",
+                        "iid": 9,
+                        "perms": [
+                            "pr",
+                            "hd"
+                        ],
+                        "format": "string",
+                        "value": "5.3;fa51b06d"
+                    },
+                    {
+                        "type": "220",
+                        "iid": 10,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "data",
+                        "value": "cf0c2e5af6aad3f6"
+                    }
+                ]
+            },
+            {
+                "type": "000000A2-0000-1000-8000-0026BB765291",
+                "iid": 16,
+                "characteristics": [
+                    {
+                        "type": "000000A5-0000-1000-8000-0026BB765291",
+                        "iid": 17,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "data",
+                        "value": ""
+                    },
+                    {
+                        "type": "00000037-0000-1000-8000-0026BB765291",
+                        "iid": 18,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "1.2.0"
+                    }
+                ]
+            },
+            {
+                "type": "00000055-0000-1000-8000-0026BB765291",
+                "iid": 32,
+                "characteristics": [
+                    {
+                        "type": "0000004C-0000-1000-8000-0026BB765291",
+                        "iid": 34,
+                        "perms": [],
+                        "format": "data"
+                    },
+                    {
+                        "type": "0000004E-0000-1000-8000-0026BB765291",
+                        "iid": 35,
+                        "perms": [],
+                        "format": "data"
+                    },
+                    {
+                        "type": "0000004F-0000-1000-8000-0026BB765291",
+                        "iid": 36,
+                        "perms": [],
+                        "format": "int"
+                    },
+                    {
+                        "type": "00000050-0000-1000-8000-0026BB765291",
+                        "iid": 37,
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "data"
+                    }
+                ]
+            },
+            {
+                "type": "00000043-0000-1000-8000-0026BB765291",
+                "iid": 48,
+                "characteristics": [
+                    {
+                        "type": "000000A5-0000-1000-8000-0026BB765291",
+                        "iid": 49,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "data",
+                        "value": ""
+                    },
+                    {
+                        "type": "00000023-0000-1000-8000-0026BB765291",
+                        "iid": 50,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "Nanoleaf Bulb"
+                    },
+                    {
+                        "type": "00000025-0000-1000-8000-0026BB765291",
+                        "iid": 51,
+                        "perms": [
+                            "pr",
+                            "pw",
+                            "ev"
+                        ],
+                        "format": "bool",
+                        "value": true
+                    },
+                    {
+                        "type": "000000CE-0000-1000-8000-0026BB765291",
+                        "iid": 55,
+                        "perms": [
+                            "pr",
+                            "pw",
+                            "ev"
+                        ],
+                        "format": "int",
+                        "value": 370
+                    },
+                    {
+                        "type": "00000008-0000-1000-8000-0026BB765291",
+                        "iid": 52,
+                        "perms": [
+                            "pr",
+                            "pw",
+                            "ev"
+                        ],
+                        "format": "int",
+                        "unit": "percentage",
+                        "value": 100
+                    },
+                    {
+                        "type": "A28E1902CFA14D37A10F0071CEEEEEBD",
+                        "iid": 60,
+                        "perms": [
+                            "pr",
+                            "pw",
+                            "hd"
+                        ],
+                        "format": "data",
+                        "value": ""
+                    },
+                    {
+                        "type": "144",
+                        "iid": 57,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "data",
+                        "value": "010901013402040100000000000109010137020402000000"
+                    },
+                    {
+                        "type": "143",
+                        "iid": 56,
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "data",
+                        "value": ""
+                    },
+                    {
+                        "type": "24B",
+                        "iid": 58,
+                        "perms": [
+                            "pr",
+                            "ev"
+                        ],
+                        "format": "int",
+                        "value": 0
+                    },
+                    {
+                        "type": "00000013-0000-1000-8000-0026BB765291",
+                        "iid": 53,
+                        "perms": [
+                            "pr",
+                            "pw",
+                            "ev"
+                        ],
+                        "format": "float",
+                        "unit": "arcdegrees",
+                        "value": 28
+                    },
+                    {
+                        "type": "0000002F-0000-1000-8000-0026BB765291",
+                        "iid": 54,
+                        "perms": [
+                            "pr",
+                            "pw",
+                            "ev"
+                        ],
+                        "format": "float",
+                        "unit": "percentage",
+                        "value": 66
+                    }
+                ]
+            },
+            {
+                "type": "701",
+                "iid": 112,
+                "characteristics": [
+                    {
+                        "type": "000000A5-0000-1000-8000-0026BB765291",
+                        "iid": 113,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "data",
+                        "value": ""
+                    },
+                    {
+                        "type": "706",
+                        "iid": 116,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "string",
+                        "value": "OPENTHREAD/7f3013cb0-2020-06-12-06fac374c-2021-06-07; EFR32; Nov 15 2021 00:00:40"
+                    },
+                    {
+                        "type": "702",
+                        "iid": 115,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "int",
+                        "value": 12
+                    },
+                    {
+                        "type": "703",
+                        "iid": 117,
+                        "perms": [
+                            "pr",
+                            "ev"
+                        ],
+                        "format": "int",
+                        "value": 16
+                    },
+                    {
+                        "type": "22B",
+                        "iid": 118,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "bool",
+                        "value": true
+                    },
+                    {
+                        "type": "704",
+                        "iid": 119,
+                        "perms": [
+                            "pr",
+                            "pw"
+                        ],
+                        "format": "data",
+                        "value": ""
+                    }
+                ]
+            },
+            {
+                "type": "239",
+                "iid": 2560,
+                "characteristics": [
+                    {
+                        "type": "000000A5-0000-1000-8000-0026BB765291",
+                        "iid": 2564,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "data",
+                        "value": ""
+                    },
+                    {
+                        "type": "23A",
+                        "iid": 2561,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "int",
+                        "value": 0
+                    },
+                    {
+                        "type": "23C",
+                        "iid": 2562,
+                        "perms": [
+                            "pr"
+                        ],
+                        "format": "data",
+                        "value": ""
+                    },
+                    {
+                        "type": "24A",
+                        "iid": 2565,
+                        "perms": [
+                            "pr",
+                            "ev"
+                        ],
+                        "format": "int",
+                        "value": 1
+                    }
+                ]
+            }
+        ]
+    }
+]

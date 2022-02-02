@@ -19,6 +19,7 @@ import base64
 import binascii
 from decimal import ROUND_HALF_UP, Decimal, localcontext
 from distutils.util import strtobool
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from aiohomekit.exceptions import CharacteristicPermissionError, FormatError
@@ -150,9 +151,9 @@ class Characteristic:
 
     @property
     def value(self) -> Any:
-        if self.format == CharacteristicFormats.tlv8:
-            extra_data = characteristics.get(self.type, {})
+        extra_data = characteristics.get(self.type, {})
 
+        if self.format == CharacteristicFormats.tlv8:
             new_val = base64.b64decode(self._value)
             struct = extra_data.get("struct")
             if struct:
@@ -161,6 +162,9 @@ class Characteristic:
                 else:
                     return struct.decode(new_val)
 
+        if enum := extra_data.get("enum"):
+            return enum(self._value)
+
         return self._value
 
     @value.setter
@@ -168,6 +172,9 @@ class Characteristic:
         self.set_value(value)
 
     def validate_value(self, new_val: Any) -> Any:
+        if isinstance(new_val, Enum):
+            new_val = new_val.value
+
         try:
             # convert input to python int if it is any kind of int
             if self.format in [

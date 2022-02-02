@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+from uuid import UUID
+
 BASE_UUID = "-0000-1000-8000-0026BB765291"
 
 
@@ -29,10 +31,7 @@ def shorten_uuid(value: str) -> str:
         value = value.split("-", 1)[0]
         return value.lstrip("0")
 
-    if len(value) == 36:
-        return value
-
-    raise ValueError(f"{value} doesn't look like a valid UUID")
+    return normalize_uuid(value)
 
 
 def normalize_uuid(value: str) -> str:
@@ -50,4 +49,9 @@ def normalize_uuid(value: str) -> str:
     if len(value) == 36:
         return value
 
-    raise ValueError(f"{value} doesn't look like a valid UUID or short UUID")
+    # Handle cases like 34AB8811AC7F4340BAC3FD6A85F9943B
+    # Reject the rest
+    try:
+        return str(UUID(value)).upper()
+    except ValueError:
+        raise ValueError(f"{value} doesn't look like a valid UUID or short UUID")
