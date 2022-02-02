@@ -160,27 +160,35 @@ class Accessory:
         return self.services.first(service_type=ServicesTypes.ACCESSORY_INFORMATION)
 
     @property
-    def name(self):
-        return self.accessory_information.value(CharacteristicsTypes.NAME)
+    def name(self) -> str:
+        return self.accessory_information.value(CharacteristicsTypes.NAME, "")
 
     @property
-    def manufacturer(self):
-        return self.accessory_information.value(CharacteristicsTypes.MANUFACTURER)
+    def manufacturer(self) -> str:
+        return self.accessory_information.value(CharacteristicsTypes.MANUFACTURER, "")
 
     @property
-    def model(self):
-        return self.accessory_information.value(CharacteristicsTypes.MODEL)
+    def model(self) -> str | None:
+        return self.accessory_information.value(CharacteristicsTypes.MODEL, "")
 
     @property
-    def serial_number(self):
-        return self.accessory_information.value(CharacteristicsTypes.SERIAL_NUMBER)
+    def serial_number(self) -> str:
+        return self.accessory_information.value(CharacteristicsTypes.SERIAL_NUMBER, "")
 
     @property
-    def firmware_revision(self):
-        return self.accessory_information.value(CharacteristicsTypes.FIRMWARE_REVISION)
+    def firmware_revision(self) -> str:
+        return self.accessory_information.value(
+            CharacteristicsTypes.FIRMWARE_REVISION, ""
+        )
 
     @property
-    def available(self):
+    def hardware_revision(self) -> str:
+        return self.accessory_information.value(
+            CharacteristicsTypes.HARDWARE_REVISION, ""
+        )
+
+    @property
+    def available(self) -> bool:
         return all(s.available for s in self.services)
 
     @classmethod
@@ -247,13 +255,16 @@ class Accessory:
 
 
 class Accessories:
+
+    accessories: list[Accessory]
+
     def __init__(self) -> None:
         self.accessories = []
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[Accessory]:
         return iter(self.accessories)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> Accessory:
         return self.accessories[idx]
 
     @classmethod
@@ -284,7 +295,7 @@ class Accessories:
     def aid(self, aid) -> Accessory:
         return next(filter(lambda accessory: accessory.aid == aid, self.accessories))
 
-    def process_changes(self, changes):
+    def process_changes(self, changes: dict[tuple[int, int], Any]) -> None:
         for ((aid, iid), value) in changes.items():
             accessory = self.aid(aid)
             if not accessory:

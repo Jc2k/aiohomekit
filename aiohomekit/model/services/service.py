@@ -14,7 +14,9 @@
 # limitations under the License.
 #
 
-from typing import TYPE_CHECKING, Iterable, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Iterable
 
 from aiohomekit.model.characteristics import Characteristic, CharacteristicsTypes
 from aiohomekit.model.characteristics.characteristic import check_convert_value
@@ -26,13 +28,16 @@ if TYPE_CHECKING:
 
 
 class Characteristics:
+
+    _characteristics: list[Characteristic]
+
     def __init__(self):
         self._characteristics = []
 
-    def append(self, char):
+    def append(self, char: Characteristic) -> None:
         self._characteristics.append(char)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[Characteristic]:
         return iter(self._characteristics)
 
     def filter(self, char_types=None) -> Iterable[Characteristic]:
@@ -49,11 +54,20 @@ class Characteristics:
 
 
 class Service:
+
+    type: str
+    iid: int
+    linked: list[Service]
+
+    characteristics: Characteristics
+    characteristics_by_type: dict[str, Characteristic]
+    accessory: Accessory
+
     def __init__(
         self,
-        accessory: "Accessory",
+        accessory: Accessory,
         service_type: str,
-        name: Optional[str] = None,
+        name: str | None = None,
         add_required: bool = False,
     ):
         self.type = normalize_uuid(service_type)
@@ -77,7 +91,7 @@ class Service:
         char_type = normalize_uuid(char_type)
         return char_type in self.characteristics_by_type
 
-    def value(self, char_type, default_value=None):
+    def value(self, char_type, default_value=None) -> Any:
         char_type = normalize_uuid(char_type)
 
         if char_type not in self.characteristics_by_type:
@@ -85,7 +99,7 @@ class Service:
 
         return self.characteristics_by_type[char_type].value
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> Characteristic:
         key = normalize_uuid(key)
         return self.characteristics_by_type[key]
 
@@ -95,10 +109,10 @@ class Service:
         self.characteristics_by_type[char.type] = char
         return char
 
-    def add_linked_service(self, service: "Service"):
+    def add_linked_service(self, service: Service) -> None:
         self.linked.append(service)
 
-    def build_update(self, payload):
+    def build_update(self, payload: dict[str, Any]) -> None:
         """
         Given a payload in the form of {CHAR_TYPE: value}, render in a form suitable to pass
         to put_characteristics using aid and iid.

@@ -60,6 +60,12 @@ NUMBER_TYPES = INTEGER_TYPES + [CharacteristicFormats.float]
 
 
 class Characteristic:
+
+    type: str
+    iid: int
+
+    service: Service
+
     def __init__(self, service: Service, characteristic_type: str, **kwargs) -> None:
         self.service = service
         self.iid = service.accessory.get_next_id()
@@ -133,17 +139,17 @@ class Characteristic:
     def available(self) -> bool:
         return self._status != HapStatusCode.UNABLE_TO_COMMUNICATE
 
-    def set_events(self, new_val):
+    def set_events(self, new_val: Any) -> None:
         self.ev = new_val
 
-    def set_value(self, new_val):
+    def set_value(self, new_val: Any) -> None:
         """
         This function sets the value of this characteristic.
         """
         self._value = new_val
 
     @property
-    def value(self):
+    def value(self) -> Any:
         if self.format == CharacteristicFormats.tlv8:
             extra_data = characteristics.get(self.type, {})
 
@@ -158,10 +164,10 @@ class Characteristic:
         return self._value
 
     @value.setter
-    def value(self, value):
+    def value(self, value: Any) -> None:
         self.set_value(value)
 
-    def validate_value(self, new_val):
+    def validate_value(self, new_val: Any) -> Any:
         try:
             # convert input to python int if it is any kind of int
             if self.format in [
@@ -226,7 +232,7 @@ class Characteristic:
 
         return new_val
 
-    def get_value(self):
+    def get_value(self) -> Any:
         """
         This method returns the value of this characteristic. Permissions are checked first, then either the callback
         for getting the values is executed (execution time may vary) or the value is directly returned if not callback
