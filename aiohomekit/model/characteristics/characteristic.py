@@ -64,6 +64,10 @@ class Characteristic:
 
     type: str
     iid: int
+    perms: list[str]
+    minValue: int | float | None
+    maxValue: int | float | None
+    minStep: int | float | None
 
     service: Service
 

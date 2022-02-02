@@ -3,7 +3,7 @@ import enum
 from aiohomekit.model.characteristics import Characteristic
 
 
-def clamp_enum_to_char(all_valid_values: enum.IntEnum, char: Characteristic):
+def clamp_enum_to_char(all_valid_values: enum.EnumMeta, char: Characteristic):
     """Clamp possible values of an enum to restrictions imposed by a manufacturer."""
     valid_values = set(all_valid_values)
 
