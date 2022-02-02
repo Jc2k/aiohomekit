@@ -215,6 +215,8 @@ class TLVStruct:
         result = bytearray()
 
         for struct_field in fields(self):
+            if not struct_field.init:
+                continue
             value = getattr(self, struct_field.name)
 
             if value is None:
@@ -241,7 +243,9 @@ class TLVStruct:
 
         # FIXME: Would by good if we could cache this per cls
         # And not rebuild it every time decode() is called
-        tlv_types = {field.metadata["tlv_type"]: field for field in fields(cls)}
+        tlv_types = {
+            field.metadata["tlv_type"]: field for field in fields(cls) if field.init
+        }
 
         for offset, type, length, value in tlv_iterator(encoded_struct):
             if type not in tlv_types:
