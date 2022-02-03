@@ -16,28 +16,21 @@
 
 from __future__ import annotations
 
+import logging
+import random
 from typing import TYPE_CHECKING, Callable
 import uuid
 
-from aiohomekit.exceptions import AlreadyPairedError
-from aiohomekit.model.feature_flags import FeatureFlags
-from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
-from aiohomekit.protocol.statuscodes import to_status_code
-
-from .pairing import BlePairing
-import asyncio
-from dataclasses import dataclass
-import logging
-
-from bleak import BleakScanner, BleakClient
+from bleak import BleakClient
 
 from aiohomekit.model import CharacteristicsTypes, ServicesTypes
-from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8
+from aiohomekit.model.feature_flags import FeatureFlags
+from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
 from aiohomekit.protocol.tlv import TLV
 
-from .structs import BleRequest
 from .const import AdditionalParameterTypes, OpCodes
-import uuid
+from .pairing import BlePairing
+from .structs import BleRequest
 
 if TYPE_CHECKING:
     from aiohomekit.controller import Controller
@@ -46,6 +39,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 address = "5356DB18-AB9D-495B-9DD8-7D2E9EE63739"
+
 
 def parse_manufacturer_specific(input_data: bytes):
     """
@@ -57,32 +51,34 @@ def parse_manufacturer_specific(input_data: bytes):
              identifier (key 'acid'), human readable version of the category (key 'category'), the global state number
              (key 'gsn'), the configuration number (key 'cn') and the compatible version (key 'cv')
     """
-    logging.debug('manufacturer specific data: %s', input_data.hex())
+    logging.debug("manufacturer specific data: %s", input_data.hex())
 
     # the type must be 0x06 as defined on page 124 table 6-29
     ty = input_data[0]
     input_data = input_data[1:]
     if ty == 0x06:
-        ty = 'HomeKit'
+        ty = "HomeKit"
 
         ail = input_data[0]
-        logging.debug('advertising interval %s', '{0:02x}'.format(ail))
+        logging.debug("advertising interval %s", f"{ail:02x}")
         length = ail & 0b00011111
         if length != 13:
-            logging.debug('error with length of manufacturer data')
+            logging.debug("error with length of manufacturer data")
         input_data = input_data[1:]
 
         sf = input_data[0]
         flags = sf
         input_data = input_data[1:]
 
-        device_id = (':'.join(input_data[:6].hex()[0 + i:2 + i] for i in range(0, 12, 2))).upper()
+        device_id = (
+            ":".join(input_data[:6].hex()[0 + i : 2 + i] for i in range(0, 12, 2))
+        ).upper()
         input_data = input_data[6:]
 
-        acid = int.from_bytes(input_data[:2], byteorder='little')
+        acid = int.from_bytes(input_data[:2], byteorder="little")
         input_data = input_data[2:]
 
-        gsn = int.from_bytes(input_data[:2], byteorder='little')
+        gsn = int.from_bytes(input_data[:2], byteorder="little")
         input_data = input_data[2:]
 
         cn = input_data[0]
@@ -91,12 +87,25 @@ def parse_manufacturer_specific(input_data: bytes):
         cv = input_data[0]
         input_data = input_data[1:]
         if len(input_data) > 0:
-            logging.debug('remaining data: %s', input_data.hex())
-        return {'manufacturer': 'apple', 'type': ty, 'sf': sf, 'flags': flags, 'id': device_id, 'acid': acid,
-                's#': gsn, 'c#': cn, 'cv': cv, 'ci': int(acid), 'category': int(acid), 'ff': 0, 'md': '', 'pv': 0, 'statusflags': 0}
+            logging.debug("remaining data: %s", input_data.hex())
+        return {
+            "manufacturer": "apple",
+            "type": ty,
+            "sf": sf,
+            "flags": flags,
+            "id": device_id,
+            "acid": acid,
+            "s#": gsn,
+            "c#": cn,
+            "cv": cv,
+            "ci": int(acid),
+            "category": int(acid),
+            "ff": 0,
+            "md": "",
+            "pv": 0,
+            "statusflags": 0,
+        }
 
-
-import random
 
 async def do_request(client: BleakClient, handle: int, cid: int, body: bytes):
     body = BleRequest(expect_response=1, value=body).encode()
@@ -104,15 +113,15 @@ async def do_request(client: BleakClient, handle: int, cid: int, body: bytes):
     transaction_id = random.randrange(0, 255)
     # construct a hap characteristic write request following chapter 7.3.4.4 page 94 spec R2
     data = bytearray([0x00, OpCodes.CHAR_WRITE.value, transaction_id])
-    data.extend(cid.to_bytes(length=2, byteorder='little'))
-    data.extend(len(body).to_bytes(length=2, byteorder='little'))
+    data.extend(cid.to_bytes(length=2, byteorder="little"))
+    data.extend(len(body).to_bytes(length=2, byteorder="little"))
     data.extend(body)
 
     await client.write_gatt_char(handle, data)
 
     data = await client.read_gatt_char(handle)
 
-    expected_length = int.from_bytes(bytes(data[3:5]), byteorder='little')
+    expected_length = int.from_bytes(bytes(data[3:5]), byteorder="little")
     while len(data[3:]) < expected_length:
         data += await client.read_gatt_char(handle)
 
@@ -120,17 +129,14 @@ async def do_request(client: BleakClient, handle: int, cid: int, body: bytes):
     return TLV.decode_bytes(decoded[AdditionalParameterTypes.Value.value])
 
 
-
 async def do_pair_setup(client: BleakClient, request):
     service = client.services.get_service(ServicesTypes.PAIRING)
     char = service.get_characteristic(CharacteristicsTypes.PAIR_SETUP)
-    iid_handle = char.get_descriptor(uuid.UUID('DC46F0FE-81D2-4616-B5D9-6ABDD796939A'))
-    value = bytes(
-        await client.read_gatt_descriptor(iid_handle.handle)
-    )
+    iid_handle = char.get_descriptor(uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A"))
+    value = bytes(await client.read_gatt_descriptor(iid_handle.handle))
 
     body = TLV.encode_list(request)
-    new_cid = int.from_bytes(value, byteorder='little')
+    new_cid = int.from_bytes(value, byteorder="little")
 
     return await do_request(client, char.handle, new_cid, body)
 
@@ -145,9 +151,11 @@ class BleDiscovery:
         self.controller = controller
         self.device = device
         self.address = device.address
-        self.info = parse_manufacturer_specific(device.metadata['manufacturer_data'][76])
-        self.info['name'] = device.name
-        self.info['mac'] = device.address
+        self.info = parse_manufacturer_specific(
+            device.metadata["manufacturer_data"][76]
+        )
+        self.info["name"] = device.name
+        self.info["mac"] = device.address
         self.client = BleakClient(self.device)
 
     async def _ensure_connected(self):

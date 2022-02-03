@@ -43,7 +43,8 @@ if IP_TRANSPORT_SUPPORTED:
 if BLE_TRANSPORT_SUPPORTED:
     from bleak import BleakScanner
 
-    from aiohomekit.controller.ble import BlePairing, BleDiscovery
+    from aiohomekit.controller.ble import BleDiscovery, BlePairing
+
 
 class Controller:
     """
@@ -119,9 +120,13 @@ class Controller:
             if not BLE_TRANSPORT_SUPPORTED:
                 raise TransportNotSupportedError("BLE")
 
-            device = await BleakScanner.find_device_by_address(parsed.netloc, timeout=max_seconds)
+            device = await BleakScanner.find_device_by_address(
+                parsed.netloc, timeout=max_seconds
+            )
             if not device:
-                raise AccessoryNotFoundError(f"Device not found via BLE discovery within {max_seconds}s")
+                raise AccessoryNotFoundError(
+                    f"Device not found via BLE discovery within {max_seconds}s"
+                )
 
             return BleDiscovery(self, device)
 
@@ -135,9 +140,9 @@ class Controller:
         for d in devices:
             if not d.metadata:
                 continue
-            if 76 not in d.metadata['manufacturer_data']:
+            if 76 not in d.metadata["manufacturer_data"]:
                 continue
-            if not d.metadata['manufacturer_data'][76].startswith(b'\x06'):
+            if not d.metadata["manufacturer_data"][76].startswith(b"\x06"):
                 continue
             yield BleDiscovery(self, d)
 
@@ -164,6 +169,9 @@ class Controller:
         if pairing_data["Connection"] == "BLE":
             if not BLE_TRANSPORT_SUPPORTED:
                 raise TransportNotSupportedError("BLE")
+
+            pairing = self.pairings[alias] = BlePairing(self, pairing_data)
+            return pairing
 
         connection_type = pairing_data["Connection"]
         raise NotImplementedError(f"{connection_type} support")

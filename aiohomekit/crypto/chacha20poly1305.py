@@ -27,7 +27,7 @@ from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
 def chacha20_aead_encrypt(
     aad: bytes, key: bytes, iv: bytes, constant: bytes, plaintext: bytes
-) -> tuple[bytearray, bytes]:
+) -> bytes:
     """
     The encrypt method for chacha20 aead as required by the Apple specification. The 96-bit nonce from RFC7539 is
     formed from the constant and the initialisation vector.

@@ -86,9 +86,7 @@ async def discover_ip(args):
             continue
 
         print("Name: {name}".format(name=prepare_string(info["name"])))
-        print(
-            "Url: hap+ip://{ip}:{port}".format(ip=info["address"], port=info["port"])
-        )
+        print("Url: hap+ip://{ip}:{port}".format(ip=info["address"], port=info["port"]))
         print("Configuration number (c#): {conf}".format(conf=info["c#"]))
         print(
             "Feature Flags (ff): {f} (Flag: {flags})".format(
@@ -291,7 +289,7 @@ async def put_characteristics(args: Namespace) -> bool:
             (
                 int(c[0].split(".")[0]),  # the first part is the aid, must be int
                 int(c[0].split(".")[1]),  # the second part is the iid, must be int
-                c[1],
+                json.loads(c[1]),
             )
             for c in args.characteristics
         ]
@@ -312,6 +310,28 @@ async def put_characteristics(args: Namespace) -> bool:
                     aid=aid, iid=iid, reason=desc, code=status
                 )
             )
+    return True
+
+
+async def identify(args: Namespace) -> bool:
+    controller = Controller(args.adapter)
+    try:
+        controller.load_data(args.file)
+    except Exception:
+        logger.exception("Error whilst loading pairing")
+        return False
+
+    if args.alias not in controller.get_pairings():
+        print(f'"{args.alias}" is no known alias')
+        return False
+
+    try:
+        pairing = controller.get_pairings()[args.alias]
+        await pairing.identify()
+    except Exception:
+        logging.exception("Unhandled error whilst identifying device")
+        return False
+
     return True
 
 
@@ -598,6 +618,10 @@ async def main(argv: list[str] | None = None) -> None:
         nargs=2,
         help="Use aid.iid value to change the value. Repeat to change multiple characteristics.",
     )
+
+    identify_parser = subparsers.add_parser("identify", help="Identify a paired device")
+    identify_parser.set_defaults(func=identify)
+    setup_parser_for_pairing(identify_parser)
 
     get_events_parser = subparsers.add_parser(
         "watch", help="Monitor changes to characteristics on this device"

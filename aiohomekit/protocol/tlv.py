@@ -141,8 +141,7 @@ class TLV:
     def encode_list(d: list) -> bytearray:
         logger.debug("sending %s", TLV.to_string(d))
         result = bytearray()
-        for p in d:
-            (key, value) = p
+        for key, value in d:
             if not TLV.validate_key(key):
                 raise ValueError("Invalid key")
 
