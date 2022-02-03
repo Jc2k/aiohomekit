@@ -15,7 +15,7 @@
 #
 
 try:
-    __import__("aioble")
+    __import__("bleak")
     BLE_TRANSPORT_SUPPORTED = True
 except ModuleNotFoundError:
     BLE_TRANSPORT_SUPPORTED = False

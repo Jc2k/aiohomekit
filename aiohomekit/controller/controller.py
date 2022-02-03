@@ -20,6 +20,8 @@ from json.decoder import JSONDecodeError
 import logging
 import pathlib
 import re
+from typing import Iterable
+from urllib.parse import urlparse
 
 from ..const import BLE_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
 from ..exceptions import (
@@ -37,6 +39,11 @@ if IP_TRANSPORT_SUPPORTED:
     from .ip import IpDiscovery, IpPairing
     from .ip.zeroconf import async_discover_homekit_devices
 
+
+if BLE_TRANSPORT_SUPPORTED:
+    from bleak import BleakScanner
+
+    from aiohomekit.controller.ble import BlePairing, BleDiscovery
 
 class Controller:
     """
@@ -90,38 +97,49 @@ class Controller:
             tmp.append(IpDiscovery(self, device))
         return tmp
 
-    async def find_ip_by_device_id(self, device_id, max_seconds=10):
-        if not IP_TRANSPORT_SUPPORTED:
-            raise TransportNotSupportedError("IP")
-        device = await async_find_data_for_device_id(
-            device_id=device_id,
-            max_seconds=max_seconds,
-            async_zeroconf_instance=self._async_zeroconf_instance,
-        )
-        return IpDiscovery(self, device)
+    async def find_ip_by_device_id(self, device_id, max_seconds=30):
+        # Backwards compact
+        if not device_id.startswith("hap+"):
+            device_id = "hap+ip://"
 
-    @staticmethod
-    async def discover_ble(max_seconds=10, adapter="hci0"):
-        """
-        Perform a Bluetooth LE discovery for HomeKit accessory. It will listen for Bluetooth LE advertisement events
-        for the given amount of seconds. The result will be a list of dicts. The keys of the dicts are:
-         * name: the model name of the accessory (required)
-         * mac: the MAC address of the accessory (required)
-         * sf / flags: the numerical and human readable version of the status flags (supports pairing or not, see table
-                       6-32 page 125)
-         * device_id: the accessory's device id (required)
-         * acid / category: the category identifier in numerical and human readable form. For more information see table
-                            12-3 page 254 or homekit.Categories (required)
-         * gsn: Global State Number, increment on change of any characteristic, overflows at 65535.
-         * cn: the configuration number (required)
-         * cv: the compatible version
+        parsed = urlparse(device_id)
 
-        :param max_seconds: how long should the Bluetooth LE discovery should be performed (default 10s). See sleep for
-                            more details
-        :param adapter: the bluetooth adapter to be used (defaults to hci0)
-        :return: a list of dicts as described above
-        """
-        raise TransportNotSupportedError("BLE")
+        if parsed.scheme == "hap+ip":
+            if not IP_TRANSPORT_SUPPORTED:
+                raise TransportNotSupportedError("IP")
+
+            device = await async_find_data_for_device_id(
+                device_id=parsed.netloc,
+                max_seconds=max_seconds,
+                async_zeroconf_instance=self._async_zeroconf_instance,
+            )
+            return IpDiscovery(self, device)
+
+        if parsed.scheme == "hap+ble":
+            if not BLE_TRANSPORT_SUPPORTED:
+                raise TransportNotSupportedError("BLE")
+
+            device = await BleakScanner.find_device_by_address(parsed.netloc, timeout=max_seconds)
+            if not device:
+                raise AccessoryNotFoundError(f"Device not found via BLE discovery within {max_seconds}s")
+
+            return BleDiscovery(self, device)
+
+    async def discover_ble(self, max_seconds=10) -> Iterable[BleDiscovery]:
+        if not BLE_TRANSPORT_SUPPORTED:
+            raise TransportNotSupportedError("BLE")
+
+        from bleak import BleakScanner
+
+        devices = await BleakScanner.discover(timeout=max_seconds)
+        for d in devices:
+            if not d.metadata:
+                continue
+            if 76 not in d.metadata['manufacturer_data']:
+                continue
+            if not d.metadata['manufacturer_data'][76].startswith(b'\x06'):
+                continue
+            yield BleDiscovery(self, d)
 
     async def shutdown(self) -> None:
         """

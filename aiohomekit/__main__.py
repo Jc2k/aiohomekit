@@ -87,7 +87,7 @@ async def discover_ip(args):
 
         print("Name: {name}".format(name=prepare_string(info["name"])))
         print(
-            "Url: http_impl://{ip}:{port}".format(ip=info["address"], port=info["port"])
+            "Url: hap+ip://{ip}:{port}".format(ip=info["address"], port=info["port"])
         )
         print("Configuration number (c#): {conf}".format(conf=info["c#"]))
         print(
@@ -114,7 +114,42 @@ async def discover_ip(args):
     return True
 
 
-async def pair_ip(args):
+async def discover_ble(args):
+    controller = Controller()
+    async for discovery in controller.discover_ble(args.timeout):
+        info = discovery.info
+
+        if args.unpaired_only and info["sf"] == "0":
+            continue
+
+        print("Name: {name}".format(name=prepare_string(info["name"])))
+        print(f"Address: hap+ble://{discovery.address}")
+        print("Configuration number (c#): {conf}".format(conf=info["c#"]))
+        print(
+            "Feature Flags (ff): {f} (Flag: {flags})".format(
+                f=info["flags"], flags=info["ff"]
+            )
+        )
+        print("Device ID (id): {id}".format(id=info["id"]))
+        print("Model Name (md): {md}".format(md=prepare_string(info["md"])))
+        print("Protocol Version (pv): {pv}".format(pv=info["pv"]))
+        print("State Number (s#): {sn}".format(sn=info["s#"]))
+        print(
+            "Status Flags (sf): {sf} (Flag: {flags})".format(
+                sf=info["statusflags"], flags=info["sf"]
+            )
+        )
+        print(
+            "Category Identifier (ci): {c} (Id: {ci})".format(
+                c=info["category"], ci=info["ci"]
+            )
+        )
+        print()
+
+    return True
+
+
+async def pair(args):
     controller = Controller()
 
     try:
@@ -447,11 +482,33 @@ async def main(argv: list[str] | None = None) -> None:
         help="If activated, this option will show only unpaired HomeKit IP Devices",
     )
 
-    # pair_ip
-    pair_parser = subparsers.add_parser(
-        "pair-ip", help="Pair with a HomeKit device accessible on your LAN/WiFi"
+    # discover_ble
+    discover_parser = subparsers.add_parser(
+        "discover-ble", help="Find HomeKit devices accessible by BLE"
     )
-    pair_parser.set_defaults(func=pair_ip)
+    discover_parser.set_defaults(func=discover_ble)
+    discover_parser.add_argument(
+        "-t",
+        action="store",
+        required=False,
+        dest="timeout",
+        type=int,
+        default=30,
+        help="Number of seconds to wait",
+    )
+    discover_parser.add_argument(
+        "-u",
+        action="store_true",
+        required=False,
+        dest="unpaired_only",
+        help="If activated, this option will show only unpaired HomeKit BLE Devices",
+    )
+
+    # pair
+    pair_parser = subparsers.add_parser(
+        "pair", help="Pair with an unpaired HomeKit device"
+    )
+    pair_parser.set_defaults(func=pair)
     setup_parser_for_pairing(pair_parser)
     pair_parser.add_argument(
         "-d",
