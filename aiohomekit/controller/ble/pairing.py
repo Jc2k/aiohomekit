@@ -185,7 +185,46 @@ class BlePairing(AbstractPairing):
         return results
 
     async def list_pairings(self):
-        pass
+        await self._ensure_connected()
+
+        request_tlv = TLV.encode_list(
+            [(TLV.kTLVType_State, TLV.M1), (TLV.kTLVType_Method, TLV.ListPairings)]
+        )
+        request_tlv = TLV.encode_list(
+            [
+                (TLV.kTLVHAPParamParamReturnResponse, bytearray(b"\x01")),
+                (TLV.kTLVHAPParamValue, request_tlv),
+            ]
+        )
+
+        info = self._accessories.aid(1).services.first(
+            service_type=ServicesTypes.PAIRING
+        )
+        char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
+
+        resp = await self._async_request(OpCodes.CHAR_WRITE, char.iid, request_tlv)
+
+        response = dict(TLV.decode_bytes(resp))
+
+        resp = TLV.decode_bytes(response[1])
+        print(resp)
+
+        tmp = []
+        r = {}
+        for d in resp[1:]:
+            if d[0] == TLV.kTLVType_Identifier:
+                r = {}
+                tmp.append(r)
+                r["pairingId"] = d[1].decode()
+            if d[0] == TLV.kTLVType_PublicKey:
+                r["publicKey"] = d[1].hex()
+            if d[0] == TLV.kTLVType_Permissions:
+                controller_type = "regular"
+                if d[1] == b"\x01":
+                    controller_type = "admin"
+                r["permissions"] = int.from_bytes(d[1], byteorder="little")
+                r["controllerType"] = controller_type
+        return tmp
 
     async def _async_request(
         self, opcode: OpCodes, iid: int, data: bytes | None = None
