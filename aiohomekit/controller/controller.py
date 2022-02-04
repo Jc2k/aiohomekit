@@ -23,7 +23,10 @@ import re
 from typing import Iterable
 from urllib.parse import urlparse
 
-from aiohomekit.cdb import CharacteristicCacheMemory, CharacteristicCacheType
+from aiohomekit.characteristic_cache import (
+    CharacteristicCacheMemory,
+    CharacteristicCacheType,
+)
 
 from ..const import BLE_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
 from ..exceptions import (

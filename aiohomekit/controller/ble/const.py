@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from enum import Enum, IntEnum
+from enum import IntEnum
 
 
 class AdditionalParameterTypes(IntEnum):
@@ -37,12 +37,3 @@ class AdditionalParameterTypes(IntEnum):
     HAPLinkedServices = 0x10
     HAPValidValuesDescriptor = 0x11
     HAPValidValuesRangeDescriptor = 0x12
-
-
-class OpCodes(Enum):
-    CHAR_SIG_READ = 0x01
-    CHAR_WRITE = 0x02
-    CHAR_READ = 0x03
-    CHAR_TIMED_WRITE = 0x04
-    CHAR_EXEC_WRITE = 0x05
-    SERV_SIG_READ = 0x06

@@ -25,14 +25,14 @@ from bleak import BleakClient
 
 from aiohomekit.model import Accessories, Accessory, CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
+from aiohomekit.pdu import OpCode, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.uuid import normalize_uuid
 
 from ..pairing import AbstractPairing
-from .const import AdditionalParameterTypes, OpCodes
+from .const import AdditionalParameterTypes
 from .key import DecryptionKey, EncryptionKey
-from .pdu import decode_pdu, encode_pdu
 from .structs import BleRequest, Characteristic as CharacteristicTLV
 from .values import from_bytes, to_bytes
 
@@ -49,7 +49,7 @@ async def do_request(client: BleakClient, handle: int, cid: int, body: bytes):
 
     transaction_id = random.randrange(0, 255)
     # construct a hap characteristic write request following chapter 7.3.4.4 page 94 spec R2
-    data = bytearray([0x00, OpCodes.CHAR_WRITE.value, transaction_id])
+    data = bytearray([0x00, OpCode.CHAR_WRITE.value, transaction_id])
     data.extend(cid.to_bytes(length=2, byteorder="little"))
     data.extend(len(body).to_bytes(length=2, byteorder="little"))
     data.extend(body)
@@ -104,7 +104,7 @@ class BlePairing(AbstractPairing):
         self.pairing_data = pairing_data
 
     async def _async_request(
-        self, opcode: OpCodes, iid: int, data: bytes | None = None
+        self, opcode: OpCode, iid: int, data: bytes | None = None
     ) -> bytes:
         char = self._accessories.aid(1).characteristics.iid(iid)
 
@@ -183,7 +183,7 @@ class BlePairing(AbstractPairing):
                 )
 
                 tid = random.randint(1, 254)
-                data = encode_pdu(OpCodes.CHAR_SIG_READ, tid, iid)
+                data = encode_pdu(OpCode.CHAR_SIG_READ, tid, iid)
 
                 await self.client.write_gatt_char(char.handle, data)
                 payload = await self.client.read_gatt_char(char.handle)
@@ -229,7 +229,7 @@ class BlePairing(AbstractPairing):
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
 
-        resp = await self._async_request(OpCodes.CHAR_WRITE, char.iid, request_tlv)
+        resp = await self._async_request(OpCode.CHAR_WRITE, char.iid, request_tlv)
 
         response = dict(TLV.decode_bytes(resp))
 
@@ -266,7 +266,7 @@ class BlePairing(AbstractPairing):
         results = {}
 
         for aid, iid in characteristics:
-            data = await self._async_request(OpCodes.CHAR_READ, iid)
+            data = await self._async_request(OpCode.CHAR_READ, iid)
             data = dict(TLV.decode_bytes(data))[1]
 
             char = self._accessories.aid(1).characteristics.iid(iid)
@@ -285,7 +285,7 @@ class BlePairing(AbstractPairing):
             char = self._accessories.aid(1).characteristics.iid(iid)
             payload = TLV.encode_list([(1, to_bytes(char, value))])
 
-            data = await self._async_request(OpCodes.CHAR_WRITE, iid, payload)
+            data = await self._async_request(OpCode.CHAR_WRITE, iid, payload)
 
             if data:
                 data = dict(TLV.decode_bytes(data))[1]

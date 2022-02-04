@@ -25,10 +25,11 @@ from bleak import BleakClient
 
 from aiohomekit.model import CharacteristicsTypes, ServicesTypes
 from aiohomekit.model.feature_flags import FeatureFlags
+from aiohomekit.pdu import OpCode
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
 from aiohomekit.protocol.tlv import TLV
 
-from .const import AdditionalParameterTypes, OpCodes
+from .const import AdditionalParameterTypes
 from .pairing import BlePairing
 from .structs import BleRequest
 
@@ -112,7 +113,7 @@ async def do_request(client: BleakClient, handle: int, cid: int, body: bytes):
 
     transaction_id = random.randrange(0, 255)
     # construct a hap characteristic write request following chapter 7.3.4.4 page 94 spec R2
-    data = bytearray([0x00, OpCodes.CHAR_WRITE.value, transaction_id])
+    data = bytearray([0x00, OpCode.CHAR_WRITE.value, transaction_id])
     data.extend(cid.to_bytes(length=2, byteorder="little"))
     data.extend(len(body).to_bytes(length=2, byteorder="little"))
     data.extend(body)

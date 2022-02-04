@@ -25,7 +25,7 @@ import pathlib
 import re
 import sys
 
-from aiohomekit.cdb import CharacteristicCacheFile
+from aiohomekit.characteristic_cache import CharacteristicCacheFile
 
 from .controller import Controller
 from .exceptions import HomeKitException
@@ -34,13 +34,10 @@ logger = logging.getLogger(__name__)
 
 XDG_DATA_HOME = pathlib.Path.home() / ".local" / "share"
 DEFAULT_PAIRING_FILE = XDG_DATA_HOME / "aiohomekit" / "pairing.json"
-DEFAULT_char_cache = XDG_DATA_HOME / "aiohomekit" / "charmap.json"
 
 
 def get_controller(args: argparse.Namespace) -> Controller:
-    charmap_path = DEFAULT_char_cache
-    if args.file:
-        charmap_path = pathlib.Path(args.file).parent / "charmap.json"
+    charmap_path = pathlib.Path(args.file).parent / "charmap.json"
 
     controller = Controller(char_cache=CharacteristicCacheFile(charmap_path))
     try:
