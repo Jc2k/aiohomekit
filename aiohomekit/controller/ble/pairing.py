@@ -276,7 +276,51 @@ class BlePairing(AbstractPairing):
     async def add_pairing(
         self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
     ):
-        pass
+        if permissions == "User":
+            permissions = TLV.kTLVType_Permission_RegularUser
+        elif permissions == "Admin":
+            permissions = TLV.kTLVType_Permission_AdminUser
+        else:
+            raise RuntimeError(f"Unknown permission: {permissions}")
+
+        request_tlv = TLV.encode_list(
+            [
+                (TLV.kTLVType_State, TLV.M1),
+                (TLV.kTLVType_Method, TLV.AddPairing),
+                (
+                    TLV.kTLVType_Identifier,
+                    additional_controller_pairing_identifier.encode(),
+                ),
+                (TLV.kTLVType_PublicKey, bytes.fromhex(ios_device_ltpk)),
+                (TLV.kTLVType_Permissions, permissions),
+            ]
+        )
+
+        request_tlv = TLV.encode_list(
+            [
+                (TLV.kTLVHAPParamParamReturnResponse, bytearray(b"\x01")),
+                (TLV.kTLVHAPParamValue, request_tlv),
+            ]
+        )
+
+        info = self._accessories.aid(1).services.first(
+            service_type=ServicesTypes.PAIRING
+        )
+        char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
+
+        resp = await self._async_request(OpCode.CHAR_WRITE, char.iid, request_tlv)
+
+        response = dict(TLV.decode_bytes(resp))
+
+        data = dict(TLV.decode_bytes(response[1]))
+
+        if data.get(TLV.kTLVType_State, TLV.M2) != TLV.M2:
+            raise InvalidError("Unexpected state after removing pairing request")
+
+        if TLV.kTLVType_Error in data:
+            if data[TLV.kTLVType_Error] == TLV.kTLVError_Authentication:
+                raise AuthenticationError("Add pairing failed: insufficient access")
+            raise UnknownError("Add pairing failed: unknown error")
 
     async def remove_pairing(self, pairingId: str):
         await self._ensure_connected()
