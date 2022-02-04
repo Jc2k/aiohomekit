@@ -282,4 +282,6 @@ class Controller:
 
         await pairing.close()
 
+        self._char_cache.async_delete_map(primary_pairing_id)
+
         del self.pairings[alias]
