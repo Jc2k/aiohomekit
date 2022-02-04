@@ -25,7 +25,7 @@ from bleak import BleakClient
 
 from aiohomekit.model import Accessories, Accessory, CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
-from aiohomekit.pdu import OpCode, decode_pdu, encode_pdu
+from aiohomekit.pdu import OpCode, decode_pdu, decode_pdu_continuation, encode_pdu
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.uuid import normalize_uuid
@@ -112,18 +112,22 @@ class BlePairing(AbstractPairing):
         endpoint = svc.get_characteristic(char.type)
 
         tid = random.randrange(1, 254)
-        data = encode_pdu(opcode, tid, iid, data)
+        for data in encode_pdu(
+            opcode, tid, iid, data, fragment_size=self.client.mtu_size - 16
+        ):
+            if self._encryption_key:
+                data = self._encryption_key.encrypt(data)
 
-        if self._encryption_key:
-            data = self._encryption_key.encrypt(data)
+            await self.client.write_gatt_char(endpoint.handle, data)
 
-        await self.client.write_gatt_char(endpoint.handle, data)
         resp = await self.client.read_gatt_char(endpoint.handle)
-
         if self._decryption_key:
             data = self._decryption_key.decrypt(resp)
 
-        exp_length, data = decode_pdu(tid, data)
+        expected_length, data = decode_pdu(tid, data)
+        while len(data) < expected_length:
+            next = await self.client.read_gatt_char(endpoint.handle)
+            data += decode_pdu_continuation(next)
 
         return data
 
@@ -183,7 +187,12 @@ class BlePairing(AbstractPairing):
                 )
 
                 tid = random.randint(1, 254)
-                data = encode_pdu(OpCode.CHAR_SIG_READ, tid, iid)
+                for data in encode_pdu(
+                    OpCode.CHAR_SIG_READ,
+                    tid,
+                    iid,
+                ):
+                    await self.client.write_gatt_char(char.handle, data)
 
                 await self.client.write_gatt_char(char.handle, data)
                 payload = await self.client.read_gatt_char(char.handle)

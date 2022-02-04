@@ -19,6 +19,7 @@ from __future__ import annotations
 from enum import Enum, IntEnum
 import logging
 import struct
+from typing import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -44,25 +45,46 @@ class PDUStatus(IntEnum):
     INVALID_REQUEST = 6
 
 
-def encode_pdu(opcode: OpCode, tid: int, iid: int, data: bytes | None = None) -> bytes:
+def encode_pdu(
+    opcode: OpCode,
+    tid: int,
+    iid: int,
+    data: bytes | None = None,
+    fragment_size: int = 512,
+) -> Iterable[bytes]:
     """
     Encodes a PDU.
 
     The header is required, but the body (including length) is optional.
+
+    For BLE, the PDU must be fragmented to fit into ATT_MTU. The default here is 512.
+    In a secure session this drops to 496 (16 bytes for the encryption). Some devices
+    drop this quite a bit.
     """
     retval = struct.pack("<BBBH", 0, opcode.value, tid, iid)
     if not data:
-        return retval
-    return bytes(retval + struct.pack("<H", len(data)) + data)
+        yield retval
+        return
+
+    # Full header + body size + data
+    next_size = fragment_size - 7
+
+    yield bytes(retval + struct.pack("<H", len(data)) + data[:next_size])
+    data = data[next_size:]
+
+    # Control + tid + data
+    next_size = fragment_size - 2
+    for i in range(0, len(data), next_size):
+        yield struct.pack("<BB", 0x80, tid) + data[i : i + next_size]
 
 
-def decode_pdu(expected_tid: int, data: bytes) -> tuple[int, bytes]:
+def decode_pdu(expected_tid: int, data: bytes) -> tuple[bool, bytes]:
     control, tid, status = struct.unpack("<BBB", data[:3])
     status = PDUStatus(status)
 
     logger.debug(
-        "Get PDU %s: TID %02x (Expected: %s), Status:%s, Len:%d",
-        control & 0b00001110 == 0b00000010 and "response" or "request",
+        "Got PDU %s: TID %02x (Expected: %02x), Status:%s, Len:%d",
+        control,
         tid,
         expected_tid,
         status,
@@ -81,5 +103,28 @@ def decode_pdu(expected_tid: int, data: bytes) -> tuple[int, bytes]:
         return 0, b""
 
     expected_length = struct.unpack("<H", data[3:5])[0]
+    data = data[5:]
 
-    return expected_length, data[5:]
+    return expected_length, data
+
+
+def decode_pdu_continuation(expected_tid, data):
+    control, tid = struct.unpack("<BB", data[:2])
+
+    logger.debug(
+        "Got PDU %x: TID %02x (Expected: %02x) Len:%d",
+        control,
+        tid,
+        expected_tid,
+        len(data) - 2,
+    )
+
+    if not (control & 0x80):
+        raise ValueError("Expected continuation flag but isn't set")
+
+    if tid != expected_tid:
+        raise ValueError(
+            f"Expected transaction {expected_tid} but got transaction {tid}"
+        )
+
+    return data[2:]
