@@ -25,6 +25,8 @@ import pathlib
 import re
 import sys
 
+from aiohomekit.cdb import CharacteristicCacheFile
+
 from .controller import Controller
 from .exceptions import HomeKitException
 
@@ -32,6 +34,22 @@ logger = logging.getLogger(__name__)
 
 XDG_DATA_HOME = pathlib.Path.home() / ".local" / "share"
 DEFAULT_PAIRING_FILE = XDG_DATA_HOME / "aiohomekit" / "pairing.json"
+DEFAULT_char_cache = XDG_DATA_HOME / "aiohomekit" / "charmap.json"
+
+
+def get_controller(args: argparse.Namespace) -> Controller:
+    charmap_path = DEFAULT_char_cache
+    if args.file:
+        charmap_path = pathlib.Path(args.file).parent / "charmap.json"
+
+    controller = Controller(char_cache=CharacteristicCacheFile(charmap_path))
+    try:
+        controller.load_data(args.file)
+    except Exception:
+        logger.exception(f"Error while loading {args.file}")
+        raise SystemExit
+
+    return controller
 
 
 def pin_from_keyboard():
@@ -78,7 +96,7 @@ def prepare_string(input_string):
 
 
 async def discover_ip(args):
-    controller = Controller()
+    controller = get_controller(args)
     for discovery in await controller.discover_ip(args.timeout):
         info = discovery.info
 
@@ -113,7 +131,7 @@ async def discover_ip(args):
 
 
 async def discover_ble(args):
-    controller = Controller()
+    controller = get_controller(args)
     async for discovery in controller.discover_ble(args.timeout):
         info = discovery.info
 
@@ -148,13 +166,7 @@ async def discover_ble(args):
 
 
 async def pair(args):
-    controller = Controller()
-
-    try:
-        controller.load_data(args.file)
-    except Exception:
-        logger.exception(f"Error while loading {args.file}")
-        return False
+    controller = get_controller(args)
 
     if args.alias in controller.get_pairings():
         print(f'"{args.alias}" is a already known alias')
@@ -189,13 +201,7 @@ async def pair(args):
 
 
 async def get_accessories(args: Namespace) -> bool:
-    controller = Controller()
-
-    try:
-        controller.load_data(args.file)
-    except Exception:
-        logger.exception(f"Error while loading {args.file}")
-        return False
+    controller = get_controller(args)
 
     if args.alias not in controller.get_pairings():
         print(f'"{args.alias}" is no known alias')
@@ -231,9 +237,8 @@ async def get_accessories(args: Namespace) -> bool:
 
 
 async def get_characteristics(args: Namespace) -> bool:
-    controller = Controller()
+    controller = get_controller(args)
 
-    controller.load_data(args.file)
     if args.alias not in controller.get_pairings():
         print(f'"{args.alias}" is no known alias')
         return False
@@ -269,12 +274,7 @@ async def get_characteristics(args: Namespace) -> bool:
 
 
 async def put_characteristics(args: Namespace) -> bool:
-    controller = Controller(args.adapter)
-    try:
-        controller.load_data(args.file)
-    except Exception:
-        logger.exception("Error whilst loading pairing")
-        return False
+    controller = get_controller(args)
 
     if args.alias not in controller.get_pairings():
         print(f'"{args.alias}" is no known alias')
@@ -314,12 +314,7 @@ async def put_characteristics(args: Namespace) -> bool:
 
 
 async def identify(args: Namespace) -> bool:
-    controller = Controller(args.adapter)
-    try:
-        controller.load_data(args.file)
-    except Exception:
-        logger.exception("Error whilst loading pairing")
-        return False
+    controller = get_controller(args)
 
     if args.alias not in controller.get_pairings():
         print(f'"{args.alias}" is no known alias')
@@ -336,8 +331,8 @@ async def identify(args: Namespace) -> bool:
 
 
 async def list_pairings(args: Namespace) -> bool:
-    controller = Controller(args.adapter)
-    controller.load_data(args.file)
+    controller = get_controller(args)
+
     if args.alias not in controller.get_pairings():
         print(f'"{args.alias}" is no known alias')
         exit(-1)
@@ -363,8 +358,8 @@ async def list_pairings(args: Namespace) -> bool:
 
 
 async def remove_pairing(args):
-    controller = Controller(args.adapter)
-    controller.load_data(args.file)
+    controller = get_controller(args)
+
     if args.alias not in controller.get_pairings():
         print(f'"{args.alias}" is no known alias')
         return False
@@ -377,8 +372,8 @@ async def remove_pairing(args):
 
 
 async def unpair(args):
-    controller = Controller(args.adapter)
-    controller.load_data(args.file)
+    controller = get_controller(args)
+
     if args.alias not in controller.get_pairings():
         print(f'"{args.alias}" is no known alias')
         return False
@@ -390,9 +385,8 @@ async def unpair(args):
 
 
 async def get_events(args):
-    controller = Controller()
+    controller = get_controller(args)
 
-    controller.load_data(args.file)
     if args.alias not in controller.get_pairings():
         print(f'"{args.alias}" is no known alias')
         return False

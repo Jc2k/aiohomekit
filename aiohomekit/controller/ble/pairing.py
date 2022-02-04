@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import random
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 import uuid
 
 from bleak import BleakClient
@@ -83,6 +83,8 @@ class BlePairing(AbstractPairing):
     This represents a paired HomeKit IP accessory.
     """
 
+    pairing_id: str
+
     controller: Controller
 
     _accessories: Accessories | None = None
@@ -92,11 +94,14 @@ class BlePairing(AbstractPairing):
 
     def __init__(self, controller: Controller, pairing_data):
         super().__init__(controller)
-        self.pairing_data = pairing_data
+        self.pairing_id = pairing_data["AccessoryPairingID"]
+
         self.client = BleakClient(pairing_data["AccessoryAddress"])
 
-        if 'Accessories' in pairing_data:
-            self._accessories = Accessories.from_list(pairing_data['Accessories'])
+        if cache := self.controller._char_cache.get_map(self.pairing_id):
+            self._accessories = Accessories.from_list(cache["accessories"])
+
+        self.pairing_data = pairing_data
 
     async def _async_request(
         self, opcode: OpCodes, iid: int, data: bytes | None = None
@@ -128,8 +133,11 @@ class BlePairing(AbstractPairing):
 
         if not self._accessories:
             self._accessories = await self._async_fetch_gatt_database()
-            self.pairing_data['Accessories'] = self._accessories.serialize()
-            self.controller.save_data("/Users/john/.local/share/aiohomekit/pairing.json")
+            self.controller._char_cache.async_create_or_update_map(
+                self.pairing_id,
+                0,
+                self._accessories.serialize(),
+            )
 
         if not self._encryption_key:
             await self._async_pair_verify()
@@ -277,13 +285,10 @@ class BlePairing(AbstractPairing):
             char = self._accessories.aid(1).characteristics.iid(iid)
             payload = TLV.encode_list([(1, to_bytes(char, value))])
 
-            print(payload)
-
             data = await self._async_request(OpCodes.CHAR_WRITE, iid, payload)
 
             if data:
                 data = dict(TLV.decode_bytes(data))[1]
-                print(data)
 
         return results
 

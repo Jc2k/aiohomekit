@@ -23,6 +23,8 @@ import re
 from typing import Iterable
 from urllib.parse import urlparse
 
+from aiohomekit.cdb import CharacteristicCacheMemory, CharacteristicCacheType
+
 from ..const import BLE_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
 from ..exceptions import (
     AccessoryNotFoundError,
@@ -51,7 +53,12 @@ class Controller:
     This class represents a HomeKit controller (normally your iPhone or iPad).
     """
 
-    def __init__(self, ble_adapter: str = "hci0", async_zeroconf_instance=None) -> None:
+    def __init__(
+        self,
+        ble_adapter: str = "hci0",
+        async_zeroconf_instance=None,
+        char_cache: CharacteristicCacheType | None = None,
+    ) -> None:
         """
         Initialize an empty controller. Use 'load_data()' to load the pairing data.
 
@@ -59,6 +66,7 @@ class Controller:
         """
         self.pairings = {}
         self._async_zeroconf_instance = async_zeroconf_instance
+        self._char_cache = char_cache or CharacteristicCacheMemory()
         self.ble_adapter = ble_adapter
         self.logger = logging.getLogger(__name__)
 
