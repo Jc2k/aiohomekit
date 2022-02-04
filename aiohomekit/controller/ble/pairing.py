@@ -28,17 +28,13 @@ from aiohomekit.controller.ble.client import (
     drive_pairing_state_machine,
     get_characteristic,
 )
+from aiohomekit.exceptions import AuthenticationError, InvalidError, UnknownError
 from aiohomekit.model import Accessories, Accessory, CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import OpCode, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.uuid import normalize_uuid
-from aiohomekit.exceptions import (
-    AuthenticationError,
-    InvalidError,
-    UnknownError,
-)
 
 from ..pairing import AbstractPairing
 from .key import DecryptionKey, EncryptionKey
@@ -285,11 +281,13 @@ class BlePairing(AbstractPairing):
     async def remove_pairing(self, pairingId: str):
         await self._ensure_connected()
 
-        request_tlv = TLV.encode_list([
-            (TLV.kTLVType_State, TLV.M1),
-            (TLV.kTLVType_Method, TLV.RemovePairing),
-            (TLV.kTLVType_Identifier, pairingId.encode("utf-8")),
-        ])
+        request_tlv = TLV.encode_list(
+            [
+                (TLV.kTLVType_State, TLV.M1),
+                (TLV.kTLVType_Method, TLV.RemovePairing),
+                (TLV.kTLVType_Identifier, pairingId.encode("utf-8")),
+            ]
+        )
 
         request_tlv = TLV.encode_list(
             [

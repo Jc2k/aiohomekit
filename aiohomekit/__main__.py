@@ -180,7 +180,7 @@ async def pair(args):
     pin = args.pin if args.pin else pin_from_keyboard()
 
     try:
-        pairing = await finish_pairing(pin)
+        await finish_pairing(pin)
     except HomeKitException as e:
         print(str(e))
         return False
