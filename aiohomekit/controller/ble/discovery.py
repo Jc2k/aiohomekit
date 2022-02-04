@@ -28,6 +28,7 @@ from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_par
 
 from .client import (
     char_read,
+    char_write,
     drive_pairing_state_machine,
     get_characteristic,
     get_characteristic_iid,
@@ -183,3 +184,12 @@ class BleDiscovery:
 
     async def identify(self) -> None:
         await self._ensure_connected()
+
+        char = get_characteristic(
+            self.client,
+            ServicesTypes.ACCESSORY_INFORMATION,
+            CharacteristicsTypes.IDENTIFY,
+        )
+        iid = await get_characteristic_iid(self.client, char)
+
+        await char_write(self.client, None, None, char.handle, iid, b"\x01")
