@@ -17,21 +17,22 @@
 from __future__ import annotations
 
 import logging
-import random
 from typing import TYPE_CHECKING, Callable
 import uuid
 
 from bleak import BleakClient
 
-from aiohomekit.model import CharacteristicsTypes, ServicesTypes
+from aiohomekit.model import CharacteristicsTypes
 from aiohomekit.model.feature_flags import FeatureFlags
-from aiohomekit.pdu import OpCode
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
-from aiohomekit.protocol.tlv import TLV
 
-from .const import AdditionalParameterTypes
+from .client import (
+    char_read,
+    drive_pairing_state_machine,
+    get_characteristic,
+    get_characteristic_iid,
+)
 from .pairing import BlePairing
-from .structs import BleRequest
 
 if TYPE_CHECKING:
     from aiohomekit.controller import Controller
@@ -108,40 +109,6 @@ def parse_manufacturer_specific(input_data: bytes):
         }
 
 
-async def do_request(client: BleakClient, handle: int, cid: int, body: bytes):
-    body = BleRequest(expect_response=1, value=body).encode()
-
-    transaction_id = random.randrange(0, 255)
-    # construct a hap characteristic write request following chapter 7.3.4.4 page 94 spec R2
-    data = bytearray([0x00, OpCode.CHAR_WRITE.value, transaction_id])
-    data.extend(cid.to_bytes(length=2, byteorder="little"))
-    data.extend(len(body).to_bytes(length=2, byteorder="little"))
-    data.extend(body)
-
-    await client.write_gatt_char(handle, data)
-
-    data = await client.read_gatt_char(handle)
-
-    expected_length = int.from_bytes(bytes(data[3:5]), byteorder="little")
-    while len(data[3:]) < expected_length:
-        data += await client.read_gatt_char(handle)
-
-    decoded = dict(TLV.decode_bytes(data[5:]))
-    return TLV.decode_bytes(decoded[AdditionalParameterTypes.Value.value])
-
-
-async def do_pair_setup(client: BleakClient, request):
-    service = client.services.get_service(ServicesTypes.PAIRING)
-    char = service.get_characteristic(CharacteristicsTypes.PAIR_SETUP)
-    iid_handle = char.get_descriptor(uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A"))
-    value = bytes(await client.read_gatt_descriptor(iid_handle.handle))
-
-    body = TLV.encode_list(request)
-    new_cid = int.from_bytes(value, byteorder="little")
-
-    return await do_request(client, char.handle, new_cid, body)
-
-
 class BleDiscovery:
 
     """
@@ -170,42 +137,42 @@ class BleDiscovery:
     async def start_pairing(self, alias: str) -> Callable[[str], BlePairing]:
         await self._ensure_connected()
 
+        ff_char = get_characteristic(
+            self.ServicesTypes.PAIRING, CharacteristicsTypes.PAIRING_FEATURES
+        )
+        ff_iid = await get_characteristic_iid(self.client, ff_char)
+        ff_raw = await char_read(self.client, None, None, ff_char.handle, ff_iid)
+        ff = 0
+
+        raise ValueError(ff_raw)
+
         with_auth = False
-        if self.info["ff"] & FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR:
+        if ff & FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR:
             with_auth = True
-        elif self.info["ff"] & FeatureFlags.SUPPORTS_SOFTWARE_AUTHENTICATION:
+        elif ff & FeatureFlags.SUPPORTS_SOFTWARE_AUTHENTICATION:
             with_auth = False
 
-        state_machine = perform_pair_setup_part1(
-            with_auth=with_auth,
+        salt, pub_key = await drive_pairing_state_machine(
+            self.client,
+            CharacteristicsTypes.PAIR_SETUP,
+            perform_pair_setup_part1(
+                with_auth=with_auth,
+            ),
         )
-        request, expected = state_machine.send(None)
-
-        while True:
-            try:
-                response = await do_pair_setup(self.client, request)
-                request, expected = state_machine.send(response)
-            except StopIteration as result:
-                # If the state machine raises a StopIteration then we have XXX
-                salt, pub_key = result.value
-                break
 
         async def finish_pairing(pin: str) -> BlePairing:
             self.controller.check_pin_format(pin)
 
-            state_machine = perform_pair_setup_part2(
-                pin, str(uuid.uuid4()), salt, pub_key
+            pairing = await drive_pairing_state_machine(
+                self.client,
+                CharacteristicsTypes.PAIR_SETUP,
+                perform_pair_setup_part2(
+                    pin,
+                    str(uuid.uuid4()),
+                    salt,
+                    pub_key,
+                ),
             )
-            request, expected = state_machine.send(None)
-
-            while True:
-                try:
-                    response = await do_pair_setup(self.client, request)
-                    request, expected = state_machine.send(response)
-                except StopIteration as result:
-                    # If the state machine raises a StopIteration then we have XXX
-                    pairing = result.value
-                    break
 
             pairing["AccessoryAddress"] = self.address
             pairing["Connection"] = "BLE"

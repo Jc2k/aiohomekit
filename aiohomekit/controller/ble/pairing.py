@@ -23,17 +23,21 @@ import uuid
 
 from bleak import BleakClient
 
+from aiohomekit.controller.ble.client import (
+    ble_request,
+    drive_pairing_state_machine,
+    get_characteristic,
+)
 from aiohomekit.model import Accessories, Accessory, CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
-from aiohomekit.pdu import OpCode, decode_pdu, decode_pdu_continuation, encode_pdu
+from aiohomekit.pdu import OpCode, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.uuid import normalize_uuid
 
 from ..pairing import AbstractPairing
-from .const import AdditionalParameterTypes
 from .key import DecryptionKey, EncryptionKey
-from .structs import BleRequest, Characteristic as CharacteristicTLV
+from .structs import Characteristic as CharacteristicTLV
 from .values import from_bytes, to_bytes
 
 if TYPE_CHECKING:
@@ -42,40 +46,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
-
-
-async def do_request(client: BleakClient, handle: int, cid: int, body: bytes):
-    body = BleRequest(expect_response=1, value=body).encode()
-
-    transaction_id = random.randrange(0, 255)
-    # construct a hap characteristic write request following chapter 7.3.4.4 page 94 spec R2
-    data = bytearray([0x00, OpCode.CHAR_WRITE.value, transaction_id])
-    data.extend(cid.to_bytes(length=2, byteorder="little"))
-    data.extend(len(body).to_bytes(length=2, byteorder="little"))
-    data.extend(body)
-
-    await client.write_gatt_char(handle, data)
-
-    data = await client.read_gatt_char(handle)
-
-    expected_length = int.from_bytes(bytes(data[3:5]), byteorder="little")
-    while len(data[3:]) < expected_length:
-        data += await client.read_gatt_char(handle)
-
-    decoded = dict(TLV.decode_bytes(data[5:]))
-    return TLV.decode_bytes(decoded[AdditionalParameterTypes.Value.value])
-
-
-async def do_pair_verify(client: BleakClient, request):
-    service = client.services.get_service(ServicesTypes.PAIRING)
-    char = service.get_characteristic(CharacteristicsTypes.PAIR_VERIFY)
-    iid_handle = char.get_descriptor(uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A"))
-    value = bytes(await client.read_gatt_descriptor(iid_handle.handle))
-
-    body = TLV.encode_list(request)
-    new_cid = int.from_bytes(value, byteorder="little")
-
-    return await do_request(client, char.handle, new_cid, body)
 
 
 class BlePairing(AbstractPairing):
@@ -107,29 +77,16 @@ class BlePairing(AbstractPairing):
         self, opcode: OpCode, iid: int, data: bytes | None = None
     ) -> bytes:
         char = self._accessories.aid(1).characteristics.iid(iid)
-
-        svc = self.client.services[char.service.type]
-        endpoint = svc.get_characteristic(char.type)
-
-        tid = random.randrange(1, 254)
-        for data in encode_pdu(
-            opcode, tid, iid, data, fragment_size=self.client.mtu_size - 16
-        ):
-            if self._encryption_key:
-                data = self._encryption_key.encrypt(data)
-
-            await self.client.write_gatt_char(endpoint.handle, data)
-
-        resp = await self.client.read_gatt_char(endpoint.handle)
-        if self._decryption_key:
-            data = self._decryption_key.decrypt(resp)
-
-        expected_length, data = decode_pdu(tid, data)
-        while len(data) < expected_length:
-            next = await self.client.read_gatt_char(endpoint.handle)
-            data += decode_pdu_continuation(next)
-
-        return data
+        endpoint = get_characteristic(self.client, char.service.type, char.type)
+        return await ble_request(
+            self.client,
+            self._encryption_key,
+            self._decryption_key,
+            opcode,
+            endpoint.handle,
+            iid,
+            data,
+        )
 
     async def _ensure_connected(self):
         if not self.client.is_connected:
@@ -147,22 +104,17 @@ class BlePairing(AbstractPairing):
             await self._async_pair_verify()
 
     async def _async_pair_verify(self):
-        state_machine = get_session_keys(self.pairing_data)
-
-        request, expected = state_machine.send(None)
-        while True:
-            response = await do_pair_verify(self.client, request)
-            try:
-                request, expected = state_machine.send(response)
-            except StopIteration as result:
-                derive = result.value
-                self._encryption_key = EncryptionKey(
-                    derive("Control-Salt", "Control-Write-Encryption-Key")
-                )
-                self._decryption_key = DecryptionKey(
-                    derive("Control-Salt", "Control-Read-Encryption-Key")
-                )
-                break
+        derive = await drive_pairing_state_machine(
+            self.client,
+            CharacteristicsTypes.PAIR_VERIFY,
+            get_session_keys(self.pairing_data),
+        )
+        self._encryption_key = EncryptionKey(
+            derive("Control-Salt", "Control-Write-Encryption-Key")
+        )
+        self._decryption_key = DecryptionKey(
+            derive("Control-Salt", "Control-Read-Encryption-Key")
+        )
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         accessory = Accessory()
