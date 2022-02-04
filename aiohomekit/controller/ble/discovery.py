@@ -41,8 +41,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-address = "5356DB18-AB9D-495B-9DD8-7D2E9EE63739"
-
 
 def parse_manufacturer_specific(input_data: bytes):
     """
