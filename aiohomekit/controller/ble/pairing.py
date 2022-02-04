@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import random
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import uuid
 
 from bleak import BleakClient
@@ -35,6 +35,9 @@ from .key import DecryptionKey, EncryptionKey
 from .pdu import decode_pdu, encode_pdu
 from .structs import BleRequest, Characteristic as CharacteristicTLV
 from .values import from_bytes, to_bytes
+
+if TYPE_CHECKING:
+    from aiohomekit.controller import Controller
 
 logger = logging.getLogger(__name__)
 
@@ -80,21 +83,54 @@ class BlePairing(AbstractPairing):
     This represents a paired HomeKit IP accessory.
     """
 
+    controller: Controller
+
     _accessories: Accessories | None = None
 
     _encryption_key: EncryptionKey | None = None
     _decryption_key: DecryptionKey | None = None
 
-    def __init__(self, controller, pairing_data):
+    def __init__(self, controller: Controller, pairing_data):
         super().__init__(controller)
         self.pairing_data = pairing_data
         self.client = BleakClient(pairing_data["AccessoryAddress"])
 
+        if 'Accessories' in pairing_data:
+            self._accessories = Accessories.from_list(pairing_data['Accessories'])
+
+    async def _async_request(
+        self, opcode: OpCodes, iid: int, data: bytes | None = None
+    ) -> bytes:
+        char = self._accessories.aid(1).characteristics.iid(iid)
+
+        svc = self.client.services[char.service.type]
+        endpoint = svc.get_characteristic(char.type)
+
+        tid = random.randrange(1, 254)
+        data = encode_pdu(opcode, tid, iid, data)
+
+        if self._encryption_key:
+            data = self._encryption_key.encrypt(data)
+
+        await self.client.write_gatt_char(endpoint.handle, data)
+        resp = await self.client.read_gatt_char(endpoint.handle)
+
+        if self._decryption_key:
+            data = self._decryption_key.decrypt(resp)
+
+        exp_length, data = decode_pdu(tid, data)
+
+        return data
+
     async def _ensure_connected(self):
         if not self.client.is_connected:
             await self.client.__aenter__()
+
         if not self._accessories:
             self._accessories = await self._async_fetch_gatt_database()
+            self.pairing_data['Accessories'] = self._accessories.serialize()
+            self.controller.save_data("/Users/john/.local/share/aiohomekit/pairing.json")
+
         if not self._encryption_key:
             await self._async_pair_verify()
 
@@ -133,45 +169,28 @@ class BlePairing(AbstractPairing):
                 if not iid_handle:
                     continue
 
-                value = bytes(await self.client.read_gatt_descriptor(iid_handle.handle))
-                iid = int.from_bytes(value, byteorder="little")
-
-                data = bytearray(
-                    [
-                        0x00,
-                        OpCodes.CHAR_SIG_READ.value,
-                        random.randint(1, 254),
-                        value[0],
-                        value[1],
-                    ]
+                iid = int.from_bytes(
+                    await self.client.read_gatt_descriptor(iid_handle.handle),
+                    byteorder="little",
                 )
+
+                tid = random.randint(1, 254)
+                data = encode_pdu(OpCodes.CHAR_SIG_READ, tid, iid)
+
                 await self.client.write_gatt_char(char.handle, data)
-                signature = await self.client.read_gatt_char(char.handle)
+                payload = await self.client.read_gatt_char(char.handle)
 
-                cf = signature[0]
-                logger.debug("control field %d", cf)
-                tid = signature[1]
-                logger.debug("transaction id %d (expected was %d)", tid, 0)
-                status = signature[2]
-                logger.debug("status code %d (%s)", status)
+                _, signature = decode_pdu(tid, payload)
 
-                # get body length
-                length = int.from_bytes(signature[3:5], byteorder="little")
-                logger.debug(
-                    "expected body length %d (got %d)", length, len(signature[5:])
-                )
-
-                decoded = CharacteristicTLV.decode(signature[5:]).to_dict()
-                print(decoded)
+                decoded = CharacteristicTLV.decode(signature).to_dict()
                 char = s.add_char(normalize_uuid(char.uuid))
                 char.iid = iid
+
                 char.perms = decoded["perms"]
                 char.format = decoded["format"]
 
         accessories = Accessories()
         accessories.add_accessory(accessory)
-
-        print(accessories.to_accessory_and_service_list())
 
         return accessories
 
@@ -225,30 +244,6 @@ class BlePairing(AbstractPairing):
                 r["permissions"] = int.from_bytes(d[1], byteorder="little")
                 r["controllerType"] = controller_type
         return tmp
-
-    async def _async_request(
-        self, opcode: OpCodes, iid: int, data: bytes | None = None
-    ) -> bytes:
-        char = self._accessories.aid(1).characteristics.iid(iid)
-
-        svc = self.client.services[char.service.type]
-        endpoint = svc.get_characteristic(char.type)
-
-        tid = random.randrange(1, 254)
-        data = encode_pdu(opcode, tid, iid, data)
-
-        if self._encryption_key:
-            data = self._encryption_key.encrypt(data)
-
-        await self.client.write_gatt_char(endpoint.handle, data)
-        resp = await self.client.read_gatt_char(endpoint.handle)
-
-        if self._decryption_key:
-            data = self._decryption_key.decrypt(resp)
-
-        exp_length, data = decode_pdu(tid, data)
-
-        return data
 
     async def get_characteristics(
         self,
