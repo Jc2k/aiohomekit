@@ -34,6 +34,11 @@ from aiohomekit.pdu import OpCode, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.uuid import normalize_uuid
+from aiohomekit.exceptions import (
+    AuthenticationError,
+    InvalidError,
+    UnknownError,
+)
 
 from ..pairing import AbstractPairing
 from .key import DecryptionKey, EncryptionKey
@@ -146,7 +151,6 @@ class BlePairing(AbstractPairing):
                 ):
                     await self.client.write_gatt_char(char.handle, data)
 
-                await self.client.write_gatt_char(char.handle, data)
                 payload = await self.client.read_gatt_char(char.handle)
 
                 _, signature = decode_pdu(tid, payload)
@@ -279,7 +283,39 @@ class BlePairing(AbstractPairing):
         pass
 
     async def remove_pairing(self, pairingId: str):
-        pass
+        await self._ensure_connected()
+
+        request_tlv = TLV.encode_list([
+            (TLV.kTLVType_State, TLV.M1),
+            (TLV.kTLVType_Method, TLV.RemovePairing),
+            (TLV.kTLVType_Identifier, pairingId.encode("utf-8")),
+        ])
+
+        request_tlv = TLV.encode_list(
+            [
+                (TLV.kTLVHAPParamParamReturnResponse, bytearray(b"\x01")),
+                (TLV.kTLVHAPParamValue, request_tlv),
+            ]
+        )
+
+        info = self._accessories.aid(1).services.first(
+            service_type=ServicesTypes.PAIRING
+        )
+        char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
+
+        resp = await self._async_request(OpCode.CHAR_WRITE, char.iid, request_tlv)
+
+        response = dict(TLV.decode_bytes(resp))
+
+        data = dict(TLV.decode_bytes(response[1]))
+
+        if data.get(TLV.kTLVType_State, TLV.M2) != TLV.M2:
+            raise InvalidError("Unexpected state after removing pairing request")
+
+        if TLV.kTLVType_Error in data:
+            if data[TLV.kTLVType_Error] == TLV.kTLVError_Authentication:
+                raise AuthenticationError("Remove pairing failed: insufficient access")
+            raise UnknownError("Remove pairing failed: unknown error")
 
     async def image(self, accessory: int, width: int, height: int) -> None:
         """Bluetooth devices don't return images."""

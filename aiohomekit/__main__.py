@@ -185,12 +185,6 @@ async def pair(args):
         print(str(e))
         return False
 
-    try:
-        await pairing.list_accessories_and_characteristics()
-    except HomeKitException as e:
-        print(str(e))
-        return False
-
     controller.save_data(args.file)
 
     print(f'Pairing for "{args.alias}" was established.')
@@ -439,14 +433,6 @@ async def get_events(args):
 
 def setup_parser_for_pairing(parser: ArgumentParser) -> None:
     parser.add_argument(
-        "-f",
-        action="store",
-        required=False,
-        dest="file",
-        default=DEFAULT_PAIRING_FILE,
-        help="File with the pairing data",
-    )
-    parser.add_argument(
         "-a", action="store", required=True, dest="alias", help="alias for the pairing"
     )
 
@@ -466,6 +452,14 @@ async def main(argv: list[str] | None = None) -> None:
         help="the bluetooth adapter to be used (defaults to hci0)",
     )
     add_log_arguments(parser)
+    parser.add_argument(
+        "-f",
+        action="store",
+        required=False,
+        dest="file",
+        default=DEFAULT_PAIRING_FILE,
+        help="File with the pairing data",
+    )
 
     subparsers = parser.add_subparsers(
         title="available commands", metavar="command [options ...]"

@@ -22,7 +22,7 @@ import uuid
 
 from bleak import BleakClient
 
-from aiohomekit.model import CharacteristicsTypes
+from aiohomekit.model import CharacteristicsTypes, ServicesTypes
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
 
@@ -138,13 +138,11 @@ class BleDiscovery:
         await self._ensure_connected()
 
         ff_char = get_characteristic(
-            self.ServicesTypes.PAIRING, CharacteristicsTypes.PAIRING_FEATURES
+            self.client, ServicesTypes.PAIRING, CharacteristicsTypes.PAIRING_FEATURES
         )
         ff_iid = await get_characteristic_iid(self.client, ff_char)
         ff_raw = await char_read(self.client, None, None, ff_char.handle, ff_iid)
-        ff = 0
-
-        raise ValueError(ff_raw)
+        ff = ff_raw[0]
 
         with_auth = False
         if ff & FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR:
