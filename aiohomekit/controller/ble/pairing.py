@@ -30,9 +30,11 @@ from aiohomekit.controller.ble.client import (
 )
 from aiohomekit.exceptions import AuthenticationError, InvalidError, UnknownError
 from aiohomekit.model import Accessories, Accessory, CharacteristicsTypes
+from aiohomekit.model.characteristics import CharacteristicPermissions
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import OpCode, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
+from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.uuid import normalize_uuid
 
@@ -237,19 +239,30 @@ class BlePairing(AbstractPairing):
 
         return {}
 
-    async def put_characteristics(self, characteristics: list[tuple[int, int, Any]]):
+    async def put_characteristics(
+        self, characteristics: list[tuple[int, int, Any]]
+    ) -> dict[tuple[int, int], Any]:
         await self._ensure_connected()
 
-        results = {}
+        results: dict[tuple[int, int], Any] = {}
 
         for aid, iid, value in characteristics:
             char = self._accessories.aid(1).characteristics.iid(iid)
-            payload = TLV.encode_list([(1, to_bytes(char, value))])
 
-            data = await self._async_request(OpCode.CHAR_WRITE, iid, payload)
+            if CharacteristicPermissions.timed_write in char.perms:
+                payload = TLV.encode_list([(1, to_bytes(char, value))])
+                await self._async_request(OpCode.CHAR_TIMED_WRITE, iid, payload)
+                await self._async_request(OpCode.CHAR_EXEC_WRITE, iid)
 
-            if data:
-                data = dict(TLV.decode_bytes(data))[1]
+            elif CharacteristicPermissions.paired_write in char.perms:
+                payload = TLV.encode_list([(1, to_bytes(char, value))])
+                await self._async_request(OpCode.CHAR_WRITE, iid, payload)
+
+            else:
+                results[(aid, iid)] = {
+                    "status": HapStatusCode.CANT_WRITE_READ_ONLY,
+                    "description": HapStatusCode.CANT_WRITE_READ_ONLY.description,
+                }
 
         return results
 
