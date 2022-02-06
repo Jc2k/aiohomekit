@@ -1,4 +1,21 @@
 [[package]]
+name = "aiocoap"
+version = "0.4.3"
+description = "Python CoAP library"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+all = ["linkheader", "cbor2", "cryptography (>=2.0)", "filelock", "ge25519", "DTLSSocket (>=0.1.11a1)", "websockets", "termcolor", "pygments"]
+docs = ["sphinx", "sphinx-argparse", "linkheader", "cbor2", "cryptography (>=2.0)", "filelock", "ge25519", "websockets", "termcolor", "pygments"]
+linkheader = ["linkheader"]
+oscore = ["cbor2", "cryptography (>=2.0)", "filelock", "ge25519"]
+prettyprint = ["termcolor", "cbor2", "linkheader", "pygments"]
+tinydtls = ["DTLSSocket (>=0.1.11a1)"]
+ws = ["websockets"]
+
+[[package]]
 name = "aiohttp"
 version = "3.8.1"
 description = "Async http client/server framework (asyncio)"
@@ -603,6 +620,10 @@ python-versions = "^3.9"
 content-hash = "6433b98afaa56f4083e0ec0ca35cbc7619a9ad95c8ec345376480bf1aa492735"
 
 [metadata.files]
+aiocoap = [
+    {file = "aiocoap-0.4.3-py3-none-any.whl", hash = "sha256:8d9ba6dd4f95b5b82bb7004584ce26a63ae31c9f36c1f135cc599d2f7868ff08"},
+    {file = "aiocoap-0.4.3.tar.gz", hash = "sha256:ac261b0a4425ddedc23deb4b5c8b5ad8a0911041d26bf567e33b459666adc1fc"},
+]
 aiohttp = [
     {file = "aiohttp-3.8.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:1ed0b6477896559f17b9eaeb6d38e07f7f9ffe40b9f0f9627ae8b9926ae260a8"},
     {file = "aiohttp-3.8.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:7dadf3c307b31e0e61689cbf9e06be7a867c563d5a63ce9dca578f956609abf8"},

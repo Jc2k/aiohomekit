@@ -17,7 +17,6 @@
 """Helpers for detecing homekit devices via zeroconf."""
 from __future__ import annotations
 
-from _socket import inet_ntoa
 import asyncio
 import contextlib
 import logging
@@ -31,7 +30,8 @@ from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import IpStatusFlags
 
-HAP_TYPE = "_hap._tcp.local."
+HAP_TYPE_TCP = "_hap._tcp.local."
+HAP_TYPE_UDP = "_hap._udp.local."
 CLASS_IN = 1
 TYPE_PTR = 12
 
@@ -83,13 +83,13 @@ class CollectingListener:
 
 
 async def _async_homekit_devices_from_cache(
-    aiozc: AsyncZeroconf, filter_func: Callable = None
+    aiozc: AsyncZeroconf, filter_func: Callable = None, hap_type: str = HAP_TYPE_TCP
 ) -> list[dict[str, Any]]:
     """Return all homekit devices in the cache, updating any missing data as needed."""
     infos = [
-        AsyncServiceInfo(HAP_TYPE, record.alias)
+        AsyncServiceInfo(hap_type, record.alias)
         for record in aiozc.zeroconf.cache.get_all_by_details(
-            HAP_TYPE, TYPE_PTR, CLASS_IN
+            hap_type, TYPE_PTR, CLASS_IN
         )
     ]
     tasks = [info.async_request(aiozc.zeroconf, _TIMEOUT_MS) for info in infos]
@@ -106,16 +106,16 @@ async def _async_homekit_devices_from_cache(
 
 
 async def _async_device_data_zeroconf_cache(
-    device_id: str, aiozc: AsyncZeroconf
+    device_id: str, aiozc: AsyncZeroconf, hap_type: str
 ) -> dict[str, Any]:
     """Find a homekit device in the zeroconf cache."""
     device_id_bytes = device_id.encode()
     devices = await _async_homekit_devices_from_cache(
-        aiozc, lambda info: info.properties[b"id"] == device_id_bytes
+        aiozc, lambda info: info.properties[b"id"] == device_id_bytes, hap_type
     )
     if not devices:
         raise AccessoryNotFoundError("Device not found from active ServiceBrower")
-    logging.debug("Located Homekit IP accessory %s", devices[0])
+    logger.debug(f"Located Homekit IP accessory {devices[0]}")
     return devices[0]
 
 
@@ -155,12 +155,17 @@ def get_from_properties(
 def _service_info_is_homekit_device(service_info: AsyncServiceInfo) -> bool:
     props = {key.lower() for key in service_info.properties.keys()}
     return (
-        service_info.addresses and b"c#" in props and b"md" in props and b"id" in props
+        service_info.parsed_addresses()
+        and b"c#" in props
+        and b"md" in props
+        and b"id" in props
     )
 
 
 async def async_discover_homekit_devices(
-    max_seconds: int = 10, async_zeroconf_instance: AsyncZeroconf = None
+    max_seconds: int = 10,
+    async_zeroconf_instance: AsyncZeroconf = None,
+    hap_type: str = HAP_TYPE_TCP,
 ) -> list[Any]:
     """Discovers all HomeKit Accessories.
 
@@ -171,13 +176,16 @@ async def async_discover_homekit_devices(
     :return: a list of dicts containing all fields as described in table 5.7 page 69
     """
     if async_zeroconf_instance and async_zeroconf_has_hap_service_browser(
-        async_zeroconf_instance
+        async_zeroconf_instance,
+        hap_type=hap_type,
     ):
-        return await _async_homekit_devices_from_cache(async_zeroconf_instance)
+        return await _async_homekit_devices_from_cache(
+            async_zeroconf_instance, hap_type=hap_type
+        )
 
     our_aiozc = async_zeroconf_instance or AsyncZeroconf()
     listener = CollectingListener()
-    service_browser = AsyncServiceBrowser(our_aiozc.zeroconf, HAP_TYPE, listener)
+    service_browser = AsyncServiceBrowser(our_aiozc.zeroconf, hap_type, listener)
     await asyncio.sleep(max_seconds)
     tmp = []
     try:
@@ -185,7 +193,7 @@ async def async_discover_homekit_devices(
             if not _service_info_is_homekit_device(info):
                 continue
             data = _build_data_from_service_info(info)
-            logging.debug("found Homekit IP accessory %s", data)
+            logger.debug(f"found Homekit IP accessory {data}")
             tmp.append(data)
     finally:
         await service_browser.async_cancel()
@@ -199,11 +207,12 @@ def _build_data_from_service_info(service_info) -> dict[str, Any]:
     # from Bonjour discovery
     data = {
         "name": service_info.name,
-        "address": inet_ntoa(service_info.addresses[0]),
+        "address": service_info.parsed_addresses()[0],
         "port": service_info.port,
+        "type": service_info.type,
     }
 
-    logging.debug("candidate data %s", service_info.properties)
+    logger.debug(f"candidate data {service_info.properties}")
 
     data.update(
         parse_discovery_properties(decode_discovery_properties(service_info.properties))
@@ -265,7 +274,10 @@ def parse_discovery_properties(props: dict[str, str]) -> dict[str, str | int]:
 
 
 async def _async_find_data_for_device_id(
-    device_id: str, max_seconds: int = 10, async_zeroconf_instance: AsyncZeroconf = None
+    device_id: str,
+    max_seconds: int = 10,
+    async_zeroconf_instance: AsyncZeroconf = None,
+    hap_type: str = HAP_TYPE_TCP,
 ) -> tuple[str, int]:
     """Try to find a HomeKit Accessory via Bonjour.
 
@@ -278,7 +290,7 @@ async def _async_find_data_for_device_id(
     listener = CollectingListener(
         device_id=device_id, found_device_event=found_device_event
     )
-    async_service_browser = AsyncServiceBrowser(our_aio_zc.zeroconf, HAP_TYPE, listener)
+    async_service_browser = AsyncServiceBrowser(our_aio_zc.zeroconf, hap_type, listener)
     with contextlib.suppress(asyncio.TimeoutError):
         await asyncio.wait_for(found_device_event.wait(), timeout=max_seconds)
     device_id_bytes = device_id.encode()
@@ -288,7 +300,7 @@ async def _async_find_data_for_device_id(
             if not _service_info_is_homekit_device(info):
                 continue
             if info.properties[b"id"] == device_id_bytes:
-                logging.debug("Located Homekit IP accessory %s", info.properties)
+                logger.debug(f"Located Homekit IP accessory {info.properties}")
                 return _build_data_from_service_info(info)
     finally:
         await async_service_browser.async_cancel()
@@ -299,37 +311,43 @@ async def _async_find_data_for_device_id(
 
 
 def async_zeroconf_has_hap_service_browser(
-    async_zeroconf_instance: AsyncZeroconf,
+    async_zeroconf_instance: AsyncZeroconf, hap_type: str = HAP_TYPE_TCP
 ) -> bool:
     """Check to see if the zeroconf instance has an active HAP ServiceBrowser."""
     return any(
         isinstance(listener, (ServiceBrowser, AsyncServiceBrowser))
-        and HAP_TYPE in listener.types
+        and hap_type in listener.types
         for listener in async_zeroconf_instance.zeroconf.listeners
     )
 
 
 async def async_find_device_ip_and_port(
-    device_id: str, max_seconds: int = 10, async_zeroconf_instance: AsyncZeroconf = None
+    device_id: str,
+    max_seconds: int = 10,
+    async_zeroconf_instance: AsyncZeroconf = None,
+    hap_type: str = HAP_TYPE_TCP,
 ) -> tuple[str, int]:
     """Find the ip and port for a device id."""
     data = await async_find_data_for_device_id(
-        device_id, max_seconds, async_zeroconf_instance
+        device_id, max_seconds, async_zeroconf_instance, hap_type
     )
     return (data["address"], data["port"])
 
 
 async def async_find_data_for_device_id(
-    device_id: str, max_seconds: int = 10, async_zeroconf_instance: AsyncZeroconf = None
+    device_id: str,
+    max_seconds: int = 10,
+    async_zeroconf_instance: AsyncZeroconf = None,
+    hap_type: str = HAP_TYPE_TCP,
 ) -> dict[str, Any]:
     """Find normalized data (properties) for a device id."""
     if async_zeroconf_instance and async_zeroconf_has_hap_service_browser(
-        async_zeroconf_instance
+        async_zeroconf_instance, hap_type
     ):
         return await _async_device_data_zeroconf_cache(
-            device_id, async_zeroconf_instance
+            device_id, async_zeroconf_instance, hap_type
         )
 
     return await _async_find_data_for_device_id(
-        device_id, max_seconds, async_zeroconf_instance
+        device_id, max_seconds, async_zeroconf_instance, hap_type
     )

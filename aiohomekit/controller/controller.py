@@ -15,20 +15,29 @@
 #
 from __future__ import annotations
 
+import asyncio
 import json
 from json.decoder import JSONDecodeError
 import logging
 import pathlib
 import re
 from typing import Iterable
-from urllib.parse import urlparse
 
 from aiohomekit.characteristic_cache import (
     CharacteristicCacheMemory,
     CharacteristicCacheType,
 )
+from aiohomekit.zeroconf import (
+    HAP_TYPE_TCP,
+    HAP_TYPE_UDP,
+    async_find_data_for_device_id,
+)
 
-from ..const import BLE_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
+from ..const import (
+    BLE_TRANSPORT_SUPPORTED,
+    COAP_TRANSPORT_SUPPORTED,
+    IP_TRANSPORT_SUPPORTED,
+)
 from ..exceptions import (
     AccessoryNotFoundError,
     ConfigLoadingError,
@@ -38,16 +47,15 @@ from ..exceptions import (
 )
 from .pairing import AbstractPairing
 
-if IP_TRANSPORT_SUPPORTED:
-    from aiohomekit.zeroconf import async_find_data_for_device_id
+if COAP_TRANSPORT_SUPPORTED:
+    from .coap import CoAPDiscovery, CoAPPairing
 
+if IP_TRANSPORT_SUPPORTED:
     from .ip import IpDiscovery, IpPairing
     from .ip.zeroconf import async_discover_homekit_devices
 
 
 if BLE_TRANSPORT_SUPPORTED:
-    from bleak import BleakScanner
-
     from aiohomekit.controller.ble import BleDiscovery, BlePairing
 
 
@@ -72,6 +80,36 @@ class Controller:
         self._char_cache = char_cache or CharacteristicCacheMemory()
         self.ble_adapter = ble_adapter
         self.logger = logging.getLogger(__name__)
+
+    async def discover_all(self, max_seconds=10):
+        tasks = [
+            self.discover_ble(max_seconds),
+            self.discover_coap(max_seconds),
+            self.discover_ip(max_seconds),
+        ]
+        # run all discovery tasks in parallel
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # debug print any exceptions, likely "homekit transport X not supported"
+        for exc in list(filter(lambda x: isinstance(x, Exception), results)):
+            self.logger.debug("discover_all", exc_info=exc)
+        # filter out exceptions
+        results = list(filter(lambda x: not isinstance(x, Exception), results))
+        # flatten list of lists
+        return [dev for protocol_results in results for dev in protocol_results]
+
+    async def discover_coap(self, max_seconds=10):
+        if not COAP_TRANSPORT_SUPPORTED:
+            raise TransportNotSupportedError("CoAP")
+        devices = await async_discover_homekit_devices(
+            max_seconds,
+            async_zeroconf_instance=self._async_zeroconf_instance,
+            hap_type=HAP_TYPE_UDP,
+        )
+        tmp = []
+        for device in devices:
+            tmp.append(CoAPDiscovery(self, device))
+        self.logger.debug(f"Discovered CoAP devices: {tmp}")
+        return tmp
 
     async def discover_ip(self, max_seconds=10):
         """
@@ -102,14 +140,35 @@ class Controller:
         if not IP_TRANSPORT_SUPPORTED:
             raise TransportNotSupportedError("IP")
         devices = await async_discover_homekit_devices(
-            max_seconds, async_zeroconf_instance=self._async_zeroconf_instance
+            max_seconds,
+            async_zeroconf_instance=self._async_zeroconf_instance,
+            hap_type=HAP_TYPE_TCP,
         )
         tmp = []
         for device in devices:
             tmp.append(IpDiscovery(self, device))
+        self.logger.debug(f"Discovered IP devices: {tmp}")
         return tmp
 
-    async def find_ip_by_device_id(self, device_id, max_seconds=30):
+    async def find_ip_by_device_id(
+        self, device_id, max_seconds=10, hap_type=HAP_TYPE_TCP
+    ):
+        if hap_type == HAP_TYPE_TCP and not IP_TRANSPORT_SUPPORTED:
+            raise TransportNotSupportedError("IP")
+        if hap_type == HAP_TYPE_UDP and not COAP_TRANSPORT_SUPPORTED:
+            raise TransportNotSupportedError("CoAP")
+        device = await async_find_data_for_device_id(
+            device_id=device_id,
+            max_seconds=max_seconds,
+            async_zeroconf_instance=self._async_zeroconf_instance,
+            hap_type=hap_type,
+        )
+        if hap_type == HAP_TYPE_TCP:
+            return IpDiscovery(self, device)
+        elif hap_type == HAP_TYPE_UDP:
+            return CoAPDiscovery(self, device)
+
+        """
         # Backwards compact
         if not device_id.startswith("hap+"):
             device_id = "hap+ip://"
@@ -140,6 +199,7 @@ class Controller:
                 )
 
             return BleDiscovery(self, device)
+        """
 
     async def discover_ble(self, max_seconds=10) -> Iterable[BleDiscovery]:
         if not BLE_TRANSPORT_SUPPORTED:
@@ -177,6 +237,12 @@ class Controller:
             pairing = self.pairings[alias] = IpPairing(self, pairing_data)
             return pairing
 
+        if pairing_data["Connection"] == "CoAP":
+            if not COAP_TRANSPORT_SUPPORTED:
+                raise TransportNotSupportedError("CoAP")
+            pairing = self.pairings[alias] = CoAPPairing(self, pairing_data)
+            return pairing
+
         if pairing_data["Connection"] == "BLE":
             if not BLE_TRANSPORT_SUPPORTED:
                 raise TransportNotSupportedError("BLE")
@@ -187,7 +253,7 @@ class Controller:
         connection_type = pairing_data["Connection"]
         raise NotImplementedError(f"{connection_type} support")
 
-    def get_pairings(self) -> dict[str, IpPairing]:
+    def get_pairings(self) -> dict[str, AbstractPairing]:
         """
         Returns a dict containing all pairings known to the controller.
 

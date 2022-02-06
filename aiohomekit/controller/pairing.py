@@ -129,10 +129,12 @@ class AbstractPairing(abc.ABC):
         pass
 
     async def subscribe(self, characteristics):
-        self.subscriptions.update(set(characteristics))
+        new_characteristics = set(characteristics) - self.subscriptions
+        self.subscriptions.update(characteristics)
+        return new_characteristics
 
     async def unsubscribe(self, characteristics):
-        self.subscriptions.difference_update(set(characteristics))
+        self.subscriptions.difference_update(characteristics)
 
     def dispatcher_connect(self, callback):
         """

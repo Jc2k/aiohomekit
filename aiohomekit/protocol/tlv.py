@@ -15,10 +15,42 @@
 #
 from __future__ import annotations
 
+import enum
 import logging
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+class HAP_TLV(enum.IntEnum):
+    # Additional Parameter Types for BLE (Table 6-9 page 98)
+    kTLVHAPSeparator = 0x00
+    kTLVHAPParamValue = 0x01
+    kTLVHAPParamAdditionalAuthorizationData = 0x02
+    kTLVHAPParamOrigin = 0x03
+    kTLVHAPParamCharacteristicType = 0x04
+    kTLVHAPParamCharacteristicInstanceId = 0x05
+    kTLVHAPParamServiceType = 0x06
+    kTLVHAPParamServiceInstanceId = 0x07
+    kTLVHAPParamTTL = 0x08
+    kTLVHAPParamParamReturnResponse = 0x09
+    kTLVHAPParamHAPCharacteristicPropertiesDescriptor = 0x0A
+    kTLVHAPParamGATTUserDescriptionDescriptor = 0x0B
+    kTLVHAPParamGATTPresentationFormatDescriptor = 0x0C
+    kTLVHAPParamGATTValidRange = 0x0D
+    kTLVHAPParamHAPStepValueDescriptor = 0x0E
+    kTLVHAPParamHAPServiceProperties = 0x0F
+    kTLVHAPParamHAPLinkedServices = 0x10
+    kTLVHAPParamHAPValidValuesDescriptor = 0x11
+    kTLVHAPParamHAPValidValuesRangeDescriptor = 0x12
+    kTLVHAPParamUnknown_13_Characteristic = 0x13
+    kTLVHAPParamUnknown_14_Characteristics = 0x14
+    kTLVHAPParamUnknown_15_Service = 0x15
+    kTLVHAPParamUnknown_16_Services = 0x16
+    kTLVHAPParamUnknown_17 = 0x17
+    kTLVHAPParamUnknown_18 = 0x18
+    kTLVHAPParamUnknown_19 = 0x19
+    kTLVHAPParamUnknown_1A_AccessoryInstanceId = 0x1A
 
 
 class TLV:
@@ -74,26 +106,6 @@ class TLV:
 
     # Table 6-27 page 116
     kTLVMethod_Resume = 0x07
-
-    # Additional Parameter Types for BLE (Table 6-9 page 98)
-    kTLVHAPParamValue = 0x01
-    kTLVHAPParamAdditionalAuthorizationData = 0x02
-    kTLVHAPParamOrigin = 0x03
-    kTLVHAPParamCharacteristicType = 0x04
-    kTLVHAPParamCharacteristicInstanceId = 0x05
-    kTLVHAPParamServiceType = 0x06
-    kTLVHAPParamServiceInstanceId = 0x07
-    kTLVHAPParamTTL = 0x08
-    kTLVHAPParamParamReturnResponse = 0x09
-    kTLVHAPParamHAPCharacteristicPropertiesDescriptor = 0x0A
-    kTLVHAPParamGATTUserDescriptionDescriptor = 0x0B
-    kTLVHAPParamGATTPresentationFormatDescriptor = 0x0C
-    kTLVHAPParamGATTValidRange = 0x0D
-    kTLVHAPParamHAPStepValueDescriptor = 0x0E
-    kTLVHAPParamHAPServiceProperties = 0x0F
-    kTLVHAPParamHAPLinkedServices = 0x10
-    kTLVHAPParamHAPValidValuesDescriptor = 0x11
-    kTLVHAPParamHAPValidValuesRangeDescriptor = 0x12
 
     @staticmethod
     def decode_bytes(bs: bytearray | bytes, expected: list[int] | None = None) -> list:

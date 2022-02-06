@@ -1,5 +1,5 @@
 #
-# Copyright 2019 aiohomekit team
+# Copyright 2022 aiohomekit team
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,20 +14,10 @@
 # limitations under the License.
 #
 
-try:
-    __import__("bleak")
-    BLE_TRANSPORT_SUPPORTED = True
-except ModuleNotFoundError:
-    BLE_TRANSPORT_SUPPORTED = False
+from .discovery import CoAPDiscovery
+from .pairing import CoAPPairing
 
-try:
-    __import__("aiocoap")
-    COAP_TRANSPORT_SUPPORTED = True
-except ModuleNotFoundError:
-    COAP_TRANSPORT_SUPPORTED = False
-
-try:
-    __import__("zeroconf")
-    IP_TRANSPORT_SUPPORTED = True
-except ModuleNotFoundError:
-    IP_TRANSPORT_SUPPORTED = False
+__all__ = [
+    "CoAPDiscovery",
+    "CoAPPairing",
+]
