@@ -126,6 +126,7 @@ async def test_async_discover_homekit_devices(mock_asynczeroconf):
             "s#": "1",
             "sf": "0",
             "statusflags": "Accessory has been paired.",
+            "type": "_hap._tcp.local.",
         }
     ]
 
@@ -194,6 +195,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
             "s#": "1",
             "sf": "0",
             "statusflags": "Accessory has been paired.",
+            "type": "_hap._tcp.local.",
         },
         {
             "address": "127.0.0.1",
@@ -210,6 +212,7 @@ async def test_async_discover_homekit_devices_with_service_browser_running(
             "s#": "1",
             "sf": "0",
             "statusflags": "Accessory has been paired.",
+            "type": "_hap._tcp.local.",
         },
     ]
 
@@ -375,6 +378,7 @@ async def test_discover_homekit_devices_shared_zeroconf(mock_asynczeroconf):
             "s#": "1",
             "sf": "0",
             "statusflags": "Accessory has been paired.",
+            "type": "_hap._tcp.local.",
         }
     ]
 
@@ -419,6 +423,7 @@ async def test_async_find_data_for_device_id_matches(mock_asynczeroconf):
         "s#": "1",
         "sf": "0",
         "statusflags": "Accessory has been paired.",
+        "type": "_hap._tcp.local.",
     }
 
 
@@ -502,8 +507,8 @@ async def test_async_find_data_for_device_id_with_active_service_browser(
         "aiohomekit.zeroconf.AsyncServiceInfo.properties",
         PropertyMock(return_value=desc),
     ), patch(
-        "aiohomekit.zeroconf.AsyncServiceInfo.addresses",
-        PropertyMock(return_value=[socket.inet_aton("127.0.0.1")]),
+        "aiohomekit.zeroconf.AsyncServiceInfo.parsed_addresses",
+        return_value=["127.0.0.1"],
     ):
         result = await async_find_data_for_device_id(
             device_id="00:00:01:00:00:02",
@@ -528,6 +533,7 @@ async def test_async_find_data_for_device_id_with_active_service_browser(
         "s#": "1",
         "sf": "0",
         "statusflags": "Accessory has been paired.",
+        "type": "_hap._tcp.local.",
     }
 
 
@@ -557,8 +563,8 @@ async def test_async_find_data_for_device_id_with_active_service_browser_no_matc
         "aiohomekit.zeroconf.AsyncServiceInfo.properties",
         PropertyMock(return_value=desc),
     ), patch(
-        "aiohomekit.zeroconf.AsyncServiceInfo.addresses",
-        PropertyMock(return_value=[socket.inet_aton("127.0.0.1")]),
+        "aiohomekit.zeroconf.AsyncServiceInfo.parsed_addresses",
+        return_value=["127.0.0.1"],
     ), pytest.raises(
         AccessoryNotFoundError
     ):
