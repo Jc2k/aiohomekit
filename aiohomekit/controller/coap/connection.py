@@ -170,7 +170,7 @@ class EncryptionContext:
 
     async def post(
         self, opcode: OpCode, iid: int, data: bytes
-    ) -> tuple[int, bytes | PDUStatus | ValueError]:
+    ) -> tuple[int, bytes | PDUStatus]:
         tid = random.randint(1, 254)
         req_pdu = encode_pdu(opcode, tid, iid, data)
         res_pdu = await self.post_bytes(req_pdu)
@@ -178,7 +178,7 @@ class EncryptionContext:
 
     async def post_all(
         self, opcode: OpCode, iids: list[int], data: list[bytes]
-    ) -> list[bytes | PDUStatus | ValueError]:
+    ) -> list[bytes | PDUStatus]:
         req_pdu = encode_all_pdus(opcode, iids, data)
         res_pdu = await self.post_bytes(req_pdu)
 
@@ -478,8 +478,16 @@ class CoAPHomeKitConnection:
 
         results = dict()
         for (idx, result) in enumerate(pdu_results):
-            if isinstance(result, bytes):
-                aid_iid = ids[idx]
+            aid_iid = ids[idx]
+            if isinstance(result, PDUStatus):
+                logger.warning(
+                    "Failed to read aid %d iid %d" % (int(aid_iid[0]), int(aid_iid[1]))
+                )
+                results[aid_iid] = {
+                    "description": result.description,
+                    "status": -result.value,  # XXX
+                }
+            else:
                 # decode TLV to get byte value
                 value = decode_pdu_03(result) if len(result) > 0 else b""
                 # find characteristic so we can get the data type
@@ -502,20 +510,6 @@ class CoAPHomeKitConnection:
                         value,
                     )
                 )
-            else:
-                logger.warning(
-                    "Failed to read aid %d iid %d" % (int(aid_iid[0]), int(aid_iid[1]))
-                )
-                if isinstance(result, PDUStatus):
-                    results[aid_iid] = {
-                        "description": result.description,
-                        "status": -result.value,  # XXX
-                    }
-                else:
-                    results[aid_iid] = {
-                        "description": str(result),
-                        "status": -777,  # XXX something went badly wrong
-                    }
 
         logger.debug(f"Read characteristics: {results!r}")
         return results
@@ -555,11 +549,6 @@ class CoAPHomeKitConnection:
                     "descripton": result.description,
                     "status": -result.value,  # XXX
                 }
-            elif isinstance(result, ValueError):
-                results[key] = {
-                    "desciption": str(result),
-                    "status": -777,  # XXX something went badly wrong
-                }
             else:
                 logger.debug(
                     "Wrote value for aid %d iid %d"
@@ -585,11 +574,6 @@ class CoAPHomeKitConnection:
                     "descripton": result.description,
                     "status": -result.value,  # XXX
                 }
-            elif isinstance(result, ValueError):
-                results[key] = {
-                    "desciption": str(result),
-                    "status": -777,  # XXX something went badly wrong
-                }
             else:
                 logger.debug(
                     "Subscribed to aid %d iid %d"
@@ -614,11 +598,6 @@ class CoAPHomeKitConnection:
                 results[key] = {
                     "descripton": result.description,
                     "status": -result.value,  # XXX
-                }
-            elif isinstance(result, ValueError):
-                results[key] = {
-                    "desciption": str(result),
-                    "status": -777,  # XXX something went badly wrong
                 }
             else:
                 logger.debug(
@@ -719,7 +698,5 @@ class CoAPHomeKitConnection:
                 raise AuthenticationError("Remove pairing failed")
             else:
                 raise UnknownError("Remove pairing failed")
-        elif isinstance(result, ValueError):
-            raise UnknownError("Remove pairing failed") from result
 
         return True
