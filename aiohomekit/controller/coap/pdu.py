@@ -47,6 +47,9 @@ class PDUStatus(EnumWithDescription):
     INVALID_INSTANCE_ID = 4, "Invalid instance ID"
     INSUFFICIENT_AUTHENTICATION = 5, "Insufficient authentication"
     INVALID_REQUEST = 6, "Invalid request"
+    # custom error states
+    TID_MISMATCH = 256, "Transaction ID mismatch"
+    BAD_CONTROL = 257, "Control field doesn't have expected bits set"
 
 
 def encode_pdu(opcode: OpCode, tid: int, iid: int, data: bytes) -> bytes:
@@ -70,9 +73,7 @@ def encode_all_pdus(opcode: OpCode, iids: list[int], data: list[bytes]) -> bytes
     return req_pdu
 
 
-def decode_pdu(
-    expected_tid: int, data: bytes
-) -> tuple[int, bytes | PDUStatus | ValueError]:
+def decode_pdu(expected_tid: int, data: bytes) -> tuple[int, bytes | PDUStatus]:
     control, tid, status, body_len = struct.unpack("<BBBH", data[0:5])
     status = PDUStatus(status)
 
@@ -87,17 +88,15 @@ def decode_pdu(
     )
 
     if tid != expected_tid:
-        msg = f"Expected transaction {expected_tid} but got transaction {tid}"
-        logger.warning(msg)
-        return (body_len, ValueError(msg))
+        logger.warning(f"Expected transaction {expected_tid} but got transaction {tid}")
+        return (body_len, PDUStatus.TID_MISMATCH)
 
     if status != PDUStatus.SUCCESS:
         logger.warning(f"Transaction {tid} failed with error {status}")
         return (body_len, status)
 
     if control & 0b0000_1110 != 0b0000_0010:
-        msg = f"Transaction {tid} control doesn't have response bit set"
-        logger.warning(msg)
-        return (body_len, ValueError(msg))
+        logger.warning(f"Transaction {tid} control doesn't have response bit set")
+        return (body_len, PDUStatus.BAD_CONTROL)
 
     return body_len, data[5 : 5 + body_len]

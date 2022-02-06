@@ -65,7 +65,7 @@ def test_decode_with_bad_tid():
     res_len, res_val = decode_pdu(0x60, res_pdu)
 
     assert res_len == 0
-    assert isinstance(res_val, ValueError)
+    assert res_val == PDUStatus.TID_MISMATCH
 
 
 def test_decode_with_status_error():
@@ -84,4 +84,4 @@ def test_decode_with_bad_control():
     res_len, res_val = decode_pdu(0x99, res_pdu)
 
     assert res_len == 0
-    assert isinstance(res_val, ValueError)
+    assert res_val == PDUStatus.BAD_CONTROL
