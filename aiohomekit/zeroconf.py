@@ -26,7 +26,6 @@ from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZerocon
 
 from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
-from aiohomekit.model.status_flags import IpStatusFlags
 
 HAP_TYPE_TCP = "_hap._tcp.local."
 HAP_TYPE_UDP = "_hap._udp.local."
@@ -153,11 +152,8 @@ def parse_discovery_properties(props: dict[str, str]) -> dict[str, str | int]:
     if protocol_version:
         data["pv"] = protocol_version
 
-    if "sf" in data:
-        data["statusflags"] = IpStatusFlags[int(data["sf"])]
-
     if "ci" in data:
-        data["category"] = Categories[int(data["ci"])]
+        data["category"] = Categories(int(data["ci"]))
 
     return data
 

@@ -7,7 +7,8 @@ async def test_pair(controller_and_unpaired_accessory):
         {"address": "127.0.0.1", "port": 51842, "id": "00:01:02:03:04:05", "ff": 1},
     )
 
-    pairing = await discovery.perform_pairing("alias", "031-45-154")
+    finish_pairing = await discovery.start_pairing("alias")
+    pairing = await finish_pairing("031-45-154")
 
     assert isinstance(pairing, IpPairing)
 

@@ -14,14 +14,16 @@
 # limitations under the License.
 #
 
+from aiohomekit.controller.discovery import AbstractDiscovery, FinishPairing
 from aiohomekit.model.feature_flags import FeatureFlags
+from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.utils import check_pin_format
 
 from .connection import CoAPHomeKitConnection
 from .pairing import CoAPPairing
 
 
-class CoAPDiscovery:
+class CoAPDiscovery(AbstractDiscovery):
 
     """
     A discovered CoAP HAP device that is unpaired.
@@ -33,6 +35,12 @@ class CoAPDiscovery:
         self.port = discovery_data["port"]
         self.device_id = discovery_data["id"]
         self.info = discovery_data
+
+        self.id = self.info["id"]
+        self.config_num = self.info["c#"]
+        self.state_num = self.info["s#"]
+        self.feature_flags = FeatureFlags(self.info["ff"])
+        self.status_flags = StatusFlags(self.info["sf"])
 
         self.connection = CoAPHomeKitConnection(None, self.host, self.port)
 
@@ -51,24 +59,13 @@ class CoAPDiscovery:
         """
         return
 
-    async def identify(self):
+    async def identify(self) -> None:
         return await self.connection.do_identify()
 
-    async def perform_pairing(self, alias, pin):
-        check_pin_format(pin)
-        finish_pairing = await self.start_pairing(alias)
-        return await finish_pairing(pin)
+    async def start_pairing(self, alias: str) -> FinishPairing:
+        salt, srpB = await self.connection.do_pair_setup(self.pair_with_auth)
 
-    async def start_pairing(self, alias):
-        with_auth = False
-        if self.info["ff"] & FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR:
-            with_auth = True
-        elif self.info["ff"] & FeatureFlags.SUPPORTS_SOFTWARE_AUTHENTICATION:
-            with_auth = False
-
-        salt, srpB = await self.connection.do_pair_setup(with_auth)
-
-        async def finish_pairing(pin):
+        async def finish_pairing(pin: str) -> CoAPPairing:
             check_pin_format(pin)
 
             pairing = await self.connection.do_pair_setup_finish(pin, salt, srpB)

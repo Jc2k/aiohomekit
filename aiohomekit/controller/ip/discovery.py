@@ -16,8 +16,11 @@
 
 import uuid
 
+from aiohomekit.controller.discovery import AbstractDiscovery, FinishPairing
 from aiohomekit.exceptions import AlreadyPairedError
+from aiohomekit.model.categories import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
+from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.utils import check_pin_format
@@ -26,7 +29,7 @@ from .connection import HomeKitConnection
 from .pairing import IpPairing
 
 
-class IpDiscovery:
+class IpDiscovery(AbstractDiscovery):
 
     """
     A discovered IP HAP device that is unpaired.
@@ -39,10 +42,22 @@ class IpDiscovery:
         self.device_id = discovery_data["id"]
         self.info = discovery_data
 
+        self.name = self.info["id"]
+        self.id = self.info["id"]
+        self.model = self.info.get("md", "")
+        self.config_num = self.info.get("c#", 0)
+        self.state_num = self.info.get("s#", 0)
+        self.feature_flags = FeatureFlags(self.info.get("ff", 0))
+        self.status_flags = StatusFlags(int(self.info.get("sf", 0)))
+        self.category = Categories(1)
+
         self.connection = HomeKitConnection(None, self.host, self.port)
 
     def __repr__(self):
         return "IPDiscovery(host={self.host}, port={self.port})".format(self=self)
+
+    def _update_from_discovery(self, data):
+        pass
 
     async def _ensure_connected(self):
         await self.connection.ensure_connection()
@@ -53,21 +68,10 @@ class IpDiscovery:
         """
         await self.connection.close()
 
-    async def perform_pairing(self, alias, pin):
-        check_pin_format(pin)
-        finish_pairing = await self.start_pairing(alias)
-        return await finish_pairing(pin)
-
-    async def start_pairing(self, alias):
+    async def start_pairing(self, alias: str) -> FinishPairing:
         await self._ensure_connected()
 
-        with_auth = False
-        if self.info["ff"] & FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR:
-            with_auth = True
-        elif self.info["ff"] & FeatureFlags.SUPPORTS_SOFTWARE_AUTHENTICATION:
-            with_auth = False
-
-        state_machine = perform_pair_setup_part1(with_auth)
+        state_machine = perform_pair_setup_part1(self.pair_with_auth)
         request, expected = state_machine.send(None)
         while True:
             try:
@@ -82,7 +86,7 @@ class IpDiscovery:
                 salt, pub_key = result.value
                 break
 
-        async def finish_pairing(pin):
+        async def finish_pairing(pin: str) -> IpPairing:
             check_pin_format(pin)
 
             state_machine = perform_pair_setup_part2(

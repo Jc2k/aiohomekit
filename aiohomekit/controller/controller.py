@@ -19,7 +19,7 @@ from contextlib import AsyncExitStack
 import json
 from json.decoder import JSONDecodeError
 import pathlib
-from typing import Iterable
+from typing import AsyncIterable
 
 from zeroconf.asyncio import AsyncZeroconf
 
@@ -29,6 +29,7 @@ from aiohomekit.characteristic_cache import (
 )
 from aiohomekit.controller.ble.controller import BleController
 from aiohomekit.controller.coap.controller import CoAPController
+from aiohomekit.controller.discovery import AbstractDiscovery
 
 from ..const import (
     BLE_TRANSPORT_SUPPORTED,
@@ -50,7 +51,7 @@ if IP_TRANSPORT_SUPPORTED:
     from .ip import IpController, IpPairing
 
 if BLE_TRANSPORT_SUPPORTED:
-    from aiohomekit.controller.ble import BleDiscovery, BlePairing
+    from aiohomekit.controller.ble import BlePairing
 
 
 class Controller:
@@ -106,7 +107,7 @@ class Controller:
     async def async_stop(self):
         await self._tasks.aclose()
 
-    async def discover(self, max_seconds=10) -> Iterable[BleDiscovery]:
+    async def discover(self, max_seconds=10) -> AsyncIterable[AbstractDiscovery]:
         for transport in self._transports:
             for device in transport.devices.values():
                 yield device

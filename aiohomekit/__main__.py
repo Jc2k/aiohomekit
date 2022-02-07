@@ -25,6 +25,7 @@ import logging
 import pathlib
 import re
 import sys
+from typing import AsyncIterator
 
 from zeroconf.asyncio import AsyncZeroconf
 
@@ -40,7 +41,7 @@ DEFAULT_PAIRING_FILE = XDG_DATA_HOME / "aiohomekit" / "pairing.json"
 
 
 @contextlib.asynccontextmanager
-async def get_controller(args: argparse.Namespace) -> Controller:
+async def get_controller(args: argparse.Namespace) -> AsyncIterator[Controller]:
     charmap_path = pathlib.Path(args.file).parent / "charmap.json"
 
     zeroconf = AsyncZeroconf()
@@ -109,37 +110,18 @@ async def discover(args):
         await asyncio.sleep(30)
 
         async for discovery in controller.discover(args.timeout):
-            info = discovery.info
-
-            if args.unpaired_only and info["sf"] == "0":
+            if args.unpaired_only and not discovery.paired:
                 continue
 
-            print("Name: {name}".format(name=prepare_string(info["name"])))
-            # print(
-            #    "Url: hap+ip://{ip}:{port}".format(
-            #        ip=info["address"], port=info["port"]
-            #    )
-            # )
-            print("Configuration number (c#): {conf}".format(conf=info["c#"]))
-            print(
-                "Feature Flags (ff): {f} (Flag: {flags})".format(
-                    f=info["flags"], flags=info["ff"]
-                )
-            )
-            print("Device ID (id): {id}".format(id=info["id"]))
-            print("Model Name (md): {md}".format(md=prepare_string(info["md"])))
-            print("Protocol Version (pv): {pv}".format(pv=info["pv"]))
-            print("State Number (s#): {sn}".format(sn=info["s#"]))
-            print(
-                "Status Flags (sf): {sf} (Flag: {flags})".format(
-                    sf=info["statusflags"], flags=info["sf"]
-                )
-            )
-            print(
-                "Category Identifier (ci): {c} (Id: {ci})".format(
-                    c=info["category"], ci=info["ci"]
-                )
-            )
+            print(f"Name: {discovery.name}")
+            print(f"Device ID (id): {discovery.id}")
+            print(f"Model Name (md): {discovery.model}")
+            print(f"Feature Flags (ff): {discovery.feature_flags!s}")
+            if discovery.status_flags:
+                print(f"Status Flags (sf): {discovery.status_flags!s}")
+            print(f"Category (ci): {discovery.category!s}")
+            print(f"Configuration number (c#): {discovery.config_num}")
+            print(f"State Number (s#): {discovery.state_num}")
             print()
 
     return True
