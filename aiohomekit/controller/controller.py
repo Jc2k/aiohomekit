@@ -19,7 +19,6 @@ from contextlib import AsyncExitStack
 import json
 from json.decoder import JSONDecodeError
 import pathlib
-import re
 from typing import Iterable
 
 from zeroconf.asyncio import AsyncZeroconf
@@ -40,7 +39,6 @@ from ..exceptions import (
     AccessoryNotFoundError,
     ConfigLoadingError,
     ConfigSavingError,
-    MalformedPinError,
     TransportNotSupportedError,
 )
 from .pairing import AbstractPairing
@@ -59,6 +57,8 @@ class Controller:
     """
     This class represents a HomeKit controller (normally your iPhone or iPad).
     """
+
+    pairings: dict[str, AbstractPairing]
 
     def __init__(
         self,
@@ -180,14 +180,6 @@ class Controller:
         connection_type = pairing_data["Connection"]
         raise NotImplementedError(f"{connection_type} support")
 
-    def get_pairings(self) -> dict[str, AbstractPairing]:
-        """
-        Returns a dict containing all pairings known to the controller.
-
-        :return: the dict maps the aliases to Pairing objects
-        """
-        return self.pairings
-
     def load_data(self, filename: str) -> None:
         """
         Loads the pairing data of the controller from a file.
@@ -238,18 +230,6 @@ class Controller:
                 'Could not write "{f}" because it (or the folder) does not exist'.format(
                     f=filename
                 )
-            )
-
-    @staticmethod
-    def check_pin_format(pin: str) -> None:
-        """
-        Checks the format of the given pin: XXX-XX-XXX with X being a digit from 0 to 9
-
-        :raises MalformedPinError: if the validation fails
-        """
-        if not re.match(r"^\d\d\d-\d\d-\d\d\d$", pin):
-            raise MalformedPinError(
-                "The pin must be of the following XXX-XX-XXX where X is a digit between 0 and 9."
             )
 
     async def remove_pairing(self, alias: str) -> None:

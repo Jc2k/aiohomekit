@@ -25,6 +25,7 @@ from bleak import BleakClient
 from aiohomekit.model import CharacteristicsTypes, ServicesTypes
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
+from aiohomekit.utils import check_pin_format
 
 from .client import (
     char_read,
@@ -127,7 +128,7 @@ class BleDiscovery:
         await self.client.__aenter__()
 
     async def perform_pairing(self, alias: str, pin: str) -> BlePairing:
-        self.controller.check_pin_format(pin)
+        check_pin_format(pin)
         finish_pairing = await self.start_pairing(alias)
         return await finish_pairing(pin)
 
@@ -156,7 +157,7 @@ class BleDiscovery:
         )
 
         async def finish_pairing(pin: str) -> BlePairing:
-            self.controller.check_pin_format(pin)
+            check_pin_format(pin)
 
             pairing = await drive_pairing_state_machine(
                 self.client,

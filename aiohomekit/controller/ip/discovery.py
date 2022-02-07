@@ -20,6 +20,7 @@ from aiohomekit.exceptions import AlreadyPairedError
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
 from aiohomekit.protocol.statuscodes import to_status_code
+from aiohomekit.utils import check_pin_format
 
 from .connection import HomeKitConnection
 from .pairing import IpPairing
@@ -53,7 +54,7 @@ class IpDiscovery:
         await self.connection.close()
 
     async def perform_pairing(self, alias, pin):
-        self.controller.check_pin_format(pin)
+        check_pin_format(pin)
         finish_pairing = await self.start_pairing(alias)
         return await finish_pairing(pin)
 
@@ -82,7 +83,7 @@ class IpDiscovery:
                 break
 
         async def finish_pairing(pin):
-            self.controller.check_pin_format(pin)
+            check_pin_format(pin)
 
             state_machine = perform_pair_setup_part2(
                 pin, str(uuid.uuid4()), salt, pub_key

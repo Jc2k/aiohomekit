@@ -15,6 +15,7 @@
 #
 
 from aiohomekit.model.feature_flags import FeatureFlags
+from aiohomekit.utils import check_pin_format
 
 from .connection import CoAPHomeKitConnection
 from .pairing import CoAPPairing
@@ -54,7 +55,7 @@ class CoAPDiscovery:
         return await self.connection.do_identify()
 
     async def perform_pairing(self, alias, pin):
-        self.controller.check_pin_format(pin)
+        check_pin_format(pin)
         finish_pairing = await self.start_pairing(alias)
         return await finish_pairing(pin)
 
@@ -68,7 +69,7 @@ class CoAPDiscovery:
         salt, srpB = await self.connection.do_pair_setup(with_auth)
 
         async def finish_pairing(pin):
-            self.controller.check_pin_format(pin)
+            check_pin_format(pin)
 
             pairing = await self.connection.do_pair_setup_finish(pin, salt, srpB)
             pairing["AccessoryIP"] = self.host
