@@ -15,7 +15,7 @@
 #
 from __future__ import annotations
 
-import asyncio
+from contextlib import AsyncExitStack
 import json
 from json.decoder import JSONDecodeError
 import logging
@@ -27,11 +27,7 @@ from aiohomekit.characteristic_cache import (
     CharacteristicCacheMemory,
     CharacteristicCacheType,
 )
-from aiohomekit.zeroconf import (
-    HAP_TYPE_TCP,
-    HAP_TYPE_UDP,
-    async_find_data_for_device_id,
-)
+from aiohomekit.controller.ble.controller import BleController
 
 from ..const import (
     BLE_TRANSPORT_SUPPORTED,
@@ -48,12 +44,10 @@ from ..exceptions import (
 from .pairing import AbstractPairing
 
 if COAP_TRANSPORT_SUPPORTED:
-    from .coap import CoAPDiscovery, CoAPPairing
+    from .coap import CoAPPairing
 
 if IP_TRANSPORT_SUPPORTED:
-    from .ip import IpDiscovery, IpPairing
-    from .ip.zeroconf import async_discover_homekit_devices
-
+    from .ip import IpController, IpPairing
 
 if BLE_TRANSPORT_SUPPORTED:
     from aiohomekit.controller.ble import BleDiscovery, BlePairing
@@ -81,92 +75,33 @@ class Controller:
         self.ble_adapter = ble_adapter
         self.logger = logging.getLogger(__name__)
 
-    async def discover_all(self, max_seconds=10):
-        tasks = [
-            self.discover_ble(max_seconds),
-            self.discover_coap(max_seconds),
-            self.discover_ip(max_seconds),
-        ]
-        # run all discovery tasks in parallel
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        # debug print any exceptions, likely "homekit transport X not supported"
-        for exc in list(filter(lambda x: isinstance(x, Exception), results)):
-            self.logger.debug("discover_all", exc_info=exc)
-        # filter out exceptions
-        results = list(filter(lambda x: not isinstance(x, Exception), results))
-        # flatten list of lists
-        return [dev for protocol_results in results for dev in protocol_results]
+        self._transports = []
+        self._tasks = AsyncExitStack()
 
-    async def discover_coap(self, max_seconds=10):
-        if not COAP_TRANSPORT_SUPPORTED:
-            raise TransportNotSupportedError("CoAP")
-        devices = await async_discover_homekit_devices(
-            max_seconds,
-            async_zeroconf_instance=self._async_zeroconf_instance,
-            hap_type=HAP_TYPE_UDP,
-        )
-        tmp = []
-        for device in devices:
-            tmp.append(CoAPDiscovery(self, device))
-        self.logger.debug(f"Discovered CoAP devices: {tmp}")
-        return tmp
+    async def __aenter__(self):
+        await self.async_start()
 
-    async def discover_ip(self, max_seconds=10):
-        """
-        Perform a Bonjour discovery for HomeKit accessory. The discovery will last for the given amount of seconds. The
-        result will be a list of dicts. The keys of the dicts are:
-         * name: the Bonjour name of the HomeKit accessory (i.e. Testsensor1._hap._tcp.local.)
-         * address: the IP address of the accessory
-         * port: the used port
-         * c#: the configuration number (required)
-         * ff / flags: the numerical and human readable version of the feature flags (supports pairing or not, see table
-                       5-8 page 69)
-         * id: the accessory's pairing id (required)
-         * md: the model name of the accessory (required)
-         * pv: the protocol version
-         * s#: the current state number (required)
-         * sf / statusflags: the status flag (see table 5-9 page 70)
-         * ci / category: the category identifier in numerical and human readable form. For more information see table
-                        12-3 page 254 or homekit.Categories (required)
+    async def __aexit__(self, *args):
+        await self.async_stop()
 
-        IMPORTANT:
-        This method will ignore all HomeKit accessories that exist in _hap._tcp domain but fail to have all required
-        TXT record keys set.
+    async def async_start(self):
+        if BLE_TRANSPORT_SUPPORTED:
+            self._transports.append(
+                await self._tasks.enter_async_context(BleController(self))
+            )
 
-        :param max_seconds: how long should the Bonjour service browser do the discovery (default 10s). See sleep for
-                            more details
-        :return: a list of dicts as described above
-        """
-        if not IP_TRANSPORT_SUPPORTED:
-            raise TransportNotSupportedError("IP")
-        devices = await async_discover_homekit_devices(
-            max_seconds,
-            async_zeroconf_instance=self._async_zeroconf_instance,
-            hap_type=HAP_TYPE_TCP,
-        )
-        tmp = []
-        for device in devices:
-            tmp.append(IpDiscovery(self, device))
-        self.logger.debug(f"Discovered IP devices: {tmp}")
-        return tmp
+        if IP_TRANSPORT_SUPPORTED:
+            self._transports.append(
+                await self._tasks.enter_async_context(IpController(self))
+            )
 
-    async def find_ip_by_device_id(
-        self, device_id, max_seconds=10, hap_type=HAP_TYPE_TCP
-    ):
-        if hap_type == HAP_TYPE_TCP and not IP_TRANSPORT_SUPPORTED:
-            raise TransportNotSupportedError("IP")
-        if hap_type == HAP_TYPE_UDP and not COAP_TRANSPORT_SUPPORTED:
-            raise TransportNotSupportedError("CoAP")
-        device = await async_find_data_for_device_id(
-            device_id=device_id,
-            max_seconds=max_seconds,
-            async_zeroconf_instance=self._async_zeroconf_instance,
-            hap_type=hap_type,
-        )
-        if hap_type == HAP_TYPE_TCP:
-            return IpDiscovery(self, device)
-        elif hap_type == HAP_TYPE_UDP:
-            return CoAPDiscovery(self, device)
+    async def async_stop(self):
+        await self._tasks.aclose()
+
+    async def discover(self, max_seconds=10) -> Iterable[BleDiscovery]:
+        for transport in self._transports:
+            for device in transport.devices.values():
+                yield device
 
         """
         # Backwards compact
@@ -200,22 +135,6 @@ class Controller:
 
             return BleDiscovery(self, device)
         """
-
-    async def discover_ble(self, max_seconds=10) -> Iterable[BleDiscovery]:
-        if not BLE_TRANSPORT_SUPPORTED:
-            raise TransportNotSupportedError("BLE")
-
-        from bleak import BleakScanner
-
-        devices = await BleakScanner.discover(timeout=max_seconds)
-        for d in devices:
-            if not d.metadata:
-                continue
-            if 76 not in d.metadata["manufacturer_data"]:
-                continue
-            if not d.metadata["manufacturer_data"][76].startswith(b"\x06"):
-                continue
-            yield BleDiscovery(self, d)
 
     async def shutdown(self) -> None:
         """

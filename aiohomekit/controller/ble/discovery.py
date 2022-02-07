@@ -114,13 +114,11 @@ class BleDiscovery:
     A discovered BLE HAP device that is unpaired.
     """
 
-    def __init__(self, controller: Controller, device) -> None:
+    def __init__(self, controller: Controller, device, info) -> None:
         self.controller = controller
         self.device = device
         self.address = device.address
-        self.info = parse_manufacturer_specific(
-            device.metadata["manufacturer_data"][76]
-        )
+        self.info = info
         self.info["name"] = device.name
         self.info["mac"] = device.address
         self.client = BleakClient(self.device)
@@ -191,3 +189,6 @@ class BleDiscovery:
         iid = await get_characteristic_iid(self.client, char)
 
         await char_write(self.client, None, None, char.handle, iid, b"\x01")
+
+    def _async_process_advertisement(self, advertisement):
+        pass

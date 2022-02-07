@@ -15,7 +15,7 @@ async def test_help():
     printed = stdout.write.call_args[0][0]
 
     assert printed.startswith("usage: ")
-    assert "discover-ip" in printed
+    assert "discover" in printed
 
 
 async def test_get_accessories(pairing):

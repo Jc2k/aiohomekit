@@ -14,10 +14,12 @@
 # limitations under the License.
 #
 
+from .controller import IpController
 from .discovery import IpDiscovery
 from .pairing import IpPairing
 
 __all__ = [
+    "IpController",
     "IpDiscovery",
     "IpPairing",
 ]
