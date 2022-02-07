@@ -7,10 +7,9 @@ import tempfile
 import threading
 import time
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from zeroconf.asyncio import AsyncZeroconf
 
 from aiohomekit import Controller
 from aiohomekit.controller.ip import IpPairing
@@ -50,7 +49,33 @@ def wait_for_server_online(port: int):
 
 
 @pytest.fixture
-async def controller_and_unpaired_accessory(request, event_loop):
+def mock_asynczeroconf():
+    """Mock zeroconf."""
+
+    def browser(zeroconf, service, handler):
+        # Make sure we get the right mocked object
+        if hasattr("zeroconf", "_extract_mock_name"):  # required python 3.7+
+            assert zeroconf._extract_mock_name() == "zeroconf_mock"
+        handler.add_service(zeroconf, service, f"name.{service}")
+        async_browser = MagicMock()
+        async_browser.async_cancel = AsyncMock()
+        return async_browser
+
+    with patch("aiohomekit.zeroconf.AsyncServiceBrowser") as mock_browser:
+        mock_browser.side_effect = browser
+
+        with patch("aiohomekit.zeroconf.AsyncZeroconf") as mock_zc:
+            zc = mock_zc.return_value
+            zc.async_register_service = AsyncMock()
+            zc.async_close = AsyncMock()
+            zeroconf = MagicMock(name="zeroconf_mock")
+            zeroconf.async_wait_for_start = AsyncMock()
+            zc.zeroconf = zeroconf
+            yield zc
+
+
+@pytest.fixture
+async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_loop):
     config_file = tempfile.NamedTemporaryFile(delete=False)
     config_file.write(
         b"""{
@@ -86,27 +111,17 @@ async def controller_and_unpaired_accessory(request, event_loop):
 
     wait_for_server_online(51842)
 
-    zeroconf = AsyncZeroconf()
+    controller = Controller(async_zeroconf_instance=mock_asynczeroconf)
 
-    controller = Controller(async_zeroconf_instance=zeroconf)
-
-    with patch("aiohomekit.zeroconf._async_find_data_for_device_id") as find:
-        find.return_value = {
-            "address": "127.0.0.1",
-            "port": 51842,
-            "id": "12:34:56:00:01:0A",
-        }
-        with mock.patch.object(controller, "load_data", lambda x: None):
-            with mock.patch("aiohomekit.__main__.Controller") as c:
-                c.return_value = controller
-                yield controller
+    with mock.patch.object(controller, "load_data", lambda x: None):
+        with mock.patch("aiohomekit.__main__.Controller") as c:
+            c.return_value = controller
+            yield controller
 
     try:
         await asyncio.shield(controller.shutdown())
     except asyncio.CancelledError:
         pass
-
-    await zeroconf.async_close()
 
     os.unlink(config_file.name)
 
@@ -178,16 +193,10 @@ async def controller_and_paired_accessory(request, event_loop):
     controller.load_data(controller_file.name)
     config_file.close()
 
-    with patch("aiohomekit.zeroconf._async_find_data_for_device_id") as find:
-        find.return_value = {
-            "address": "127.0.0.1",
-            "port": 51842,
-            "id": "12:34:56:00:01:0A",
-        }
-        with mock.patch.object(controller, "load_data", lambda x: None):
-            with mock.patch("aiohomekit.__main__.Controller") as c:
-                c.return_value = controller
-                yield controller
+    with mock.patch.object(controller, "load_data", lambda x: None):
+        with mock.patch("aiohomekit.__main__.Controller") as c:
+            c.return_value = controller
+            yield controller
 
     try:
         await asyncio.shield(controller.shutdown())
