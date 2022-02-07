@@ -73,6 +73,16 @@ def get_from_properties(
 
 def _service_info_is_homekit_device(service_info: AsyncServiceInfo) -> bool:
     props = {key.lower() for key in service_info.properties.keys()}
+    print(service_info.parsed_addresses())
+    print(props)
+    print(
+        (
+            service_info.parsed_addresses(),
+            b"c#" in props,
+            b"md" in props,
+            b"id" in props,
+        )
+    )
     return (
         service_info.parsed_addresses()
         and b"c#" in props
@@ -170,23 +180,28 @@ class ZeroconfSubscription:
     """
 
     def __init__(
-        self, zeroconf_instance, hap_type, callback: Callable[..., dict[str, Any]]
+        self,
+        zeroconf_instance: AsyncZeroconf,
+        hap_type: str,
+        callback: Callable[..., dict[str, Any]],
     ):
         self._hap_type = hap_type
         self._async_zeroconf_instance = zeroconf_instance
         self._callback = callback
 
     async def __aenter__(self):
-        zc = self._controller._async_zeroconf_instance
+        zc = self._async_zeroconf_instance.zeroconf
         if not zc:
             return self
 
-        for listener in zc.zeroconf.listeners:
+        # FIXME: This needs to cope with a HA AsyncZeroconf or our own
+
+        for listener in zc.listeners:
             print(listener.types)
             print(dir(listener))
         else:
             self._browser = AsyncServiceBrowser(
-                zc.zeroconf,
+                zc,
                 [self._hap_type],
                 handlers=[self._handle_service],
             )
@@ -210,9 +225,9 @@ class ZeroconfSubscription:
     async def _async_handle_service(self, info: AsyncServiceInfo):
         """Add a device that became visible via zeroconf."""
         # AsyncServiceInfo already tries 3x
-        await info.async_request(self._async_zeroconf_instance.zc, _TIMEOUT_MS)
+        await info.async_request(self._async_zeroconf_instance.zeroconf, _TIMEOUT_MS)
 
-        if _service_info_is_homekit_device(info):
+        if not _service_info_is_homekit_device(info):
             return
 
         parsed = _build_data_from_service_info(info)

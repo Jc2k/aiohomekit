@@ -28,6 +28,7 @@ from aiohomekit.characteristic_cache import (
     CharacteristicCacheType,
 )
 from aiohomekit.controller.ble.controller import BleController
+from aiohomekit.controller.coap.controller import CoAPController
 
 from ..const import (
     BLE_TRANSPORT_SUPPORTED,
@@ -88,6 +89,11 @@ class Controller:
         if BLE_TRANSPORT_SUPPORTED:
             self._transports.append(
                 await self._tasks.enter_async_context(BleController(self))
+            )
+
+        if COAP_TRANSPORT_SUPPORTED:
+            self._transports.append(
+                await self._tasks.enter_async_context(CoAPController(self))
             )
 
         if IP_TRANSPORT_SUPPORTED:
