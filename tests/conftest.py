@@ -52,11 +52,10 @@ def wait_for_server_online(port: int):
 def mock_asynczeroconf():
     """Mock zeroconf."""
 
-    def browser(zeroconf, service, handler):
+    def browser(zeroconf, service, handlers):
         # Make sure we get the right mocked object
-        if hasattr("zeroconf", "_extract_mock_name"):  # required python 3.7+
-            assert zeroconf._extract_mock_name() == "zeroconf_mock"
-        handler.add_service(zeroconf, service, f"name.{service}")
+        assert zeroconf._extract_mock_name() == "zeroconf_mock"
+        # handler.add_service(zeroconf, service, f"name.{service}")
         async_browser = MagicMock()
         async_browser.async_cancel = AsyncMock()
         return async_browser
@@ -130,7 +129,7 @@ async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_l
 
 
 @pytest.fixture
-async def controller_and_paired_accessory(request, event_loop):
+async def controller_and_paired_accessory(request, event_loop, mock_asynczeroconf):
     config_file = tempfile.NamedTemporaryFile(delete=False)
     config_file.write(
         b"""{
@@ -189,7 +188,9 @@ async def controller_and_paired_accessory(request, event_loop):
     )
     controller_file.close()
 
-    controller = Controller()
+    controller = Controller(
+        async_zeroconf_instance=mock_asynczeroconf,
+    )
     controller.load_data(controller_file.name)
     config_file.close()
 

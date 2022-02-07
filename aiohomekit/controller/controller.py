@@ -18,10 +18,11 @@ from __future__ import annotations
 from contextlib import AsyncExitStack
 import json
 from json.decoder import JSONDecodeError
-import logging
 import pathlib
 import re
 from typing import Iterable
+
+from zeroconf.asyncio import AsyncZeroconf
 
 from aiohomekit.characteristic_cache import (
     CharacteristicCacheMemory,
@@ -61,8 +62,7 @@ class Controller:
 
     def __init__(
         self,
-        ble_adapter: str = "hci0",
-        async_zeroconf_instance=None,
+        async_zeroconf_instance: AsyncZeroconf | None = None,
         char_cache: CharacteristicCacheType | None = None,
     ) -> None:
         """
@@ -73,8 +73,6 @@ class Controller:
         self.pairings = {}
         self._async_zeroconf_instance = async_zeroconf_instance
         self._char_cache = char_cache or CharacteristicCacheMemory()
-        self.ble_adapter = ble_adapter
-        self.logger = logging.getLogger(__name__)
 
         self._transports = []
         self._tasks = AsyncExitStack()
@@ -86,19 +84,23 @@ class Controller:
         await self.async_stop()
 
     async def async_start(self):
-        if BLE_TRANSPORT_SUPPORTED:
+        if IP_TRANSPORT_SUPPORTED:
             self._transports.append(
-                await self._tasks.enter_async_context(BleController(self))
+                await self._tasks.enter_async_context(
+                    IpController(self._async_zeroconf_instance)
+                )
             )
 
         if COAP_TRANSPORT_SUPPORTED:
             self._transports.append(
-                await self._tasks.enter_async_context(CoAPController(self))
+                await self._tasks.enter_async_context(
+                    CoAPController(self._async_zeroconf_instance)
+                )
             )
 
-        if IP_TRANSPORT_SUPPORTED:
+        if BLE_TRANSPORT_SUPPORTED:
             self._transports.append(
-                await self._tasks.enter_async_context(IpController(self))
+                await self._tasks.enter_async_context(BleController())
             )
 
     async def async_stop(self):

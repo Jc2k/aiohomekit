@@ -1,12 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
 
 from bleak import BleakScanner
-
-if TYPE_CHECKING:
-    from aiohomekit.controller import Controller
 
 from .discovery import BleDiscovery
 
@@ -82,10 +78,9 @@ def parse_manufacturer_specific(input_data: bytes):
 class BleController:
     devices: dict[str, BleDiscovery]
 
-    def __init__(self, controller: Controller):
+    def __init__(self):
         self.devices = {}
 
-        self._controller = controller
         self._scanner = BleakScanner()
 
     def _device_detected(self, device, advertisement_data):
@@ -104,8 +99,7 @@ class BleController:
             self.devices[data["id"]]._async_process_advertisement(data)
             return
 
-        dev = self.devices[data["id"]] = BleDiscovery(self._controller, device, data)
-        print(dev.address, dev.info["name"])
+        self.devices[data["id"]] = BleDiscovery(self, device, data)
 
     async def __aenter__(self) -> BleController:
         self._scanner.register_detection_callback(self._device_detected)
