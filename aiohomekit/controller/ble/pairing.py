@@ -38,7 +38,7 @@ from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.uuid import normalize_uuid
 
-from ..pairing import AbstractPairing
+from ..abstract import AbstractPairing
 from .key import DecryptionKey, EncryptionKey
 from .structs import Characteristic as CharacteristicTLV
 from .values import from_bytes, to_bytes

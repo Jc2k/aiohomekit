@@ -16,7 +16,7 @@
 
 import uuid
 
-from aiohomekit.controller.discovery import AbstractDiscovery, FinishPairing
+from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
 from aiohomekit.exceptions import AlreadyPairedError
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
@@ -68,7 +68,7 @@ class IpDiscovery(AbstractDiscovery):
         """
         await self.connection.close()
 
-    async def start_pairing(self, alias: str) -> FinishPairing:
+    async def async_start_pairing(self, alias: str) -> FinishPairing:
         await self._ensure_connected()
 
         state_machine = perform_pair_setup_part1(pair_with_auth(self.feature_flags))
@@ -119,7 +119,7 @@ class IpDiscovery(AbstractDiscovery):
 
         return finish_pairing
 
-    async def identify(self):
+    async def async_identify(self):
         await self._ensure_connected()
 
         response = await self.connection.post_json("/identify", {})

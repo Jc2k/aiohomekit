@@ -22,7 +22,7 @@ import uuid
 
 from bleak import BleakClient
 
-from aiohomekit.controller.discovery import AbstractDiscovery, FinishPairing
+from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
 from aiohomekit.model import CharacteristicsTypes, ServicesTypes
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
@@ -76,7 +76,7 @@ class BleDiscovery(AbstractDiscovery):
     async def _ensure_connected(self):
         await self.client.__aenter__()
 
-    async def start_pairing(self, alias: str) -> FinishPairing:
+    async def async_start_pairing(self, alias: str) -> FinishPairing:
         await self._ensure_connected()
 
         ff_char = get_characteristic(
@@ -119,7 +119,7 @@ class BleDiscovery(AbstractDiscovery):
 
         return finish_pairing
 
-    async def identify(self) -> None:
+    async def async_identify(self) -> None:
         if self.paired:
             raise RuntimeError("Cannot anonymously identify a paired accessory")
 

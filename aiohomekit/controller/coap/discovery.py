@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from aiohomekit.controller.discovery import AbstractDiscovery, FinishPairing
+from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.utils import check_pin_format, pair_with_auth
@@ -59,10 +59,10 @@ class CoAPDiscovery(AbstractDiscovery):
         """
         return
 
-    async def identify(self) -> None:
+    async def async_identify(self) -> None:
         return await self.connection.do_identify()
 
-    async def start_pairing(self, alias: str) -> FinishPairing:
+    async def async_start_pairing(self, alias: str) -> FinishPairing:
         salt, srpB = await self.connection.do_pair_setup(
             pair_with_auth(self.feature_flags)
         )

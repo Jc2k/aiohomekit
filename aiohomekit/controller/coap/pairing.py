@@ -17,7 +17,7 @@
 import asyncio
 import logging
 
-from aiohomekit.controller.pairing import AbstractPairing
+from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.uuid import normalize_uuid
 
 from .connection import CoAPHomeKitConnection

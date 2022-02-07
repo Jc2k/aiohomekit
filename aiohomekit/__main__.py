@@ -109,7 +109,7 @@ async def discover(args):
     async with get_controller(args) as controller:
         await asyncio.sleep(30)
 
-        async for discovery in controller.discover(args.timeout):
+        async for discovery in controller.async_discover(args.timeout):
             if args.unpaired_only and not discovery.paired:
                 continue
 
@@ -133,7 +133,7 @@ async def pair(args):
             print(f'"{args.alias}" is a already known alias')
             return False
 
-        discovery = await controller.find_ip_by_device_id(args.device)
+        discovery = await controller.async_find(args.device)
 
         try:
             finish_pairing = await discovery.start_pairing(args.alias)

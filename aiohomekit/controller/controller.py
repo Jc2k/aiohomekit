@@ -27,9 +27,9 @@ from aiohomekit.characteristic_cache import (
     CharacteristicCacheMemory,
     CharacteristicCacheType,
 )
+from aiohomekit.controller.abstract import AbstractDiscovery
 from aiohomekit.controller.ble.controller import BleController
 from aiohomekit.controller.coap.controller import CoAPController
-from aiohomekit.controller.discovery import AbstractDiscovery
 
 from ..const import (
     BLE_TRANSPORT_SUPPORTED,
@@ -42,7 +42,7 @@ from ..exceptions import (
     ConfigSavingError,
     TransportNotSupportedError,
 )
-from .pairing import AbstractPairing
+from .abstract import AbstractController, AbstractPairing
 
 if COAP_TRANSPORT_SUPPORTED:
     from .coap import CoAPPairing
@@ -54,7 +54,7 @@ if BLE_TRANSPORT_SUPPORTED:
     from aiohomekit.controller.ble import BlePairing
 
 
-class Controller:
+class Controller(AbstractController):
     """
     This class represents a HomeKit controller (normally your iPhone or iPad).
     """
@@ -78,36 +78,34 @@ class Controller:
         self._transports = []
         self._tasks = AsyncExitStack()
 
-    async def __aenter__(self):
-        await self.async_start()
-
-    async def __aexit__(self, *args):
-        await self.async_stop()
+    async def _async_register_backend(self, controller: AbstractController):
+        self._transports.append(await self._tasks.enter_async_context(controller))
 
     async def async_start(self):
         if IP_TRANSPORT_SUPPORTED:
-            self._transports.append(
-                await self._tasks.enter_async_context(
-                    IpController(self._async_zeroconf_instance)
-                )
+            await self._async_register_backend(
+                IpController(self._async_zeroconf_instance)
             )
 
         if COAP_TRANSPORT_SUPPORTED:
-            self._transports.append(
-                await self._tasks.enter_async_context(
-                    CoAPController(self._async_zeroconf_instance)
-                )
+            await self._async_register_backend(
+                CoAPController(self._async_zeroconf_instance)
             )
 
         if BLE_TRANSPORT_SUPPORTED:
-            self._transports.append(
-                await self._tasks.enter_async_context(BleController())
-            )
+            await self._async_register_backend(BleController())
 
     async def async_stop(self):
         await self._tasks.aclose()
 
-    async def discover(self, max_seconds=10) -> AsyncIterable[AbstractDiscovery]:
+    async def async_find(self, device_id: str) -> AbstractDiscovery:
+        for transport in self._transports:
+            if device_id in transport.devices:
+                return transport.devices[device_id]
+
+        raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
+
+    async def async_discover(self) -> AsyncIterable[AbstractDiscovery]:
         for transport in self._transports:
             for device in transport.devices.values():
                 yield device

@@ -20,7 +20,7 @@ import json
 import logging
 from operator import itemgetter
 
-from aiohomekit.controller.pairing import AbstractPairing
+from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
