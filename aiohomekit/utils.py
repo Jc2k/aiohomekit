@@ -3,6 +3,7 @@ import re
 
 from aiohomekit.exceptions import MalformedPinError
 from aiohomekit.model.characteristics import Characteristic
+from aiohomekit.model.feature_flags import FeatureFlags
 
 
 def clamp_enum_to_char(all_valid_values: enum.EnumMeta, char: Characteristic):
@@ -39,3 +40,7 @@ def check_pin_format(pin: str) -> None:
         raise MalformedPinError(
             "The pin must be of the following XXX-XX-XXX where X is a digit between 0 and 9."
         )
+
+
+def pair_with_auth(ff: FeatureFlags) -> bool:
+    return True

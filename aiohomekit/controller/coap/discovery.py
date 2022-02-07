@@ -17,7 +17,7 @@
 from aiohomekit.controller.discovery import AbstractDiscovery, FinishPairing
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
-from aiohomekit.utils import check_pin_format
+from aiohomekit.utils import check_pin_format, pair_with_auth
 
 from .connection import CoAPHomeKitConnection
 from .pairing import CoAPPairing
@@ -63,7 +63,9 @@ class CoAPDiscovery(AbstractDiscovery):
         return await self.connection.do_identify()
 
     async def start_pairing(self, alias: str) -> FinishPairing:
-        salt, srpB = await self.connection.do_pair_setup(self.pair_with_auth)
+        salt, srpB = await self.connection.do_pair_setup(
+            pair_with_auth(self.feature_flags)
+        )
 
         async def finish_pairing(pin: str) -> CoAPPairing:
             check_pin_format(pin)

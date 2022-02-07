@@ -26,9 +26,10 @@ from aiohomekit.controller.discovery import AbstractDiscovery, FinishPairing
 from aiohomekit.model import CharacteristicsTypes, ServicesTypes
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
-from aiohomekit.utils import check_pin_format
+from aiohomekit.utils import check_pin_format, pair_with_auth
 
 from .client import (
+    char_read,
     char_write,
     drive_pairing_state_machine,
     get_characteristic,
@@ -55,14 +56,13 @@ class BleDiscovery(AbstractDiscovery):
         controller: BleController,
         device,
         info: ManufacturerData,
-        feature_flags: FeatureFlags,
     ) -> None:
         self.controller = controller
         self.device = device
 
         self.name = device.name
         self.id = info.device_id
-        self.feature_flags = feature_flags
+        self.feature_flags = FeatureFlags(0)
         self.status_flags = info.status_flags
         self.config_num = info.config_num
         self.state_num = info.status_num
@@ -77,11 +77,22 @@ class BleDiscovery(AbstractDiscovery):
         await self.client.__aenter__()
 
     async def start_pairing(self, alias: str) -> FinishPairing:
+        await self._ensure_connected()
+
+        ff_char = get_characteristic(
+            self.client,
+            ServicesTypes.PAIRING,
+            CharacteristicsTypes.PAIRING_FEATURES,
+        )
+        ff_iid = await get_characteristic_iid(self.client, ff_char)
+        ff_raw = await char_read(self.client, None, None, ff_char.handle, ff_iid)
+        ff = FeatureFlags(ff_raw[0])
+
         salt, pub_key = await drive_pairing_state_machine(
             self.client,
             CharacteristicsTypes.PAIR_SETUP,
             perform_pair_setup_part1(
-                with_auth=self.pair_with_auth,
+                with_auth=pair_with_auth(ff),
             ),
         )
 

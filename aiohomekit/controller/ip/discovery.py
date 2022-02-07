@@ -23,7 +23,7 @@ from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
 from aiohomekit.protocol.statuscodes import to_status_code
-from aiohomekit.utils import check_pin_format
+from aiohomekit.utils import check_pin_format, pair_with_auth
 
 from .connection import HomeKitConnection
 from .pairing import IpPairing
@@ -71,7 +71,7 @@ class IpDiscovery(AbstractDiscovery):
     async def start_pairing(self, alias: str) -> FinishPairing:
         await self._ensure_connected()
 
-        state_machine = perform_pair_setup_part1(self.pair_with_auth)
+        state_machine = perform_pair_setup_part1(pair_with_auth(self.feature_flags))
         request, expected = state_machine.send(None)
         while True:
             try:

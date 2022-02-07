@@ -72,16 +72,6 @@ def get_from_properties(
 
 def _service_info_is_homekit_device(service_info: AsyncServiceInfo) -> bool:
     props = {key.lower() for key in service_info.properties.keys()}
-    print(service_info.parsed_addresses())
-    print(props)
-    print(
-        (
-            service_info.parsed_addresses(),
-            b"c#" in props,
-            b"md" in props,
-            b"id" in props,
-        )
-    )
     return (
         service_info.parsed_addresses()
         and b"c#" in props
@@ -193,8 +183,7 @@ class ZeroconfSubscription:
         # FIXME: This needs to cope with a HA AsyncZeroconf or our own
 
         for listener in zc.listeners:
-            print(listener.types)
-            print(dir(listener))
+            pass
         else:
             self._browser = AsyncServiceBrowser(
                 zc,

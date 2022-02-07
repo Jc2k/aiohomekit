@@ -197,7 +197,6 @@ class BlePairing(AbstractPairing):
         response = dict(TLV.decode_bytes(resp))
 
         resp = TLV.decode_bytes(response[1])
-        print(resp)
 
         tmp = []
         r = {}
@@ -234,8 +233,6 @@ class BlePairing(AbstractPairing):
 
             char = self._accessories.aid(1).characteristics.iid(iid)
             results[(aid, iid)] = from_bytes(char, data)
-
-        print(results)
 
         return {}
 
