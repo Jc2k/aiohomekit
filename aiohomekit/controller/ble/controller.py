@@ -4,7 +4,7 @@ import logging
 from typing import AsyncIterable
 
 from bleak import BleakScanner
-from bleak.exc import BleakDBusError
+from bleak.exc import BleakDBusError, BleakError
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController
@@ -49,7 +49,7 @@ class BleController(AbstractController):
             self._scanner = BleakScanner()
             self._scanner.register_detection_callback(self._device_detected)
             await self._scanner.start()
-        except BleakDBusError as e:
+        except (BleakDBusError, BleakError) as e:
             logger.debug(
                 "Failed to connect to start scanner, HAP-BLE not available: %s", str(e)
             )
