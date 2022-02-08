@@ -100,3 +100,21 @@ def decode_pdu(expected_tid: int, data: bytes) -> tuple[int, bytes | PDUStatus]:
         return (body_len, PDUStatus.BAD_CONTROL)
 
     return body_len, data[5 : 5 + body_len]
+
+
+def decode_all_pdus(
+    starting_tid: int, data: bytes
+) -> list[tuple[int, bytes | PDUStatus]]:
+    idx = starting_tid
+    offset = 0
+    res = []
+    while True:
+        body_len, body = decode_pdu(idx, data[offset:])
+        res.append(body)
+
+        idx += 1
+        offset += 5 + body_len
+        if offset >= len(data):
+            break
+
+    return res
