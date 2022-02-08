@@ -43,4 +43,11 @@ def check_pin_format(pin: str) -> None:
 
 
 def pair_with_auth(ff: FeatureFlags) -> bool:
-    return True
+    if ff & FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR:
+        return True
+
+    if ff & FeatureFlags.SUPPORTS_SOFTWARE_AUTHENTICATION:
+        return False
+
+    # We don't know what kind of pairing this is, assume no auth
+    return False

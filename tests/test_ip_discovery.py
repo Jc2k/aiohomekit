@@ -20,7 +20,7 @@ async def test_pair(controller_and_unpaired_accessory):
 async def test_identify(controller_and_unpaired_accessory):
     discovery = IpDiscovery(
         controller_and_unpaired_accessory,
-        {"address": "127.0.0.1", "port": 51842, "id": "00:01:02:03:04:05"},
+        {"address": "127.0.0.1", "port": 51842, "id": "00:01:02:03:04:05", "ff": 0},
     )
 
     identified = await discovery.async_identify()

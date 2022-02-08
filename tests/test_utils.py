@@ -22,8 +22,9 @@ from aiohomekit.model.characteristics import (
     InputEventValues,
     RemoteKeyValues,
 )
+from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.services import ServicesTypes
-from aiohomekit.utils import clamp_enum_to_char
+from aiohomekit.utils import clamp_enum_to_char, pair_with_auth
 from aiohomekit.uuid import normalize_uuid, shorten_uuid
 
 
@@ -117,3 +118,11 @@ def test_clamp_enum_min_max_unclamped_button_press():
         InputEventValues.DOUBLE_PRESS,
         InputEventValues.LONG_PRESS,
     }
+
+
+def test_pair_with_auth():
+    # Only for FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR
+    assert pair_with_auth(FeatureFlags(1)) is True
+    assert pair_with_auth(FeatureFlags(2)) is False
+    assert pair_with_auth(FeatureFlags(0)) is False
+    assert pair_with_auth(FeatureFlags(4)) is False

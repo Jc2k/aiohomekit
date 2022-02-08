@@ -45,7 +45,6 @@ def get_from_properties(
     props: dict[str, str],
     key: str,
     default: int | str | None = None,
-    case_sensitive: bool = False,
 ) -> str | None:
     """Convert zeroconf properties to our format.
 
@@ -54,16 +53,11 @@ def get_from_properties(
     :param props: a dict from bytes to bytes.
     :param key: bytes as key
     :param default: the value to return, if the key was not found. Will be converted to str.
-    :param case_sensitive: If this is False, try to lookup keys also when they only match ignoring their case
     :return: the value out of the dict as string (after decoding), the given default if the key was not not found but
              the default was given or None
     """
-    if case_sensitive:
-        tmp_props = props
-        tmp_key = key
-    else:
-        tmp_props = {k.lower(): props[k] for k in props}
-        tmp_key = key.lower()
+    tmp_props = {k.lower(): props[k] for k in props}
+    tmp_key = key.lower()
 
     if tmp_key in tmp_props:
         return tmp_props[tmp_key]
@@ -191,9 +185,7 @@ class ZeroconfController(AbstractController):
 
         infos = [
             AsyncServiceInfo(self.hap_type, record.alias)
-            for record in zc.cache.get_all_by_details(
-                self.hap_type, TYPE_PTR, CLASS_IN
-            )
+            for record in zc.cache.get_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
         ]
 
         await asyncio.gather(*(self.async_add_service(info) for info in infos))

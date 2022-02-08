@@ -35,14 +35,11 @@ def test_non_existing_key_no_default():
 
 def test_non_existing_key_case_insensitive():
     props = {"C#": "259", "heLLo": "World"}
+
     val = get_from_properties(props, "c#")
-    assert None is val
-    val = get_from_properties(props, "c#", case_sensitive=True)
-    assert None is val
-    val = get_from_properties(props, "c#", case_sensitive=False)
     assert "259" == val
 
-    val = get_from_properties(props, "HEllo", case_sensitive=False)
+    val = get_from_properties(props, "HEllo")
     assert "World" == val
 
 

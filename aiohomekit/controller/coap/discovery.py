@@ -14,9 +14,7 @@
 # limitations under the License.
 #
 
-from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
-from aiohomekit.model.feature_flags import FeatureFlags
-from aiohomekit.model.status_flags import StatusFlags
+from aiohomekit.controller.abstract import FinishPairing
 from aiohomekit.utils import check_pin_format, pair_with_auth
 from aiohomekit.zeroconf import ZeroconfDiscovery
 

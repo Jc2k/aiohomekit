@@ -16,11 +16,8 @@
 
 import uuid
 
-from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
+from aiohomekit.controller.abstract import FinishPairing
 from aiohomekit.exceptions import AlreadyPairedError
-from aiohomekit.model.categories import Categories
-from aiohomekit.model.feature_flags import FeatureFlags
-from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.utils import check_pin_format, pair_with_auth
