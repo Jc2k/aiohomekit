@@ -109,18 +109,6 @@ class AbstractDiscovery(metaclass=ABCMeta):
     def paired(self) -> bool:
         return not (self.status_flags & StatusFlags.UNPAIRED)
 
-    @final
-    @property
-    def pair_with_auth(self) -> bool:
-        if self.feature_flags & FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR:
-            return True
-
-        if self.feature_flags & FeatureFlags.SUPPORTS_SOFTWARE_AUTHENTICATION:
-            return False
-
-        # We don't know what kind of pairing this is, assume no auth
-        return False
-
     @abstractmethod
     async def async_start_pairing(self, alias: str) -> FinishPairing:
         pass
