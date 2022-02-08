@@ -18,12 +18,13 @@ from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.utils import check_pin_format, pair_with_auth
+from aiohomekit.zeroconf import ZeroconfDiscovery
 
 from .connection import CoAPHomeKitConnection
 from .pairing import CoAPPairing
 
 
-class CoAPDiscovery(AbstractDiscovery):
+class CoAPDiscovery(ZeroconfDiscovery):
 
     """
     A discovered CoAP HAP device that is unpaired.
@@ -36,11 +37,7 @@ class CoAPDiscovery(AbstractDiscovery):
         self.device_id = discovery_data["id"]
         self.info = discovery_data
 
-        self.id = self.info["id"]
-        self.config_num = self.info["c#"]
-        self.state_num = self.info["s#"]
-        self.feature_flags = FeatureFlags(self.info["ff"])
-        self.status_flags = StatusFlags(self.info["sf"])
+        self._update_from_discovery(discovery_data)
 
         self.connection = CoAPHomeKitConnection(None, self.host, self.port)
 

@@ -24,12 +24,13 @@ from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.utils import check_pin_format, pair_with_auth
+from aiohomekit.zeroconf import ZeroconfDiscovery
 
 from .connection import HomeKitConnection
 from .pairing import IpPairing
 
 
-class IpDiscovery(AbstractDiscovery):
+class IpDiscovery(ZeroconfDiscovery):
 
     """
     A discovered IP HAP device that is unpaired.
@@ -42,22 +43,12 @@ class IpDiscovery(AbstractDiscovery):
         self.device_id = discovery_data["id"]
         self.info = discovery_data
 
-        self.name = self.info["id"]
-        self.id = self.info["id"]
-        self.model = self.info.get("md", "")
-        self.config_num = self.info.get("c#", 0)
-        self.state_num = self.info.get("s#", 0)
-        self.feature_flags = FeatureFlags(self.info.get("ff", 0))
-        self.status_flags = StatusFlags(int(self.info.get("sf", 0)))
-        self.category = Categories(1)
+        self._update_from_discovery(discovery_data)
 
         self.connection = HomeKitConnection(None, self.host, self.port)
 
     def __repr__(self):
         return "IPDiscovery(host={self.host}, port={self.port})".format(self=self)
-
-    def _update_from_discovery(self, data):
-        pass
 
     async def _ensure_connected(self):
         await self.connection.ensure_connection()

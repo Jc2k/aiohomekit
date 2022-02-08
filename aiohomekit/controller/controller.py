@@ -75,7 +75,7 @@ class Controller(AbstractController):
         self._async_zeroconf_instance = async_zeroconf_instance
         self._char_cache = char_cache or CharacteristicCacheMemory()
 
-        self._transports = []
+        self._transports: AbstractDiscovery = []
         self._tasks = AsyncExitStack()
 
     async def _async_register_backend(self, controller: AbstractController):
@@ -100,14 +100,14 @@ class Controller(AbstractController):
 
     async def async_find(self, device_id: str) -> AbstractDiscovery:
         for transport in self._transports:
-            if device_id in transport.devices:
-                return transport.devices[device_id]
+            if device_id in transport.discoveries:
+                return transport.discoveries[device_id]
 
         raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
 
-    async def async_discover(self) -> AsyncIterable[AbstractDiscovery]:
+    async def async_discover(self, timeout=10) -> AsyncIterable[AbstractDiscovery]:
         for transport in self._transports:
-            for device in transport.devices.values():
+            for device in transport.discoveries.values():
                 yield device
 
         """

@@ -155,11 +155,11 @@ class AbstractController(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    async def async_find(self, device_id: str) -> AbstractDiscovery:
+    async def async_find(self, device_id: str, timeout=10) -> AbstractDiscovery:
         pass
 
     @abstractmethod
-    async def async_discover(self) -> AsyncIterable[AbstractDiscovery]:
+    async def async_discover(self, timeout=10) -> AsyncIterable[AbstractDiscovery]:
         pass
 
     @abstractmethod

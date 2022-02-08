@@ -17,15 +17,19 @@
 """Helpers for detecing homekit devices via zeroconf."""
 from __future__ import annotations
 
+from abc import abstractmethod
 import asyncio
 import logging
-from typing import Any, Callable
+from typing import Any, AsyncIterable
 
 from zeroconf import ServiceBrowser
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
+from aiohomekit.controller.abstract import AbstractController, AbstractDiscovery
+from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
+from aiohomekit.model.status_flags import StatusFlags
 
 HAP_TYPE_TCP = "_hap._tcp.local."
 HAP_TYPE_UDP = "_hap._udp.local."
@@ -41,7 +45,7 @@ def get_from_properties(
     props: dict[str, str],
     key: str,
     default: int | str | None = None,
-    case_sensitive: bool = True,
+    case_sensitive: bool = False,
 ) -> str | None:
     """Convert zeroconf properties to our format.
 
@@ -115,35 +119,18 @@ def parse_discovery_properties(props: dict[str, str]) -> dict[str, str | int]:
     This is done automatically if you are using the discovery features built in to the library. If you are
     integrating into an existing system it may already do its own Bonjour discovery. In that case you can
     call this function to normalize the properties it has discovered.
-
-    :param props: a dictionary of key/value TXT records from doing Bonjour discovery. These should be
-    decoded as strings already. Byte data should be decoded with decode_discovery_properties.
-    :return: A dictionary contained the parsed and normalized data.
     """
     data = {}
 
     # stuff taken from the Bonjour TXT record (see table 5-7 on page 69)
     for prop in ("c#", "id", "md", "s#", "ci", "sf"):
-        prop_val = get_from_properties(props, prop, case_sensitive=False)
+        prop_val = get_from_properties(props, prop)
         if prop_val:
             data[prop] = prop_val
 
-    feature_flags = get_from_properties(props, "ff", case_sensitive=False)
-    if feature_flags:
-        flags = int(feature_flags)
-    else:
-        flags = 0
-    data["ff"] = flags
-    data["flags"] = FeatureFlags(flags)
+    data["ff"] = int(get_from_properties(props, "ff", default=0))
 
-    protocol_version = get_from_properties(
-        props, "pv", case_sensitive=False, default="1.0"
-    )
-    if protocol_version:
-        data["pv"] = protocol_version
-
-    if "ci" in data:
-        data["category"] = Categories(int(data["ci"]))
+    data["pv"] = get_from_properties(props, "pv", default="1.0")
 
     return data
 
@@ -159,23 +146,34 @@ def async_zeroconf_has_hap_service_browser(
     )
 
 
-class ZeroconfSubscription:
+class ZeroconfDiscovery(AbstractDiscovery):
+    def _update_from_discovery(self, discovery: dict[str, Any]):
+        self.name = discovery["id"]
+        self.id = discovery["id"]
+        self.model = discovery.get("md", "")
+        self.config_num = discovery.get("c#", 0)
+        self.state_num = discovery.get("s#", 0)
+        self.feature_flags = FeatureFlags(discovery["ff"])
+        self.status_flags = StatusFlags(int(discovery.get("sf", 0)))
+        self.category = Categories(int(discovery.get("ci", 1)))
+
+
+class ZeroconfController(AbstractController):
 
     """
-    This manages attaching to a zeroconf instance to get homekit discovery data.
+    Base class for HAP protocols that rely on Zeroconf discovery.
     """
+
+    hap_type: str
 
     def __init__(
         self,
         zeroconf_instance: AsyncZeroconf,
-        hap_type: str,
-        callback: Callable[..., dict[str, Any]],
     ):
-        self._hap_type = hap_type
+        super().__init__()
         self._async_zeroconf_instance = zeroconf_instance
-        self._callback = callback
 
-    async def __aenter__(self):
+    async def async_start(self):
         zc = self._async_zeroconf_instance.zeroconf
         if not zc:
             return self
@@ -187,20 +185,32 @@ class ZeroconfSubscription:
         else:
             self._browser = AsyncServiceBrowser(
                 zc,
-                [self._hap_type],
+                [self.hap_type],
                 handlers=[self._handle_service],
             )
 
         infos = [
-            AsyncServiceInfo(self._hap_type, record.alias)
+            AsyncServiceInfo(self.hap_type, record.alias)
             for record in zc.cache.get_all_by_details(
-                self._hap_type, TYPE_PTR, CLASS_IN
+                self.hap_type, TYPE_PTR, CLASS_IN
             )
         ]
 
         await asyncio.gather(*(self.async_add_service(info) for info in infos))
 
-        return self
+    async def async_stop(self):
+        # FIXME: Detach from zeroconf instance
+        pass
+
+    async def async_find(self, device_id: str) -> AbstractDiscovery:
+        if device_id in self.discoveries:
+            return self.discoveries[device_id]
+
+        raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
+
+    async def async_discover(self) -> AsyncIterable[AbstractDiscovery]:
+        for device in self.discoveries.values():
+            yield device
 
     def _handle_service(self, zeroconf, service_type, name, state_change):
         # FIXME: Supposed to hold a reference to this
@@ -215,10 +225,14 @@ class ZeroconfSubscription:
         if not _service_info_is_homekit_device(info):
             return
 
-        parsed = _build_data_from_service_info(info)
+        discovery = _build_data_from_service_info(info)
 
-        self._callback(parsed)
+        if discovery["id"] in self.discoveries:
+            self.discoveries[discovery["id"]]._update_from_discovery(discovery)
+            return
 
-    async def __aexit__(self, *args):
-        # FIXME: Detach from zeroconf instance
+        self.discoveries[discovery["id"]] = self._make_discovery(discovery)
+
+    @abstractmethod
+    def _make_discovery(self, discovery) -> AbstractDiscovery:
         pass
