@@ -35,6 +35,10 @@ class CoAPPairing(AbstractPairing):
         self.connection_lock = asyncio.Lock()
         self.pairing_data = pairing_data
 
+    @property
+    def is_connected(self):
+        return self.connection.is_connected
+
     async def _ensure_connected(self):
         async with self.connection_lock:
             if self.connection.is_connected:

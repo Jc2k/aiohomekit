@@ -19,6 +19,7 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from typing import AsyncIterable, Awaitable, Callable, final
 
+from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
@@ -123,9 +124,11 @@ class AbstractController(metaclass=ABCMeta):
     pairings: dict[str, AbstractPairing]
     discoveries: dict[str, AbstractDiscovery]
 
-    def __init__(self):
+    def __init__(self, char_cache: CharacteristicCacheType):
         self.pairings = {}
         self.discoveries = {}
+
+        self._char_cache = char_cache
 
     @final
     async def __aenter__(self):

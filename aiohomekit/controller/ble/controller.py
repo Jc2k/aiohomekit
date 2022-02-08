@@ -4,7 +4,9 @@ import logging
 from typing import AsyncIterable
 
 from bleak import BleakScanner
+from bleak.exc import BleakDBusError
 
+from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController
 from aiohomekit.controller.ble.manufacturer_data import ManufacturerData
 from aiohomekit.controller.ble.pairing import BlePairing
@@ -19,10 +21,10 @@ class BleController(AbstractController):
     discoveries: dict[str, BleDiscovery]
     pairings: dict[str, BlePairing]
 
-    def __init__(self):
-        super().__init__()
+    _scanner: BleakScanner | None
 
-        self._scanner = BleakScanner()
+    def __init__(self, char_cache: CharacteristicCacheType):
+        super().__init__(char_cache=char_cache)
 
     def _device_detected(self, device, advertisement_data):
         if not (mfr_data := advertisement_data.manufacturer_data):
@@ -43,12 +45,21 @@ class BleController(AbstractController):
         self.discoveries[data.device_id] = BleDiscovery(self, device, data)
 
     async def async_start(self) -> None:
-        self._scanner.register_detection_callback(self._device_detected)
-        await self._scanner.start()
+        try:
+            self._scanner = BleakScanner()
+            self._scanner.register_detection_callback(self._device_detected)
+            await self._scanner.start()
+        except BleakDBusError as e:
+            logger.debug(
+                "Failed to connect to start scanner, HAP-BLE not available: %s", str(e)
+            )
+            self._scanner = None
 
     async def async_stop(self, *args):
-        await self._scanner.stop()
-        self._scanner.register_detection_callback(None)
+        if self._scanner:
+            await self._scanner.stop()
+            self._scanner.register_detection_callback(None)
+            self._scanner = None
 
     async def async_find(self, device_id: str) -> BleDiscovery:
         if device_id in self.discoveries:

@@ -25,6 +25,7 @@ from typing import Any, AsyncIterable
 from zeroconf import ServiceBrowser
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
+from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController, AbstractDiscovery
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Categories
@@ -162,9 +163,10 @@ class ZeroconfController(AbstractController):
 
     def __init__(
         self,
+        char_cache: CharacteristicCacheType,
         zeroconf_instance: AsyncZeroconf,
     ):
-        super().__init__()
+        super().__init__(char_cache)
         self._async_zeroconf_instance = zeroconf_instance
 
     async def async_start(self):
@@ -188,7 +190,7 @@ class ZeroconfController(AbstractController):
             for record in zc.cache.get_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
         ]
 
-        await asyncio.gather(*(self.async_add_service(info) for info in infos))
+        await asyncio.gather(*(self._async_handle_service(info) for info in infos))
 
     async def async_stop(self):
         # FIXME: Detach from zeroconf instance

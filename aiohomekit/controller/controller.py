@@ -71,11 +71,11 @@ class Controller(AbstractController):
 
         :param ble_adapter: the bluetooth adapter to be used (defaults to hci0)
         """
-        self.pairings = {}
-        self._async_zeroconf_instance = async_zeroconf_instance
-        self._char_cache = char_cache or CharacteristicCacheMemory()
+        super().__init__(char_cache=char_cache or CharacteristicCacheMemory())
 
-        self._transports: AbstractDiscovery = []
+        self._async_zeroconf_instance = async_zeroconf_instance
+
+        self._transports: list[AbstractController] = []
         self._tasks = AsyncExitStack()
 
     async def _async_register_backend(self, controller: AbstractController):
@@ -84,19 +84,30 @@ class Controller(AbstractController):
     async def async_start(self):
         if IP_TRANSPORT_SUPPORTED:
             await self._async_register_backend(
-                IpController(self._async_zeroconf_instance)
+                IpController(
+                    char_cache=self._char_cache,
+                    zeroconf_instance=self._async_zeroconf_instance,
+                )
             )
 
         if COAP_TRANSPORT_SUPPORTED:
             await self._async_register_backend(
-                CoAPController(self._async_zeroconf_instance)
+                CoAPController(
+                    char_cache=self._char_cache,
+                    zeroconf_instance=self._async_zeroconf_instance,
+                )
             )
 
         if BLE_TRANSPORT_SUPPORTED:
-            await self._async_register_backend(BleController())
+            await self._async_register_backend(
+                BleController(char_cache=self._char_cache)
+            )
 
     async def async_stop(self):
         await self._tasks.aclose()
+
+        # for p in self.pairings:
+        #    await self.pairings[p].close()
 
     async def async_find(self, device_id: str) -> AbstractDiscovery:
         for transport in self._transports:
@@ -109,46 +120,6 @@ class Controller(AbstractController):
         for transport in self._transports:
             for device in transport.discoveries.values():
                 yield device
-
-        """
-        # Backwards compact
-        if not device_id.startswith("hap+"):
-            device_id = "hap+ip://"
-
-        parsed = urlparse(device_id)
-
-        if parsed.scheme == "hap+ip":
-            if not IP_TRANSPORT_SUPPORTED:
-                raise TransportNotSupportedError("IP")
-
-            device = await async_find_data_for_device_id(
-                device_id=parsed.netloc,
-                max_seconds=max_seconds,
-                async_zeroconf_instance=self._async_zeroconf_instance,
-            )
-            return IpDiscovery(self, device)
-
-        if parsed.scheme == "hap+ble":
-            if not BLE_TRANSPORT_SUPPORTED:
-                raise TransportNotSupportedError("BLE")
-
-            device = await BleakScanner.find_device_by_address(
-                parsed.netloc, timeout=max_seconds
-            )
-            if not device:
-                raise AccessoryNotFoundError(
-                    f"Device not found via BLE discovery within {max_seconds}s"
-                )
-
-            return BleDiscovery(self, device)
-        """
-
-    async def shutdown(self) -> None:
-        """
-        Shuts down the controller by closing all connections that might be held open by the pairings of the controller.
-        """
-        for p in self.pairings:
-            await self.pairings[p].close()
 
     def load_pairing(self, alias: str, pairing_data: dict[str, str]) -> AbstractPairing:
         """

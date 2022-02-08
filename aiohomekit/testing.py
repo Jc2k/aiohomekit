@@ -20,6 +20,7 @@ import logging
 from typing import AsyncIterable
 
 from aiohomekit import exceptions
+from aiohomekit.characteristic_cache import CharacteristicCacheMemory
 from aiohomekit.controller.abstract import (
     AbstractController,
     AbstractDiscovery,
@@ -262,6 +263,9 @@ class FakeController(AbstractController):
     started: bool
     discoveries: dict[str, FakeDiscovery]
     pairings: dict[str, FakePairing]
+
+    def __init__(self):
+        super().__init__(char_cache=CharacteristicCacheMemory())
 
     def add_device(self, accessories):
         device_id = "00:00:00:00:00:00"

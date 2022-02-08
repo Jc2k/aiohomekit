@@ -78,6 +78,10 @@ class IpPairing(AbstractPairing):
         self.connection = SecureHomeKitConnection(self, self.pairing_data)
         self.supports_subscribe = True
 
+    @property
+    def is_connected(self):
+        return self.connection.is_connected
+
     def event_received(self, event):
         self._callback_listeners(format_characteristic_list(event))
 

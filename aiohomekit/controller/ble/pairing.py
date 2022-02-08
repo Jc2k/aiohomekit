@@ -16,12 +16,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import random
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 import uuid
 
 from bleak import BleakClient
+from bleak.exc import BleakError
 
 from aiohomekit.controller.ble.client import (
     ble_request,
@@ -44,7 +46,7 @@ from .structs import Characteristic as CharacteristicTLV
 from .values import from_bytes, to_bytes
 
 if TYPE_CHECKING:
-    from aiohomekit.controller import Controller
+    from aiohomekit.controller.ble.controller import BleController
 
 logger = logging.getLogger(__name__)
 
@@ -58,14 +60,14 @@ class BlePairing(AbstractPairing):
 
     pairing_id: str
 
-    controller: Controller
+    controller: BleController
 
     _accessories: Accessories | None = None
 
     _encryption_key: EncryptionKey | None = None
     _decryption_key: DecryptionKey | None = None
 
-    def __init__(self, controller: Controller, pairing_data):
+    def __init__(self, controller: BleController, pairing_data):
         super().__init__(controller)
         self.pairing_id = pairing_data["AccessoryPairingID"]
 
@@ -75,6 +77,10 @@ class BlePairing(AbstractPairing):
             self._accessories = Accessories.from_list(cache["accessories"])
 
         self.pairing_data = pairing_data
+
+    @property
+    def is_connected(self) -> bool:
+        return self.client.is_connected and self._encryption_key
 
     async def _async_request(
         self, opcode: OpCode, iid: int, data: bytes | None = None
@@ -92,8 +98,21 @@ class BlePairing(AbstractPairing):
         )
 
     async def _ensure_connected(self):
-        if not self.client.is_connected:
-            await self.client.__aenter__()
+        while not self.client.is_connected:
+            # If connection is lost, make sure we re-do session
+            self._encryption_key = None
+            self._decryption_key = None
+
+            try:
+                await self.client.connect()
+            except BleakError as e:
+                logger.debug("Failed to connect to %s: %s", self.client.address, str(e))
+
+                device = await self.controller.async_find(self.pairing_id)
+                if device.address != self.client.address:
+                    self.client = BleakClient(device.address)
+
+            await asyncio.sleep(5)
 
         if not self._accessories:
             self._accessories = await self._async_fetch_gatt_database()

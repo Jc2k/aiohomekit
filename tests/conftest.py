@@ -117,11 +117,6 @@ async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_l
             c.return_value = controller
             yield controller
 
-    try:
-        await asyncio.shield(controller.shutdown())
-    except asyncio.CancelledError:
-        pass
-
     os.unlink(config_file.name)
 
     httpd.shutdown()
@@ -198,11 +193,6 @@ async def controller_and_paired_accessory(request, event_loop, mock_asynczerocon
         with mock.patch("aiohomekit.__main__.Controller") as c:
             c.return_value = controller
             yield controller
-
-    try:
-        await asyncio.shield(controller.shutdown())
-    except asyncio.CancelledError:
-        pass
 
     os.unlink(config_file.name)
     os.unlink(controller_file.name)
