@@ -19,8 +19,9 @@ from __future__ import annotations
 
 from abc import abstractmethod
 import asyncio
+from dataclasses import dataclass
 import logging
-from typing import Any, AsyncIterable
+from typing import AsyncIterable
 
 from zeroconf import ServiceBrowser
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
@@ -43,92 +44,53 @@ _TIMEOUT_MS = 3000
 logger = logging.getLogger(__name__)
 
 
-def get_from_properties(
-    props: dict[str, str],
-    key: str,
-    default: int | str | None = None,
-) -> str | None:
-    """Convert zeroconf properties to our format.
+@dataclass
+class HomeKitService:
 
-    This function looks up the key in the given zeroconf service information properties. Those are a dict between bytes.
-    The key to lookup is therefore also of type bytes.
-    :param props: a dict from bytes to bytes.
-    :param key: bytes as key
-    :param default: the value to return, if the key was not found. Will be converted to str.
-    :return: the value out of the dict as string (after decoding), the given default if the key was not not found but
-             the default was given or None
-    """
-    tmp_props = {k.lower(): props[k] for k in props}
-    tmp_key = key.lower()
+    name: str
+    id: str
+    model: str
+    feature_flags: FeatureFlags
+    status_flags: StatusFlags
+    config_num: int
+    state_num: int
+    category: Categories
+    protocol_version: str
 
-    if tmp_key in tmp_props:
-        return tmp_props[tmp_key]
+    type: str
 
-    if default:
-        return str(default)
+    address: str
+    addresses: list[str]
+    port: int
 
-    return None
+    @classmethod
+    def from_service_info(cls, service: AsyncServiceInfo) -> HomeKitService:
+        if not (addresses := service.parsed_addresses()):
+            raise ValueError("Invalid HomeKit Zeroconf record: Missing address")
 
+        props: dict[str, str] = {
+            k.decode("utf-8").lower(): v.decode("utf-8")
+            for (k, v) in service.properties.items()
+        }
 
-def _service_info_is_homekit_device(service_info: AsyncServiceInfo) -> bool:
-    props = {key.lower() for key in service_info.properties.keys()}
-    return (
-        service_info.parsed_addresses()
-        and b"c#" in props
-        and b"md" in props
-        and b"id" in props
-    )
+        if "id" not in props:
+            raise ValueError("Invalid HomeKit Zeroconf record: Missing device ID")
 
-
-def _build_data_from_service_info(service_info) -> dict[str, Any]:
-    """Construct data from service_info."""
-    # from Bonjour discovery
-    data = {
-        "name": service_info.name,
-        "address": service_info.parsed_addresses()[0],
-        "port": service_info.port,
-        "type": service_info.type,
-    }
-
-    logger.debug(f"candidate data {service_info.properties}")
-
-    data.update(
-        parse_discovery_properties(decode_discovery_properties(service_info.properties))
-    )
-
-    return data
-
-
-def decode_discovery_properties(props: dict[bytes, bytes]) -> dict[str, str]:
-    """Decode unicode bytes in _hap._tcp Bonjour TXT record keys to python strings.
-
-    :params: a dictionary of key/value TXT records from Bonjour discovery. These are assumed
-    to be bytes type.
-    :return: A dictionary of key/value TXT records from Bonjour discovery. These are now str.
-    """
-    return {k.decode("utf-8"): value.decode("utf-8") for k, value in props.items()}
-
-
-def parse_discovery_properties(props: dict[str, str]) -> dict[str, str | int]:
-    """Normalize and parse _hap._tcp Bonjour TXT record keys.
-
-    This is done automatically if you are using the discovery features built in to the library. If you are
-    integrating into an existing system it may already do its own Bonjour discovery. In that case you can
-    call this function to normalize the properties it has discovered.
-    """
-    data = {}
-
-    # stuff taken from the Bonjour TXT record (see table 5-7 on page 69)
-    for prop in ("c#", "id", "md", "s#", "ci", "sf"):
-        prop_val = get_from_properties(props, prop)
-        if prop_val:
-            data[prop] = prop_val
-
-    data["ff"] = int(get_from_properties(props, "ff", default=0))
-
-    data["pv"] = get_from_properties(props, "pv", default="1.0")
-
-    return data
+        return cls(
+            name=service.name.removesuffix(f".{service.type}"),
+            id=props["id"].lower(),
+            model=props.get("md", ""),
+            config_num=int(props.get("c#", 0)),
+            state_num=int(props.get("s#", 0)),
+            feature_flags=FeatureFlags(int(props.get("ff", 0))),
+            status_flags=StatusFlags(int(props.get("sf", 0))),
+            category=Categories(int(props.get("ci", 1))),
+            protocol_version=props.get("pv", "1.0"),
+            type=service.type,
+            address=addresses[0],
+            addresses=addresses,
+            port=service.port,
+        )
 
 
 def async_zeroconf_has_hap_service_browser(
@@ -143,15 +105,14 @@ def async_zeroconf_has_hap_service_browser(
 
 
 class ZeroconfDiscovery(AbstractDiscovery):
-    def _update_from_discovery(self, discovery: dict[str, Any]):
-        self.name = discovery["id"]
-        self.id = discovery["id"]
-        self.model = discovery.get("md", "")
-        self.config_num = discovery.get("c#", 0)
-        self.state_num = discovery.get("s#", 0)
-        self.feature_flags = FeatureFlags(discovery["ff"])
-        self.status_flags = StatusFlags(int(discovery.get("sf", 0)))
-        self.category = Categories(int(discovery.get("ci", 1)))
+
+    description: HomeKitService
+
+    def __init__(self, description: HomeKitService):
+        self.description = description
+
+    def _update_from_discovery(self, description: HomeKitService):
+        self.description = description
 
 
 class ZeroconfController(AbstractController):
@@ -217,17 +178,18 @@ class ZeroconfController(AbstractController):
         # AsyncServiceInfo already tries 3x
         await info.async_request(self._async_zeroconf_instance.zeroconf, _TIMEOUT_MS)
 
-        if not _service_info_is_homekit_device(info):
+        try:
+            description = HomeKitService.from_service_info(info)
+        except ValueError:
+            logger.debug("Not a valid homekit device")
             return
 
-        discovery = _build_data_from_service_info(info)
-
-        if discovery["id"] in self.discoveries:
-            self.discoveries[discovery["id"]]._update_from_discovery(discovery)
+        if description.id in self.discoveries:
+            self.discoveries[description.id]._update_from_discovery(description)
             return
 
-        self.discoveries[discovery["id"]] = self._make_discovery(discovery)
+        self.discoveries[description.id] = self._make_discovery(description)
 
     @abstractmethod
-    def _make_discovery(self, discovery) -> AbstractDiscovery:
+    def _make_discovery(self, description: HomeKitService) -> AbstractDiscovery:
         pass

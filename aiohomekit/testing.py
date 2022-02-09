@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import base64
+from dataclasses import dataclass
 import logging
 from typing import AsyncIterable
 
@@ -27,12 +28,10 @@ from aiohomekit.controller.abstract import (
     AbstractPairing,
     FinishPairing,
 )
-from aiohomekit.controller.ip.connection import HomeKitConnection
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Accessories
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.characteristics import CharacteristicsTypes
-from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.uuid import normalize_uuid
@@ -45,47 +44,51 @@ FAKE_CAMERA_IMAGE = (
 )
 
 
+@dataclass
+class FakeDescription:
+
+    name: str = "TestDevice"
+    id: str = "00:00:00:00:00:00"
+    model: str = "TestDevice"
+    status_flags: StatusFlags = StatusFlags.UNPAIRED
+    config_num: int = 1
+    state_num: int = 1
+    category: Categories = Categories.OTHER
+
+
 class FakeDiscovery(AbstractDiscovery):
 
-    name = "TestDevice"
-    address = "localhost"
-    port = 8080
-    hostname = "TestDevice.local"
-    type = "_tcp._hap.local"
-
-    model = "TestDevice"
-    feature_flags = FeatureFlags.SUPPORTS_SOFTWARE_AUTHENTICATION
-    config_num = 1
-    state_num = 1
-    category = Categories.OTHER
+    description = FakeDescription()
 
     def __init__(
         self, controller: FakeController, device_id: str, accessories: Accessories
     ):
         self.controller = controller
-        self.device_id = device_id
-        self.id = device_id
         self.accessories = accessories
 
         self.pairing_code = "111-22-333"
 
     @property
     def status_flags(self) -> StatusFlags:
-        if self.device_id not in self.controller.pairings:
+        if self.description.id not in self.controller.pairings:
             return StatusFlags.UNPAIRED
         return StatusFlags(0)
 
     async def async_start_pairing(self, alias: str) -> FinishPairing:
-        if self.device_id in self.controller.pairings:
-            raise exceptions.AlreadyPairedError(f"{self.device_id} already paired")
+        if self.description.id in self.controller.pairings:
+            raise exceptions.AlreadyPairedError(f"{self.description.id} already paired")
 
         async def finish_pairing(pairing_code: str) -> FakePairing:
             if pairing_code != self.pairing_code:
                 raise exceptions.AuthenticationError("M4")
+
+            discovery = self.controller.discoveries[self.description.id]
+            discovery.description = FakeDescription(status_flags=0)
+
             pairing_data = {}
-            pairing_data["AccessoryIP"] = self.address
-            pairing_data["AccessoryPort"] = self.port
-            pairing_data["Connection"] = "IP"
+            # pairing_data["AccessoryIP"] = self.address
+            # pairing_data["AccessoryPort"] = self.port
+            pairing_data["Connection"] = "Fake"
 
             obj = self.controller.pairings[alias] = FakePairing(
                 self.controller, pairing_data, self.accessories
@@ -194,9 +197,6 @@ class FakePairing(AbstractPairing):
         """Create a fake pairing from an accessory model."""
         super().__init__(controller)
 
-        self.connection = HomeKitConnection(None, "fake_host", 1234)
-        self.connection.transport = "mock_transport"
-        self.connection.protocol = "mock_protocol"
         self.accessories = accessories
         self.pairing_data: dict[str, AbstractPairing] = {}
         self.available = True
@@ -284,7 +284,7 @@ class FakeController(AbstractController):
     async def add_paired_device(self, accessories: Accessories, alias: str = None):
         discovery = self.add_device(accessories)
         finish_pairing = await discovery.async_start_pairing(
-            alias or discovery.device_id
+            alias or discovery.description.id
         )
         return await finish_pairing(discovery.pairing_code)
 

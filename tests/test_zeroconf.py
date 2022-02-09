@@ -16,52 +16,185 @@
 
 import socket
 
+import pytest
 from zeroconf.asyncio import AsyncServiceInfo
 
-from aiohomekit.zeroconf import _service_info_is_homekit_device, get_from_properties
+from aiohomekit.model.categories import Categories
+from aiohomekit.model.feature_flags import FeatureFlags
+from aiohomekit.zeroconf import HomeKitService
 
 
-def test_existing_key():
-    props = {"c#": "259"}
-    val = get_from_properties(props, "c#")
-    assert "259" == val
-
-
-def test_non_existing_key_no_default():
-    props = {"c#": "259"}
-    val = get_from_properties(props, "s#")
-    assert val is None
-
-
-def test_non_existing_key_case_insensitive():
-    props = {"C#": "259", "heLLo": "World"}
-
-    val = get_from_properties(props, "c#")
-    assert "259" == val
-
-    val = get_from_properties(props, "HEllo")
-    assert "World" == val
-
-
-def test_non_existing_key_with_default():
-    props = {"c#": "259"}
-    val = get_from_properties(props, "s#", default="1")
-    assert "1" == val
-
-
-def test_non_existing_key_with_default_non_string():
-    props = {"c#": "259"}
-    val = get_from_properties(props, "s#", default=1)
-    assert "1" == val
-
-
-def test_is_homekit_device_case_insensitive():
+def test_simple():
     desc = {
-        b"C#": b"1",
+        b"c#": b"1",
         b"id": b"00:00:01:00:00:02",
         b"md": b"unittest",
-        b"s#": b"1",
+        b"s#": b"11",
         b"ci": b"5",
+        b"sf": b"0",
+        b"ff": b"1",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    svc = HomeKitService.from_service_info(info)
+
+    assert svc.name == "foo2"
+    assert svc.type == "_hap._tcp.local."
+    assert svc.id == "00:00:01:00:00:02"
+    assert svc.model == "unittest"
+    assert svc.config_num == 1
+    assert svc.state_num == 11
+    assert svc.status_flags == 0
+    assert svc.feature_flags == FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR
+    assert svc.category == Categories.LIGHTBULB
+    assert svc.address == "127.0.0.1"
+    assert svc.addresses == ["127.0.0.1"]
+    assert svc.port == 1234
+
+
+def test_udp():
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"11",
+        b"ci": b"5",
+        b"sf": b"0",
+        b"ff": b"1",
+    }
+    info = AsyncServiceInfo(
+        "_hap._udp.local.",
+        "foo2._hap._udp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    svc = HomeKitService.from_service_info(info)
+
+    assert svc.name == "foo2"
+    assert svc.type == "_hap._udp.local."
+
+
+def test_upper_case_keys():
+    desc = {
+        b"C#": b"1",
+        b"ID": b"00:00:01:00:00:02",
+        b"MD": b"unittest",
+        b"S#": b"11",
+        b"CI": b"5",
+        b"SF": b"0",
+        b"FF": b"1",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    svc = HomeKitService.from_service_info(info)
+
+    assert svc.name == "foo2"
+    assert svc.type == "_hap._tcp.local."
+    assert svc.id == "00:00:01:00:00:02"
+    assert svc.model == "unittest"
+    assert svc.config_num == 1
+    assert svc.state_num == 11
+    assert svc.status_flags == 0
+    assert svc.feature_flags == FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR
+    assert svc.category == Categories.LIGHTBULB
+    assert svc.address == "127.0.0.1"
+    assert svc.addresses == ["127.0.0.1"]
+    assert svc.port == 1234
+
+
+def test_missing_cn():
+    desc = {
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"11",
+        b"ci": b"5",
+        b"sf": b"0",
+        b"ff": b"1",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    svc = HomeKitService.from_service_info(info)
+
+    assert svc.config_num == 0
+
+
+def test_missing_sn():
+    desc = {
+        b"c#": b"11",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"ci": b"5",
+        b"sf": b"0",
+        b"ff": b"1",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    svc = HomeKitService.from_service_info(info)
+
+    assert svc.state_num == 0
+
+
+def test_missing_sf():
+    desc = {
+        b"c#": b"11",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"ci": b"5",
+        b"s#": b"15",
+        b"ff": b"1",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    svc = HomeKitService.from_service_info(info)
+
+    assert svc.status_flags == 0
+
+
+def test_missing_ff():
+    desc = {
+        b"c#": b"11",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"ci": b"5",
+        b"s#": b"15",
         b"sf": b"0",
     }
     info = AsyncServiceInfo(
@@ -73,5 +206,75 @@ def test_is_homekit_device_case_insensitive():
         weight=0,
         priority=0,
     )
+    svc = HomeKitService.from_service_info(info)
 
-    assert _service_info_is_homekit_device(info)
+    assert svc.feature_flags == 0
+
+
+def test_missing_md():
+    desc = {
+        b"c#": b"11",
+        b"id": b"00:00:01:00:00:02",
+        b"ci": b"5",
+        b"s#": b"15",
+        b"sf": b"0",
+        b"ff": b"44",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    svc = HomeKitService.from_service_info(info)
+
+    assert svc.model == ""
+
+
+def test_missing_ci():
+    desc = {
+        b"c#": b"11",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"15",
+        b"sf": b"0",
+        b"ff": b"44",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    svc = HomeKitService.from_service_info(info)
+
+    assert svc.category == Categories.OTHER
+
+
+def test_missing_id():
+    desc = {
+        b"c#": b"11",
+        b"md": b"unittest",
+        b"s#": b"15",
+        b"sf": b"0",
+        b"ff": b"44",
+        b"ci": b"0",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+
+    with pytest.raises(ValueError):
+        HomeKitService.from_service_info(info)

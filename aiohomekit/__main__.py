@@ -113,15 +113,19 @@ async def discover(args):
             if args.unpaired_only and not discovery.paired:
                 continue
 
-            print(f"Name: {discovery.name}")
-            print(f"Device ID (id): {discovery.id}")
-            print(f"Model Name (md): {discovery.model}")
-            print(f"Feature Flags (ff): {discovery.feature_flags!s}")
-            if discovery.status_flags:
-                print(f"Status Flags (sf): {discovery.status_flags!s}")
-            print(f"Category (ci): {discovery.category!s}")
-            print(f"Configuration number (c#): {discovery.config_num}")
-            print(f"State Number (s#): {discovery.state_num}")
+            desc = discovery.description
+
+            print(f"Name: {desc.name}")
+            print(f"Device ID (id): {desc.id}")
+            if hasattr(desc, "model"):
+                print(f"Model Name (md): {desc.model}")
+            if hasattr(desc, "feature_flags"):
+                print(f"Feature Flags (ff): {desc.feature_flags!s}")
+            if desc.status_flags:
+                print(f"Status Flags (sf): {desc.status_flags!s}")
+            print(f"Category (ci): {desc.category!s}")
+            print(f"Configuration number (c#): {desc.config_num}")
+            print(f"State Number (s#): {desc.state_num}")
             print()
 
     return True

@@ -17,12 +17,22 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import AsyncIterable, Awaitable, Callable, final
+from typing import AsyncIterable, Awaitable, Callable, Protocol, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.model.categories import Categories
-from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
+
+
+class AbstractDescription(Protocol):
+
+    name: str
+    id: str
+    model: str
+    status_flags: StatusFlags
+    config_num: int
+    state_num: int
+    category: Categories
 
 
 class AbstractPairing(metaclass=ABCMeta):
@@ -96,19 +106,12 @@ FinishPairing = Callable[[str], Awaitable[AbstractPairing]]
 
 class AbstractDiscovery(metaclass=ABCMeta):
 
-    name: str
-    id: str
-    model: str
-    feature_flags: FeatureFlags
-    status_flags: StatusFlags
-    config_num: int
-    state_num: int
-    category: Categories
+    description: AbstractDescription
 
     @final
     @property
     def paired(self) -> bool:
-        return not (self.status_flags & StatusFlags.UNPAIRED)
+        return not (self.description.status_flags & StatusFlags.UNPAIRED)
 
     @abstractmethod
     async def async_start_pairing(self, alias: str) -> FinishPairing:

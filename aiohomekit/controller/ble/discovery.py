@@ -16,11 +16,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING
 import uuid
 
 from bleak import BleakClient
+from bleak.exc import BleakError
 
 from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
 from aiohomekit.model import CharacteristicsTypes, ServicesTypes
@@ -35,7 +37,7 @@ from .client import (
     get_characteristic,
     get_characteristic_iid,
 )
-from .manufacturer_data import ManufacturerData
+from .manufacturer_data import HomeKitAdvertisement
 from .pairing import BlePairing
 
 if TYPE_CHECKING:
@@ -51,30 +53,32 @@ class BleDiscovery(AbstractDiscovery):
     A discovered BLE HAP device that is unpaired.
     """
 
+    description: HomeKitAdvertisement
+
     def __init__(
         self,
         controller: BleController,
         device,
-        info: ManufacturerData,
+        description: HomeKitAdvertisement,
     ) -> None:
+        self.description = description
         self.controller = controller
         self.device = device
 
-        self.name = device.name
-        self.id = info.device_id
-        self.feature_flags = FeatureFlags(0)
-        self.status_flags = info.status_flags
-        self.config_num = info.config_num
-        self.state_num = info.state_num
-        self.model = ""
-        self.category = info.category
-
-        self.address = device.address
-        self.info = info
         self.client = BleakClient(self.device)
 
     async def _ensure_connected(self):
-        await self.client.__aenter__()
+        while not self.client.is_connected:
+            try:
+                await self.client.connect()
+                break
+            except BleakError as e:
+                logger.debug("Failed to connect to %s: %s", self.client.address, str(e))
+
+            if self.description.address != self.client.address:
+                self.client = BleakClient(self.description.address)
+
+            await asyncio.sleep(5)
 
     async def async_start_pairing(self, alias: str) -> FinishPairing:
         await self._ensure_connected()
@@ -110,7 +114,7 @@ class BleDiscovery(AbstractDiscovery):
                 ),
             )
 
-            pairing["AccessoryAddress"] = self.address
+            pairing["AccessoryAddress"] = self.description.address
             pairing["Connection"] = "BLE"
 
             obj = self.controller.pairings[alias] = BlePairing(self.controller, pairing)
@@ -133,5 +137,5 @@ class BleDiscovery(AbstractDiscovery):
 
             await char_write(client, None, None, char.handle, iid, b"\x01")
 
-    def _async_process_advertisement(self, advertisement):
-        pass
+    def _async_process_advertisement(self, description: HomeKitAdvertisement):
+        self.description = description

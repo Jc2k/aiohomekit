@@ -8,7 +8,7 @@ from bleak.exc import BleakDBusError, BleakError
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController
-from aiohomekit.controller.ble.manufacturer_data import ManufacturerData
+from aiohomekit.controller.ble.manufacturer_data import HomeKitAdvertisement
 from aiohomekit.controller.ble.pairing import BlePairing
 from aiohomekit.exceptions import AccessoryNotFoundError
 
@@ -27,22 +27,16 @@ class BleController(AbstractController):
         super().__init__(char_cache=char_cache)
 
     def _device_detected(self, device, advertisement_data):
-        if not (mfr_data := advertisement_data.manufacturer_data):
+        try:
+            data = HomeKitAdvertisement.from_advertisement(device, advertisement_data)
+        except ValueError:
             return
 
-        if not (apple_data := mfr_data.get(76)):
+        if data.id in self.discoveries:
+            self.discoveries[data.id]._async_process_advertisement(data)
             return
 
-        if apple_data[0] != 0x06:
-            return
-
-        data = ManufacturerData.from_bytes(apple_data)
-
-        if data.device_id in self.discoveries:
-            self.discoveries[data.device_id]._async_process_advertisement(data)
-            return
-
-        self.discoveries[data.device_id] = BleDiscovery(self, device, data)
+        self.discoveries[data.id] = BleDiscovery(self, device, data)
 
     async def async_start(self) -> None:
         try:
