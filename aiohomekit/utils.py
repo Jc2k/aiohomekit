@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import enum
-import re
 import logging
+import re
 from typing import Awaitable, TypeVar
-import functools
 
 from aiohomekit.exceptions import MalformedPinError
 from aiohomekit.model.characteristics import Characteristic
