@@ -35,6 +35,7 @@ from aiohomekit.http import HttpContentTypes
 from aiohomekit.http.response import HttpResponse
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
+from aiohomekit.utils import async_create_task
 
 logger = logging.getLogger(__name__)
 
@@ -240,14 +241,8 @@ class HomeKitConnection:
 
         def done_callback(result):
             self._connector = None
-            try:
-                result.result()
-            except asyncio.CancelledError:
-                pass
-            except Exception:
-                logger.exception("Unhandled error from connecter.")
 
-        self._connector = asyncio.ensure_future(self._reconnect())
+        self._connector = async_create_task(self._reconnect())
         self._connector.add_done_callback(done_callback)
 
     async def reconnect_soon(self, updated_ip_port=None):
@@ -555,7 +550,7 @@ class HomeKitConnection:
                 )
 
             interval = min(60, 1.5 * interval)
-            self._reconnect_wait_task = asyncio.ensure_future(asyncio.sleep(interval))
+            self._reconnect_wait_task = async_create_task(asyncio.sleep(interval))
 
             try:
                 await self._reconnect_wait_task

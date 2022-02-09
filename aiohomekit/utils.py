@@ -1,9 +1,36 @@
+from __future__ import annotations
+
+import asyncio
 import enum
 import re
+import logging
+from typing import Awaitable, TypeVar
+import functools
 
 from aiohomekit.exceptions import MalformedPinError
 from aiohomekit.model.characteristics import Characteristic
 from aiohomekit.model.feature_flags import FeatureFlags
+
+_LOGGER = logging.getLogger(__name__)
+
+T = TypeVar("T")
+
+
+def async_create_task(coroutine: Awaitable[T], *, name=None) -> asyncio.Task[T]:
+    """Wrapper for asyncio.create_task that logs errors."""
+    task = asyncio.create_task(coroutine, name=name)
+    task.add_done_callback(_handle_task_result)
+    return task
+
+
+def _handle_task_result(task: asyncio.Task) -> None:
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        # Ignore cancellations
+        pass
+    except Exception:
+        _LOGGER.exception("Failure running background task: %s", task.get_name())
 
 
 def clamp_enum_to_char(all_valid_values: enum.EnumMeta, char: Characteristic):

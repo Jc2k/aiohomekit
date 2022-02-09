@@ -301,7 +301,10 @@ class FakeController(AbstractController):
             yield discovery
 
     async def async_find(self, device_id, max_seconds=10) -> AbstractDiscovery:
-        return self.discoveries[device_id]
+        try:
+            return self.discoveries[device_id]
+        except KeyError:
+            raise AccessoryNotFoundError(device_id)
 
     async def remove_pairing(self, alias: str) -> None:
         del self.pairings[alias]

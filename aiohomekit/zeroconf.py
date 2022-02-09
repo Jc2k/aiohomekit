@@ -31,6 +31,7 @@ from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
+from aiohomekit.utils import async_create_task
 
 HAP_TYPE_TCP = "_hap._tcp.local."
 HAP_TYPE_UDP = "_hap._udp.local."
@@ -209,7 +210,7 @@ class ZeroconfController(AbstractController):
     def _handle_service(self, zeroconf, service_type, name, state_change):
         # FIXME: Supposed to hold a reference to this
         info = AsyncServiceInfo(service_type, name)
-        asyncio.create_task(self._async_handle_service(info))
+        async_create_task(self._async_handle_service(info))
 
     async def _async_handle_service(self, info: AsyncServiceInfo):
         """Add a device that became visible via zeroconf."""

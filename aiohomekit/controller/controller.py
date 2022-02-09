@@ -78,10 +78,10 @@ class Controller(AbstractController):
         self._transports: list[AbstractController] = []
         self._tasks = AsyncExitStack()
 
-    async def _async_register_backend(self, controller: AbstractController):
+    async def _async_register_backend(self, controller: AbstractController) -> None:
         self._transports.append(await self._tasks.enter_async_context(controller))
 
-    async def async_start(self):
+    async def async_start(self) -> None:
         if IP_TRANSPORT_SUPPORTED:
             await self._async_register_backend(
                 IpController(
@@ -103,7 +103,7 @@ class Controller(AbstractController):
                 BleController(char_cache=self._char_cache)
             )
 
-    async def async_stop(self):
+    async def async_stop(self) -> None:
         await self._tasks.aclose()
 
         # for p in self.pairings:
