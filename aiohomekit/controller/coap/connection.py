@@ -465,11 +465,9 @@ class CoAPHomeKitConnection:
 
         return self.info.to_dict()
 
-    async def read_characteristics(self, ids: list[tuple[int, int]]):
-        iids = [int(aid_iid[1]) for aid_iid in ids]
-        data = [b""] * len(iids)
-        pdu_results = await self.enc_ctx.post_all(OpCode.CHAR_READ, iids, data)
-
+    def _read_characteristics_exit(
+        self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
+    ) -> dict:
         results = dict()
         for (idx, result) in enumerate(pdu_results):
             aid_iid = ids[idx]
@@ -508,10 +506,18 @@ class CoAPHomeKitConnection:
         logger.debug(f"Read characteristics: {results!r}")
         return results
 
-    async def write_characteristics(self, ids_values: list[tuple[int, int, Any]]):
+    async def read_characteristics(self, ids: list[tuple[int, int]]):
+        iids = [int(aid_iid[1]) for aid_iid in ids]
+        data = [b""] * len(iids)
+        pdu_results = await self.enc_ctx.post_all(OpCode.CHAR_READ, iids, data)
+        return self._read_characteristics_exit(ids, pdu_results)
+
+    def _write_characteristics_enter(
+        self, ids_values: list[tuple[int, int, Any]]
+    ) -> list[bytearray]:
         # convert provided values to appropriate binary format for each characteristic
         tlv_values = list()
-        for (idx, aid_iid_value) in enumerate(ids_values):
+        for (_, aid_iid_value) in enumerate(ids_values):
             # look up characteristic
             characteristic = self.info.find_characteristic_by_aid_iid(
                 int(aid_iid_value[0]), int(aid_iid_value[1])
@@ -525,13 +531,13 @@ class CoAPHomeKitConnection:
             # add to list
             tlv_values.append(value_tlv)
 
-        # batch write
-        pdu_results = await self.enc_ctx.post_all(
-            OpCode.CHAR_WRITE,
-            [int(aid_iid_value[1]) for aid_iid_value in ids_values],
-            tlv_values,
-        )
+        return tlv_values
 
+    def _write_characteristics_exit(
+        self,
+        ids_values: list[tuple[int, int, Any]],
+        pdu_results: list[bytes | PDUStatus],
+    ) -> dict:
         # transform results
         # only error conditions are returned
         results = dict()
@@ -554,11 +560,21 @@ class CoAPHomeKitConnection:
 
         return results
 
-    async def subscribe_to(self, ids: list[tuple[int, int]]):
-        iids = [int(aid_iid[1]) for aid_iid in ids]
-        data = [b""] * len(iids)
-        pdu_results = await self.enc_ctx.post_all(OpCode.UNK_0B_SUBSCRIBE, iids, data)
+    async def write_characteristics(self, ids_values: list[tuple[int, int, Any]]):
+        tlv_values = self._write_characteristics_enter(ids_values)
 
+        # batch write
+        pdu_results = await self.enc_ctx.post_all(
+            OpCode.CHAR_WRITE,
+            [int(aid_iid_value[1]) for aid_iid_value in ids_values],
+            tlv_values,
+        )
+
+        return self._write_characteristics_exit(ids_values, pdu_results)
+
+    def _subscribe_to_exit(
+        self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
+    ) -> dict:
         results = dict()
         for (idx, result) in enumerate(pdu_results):
             aid_iid = ids[idx]
@@ -579,11 +595,15 @@ class CoAPHomeKitConnection:
 
         return results
 
-    async def unsubscribe_from(self, ids: list[tuple[int, int]]):
+    async def subscribe_to(self, ids: list[tuple[int, int]]):
         iids = [int(aid_iid[1]) for aid_iid in ids]
         data = [b""] * len(iids)
-        pdu_results = await self.enc_ctx.post_all(OpCode.UNK_0C_UNSUBSCRIBE, iids, data)
+        pdu_results = await self.enc_ctx.post_all(OpCode.UNK_0B_SUBSCRIBE, iids, data)
+        return self._subscribe_to_exit(ids, pdu_results)
 
+    def _unsubscribe_from_exit(
+        self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
+    ) -> dict:
         results = dict()
         for (idx, result) in enumerate(pdu_results):
             aid_iid = ids[idx]
@@ -603,6 +623,12 @@ class CoAPHomeKitConnection:
                 )
 
         return results
+
+    async def unsubscribe_from(self, ids: list[tuple[int, int]]):
+        iids = [int(aid_iid[1]) for aid_iid in ids]
+        data = [b""] * len(iids)
+        pdu_results = await self.enc_ctx.post_all(OpCode.UNK_0C_UNSUBSCRIBE, iids, data)
+        return self._unsubscribe_from_exit(ids, pdu_results)
 
     async def list_pairings(self):
         pairings_characteristic = self.info.accessories[
