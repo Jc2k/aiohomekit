@@ -65,7 +65,7 @@ class BleDiscovery(AbstractDiscovery):
         self.feature_flags = FeatureFlags(0)
         self.status_flags = info.status_flags
         self.config_num = info.config_num
-        self.state_num = info.status_num
+        self.state_num = info.state_num
         self.model = ""
         self.category = info.category
 

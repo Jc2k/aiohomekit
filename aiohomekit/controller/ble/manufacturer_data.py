@@ -14,7 +14,7 @@ class ManufacturerData:
     category: Categories
     status_flags: StatusFlags
     config_num: int
-    status_num: int
+    state_num: int
     setup_hash: bytes
 
     @classmethod
@@ -31,6 +31,6 @@ class ManufacturerData:
             category=Categories(acid),
             status_flags=StatusFlags(sf),
             config_num=cn,
-            status_num=gsn,
+            state_num=gsn,
             setup_hash=sh,
         )
