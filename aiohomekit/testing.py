@@ -30,7 +30,10 @@ from aiohomekit.controller.abstract import (
 from aiohomekit.controller.ip.connection import HomeKitConnection
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Accessories
+from aiohomekit.model.categories import Categories
 from aiohomekit.model.characteristics import CharacteristicsTypes
+from aiohomekit.model.feature_flags import FeatureFlags
+from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.uuid import normalize_uuid
 
@@ -43,36 +46,34 @@ FAKE_CAMERA_IMAGE = (
 
 
 class FakeDiscovery(AbstractDiscovery):
+
+    name = "TestDevice"
+    address = "localhost"
+    port = 8080
+    hostname = "TestDevice.local"
+    type = "_tcp._hap.local"
+
+    model = "TestDevice"
+    feature_flags = FeatureFlags.SUPPORTS_SOFTWARE_AUTHENTICATION
+    config_num = 1
+    state_num = 1
+    category = Categories.OTHER
+
     def __init__(
         self, controller: FakeController, device_id: str, accessories: Accessories
     ):
         self.controller = controller
         self.device_id = device_id
+        self.id = device_id
         self.accessories = accessories
 
         self.pairing_code = "111-22-333"
 
     @property
-    def info(self):
-        sf = 0
-
-        # Is accessory unpaired?
+    def status_flags(self) -> StatusFlags:
         if self.device_id not in self.controller.pairings:
-            sf = sf | 0x01
-
-        return {
-            "name": "TestDevice",
-            "address": "127.0.0.1",
-            "port": 8080,
-            "md": "TestDevice",
-            "pv": "1.0",
-            "id": self.device_id,
-            "c#": 1,
-            "s#": 1,
-            "ff": 0,
-            "ci": 0,
-            "sf": sf,
-        }
+            return StatusFlags.UNPAIRED
+        return StatusFlags(0)
 
     async def async_start_pairing(self, alias: str) -> FinishPairing:
         if self.device_id in self.controller.pairings:
@@ -82,8 +83,8 @@ class FakeDiscovery(AbstractDiscovery):
             if pairing_code != self.pairing_code:
                 raise exceptions.AuthenticationError("M4")
             pairing_data = {}
-            pairing_data["AccessoryIP"] = self.info["address"]
-            pairing_data["AccessoryPort"] = self.info["port"]
+            pairing_data["AccessoryIP"] = self.address
+            pairing_data["AccessoryPort"] = self.port
             pairing_data["Connection"] = "IP"
 
             obj = self.controller.pairings[alias] = FakePairing(
@@ -202,6 +203,10 @@ class FakePairing(AbstractPairing):
 
         self.testing = PairingTester(self)
 
+    @property
+    def is_connected(self):
+        return True
+
     async def close(self):
         pass
 
@@ -292,7 +297,7 @@ class FakeController(AbstractController):
     async def async_discover(
         self, max_seconds: int = 10
     ) -> AsyncIterable[AbstractDiscovery]:
-        async for discovery in self.discoveries.values():
+        for discovery in self.discoveries.values():
             yield discovery
 
     async def async_find(self, device_id, max_seconds=10) -> AbstractDiscovery:
