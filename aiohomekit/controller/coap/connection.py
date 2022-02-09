@@ -42,7 +42,14 @@ from aiohomekit.protocol import (
 )
 from aiohomekit.protocol.tlv import HAP_TLV, TLV
 
-from .pdu import OpCode, PDUStatus, decode_pdu, encode_all_pdus, encode_pdu
+from .pdu import (
+    OpCode,
+    PDUStatus,
+    decode_all_pdus,
+    decode_pdu,
+    encode_all_pdus,
+    encode_pdu,
+)
 from .structs import Pdu09Database
 
 logger = logging.getLogger(__name__)
@@ -181,20 +188,7 @@ class EncryptionContext:
     ) -> list[bytes | PDUStatus]:
         req_pdu = encode_all_pdus(opcode, iids, data)
         res_pdu = await self.post_bytes(req_pdu)
-
-        idx = 0
-        offset = 0
-        res = []
-        while True:
-            body_len, body = decode_pdu(idx, res_pdu[offset:])
-            res.append(body)
-
-            idx += 1
-            offset += 5 + body_len
-            if offset >= len(res_pdu):
-                break
-
-        return res
+        return decode_all_pdus(0, res_pdu)
 
 
 class EventResource(resource.Resource):
