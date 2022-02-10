@@ -357,7 +357,7 @@ class CoAPHomeKitConnection:
 
                 request, expected = state_machine.send(payload)
             except StopIteration as result:
-                derive = result.value
+                _, derive = result.value
                 break
             except Exception:
                 # clean up coap context
@@ -366,11 +366,11 @@ class CoAPHomeKitConnection:
                 # re-raise any exception
                 raise
 
-        recv_key = derive("Control-Salt", "Control-Read-Encryption-Key")
+        recv_key = derive(b"Control-Salt", b"Control-Read-Encryption-Key")
         recv_ctx = ChaCha20Poly1305(recv_key)
-        send_key = derive("Control-Salt", "Control-Write-Encryption-Key")
+        send_key = derive(b"Control-Salt", b"Control-Write-Encryption-Key")
         send_ctx = ChaCha20Poly1305(send_key)
-        event_key = derive("Event-Salt", "Event-Read-Encryption-Key")
+        event_key = derive(b"Event-Salt", b"Event-Read-Encryption-Key")
         event_ctx = ChaCha20Poly1305(event_key)
 
         uri = "coap://%s/" % (self.address)
