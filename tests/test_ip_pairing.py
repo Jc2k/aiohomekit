@@ -118,9 +118,9 @@ async def test_subscribe(pairing):
 
     assert pairing.subscriptions == {(1, 9)}
 
-    characteristics = await pairing.get_characteristics([(1, 9)], include_events=True)
+    characteristics = await pairing.get_characteristics([(1, 9)])
 
-    assert characteristics == {(1, 9): {"ev": True, "value": False}}
+    assert characteristics == {(1, 9): {"value": False}}
 
 
 async def test_unsubscribe(pairing):
@@ -128,17 +128,17 @@ async def test_unsubscribe(pairing):
 
     assert pairing.subscriptions == {(1, 9)}
 
-    characteristics = await pairing.get_characteristics([(1, 9)], include_events=True)
+    characteristics = await pairing.get_characteristics([(1, 9)])
 
-    assert characteristics == {(1, 9): {"ev": True, "value": False}}
+    assert characteristics == {(1, 9): {"value": False}}
 
     await pairing.unsubscribe([(1, 9)])
 
     assert pairing.subscriptions == set()
 
-    characteristics = await pairing.get_characteristics([(1, 9)], include_events=True)
+    characteristics = await pairing.get_characteristics([(1, 9)])
 
-    assert characteristics == {(1, 9): {"ev": False, "value": False}}
+    assert characteristics == {(1, 9): {"value": False}}
 
 
 async def test_dispatcher_connect(pairing):

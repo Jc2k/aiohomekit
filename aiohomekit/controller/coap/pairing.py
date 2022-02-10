@@ -93,10 +93,6 @@ class CoAPPairing(AbstractPairing):
     async def get_characteristics(
         self,
         characteristics,
-        include_meta=False,
-        include_perms=False,
-        include_type=False,
-        include_events=False,
     ):
         await self._ensure_connected()
         return await self.connection.read_characteristics(characteristics)
