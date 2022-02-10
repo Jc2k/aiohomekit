@@ -196,10 +196,6 @@ class IpPairing(AbstractPairing):
     async def get_characteristics(
         self,
         characteristics,
-        include_meta=False,
-        include_perms=False,
-        include_type=False,
-        include_events=False,
     ):
         """
         This method is used to get the current readouts of any characteristic of the accessory.
@@ -225,14 +221,6 @@ class IpPairing(AbstractPairing):
         url = "/characteristics?id=" + ",".join(
             str(x[0]) + "." + str(x[1]) for x in set(characteristics)
         )
-        if include_meta:
-            url += "&meta=1"
-        if include_perms:
-            url += "&perms=1"
-        if include_type:
-            url += "&type=1"
-        if include_events:
-            url += "&ev=1"
 
         response = await self.connection.get_json(url)
 

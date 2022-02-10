@@ -213,13 +213,9 @@ async def get_characteristics(args: Namespace) -> bool:
         try:
             data = await pairing.get_characteristics(
                 characteristics,
-                include_meta=args.meta,
-                include_perms=args.perms,
-                include_type=args.type,
-                include_events=args.events,
             )
         except Exception:
-            logging.exception("Error whilst fetching /accessories")
+            logging.exception("Error whilst getting characteristic values")
             return False
 
         # print the data
@@ -502,34 +498,6 @@ async def main(argv: list[str] | None = None) -> None:
         required=True,
         dest="characteristics",
         help="Read characteristics, multiple characteristics can be given by repeating the option",
-    )
-    get_char_parser.add_argument(
-        "-m",
-        action="store_true",
-        required=False,
-        dest="meta",
-        help="read out the meta data for the characteristics as well",
-    )
-    get_char_parser.add_argument(
-        "-p",
-        action="store_true",
-        required=False,
-        dest="perms",
-        help="read out the permissions for the characteristics as well",
-    )
-    get_char_parser.add_argument(
-        "-t",
-        action="store_true",
-        required=False,
-        dest="type",
-        help="read out the types for the characteristics as well",
-    )
-    get_char_parser.add_argument(
-        "-e",
-        action="store_true",
-        required=False,
-        dest="events",
-        help="read out the events for the characteristics as well",
     )
 
     # put_characteristics - set characteristics values

@@ -244,10 +244,6 @@ class BlePairing(AbstractPairing):
     async def get_characteristics(
         self,
         characteristics: list[tuple[int, int]],
-        include_meta=False,
-        include_perms=False,
-        include_type=False,
-        include_events=False,
     ) -> dict[tuple[int, int], Any]:
         await self._ensure_connected()
 
