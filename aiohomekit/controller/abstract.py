@@ -36,6 +36,11 @@ class AbstractDescription(Protocol):
 
 
 class AbstractPairing(metaclass=ABCMeta):
+
+    # The current discovery information for this pairing.
+    # This can be used to detect address changes, s# changes, c# changes, etc
+    description: AbstractDescription | None = None
+
     def __init__(self, controller):
         self.controller = controller
         self.listeners = set()
@@ -124,11 +129,13 @@ class AbstractDiscovery(metaclass=ABCMeta):
 
 class AbstractController(metaclass=ABCMeta):
 
-    pairings: dict[str, AbstractPairing]
     discoveries: dict[str, AbstractDiscovery]
+    pairings: dict[str, AbstractPairing]
+    aliases: dict[str, AbstractPairing]
 
     def __init__(self, char_cache: CharacteristicCacheType):
         self.pairings = {}
+        self.aliases = {}
         self.discoveries = {}
 
         self._char_cache = char_cache
@@ -162,4 +169,8 @@ class AbstractController(metaclass=ABCMeta):
 
     @abstractmethod
     async def async_stop(self) -> None:
+        pass
+
+    @abstractmethod
+    def load_pairing(self, alias: str, pairing_data: dict[str, str]) -> AbstractPairing:
         pass

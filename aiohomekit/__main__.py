@@ -133,7 +133,7 @@ async def discover(args):
 
 async def pair(args):
     async with get_controller(args) as controller:
-        if args.alias in controller.pairings:
+        if args.alias in controller.aliases:
             print(f'"{args.alias}" is a already known alias')
             return False
 
@@ -162,12 +162,12 @@ async def pair(args):
 async def get_accessories(args: Namespace) -> bool:
     async with get_controller(args) as controller:
 
-        if args.alias not in controller.pairings:
+        if args.alias not in controller.aliases:
             print(f'"{args.alias}" is no known alias')
             return False
 
         try:
-            pairing = controller.pairings[args.alias]
+            pairing = controller.aliases[args.alias]
             data = await pairing.list_accessories_and_characteristics()
             controller.save_data(args.file)
         except Exception:
@@ -198,11 +198,11 @@ async def get_accessories(args: Namespace) -> bool:
 async def get_characteristics(args: Namespace) -> bool:
     async with get_controller(args) as controller:
 
-        if args.alias not in controller.pairings:
+        if args.alias not in controller.aliases:
             print(f'"{args.alias}" is no known alias')
             return False
 
-        pairing = controller.pairings[args.alias]
+        pairing = controller.aliases[args.alias]
 
         # convert the command line parameters to the required form
         characteristics = [
@@ -236,12 +236,12 @@ async def get_characteristics(args: Namespace) -> bool:
 async def put_characteristics(args: Namespace) -> bool:
     async with get_controller(args) as controller:
 
-        if args.alias not in controller.pairings:
+        if args.alias not in controller.aliases:
             print(f'"{args.alias}" is no known alias')
             return False
 
         try:
-            pairing = controller.pairings[args.alias]
+            pairing = controller.aliases[args.alias]
 
             # FIXME use Service.build_update
 
@@ -276,12 +276,12 @@ async def put_characteristics(args: Namespace) -> bool:
 
 async def identify(args: Namespace) -> bool:
     async with get_controller(args) as controller:
-        if args.alias not in controller.pairings:
+        if args.alias not in controller.aliases:
             print(f'"{args.alias}" is no known alias')
             return False
 
         try:
-            pairing = controller.pairings[args.alias]
+            pairing = controller.aliases[args.alias]
             await pairing.identify()
         except Exception:
             logging.exception("Unhandled error whilst identifying device")
@@ -292,11 +292,11 @@ async def identify(args: Namespace) -> bool:
 
 async def list_pairings(args: Namespace) -> bool:
     async with get_controller(args) as controller:
-        if args.alias not in controller.pairings:
+        if args.alias not in controller.aliases:
             print(f'"{args.alias}" is no known alias')
             exit(-1)
 
-        pairing = controller.pairings[args.alias]
+        pairing = controller.aliases[args.alias]
         try:
             pairings = await pairing.list_pairings()
         except Exception as e:
@@ -318,11 +318,11 @@ async def list_pairings(args: Namespace) -> bool:
 
 async def remove_pairing(args):
     async with get_controller(args) as controller:
-        if args.alias not in controller.pairings:
+        if args.alias not in controller.aliases:
             print(f'"{args.alias}" is no known alias')
             return False
 
-        pairing = controller.pairings[args.alias]
+        pairing = controller.aliases[args.alias]
         await pairing.remove_pairing(args.controllerPairingId)
         controller.save_data(args.file)
         print(f'Pairing for "{args.alias}" was removed.')
@@ -331,7 +331,7 @@ async def remove_pairing(args):
 
 async def unpair(args):
     async with get_controller(args) as controller:
-        if args.alias not in controller.pairings:
+        if args.alias not in controller.aliases:
             print(f'"{args.alias}" is no known alias')
             return False
 
@@ -343,11 +343,11 @@ async def unpair(args):
 
 async def get_events(args):
     async with get_controller(args) as controller:
-        if args.alias not in controller.pairings:
+        if args.alias not in controller.aliases:
             print(f'"{args.alias}" is no known alias')
             return False
 
-        pairing = controller.pairings[args.alias]
+        pairing = controller.aliases[args.alias]
 
         # convert the command line parameters to the required form
         characteristics = [

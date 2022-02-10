@@ -28,8 +28,6 @@ from aiohomekit.characteristic_cache import (
     CharacteristicCacheType,
 )
 from aiohomekit.controller.abstract import AbstractDiscovery
-from aiohomekit.controller.ble.controller import BleController
-from aiohomekit.controller.coap.controller import CoAPController
 
 from ..const import (
     BLE_TRANSPORT_SUPPORTED,
@@ -45,13 +43,13 @@ from ..exceptions import (
 from .abstract import AbstractController, AbstractPairing
 
 if COAP_TRANSPORT_SUPPORTED:
-    from .coap import CoAPPairing
+    from aiohomekit.controller.coap.controller import CoAPController
 
 if IP_TRANSPORT_SUPPORTED:
-    from .ip import IpController, IpPairing
+    from .ip import IpController
 
 if BLE_TRANSPORT_SUPPORTED:
-    from aiohomekit.controller.ble import BlePairing
+    from aiohomekit.controller.ble.controller import BleController
 
 
 class Controller(AbstractController):
@@ -128,27 +126,13 @@ class Controller(AbstractController):
         if "Connection" not in pairing_data:
             pairing_data["Connection"] = "IP"
 
-        if pairing_data["Connection"] == "IP":
-            if not IP_TRANSPORT_SUPPORTED:
-                raise TransportNotSupportedError("IP")
-            pairing = self.pairings[alias] = IpPairing(self, pairing_data)
-            return pairing
+        for transport in self._transports:
+            if pairing := transport.load_pairing(alias, pairing_data):
+                self.pairings[pairing_data["AccessoryPairingID"]] = pairing
+                self.aliases[alias] = pairing
+                return pairing
 
-        if pairing_data["Connection"] == "CoAP":
-            if not COAP_TRANSPORT_SUPPORTED:
-                raise TransportNotSupportedError("CoAP")
-            pairing = self.pairings[alias] = CoAPPairing(self, pairing_data)
-            return pairing
-
-        if pairing_data["Connection"] == "BLE":
-            if not BLE_TRANSPORT_SUPPORTED:
-                raise TransportNotSupportedError("BLE")
-
-            pairing = self.pairings[alias] = BlePairing(self, pairing_data)
-            return pairing
-
-        connection_type = pairing_data["Connection"]
-        raise NotImplementedError(f"{connection_type} support")
+        raise TransportNotSupportedError(pairing_data["Connection"])
 
     def load_data(self, filename: str) -> None:
         """
@@ -179,9 +163,8 @@ class Controller(AbstractController):
         :raises ConfigSavingError: if the config could not be saved. The reason is given in the message.
         """
         data = {}
-        for pairing_id in self.pairings:
-            # package visibility like in java would be nice here
-            data[pairing_id] = self.pairings[pairing_id].pairing_data
+        for alias in self.aliases:
+            data[alias] = self.aliases[alias].pairing_data
 
         path = pathlib.Path(filename)
 
@@ -215,10 +198,10 @@ class Controller(AbstractController):
         :raises AccessoryNotFoundError: if the device can not be found via zeroconf
         :raises UnknownError: on unknown errors
         """
-        if alias not in self.pairings:
+        if alias not in self.aliases:
             raise AccessoryNotFoundError(f'Alias "{alias}" is not found.')
 
-        pairing = self.pairings[alias]
+        pairing = self.aliases[alias]
 
         primary_pairing_id = pairing.pairing_data["iOSPairingId"]
         await pairing.remove_pairing(primary_pairing_id)
@@ -227,4 +210,5 @@ class Controller(AbstractController):
 
         self._char_cache.async_delete_map(primary_pairing_id)
 
-        del self.pairings[alias]
+        self.aliases.pop(alias, None)
+        pairing.controller.aliases.pop(alias, None)
