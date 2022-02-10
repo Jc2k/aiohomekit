@@ -186,13 +186,15 @@ async def controller_and_paired_accessory(request, event_loop, mock_asynczerocon
     controller = Controller(
         async_zeroconf_instance=mock_asynczeroconf,
     )
-    controller.load_data(controller_file.name)
-    config_file.close()
 
-    with mock.patch.object(controller, "load_data", lambda x: None):
-        with mock.patch("aiohomekit.__main__.Controller") as c:
-            c.return_value = controller
-            yield controller
+    async with controller:
+        controller.load_data(controller_file.name)
+        config_file.close()
+
+        with mock.patch.object(controller, "load_data", lambda x: None):
+            with mock.patch("aiohomekit.__main__.Controller") as c:
+                c.return_value = controller
+                yield controller
 
     os.unlink(config_file.name)
     os.unlink(controller_file.name)
@@ -203,7 +205,7 @@ async def controller_and_paired_accessory(request, event_loop, mock_asynczerocon
 
 @pytest.fixture
 async def pairing(controller_and_paired_accessory):
-    pairing = controller_and_paired_accessory.pairings["alias"]
+    pairing = controller_and_paired_accessory.aliases["alias"]
     yield pairing
     try:
         await pairing.close()
@@ -214,7 +216,7 @@ async def pairing(controller_and_paired_accessory):
 @pytest.fixture
 async def pairings(request, controller_and_paired_accessory, event_loop):
     """Returns a pairing of pairngs."""
-    left = controller_and_paired_accessory.pairings["alias"]
+    left = controller_and_paired_accessory.aliases["alias"]
 
     right = IpPairing(left.controller, left.pairing_data)
 

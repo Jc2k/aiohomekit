@@ -90,9 +90,9 @@ class FakeDiscovery(AbstractDiscovery):
             # pairing_data["AccessoryPort"] = self.port
             pairing_data["Connection"] = "Fake"
 
-            obj = self.controller.pairings[alias] = FakePairing(
-                self.controller, pairing_data, self.accessories
-            )
+            obj = FakePairing(self.controller, pairing_data, self.accessories)
+            self.controller.aliases[alias] = obj
+            self.controller.pairings[self.description.id] = obj
             return obj
 
         return finish_pairing
@@ -268,6 +268,7 @@ class FakeController(AbstractController):
     started: bool
     discoveries: dict[str, FakeDiscovery]
     pairings: dict[str, FakePairing]
+    aliases: dict[str, FakePairing]
 
     def __init__(self):
         super().__init__(char_cache=CharacteristicCacheMemory())
@@ -307,9 +308,9 @@ class FakeController(AbstractController):
             raise AccessoryNotFoundError(device_id)
 
     async def remove_pairing(self, alias: str) -> None:
-        del self.pairings[alias]
+        del self.aliases[alias]
 
     def load_pairing(self, alias: str, pairing_data):
         # This assumes a test has already preseed self.pairings with a fake via
         # add_paired_device
-        return self.pairings[alias]
+        return self.aliases[alias]
