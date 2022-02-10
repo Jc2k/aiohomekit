@@ -38,10 +38,12 @@ from aiohomekit.pdu import OpCode, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.protocol.tlv import TLV
+from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from ..abstract import AbstractPairing
 from .key import DecryptionKey, EncryptionKey
+from .manufacturer_data import HomeKitAdvertisement
 from .structs import Characteristic as CharacteristicTLV
 from .values import from_bytes, to_bytes
 
@@ -59,7 +61,7 @@ class BlePairing(AbstractPairing):
     """
 
     pairing_id: str
-
+    description: HomeKitAdvertisement | None
     controller: BleController
 
     _accessories: Accessories | None = None
@@ -72,6 +74,7 @@ class BlePairing(AbstractPairing):
         self.pairing_id = pairing_data["AccessoryPairingID"]
 
         self.client = BleakClient(pairing_data["AccessoryAddress"])
+        self.client.set_disconnected_callback(self._async_disconnected)
 
         if cache := self.controller._char_cache.get_map(self.pairing_id):
             self._accessories = Accessories.from_list(cache["accessories"])
@@ -80,6 +83,27 @@ class BlePairing(AbstractPairing):
 
         self._session_id = None
         self._derive = None
+
+    def _async_description_update(self, description: HomeKitAdvertisement | None):
+        if description and self.description:
+            if description.config_num > self.description.config_num:
+                logger.debug("Config number has changed; char cache invalid")
+
+            if description.state_num > self.description.state_num:
+                logger.debug(
+                    "Disconnected event notification received; Triggering catch-up poll"
+                )
+                async_create_task(self._async_process_disconnected_events())
+
+            if description.address != self.description.address:
+                logger.debug(
+                    "BLE address changed from %s to %s; closing connection",
+                    self.description.address,
+                    description.address,
+                )
+                async_create_task(self.close())
+
+        return super()._async_description_update(description)
 
     @property
     def is_connected(self) -> bool:
@@ -100,20 +124,25 @@ class BlePairing(AbstractPairing):
             data,
         )
 
+    def _async_disconnected(self, *args, **kwargs):
+        print("DISCONNECT", *args, **kwargs)
+
     async def _ensure_connected(self):
         while not self.client.is_connected:
             # If connection is lost, make sure we re-do session
             self._encryption_key = None
             self._decryption_key = None
 
+            if self.description and self.client.address != self.description.address:
+                await self.close()
+
+                self.client = BleakClient(self.description.address)
+                self.client.set_disconnected_callback(self._async_disconnected)
+
             try:
                 await self.client.connect()
             except BleakError as e:
                 logger.debug("Failed to connect to %s: %s", self.client.address, str(e))
-
-                device = await self.controller.async_find(self.pairing_id)
-                if device.address != self.client.address:
-                    self.client = BleakClient(device.address)
 
             await asyncio.sleep(5)
 
@@ -144,6 +173,12 @@ class BlePairing(AbstractPairing):
         # Used for session resume
         self._session_id = session_id
         self._derive = derive
+
+    async def _async_process_disconnected_events(self) -> None:
+        logger.debug("Polling subscriptions for changes during disconnection")
+        results = await self.get_characteristics(list(self.subscriptions))
+        for listener in self.listeners:
+            listener(results)
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         accessory = Accessory()
@@ -192,7 +227,8 @@ class BlePairing(AbstractPairing):
         return accessories
 
     async def close(self):
-        pass
+        if self.client and self.client.is_connected:
+            await self.client.disconnect()
 
     async def list_accessories_and_characteristics(self):
         await self._ensure_connected()

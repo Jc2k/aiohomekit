@@ -33,6 +33,9 @@ class BleController(AbstractController):
         except ValueError:
             return
 
+        if pairing := self.pairings.get(data.id):
+            pairing._async_description_update(data)
+
         if data.id in self.discoveries:
             self.discoveries[data.id]._async_process_advertisement(data)
             return
@@ -75,7 +78,7 @@ class BleController(AbstractController):
         if not (hkid := pairing_data.get("AccessoryPairingID")):
             return None
 
-        pairing = self.pairings[hkid] = BlePairing(self, pairing_data)
+        pairing = self.pairings[hkid.lower()] = BlePairing(self, pairing_data)
         self.aliases[alias] = pairing
 
         return pairing
