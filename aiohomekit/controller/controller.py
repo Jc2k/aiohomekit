@@ -15,23 +15,21 @@
 #
 from __future__ import annotations
 
-import asyncio
+from contextlib import AsyncExitStack
 import json
 from json.decoder import JSONDecodeError
-import logging
 import pathlib
-import re
-from typing import Iterable
+from typing import AsyncIterable
+
+from zeroconf.asyncio import AsyncZeroconf
 
 from aiohomekit.characteristic_cache import (
     CharacteristicCacheMemory,
     CharacteristicCacheType,
 )
-from aiohomekit.zeroconf import (
-    HAP_TYPE_TCP,
-    HAP_TYPE_UDP,
-    async_find_data_for_device_id,
-)
+from aiohomekit.controller.abstract import AbstractDiscovery
+from aiohomekit.controller.ble.controller import BleController
+from aiohomekit.controller.coap.controller import CoAPController
 
 from ..const import (
     BLE_TRANSPORT_SUPPORTED,
@@ -42,32 +40,30 @@ from ..exceptions import (
     AccessoryNotFoundError,
     ConfigLoadingError,
     ConfigSavingError,
-    MalformedPinError,
     TransportNotSupportedError,
 )
-from .pairing import AbstractPairing
+from .abstract import AbstractController, AbstractPairing
 
 if COAP_TRANSPORT_SUPPORTED:
-    from .coap import CoAPDiscovery, CoAPPairing
+    from .coap import CoAPPairing
 
 if IP_TRANSPORT_SUPPORTED:
-    from .ip import IpDiscovery, IpPairing
-    from .ip.zeroconf import async_discover_homekit_devices
-
+    from .ip import IpController, IpPairing
 
 if BLE_TRANSPORT_SUPPORTED:
-    from aiohomekit.controller.ble import BleDiscovery, BlePairing
+    from aiohomekit.controller.ble import BlePairing
 
 
-class Controller:
+class Controller(AbstractController):
     """
     This class represents a HomeKit controller (normally your iPhone or iPad).
     """
 
+    pairings: dict[str, AbstractPairing]
+
     def __init__(
         self,
-        ble_adapter: str = "hci0",
-        async_zeroconf_instance=None,
+        async_zeroconf_instance: AsyncZeroconf | None = None,
         char_cache: CharacteristicCacheType | None = None,
     ) -> None:
         """
@@ -75,154 +71,55 @@ class Controller:
 
         :param ble_adapter: the bluetooth adapter to be used (defaults to hci0)
         """
-        self.pairings = {}
+        super().__init__(char_cache=char_cache or CharacteristicCacheMemory())
+
         self._async_zeroconf_instance = async_zeroconf_instance
-        self._char_cache = char_cache or CharacteristicCacheMemory()
-        self.ble_adapter = ble_adapter
-        self.logger = logging.getLogger(__name__)
 
-    async def discover_all(self, max_seconds=10):
-        tasks = [
-            self.discover_ble(max_seconds),
-            self.discover_coap(max_seconds),
-            self.discover_ip(max_seconds),
-        ]
-        # run all discovery tasks in parallel
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        # debug print any exceptions, likely "homekit transport X not supported"
-        for exc in list(filter(lambda x: isinstance(x, Exception), results)):
-            self.logger.debug("discover_all", exc_info=exc)
-        # filter out exceptions
-        results = list(filter(lambda x: not isinstance(x, Exception), results))
-        # flatten list of lists
-        return [dev for protocol_results in results for dev in protocol_results]
+        self._transports: list[AbstractController] = []
+        self._tasks = AsyncExitStack()
 
-    async def discover_coap(self, max_seconds=10):
-        if not COAP_TRANSPORT_SUPPORTED:
-            raise TransportNotSupportedError("CoAP")
-        devices = await async_discover_homekit_devices(
-            max_seconds,
-            async_zeroconf_instance=self._async_zeroconf_instance,
-            hap_type=HAP_TYPE_UDP,
-        )
-        tmp = []
-        for device in devices:
-            tmp.append(CoAPDiscovery(self, device))
-        self.logger.debug(f"Discovered CoAP devices: {tmp}")
-        return tmp
+    async def _async_register_backend(self, controller: AbstractController) -> None:
+        self._transports.append(await self._tasks.enter_async_context(controller))
 
-    async def discover_ip(self, max_seconds=10):
-        """
-        Perform a Bonjour discovery for HomeKit accessory. The discovery will last for the given amount of seconds. The
-        result will be a list of dicts. The keys of the dicts are:
-         * name: the Bonjour name of the HomeKit accessory (i.e. Testsensor1._hap._tcp.local.)
-         * address: the IP address of the accessory
-         * port: the used port
-         * c#: the configuration number (required)
-         * ff / flags: the numerical and human readable version of the feature flags (supports pairing or not, see table
-                       5-8 page 69)
-         * id: the accessory's pairing id (required)
-         * md: the model name of the accessory (required)
-         * pv: the protocol version
-         * s#: the current state number (required)
-         * sf / statusflags: the status flag (see table 5-9 page 70)
-         * ci / category: the category identifier in numerical and human readable form. For more information see table
-                        12-3 page 254 or homekit.Categories (required)
-
-        IMPORTANT:
-        This method will ignore all HomeKit accessories that exist in _hap._tcp domain but fail to have all required
-        TXT record keys set.
-
-        :param max_seconds: how long should the Bonjour service browser do the discovery (default 10s). See sleep for
-                            more details
-        :return: a list of dicts as described above
-        """
-        if not IP_TRANSPORT_SUPPORTED:
-            raise TransportNotSupportedError("IP")
-        devices = await async_discover_homekit_devices(
-            max_seconds,
-            async_zeroconf_instance=self._async_zeroconf_instance,
-            hap_type=HAP_TYPE_TCP,
-        )
-        tmp = []
-        for device in devices:
-            tmp.append(IpDiscovery(self, device))
-        self.logger.debug(f"Discovered IP devices: {tmp}")
-        return tmp
-
-    async def find_ip_by_device_id(
-        self, device_id, max_seconds=10, hap_type=HAP_TYPE_TCP
-    ):
-        if hap_type == HAP_TYPE_TCP and not IP_TRANSPORT_SUPPORTED:
-            raise TransportNotSupportedError("IP")
-        if hap_type == HAP_TYPE_UDP and not COAP_TRANSPORT_SUPPORTED:
-            raise TransportNotSupportedError("CoAP")
-        device = await async_find_data_for_device_id(
-            device_id=device_id,
-            max_seconds=max_seconds,
-            async_zeroconf_instance=self._async_zeroconf_instance,
-            hap_type=hap_type,
-        )
-        if hap_type == HAP_TYPE_TCP:
-            return IpDiscovery(self, device)
-        elif hap_type == HAP_TYPE_UDP:
-            return CoAPDiscovery(self, device)
-
-        """
-        # Backwards compact
-        if not device_id.startswith("hap+"):
-            device_id = "hap+ip://"
-
-        parsed = urlparse(device_id)
-
-        if parsed.scheme == "hap+ip":
-            if not IP_TRANSPORT_SUPPORTED:
-                raise TransportNotSupportedError("IP")
-
-            device = await async_find_data_for_device_id(
-                device_id=parsed.netloc,
-                max_seconds=max_seconds,
-                async_zeroconf_instance=self._async_zeroconf_instance,
-            )
-            return IpDiscovery(self, device)
-
-        if parsed.scheme == "hap+ble":
-            if not BLE_TRANSPORT_SUPPORTED:
-                raise TransportNotSupportedError("BLE")
-
-            device = await BleakScanner.find_device_by_address(
-                parsed.netloc, timeout=max_seconds
-            )
-            if not device:
-                raise AccessoryNotFoundError(
-                    f"Device not found via BLE discovery within {max_seconds}s"
+    async def async_start(self) -> None:
+        if IP_TRANSPORT_SUPPORTED:
+            await self._async_register_backend(
+                IpController(
+                    char_cache=self._char_cache,
+                    zeroconf_instance=self._async_zeroconf_instance,
                 )
+            )
 
-            return BleDiscovery(self, device)
-        """
+        if COAP_TRANSPORT_SUPPORTED:
+            await self._async_register_backend(
+                CoAPController(
+                    char_cache=self._char_cache,
+                    zeroconf_instance=self._async_zeroconf_instance,
+                )
+            )
 
-    async def discover_ble(self, max_seconds=10) -> Iterable[BleDiscovery]:
-        if not BLE_TRANSPORT_SUPPORTED:
-            raise TransportNotSupportedError("BLE")
+        if BLE_TRANSPORT_SUPPORTED:
+            await self._async_register_backend(
+                BleController(char_cache=self._char_cache)
+            )
 
-        from bleak import BleakScanner
+    async def async_stop(self) -> None:
+        await self._tasks.aclose()
 
-        devices = await BleakScanner.discover(timeout=max_seconds)
-        for d in devices:
-            if not d.metadata:
-                continue
-            if 76 not in d.metadata["manufacturer_data"]:
-                continue
-            if not d.metadata["manufacturer_data"][76].startswith(b"\x06"):
-                continue
-            yield BleDiscovery(self, d)
+        # for p in self.pairings:
+        #    await self.pairings[p].close()
 
-    async def shutdown(self) -> None:
-        """
-        Shuts down the controller by closing all connections that might be held open by the pairings of the controller.
-        """
-        for p in self.pairings:
-            await self.pairings[p].close()
+    async def async_find(self, device_id: str) -> AbstractDiscovery:
+        for transport in self._transports:
+            if device_id in transport.discoveries:
+                return transport.discoveries[device_id]
+
+        raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
+
+    async def async_discover(self, timeout=10) -> AsyncIterable[AbstractDiscovery]:
+        for transport in self._transports:
+            for device in transport.discoveries.values():
+                yield device
 
     def load_pairing(self, alias: str, pairing_data: dict[str, str]) -> AbstractPairing:
         """
@@ -252,14 +149,6 @@ class Controller:
 
         connection_type = pairing_data["Connection"]
         raise NotImplementedError(f"{connection_type} support")
-
-    def get_pairings(self) -> dict[str, AbstractPairing]:
-        """
-        Returns a dict containing all pairings known to the controller.
-
-        :return: the dict maps the aliases to Pairing objects
-        """
-        return self.pairings
 
     def load_data(self, filename: str) -> None:
         """
@@ -311,18 +200,6 @@ class Controller:
                 'Could not write "{f}" because it (or the folder) does not exist'.format(
                     f=filename
                 )
-            )
-
-    @staticmethod
-    def check_pin_format(pin: str) -> None:
-        """
-        Checks the format of the given pin: XXX-XX-XXX with X being a digit from 0 to 9
-
-        :raises MalformedPinError: if the validation fails
-        """
-        if not re.match(r"^\d\d\d-\d\d-\d\d\d$", pin):
-            raise MalformedPinError(
-                "The pin must be of the following XXX-XX-XXX where X is a digit between 0 and 9."
             )
 
     async def remove_pairing(self, alias: str) -> None:

@@ -44,6 +44,4 @@ def to_bytes(char: Characteristic, value: bool | str | float | int | bytes) -> b
     elif char.format == CharacteristicFormats.string:
         value = value.encode("utf-8")
 
-    print(value)
-
     return bytes(value)

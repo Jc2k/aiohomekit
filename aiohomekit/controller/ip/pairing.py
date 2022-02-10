@@ -20,7 +20,7 @@ import json
 import logging
 from operator import itemgetter
 
-from aiohomekit.controller.pairing import AbstractPairing
+from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
@@ -77,6 +77,10 @@ class IpPairing(AbstractPairing):
         self.pairing_data = pairing_data
         self.connection = SecureHomeKitConnection(self, self.pairing_data)
         self.supports_subscribe = True
+
+    @property
+    def is_connected(self):
+        return self.connection.is_connected
 
     def event_received(self, event):
         self._callback_listeners(format_characteristic_list(event))

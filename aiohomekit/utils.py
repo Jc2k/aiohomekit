@@ -1,6 +1,35 @@
-import enum
+from __future__ import annotations
 
+import asyncio
+import enum
+import logging
+import re
+from typing import Awaitable, TypeVar
+
+from aiohomekit.exceptions import MalformedPinError
 from aiohomekit.model.characteristics import Characteristic
+from aiohomekit.model.feature_flags import FeatureFlags
+
+_LOGGER = logging.getLogger(__name__)
+
+T = TypeVar("T")
+
+
+def async_create_task(coroutine: Awaitable[T], *, name=None) -> asyncio.Task[T]:
+    """Wrapper for asyncio.create_task that logs errors."""
+    task = asyncio.create_task(coroutine, name=name)
+    task.add_done_callback(_handle_task_result)
+    return task
+
+
+def _handle_task_result(task: asyncio.Task) -> None:
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        # Ignore cancellations
+        pass
+    except Exception:
+        _LOGGER.exception("Failure running background task: %s", task.get_name())
 
 
 def clamp_enum_to_char(all_valid_values: enum.EnumMeta, char: Characteristic):
@@ -25,3 +54,26 @@ def clamp_enum_to_char(all_valid_values: enum.EnumMeta, char: Characteristic):
         valid_values = valid_values.intersection(set(char.valid_values))
 
     return valid_values
+
+
+def check_pin_format(pin: str) -> None:
+    """
+    Checks the format of the given pin: XXX-XX-XXX with X being a digit from 0 to 9
+
+    :raises MalformedPinError: if the validation fails
+    """
+    if not re.match(r"^\d\d\d-\d\d-\d\d\d$", pin):
+        raise MalformedPinError(
+            "The pin must be of the following XXX-XX-XXX where X is a digit between 0 and 9."
+        )
+
+
+def pair_with_auth(ff: FeatureFlags) -> bool:
+    if ff & FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR:
+        return True
+
+    if ff & FeatureFlags.SUPPORTS_SOFTWARE_AUTHENTICATION:
+        return False
+
+    # We don't know what kind of pairing this is, assume no auth
+    return False

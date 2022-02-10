@@ -12,7 +12,7 @@ async def test_list_accessories(pairing):
     assert accessories[0]["services"][0]["iid"] == 1
 
     char = accessories[0]["services"][0]["characteristics"][0]
-    print(char)
+
     assert char["description"] == "Identify"
     assert char["iid"] == 2
     assert char["format"] == "bool"

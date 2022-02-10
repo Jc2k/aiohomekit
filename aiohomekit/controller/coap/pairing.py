@@ -17,7 +17,7 @@
 import asyncio
 import logging
 
-from aiohomekit.controller.pairing import AbstractPairing
+from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.uuid import normalize_uuid
 
 from .connection import CoAPHomeKitConnection
@@ -34,6 +34,10 @@ class CoAPPairing(AbstractPairing):
         )
         self.connection_lock = asyncio.Lock()
         self.pairing_data = pairing_data
+
+    @property
+    def is_connected(self):
+        return self.connection.is_connected
 
     async def _ensure_connected(self):
         async with self.connection_lock:

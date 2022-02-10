@@ -14,29 +14,29 @@
 # limitations under the License.
 #
 
-from aiohomekit.model.feature_flags import FeatureFlags
+from aiohomekit.controller.abstract import FinishPairing
+from aiohomekit.utils import check_pin_format, pair_with_auth
+from aiohomekit.zeroconf import HomeKitService, ZeroconfDiscovery
 
 from .connection import CoAPHomeKitConnection
 from .pairing import CoAPPairing
 
 
-class CoAPDiscovery:
+class CoAPDiscovery(ZeroconfDiscovery):
 
     """
     A discovered CoAP HAP device that is unpaired.
     """
 
-    def __init__(self, controller, discovery_data):
+    def __init__(self, controller, description: HomeKitService):
+        super().__init__(description)
         self.controller = controller
-        self.host = discovery_data["address"]
-        self.port = discovery_data["port"]
-        self.device_id = discovery_data["id"]
-        self.info = discovery_data
-
-        self.connection = CoAPHomeKitConnection(None, self.host, self.port)
+        self.connection = CoAPHomeKitConnection(
+            None, description.address, description.port
+        )
 
     def __repr__(self):
-        return "CoAPDiscovery(host={self.host}, port={self.port})".format(self=self)
+        return f"CoAPDiscovery(host={self.description.address}, port={self.description.port})"
 
     async def _ensure_connected(self):
         """
@@ -50,29 +50,20 @@ class CoAPDiscovery:
         """
         return
 
-    async def identify(self):
+    async def async_identify(self) -> None:
         return await self.connection.do_identify()
 
-    async def perform_pairing(self, alias, pin):
-        self.controller.check_pin_format(pin)
-        finish_pairing = await self.start_pairing(alias)
-        return await finish_pairing(pin)
+    async def async_start_pairing(self, alias: str) -> FinishPairing:
+        salt, srpB = await self.connection.do_pair_setup(
+            pair_with_auth(self.description.feature_flags)
+        )
 
-    async def start_pairing(self, alias):
-        with_auth = False
-        if self.info["ff"] & FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR:
-            with_auth = True
-        elif self.info["ff"] & FeatureFlags.SUPPORTS_SOFTWARE_AUTHENTICATION:
-            with_auth = False
-
-        salt, srpB = await self.connection.do_pair_setup(with_auth)
-
-        async def finish_pairing(pin):
-            self.controller.check_pin_format(pin)
+        async def finish_pairing(pin: str) -> CoAPPairing:
+            check_pin_format(pin)
 
             pairing = await self.connection.do_pair_setup_finish(pin, salt, srpB)
-            pairing["AccessoryIP"] = self.host
-            pairing["AccessoryPort"] = self.port
+            pairing["AccessoryIP"] = self.description.address
+            pairing["AccessoryPort"] = self.description.port
             pairing["Connection"] = "CoAP"
 
             obj = self.controller.pairings[alias] = CoAPPairing(

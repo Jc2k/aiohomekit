@@ -18,12 +18,16 @@ from __future__ import annotations
 import argparse
 from argparse import ArgumentParser, Namespace
 import asyncio
+import contextlib
 import json
 import locale
 import logging
 import pathlib
 import re
 import sys
+from typing import AsyncIterator
+
+from zeroconf.asyncio import AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheFile
 
@@ -36,17 +40,26 @@ XDG_DATA_HOME = pathlib.Path.home() / ".local" / "share"
 DEFAULT_PAIRING_FILE = XDG_DATA_HOME / "aiohomekit" / "pairing.json"
 
 
-def get_controller(args: argparse.Namespace) -> Controller:
+@contextlib.asynccontextmanager
+async def get_controller(args: argparse.Namespace) -> AsyncIterator[Controller]:
     charmap_path = pathlib.Path(args.file).parent / "charmap.json"
 
-    controller = Controller(char_cache=CharacteristicCacheFile(charmap_path))
+    zeroconf = AsyncZeroconf()
+
+    controller = Controller(
+        async_zeroconf_instance=zeroconf,
+        char_cache=CharacteristicCacheFile(charmap_path),
+    )
+
     try:
         controller.load_data(args.file)
     except Exception:
         logger.exception(f"Error while loading {args.file}")
         raise SystemExit
 
-    return controller
+    async with zeroconf:
+        async with controller:
+            yield controller
 
 
 def pin_from_keyboard():
@@ -92,304 +105,123 @@ def prepare_string(input_string):
     )
 
 
-async def discover_ip(args):
-    controller = get_controller(args)
-    for discovery in await controller.discover_ip(args.timeout):
-        info = discovery.info
+async def discover(args):
+    async with get_controller(args) as controller:
+        await asyncio.sleep(30)
 
-        if args.unpaired_only and info["sf"] == "0":
-            continue
+        async for discovery in controller.async_discover(args.timeout):
+            if args.unpaired_only and not discovery.paired:
+                continue
 
-        print("Name: {name}".format(name=prepare_string(info["name"])))
-        print("Url: hap+ip://{ip}:{port}".format(ip=info["address"], port=info["port"]))
-        print("Configuration number (c#): {conf}".format(conf=info["c#"]))
-        print(
-            "Feature Flags (ff): {f} (Flag: {flags})".format(
-                f=info["flags"], flags=info["ff"]
-            )
-        )
-        print("Device ID (id): {id}".format(id=info["id"]))
-        print("Model Name (md): {md}".format(md=prepare_string(info["md"])))
-        print("Protocol Version (pv): {pv}".format(pv=info["pv"]))
-        print("State Number (s#): {sn}".format(sn=info["s#"]))
-        print(
-            "Status Flags (sf): {sf} (Flag: {flags})".format(
-                sf=info["statusflags"], flags=info["sf"]
-            )
-        )
-        print(
-            "Category Identifier (ci): {c} (Id: {ci})".format(
-                c=info["category"], ci=info["ci"]
-            )
-        )
-        print()
+            desc = discovery.description
 
-    return True
-
-
-async def discover_ble(args):
-    controller = get_controller(args)
-    async for discovery in controller.discover_ble(args.timeout):
-        info = discovery.info
-
-        if args.unpaired_only and info["sf"] == "0":
-            continue
-
-        print("Name: {name}".format(name=prepare_string(info["name"])))
-        print(f"Address: hap+ble://{discovery.address}")
-        print("Configuration number (c#): {conf}".format(conf=info["c#"]))
-        print(
-            "Feature Flags (ff): {f} (Flag: {flags})".format(
-                f=info["flags"], flags=info["ff"]
-            )
-        )
-        print("Device ID (id): {id}".format(id=info["id"]))
-        print("Model Name (md): {md}".format(md=prepare_string(info["md"])))
-        print("Protocol Version (pv): {pv}".format(pv=info["pv"]))
-        print("State Number (s#): {sn}".format(sn=info["s#"]))
-        print(
-            "Status Flags (sf): {sf} (Flag: {flags})".format(
-                sf=info["statusflags"], flags=info["sf"]
-            )
-        )
-        print(
-            "Category Identifier (ci): {c} (Id: {ci})".format(
-                c=info["category"], ci=info["ci"]
-            )
-        )
-        print()
+            print(f"Name: {desc.name}")
+            print(f"Device ID (id): {desc.id}")
+            if hasattr(desc, "model"):
+                print(f"Model Name (md): {desc.model}")
+            if hasattr(desc, "feature_flags"):
+                print(f"Feature Flags (ff): {desc.feature_flags!s}")
+            if desc.status_flags:
+                print(f"Status Flags (sf): {desc.status_flags!s}")
+            print(f"Category (ci): {desc.category!s}")
+            print(f"Configuration number (c#): {desc.config_num}")
+            print(f"State Number (s#): {desc.state_num}")
+            print()
 
     return True
 
 
 async def pair(args):
-    controller = get_controller(args)
+    async with get_controller(args) as controller:
+        if args.alias in controller.pairings:
+            print(f'"{args.alias}" is a already known alias')
+            return False
 
-    if args.alias in controller.get_pairings():
-        print(f'"{args.alias}" is a already known alias')
-        return False
+        discovery = await controller.async_find(args.device)
 
-    discovery = await controller.find_ip_by_device_id(args.device)
+        try:
+            finish_pairing = await discovery.start_pairing(args.alias)
+        except HomeKitException as e:
+            print(str(e))
+            return False
 
-    try:
-        finish_pairing = await discovery.start_pairing(args.alias)
-    except HomeKitException as e:
-        print(str(e))
-        return False
+        pin = args.pin if args.pin else pin_from_keyboard()
 
-    pin = args.pin if args.pin else pin_from_keyboard()
+        try:
+            await finish_pairing(pin)
+        except HomeKitException as e:
+            print(str(e))
+            return False
 
-    try:
-        await finish_pairing(pin)
-    except HomeKitException as e:
-        print(str(e))
-        return False
+        controller.save_data(args.file)
 
-    controller.save_data(args.file)
-
-    print(f'Pairing for "{args.alias}" was established.')
+        print(f'Pairing for "{args.alias}" was established.')
     return True
 
 
 async def get_accessories(args: Namespace) -> bool:
-    controller = get_controller(args)
+    async with get_controller(args) as controller:
 
-    if args.alias not in controller.get_pairings():
-        print(f'"{args.alias}" is no known alias')
-        return False
+        if args.alias not in controller.pairings:
+            print(f'"{args.alias}" is no known alias')
+            return False
 
-    try:
-        pairing = controller.get_pairings()[args.alias]
-        data = await pairing.list_accessories_and_characteristics()
-        controller.save_data(args.file)
-    except Exception:
-        logging.exception("Error whilst fetching /accessories")
-        return False
+        try:
+            pairing = controller.pairings[args.alias]
+            data = await pairing.list_accessories_and_characteristics()
+            controller.save_data(args.file)
+        except Exception:
+            logging.exception("Error whilst fetching /accessories")
+            return False
 
-    # prepare output
-    if args.output == "json":
-        print(json.dumps(data, indent=4))
-    elif args.output == "compact":
-        for accessory in data:
-            aid = accessory["aid"]
-            for service in accessory["services"]:
-                s_type = service["type"]
-                s_iid = service["iid"]
-                print(f"{aid}.{s_iid}: >{s_type}<")
+        # prepare output
+        if args.output == "json":
+            print(json.dumps(data, indent=4))
+        elif args.output == "compact":
+            for accessory in data:
+                aid = accessory["aid"]
+                for service in accessory["services"]:
+                    s_type = service["type"]
+                    s_iid = service["iid"]
+                    print(f"{aid}.{s_iid}: >{s_type}<")
 
-                for characteristic in service["characteristics"]:
-                    c_iid = characteristic["iid"]
-                    value = characteristic.get("value", "")
-                    c_type = characteristic["type"]
-                    perms = ",".join(characteristic["perms"])
-                    desc = characteristic.get("description", "")
-                    print(f"  {aid}.{c_iid}: {value} ({desc}) >{c_type}< [{perms}]")
+                    for characteristic in service["characteristics"]:
+                        c_iid = characteristic["iid"]
+                        value = characteristic.get("value", "")
+                        c_type = characteristic["type"]
+                        perms = ",".join(characteristic["perms"])
+                        desc = characteristic.get("description", "")
+                        print(f"  {aid}.{c_iid}: {value} ({desc}) >{c_type}< [{perms}]")
     return True
 
 
 async def get_characteristics(args: Namespace) -> bool:
-    controller = get_controller(args)
+    async with get_controller(args) as controller:
 
-    if args.alias not in controller.get_pairings():
-        print(f'"{args.alias}" is no known alias')
-        return False
+        if args.alias not in controller.pairings:
+            print(f'"{args.alias}" is no known alias')
+            return False
 
-    pairing = controller.get_pairings()[args.alias]
+        pairing = controller.pairings[args.alias]
 
-    # convert the command line parameters to the required form
-    characteristics = [
-        (int(c.split(".")[0]), int(c.split(".")[1])) for c in args.characteristics
-    ]
-
-    # get the data
-    try:
-        data = await pairing.get_characteristics(
-            characteristics,
-            include_meta=args.meta,
-            include_perms=args.perms,
-            include_type=args.type,
-            include_events=args.events,
-        )
-    except Exception:
-        logging.exception("Error whilst fetching /accessories")
-        return False
-
-    # print the data
-    tmp = {}
-    for k in data:
-        nk = str(k[0]) + "." + str(k[1])
-        tmp[nk] = data[k]
-
-    print(json.dumps(tmp, indent=4))
-    return True
-
-
-async def put_characteristics(args: Namespace) -> bool:
-    controller = get_controller(args)
-
-    if args.alias not in controller.get_pairings():
-        print(f'"{args.alias}" is no known alias')
-        return False
-
-    try:
-        pairing = controller.get_pairings()[args.alias]
-
-        # FIXME use Service.build_update
-
+        # convert the command line parameters to the required form
         characteristics = [
-            (
-                int(c[0].split(".")[0]),  # the first part is the aid, must be int
-                int(c[0].split(".")[1]),  # the second part is the iid, must be int
-                json.loads(c[1]),
-            )
-            for c in args.characteristics
+            (int(c.split(".")[0]), int(c.split(".")[1])) for c in args.characteristics
         ]
-        results = await pairing.put_characteristics(characteristics)
-    except Exception:
-        logging.exception("Unhandled error whilst writing to device")
-        return False
 
-    for key, value in results.items():
-        aid = key[0]
-        iid = key[1]
-        status = value["status"]
-        desc = value["description"]
-        # used to be < 0 but bluetooth le errors are > 0 and only success (= 0) needs to be checked
-        if status != 0:
-            print(
-                "put_characteristics failed on {aid}.{iid} because: {reason} ({code})".format(
-                    aid=aid, iid=iid, reason=desc, code=status
-                )
+        # get the data
+        try:
+            data = await pairing.get_characteristics(
+                characteristics,
+                include_meta=args.meta,
+                include_perms=args.perms,
+                include_type=args.type,
+                include_events=args.events,
             )
-    return True
+        except Exception:
+            logging.exception("Error whilst fetching /accessories")
+            return False
 
-
-async def identify(args: Namespace) -> bool:
-    controller = get_controller(args)
-
-    if args.alias not in controller.get_pairings():
-        print(f'"{args.alias}" is no known alias')
-        return False
-
-    try:
-        pairing = controller.get_pairings()[args.alias]
-        await pairing.identify()
-    except Exception:
-        logging.exception("Unhandled error whilst identifying device")
-        return False
-
-    return True
-
-
-async def list_pairings(args: Namespace) -> bool:
-    controller = get_controller(args)
-
-    if args.alias not in controller.get_pairings():
-        print(f'"{args.alias}" is no known alias')
-        exit(-1)
-
-    pairing = controller.get_pairings()[args.alias]
-    try:
-        pairings = await pairing.list_pairings()
-    except Exception as e:
-        print(e)
-        logging.debug(e, exc_info=True)
-        sys.exit(-1)
-
-    for pairing in pairings:
-        print("Pairing Id: {id}".format(id=pairing["pairingId"]))
-        print("\tPublic Key: 0x{key}".format(key=pairing["publicKey"]))
-        print(
-            "\tPermissions: {perm} ({type})".format(
-                perm=pairing["permissions"], type=pairing["controllerType"]
-            )
-        )
-
-    return True
-
-
-async def remove_pairing(args):
-    controller = get_controller(args)
-
-    if args.alias not in controller.get_pairings():
-        print(f'"{args.alias}" is no known alias')
-        return False
-
-    pairing = controller.get_pairings()[args.alias]
-    await pairing.remove_pairing(args.controllerPairingId)
-    controller.save_data(args.file)
-    print(f'Pairing for "{args.alias}" was removed.')
-    return True
-
-
-async def unpair(args):
-    controller = get_controller(args)
-
-    if args.alias not in controller.get_pairings():
-        print(f'"{args.alias}" is no known alias')
-        return False
-
-    await controller.remove_pairing(args.alias)
-    controller.save_data(args.file)
-    print(f"Device {args.alias} was completely unpaired.")
-    return True
-
-
-async def get_events(args):
-    controller = get_controller(args)
-
-    if args.alias not in controller.get_pairings():
-        print(f'"{args.alias}" is no known alias')
-        return False
-
-    pairing = controller.get_pairings()[args.alias]
-
-    # convert the command line parameters to the required form
-    characteristics = [
-        (int(c.split(".")[0]), int(c.split(".")[1])) for c in args.characteristics
-    ]
-
-    def handler(data):
         # print the data
         tmp = {}
         for k in data:
@@ -398,37 +230,170 @@ async def get_events(args):
 
         print(json.dumps(tmp, indent=4))
 
-    pairing.dispatcher_connect(handler)
+    return True
 
-    results = await pairing.subscribe(characteristics)
-    if results:
+
+async def put_characteristics(args: Namespace) -> bool:
+    async with get_controller(args) as controller:
+
+        if args.alias not in controller.pairings:
+            print(f'"{args.alias}" is no known alias')
+            return False
+
+        try:
+            pairing = controller.pairings[args.alias]
+
+            # FIXME use Service.build_update
+
+            characteristics = [
+                (
+                    int(c[0].split(".")[0]),  # the first part is the aid, must be int
+                    int(c[0].split(".")[1]),  # the second part is the iid, must be int
+                    json.loads(c[1]),
+                )
+                for c in args.characteristics
+            ]
+            results = await pairing.put_characteristics(characteristics)
+        except Exception:
+            logging.exception("Unhandled error whilst writing to device")
+            return False
+
         for key, value in results.items():
             aid = key[0]
             iid = key[1]
             status = value["status"]
             desc = value["description"]
-            if status < 0:
+            # used to be < 0 but bluetooth le errors are > 0 and only success (= 0) needs to be checked
+            if status != 0:
                 print(
-                    "watch failed on {aid}.{iid} because: {reason} ({code})".format(
+                    "put_characteristics failed on {aid}.{iid} because: {reason} ({code})".format(
                         aid=aid, iid=iid, reason=desc, code=status
                     )
                 )
-        return False
-
-    while True:
-        # get the data
-        try:
-            data = await pairing.get_characteristics(
-                characteristics,
-            )
-            handler(data)
-        except Exception:
-            logging.exception("Error whilst fetching /accessories")
-            return False
-
-        await asyncio.sleep(10)
 
     return True
+
+
+async def identify(args: Namespace) -> bool:
+    async with get_controller(args) as controller:
+        if args.alias not in controller.pairings:
+            print(f'"{args.alias}" is no known alias')
+            return False
+
+        try:
+            pairing = controller.pairings[args.alias]
+            await pairing.identify()
+        except Exception:
+            logging.exception("Unhandled error whilst identifying device")
+            return False
+
+    return True
+
+
+async def list_pairings(args: Namespace) -> bool:
+    async with get_controller(args) as controller:
+        if args.alias not in controller.pairings:
+            print(f'"{args.alias}" is no known alias')
+            exit(-1)
+
+        pairing = controller.pairings[args.alias]
+        try:
+            pairings = await pairing.list_pairings()
+        except Exception as e:
+            print(e)
+            logging.debug(e, exc_info=True)
+            sys.exit(-1)
+
+        for pairing in pairings:
+            print("Pairing Id: {id}".format(id=pairing["pairingId"]))
+            print("\tPublic Key: 0x{key}".format(key=pairing["publicKey"]))
+            print(
+                "\tPermissions: {perm} ({type})".format(
+                    perm=pairing["permissions"], type=pairing["controllerType"]
+                )
+            )
+
+    return True
+
+
+async def remove_pairing(args):
+    async with get_controller(args) as controller:
+        if args.alias not in controller.pairings:
+            print(f'"{args.alias}" is no known alias')
+            return False
+
+        pairing = controller.pairings[args.alias]
+        await pairing.remove_pairing(args.controllerPairingId)
+        controller.save_data(args.file)
+        print(f'Pairing for "{args.alias}" was removed.')
+        return True
+
+
+async def unpair(args):
+    async with get_controller(args) as controller:
+        if args.alias not in controller.pairings:
+            print(f'"{args.alias}" is no known alias')
+            return False
+
+        await controller.remove_pairing(args.alias)
+        controller.save_data(args.file)
+        print(f"Device {args.alias} was completely unpaired.")
+        return True
+
+
+async def get_events(args):
+    async with get_controller(args) as controller:
+        if args.alias not in controller.pairings:
+            print(f'"{args.alias}" is no known alias')
+            return False
+
+        pairing = controller.pairings[args.alias]
+
+        # convert the command line parameters to the required form
+        characteristics = [
+            (int(c.split(".")[0]), int(c.split(".")[1])) for c in args.characteristics
+        ]
+
+        def handler(data):
+            # print the data
+            tmp = {}
+            for k in data:
+                nk = str(k[0]) + "." + str(k[1])
+                tmp[nk] = data[k]
+
+            print(json.dumps(tmp, indent=4))
+
+        pairing.dispatcher_connect(handler)
+
+        results = await pairing.subscribe(characteristics)
+        if results:
+            for key, value in results.items():
+                aid = key[0]
+                iid = key[1]
+                status = value["status"]
+                desc = value["description"]
+                if status < 0:
+                    print(
+                        "watch failed on {aid}.{iid} because: {reason} ({code})".format(
+                            aid=aid, iid=iid, reason=desc, code=status
+                        )
+                    )
+            return False
+
+        while True:
+            # get the data
+            try:
+                data = await pairing.get_characteristics(
+                    characteristics,
+                )
+                handler(data)
+            except Exception:
+                logging.exception("Error whilst fetching /accessories")
+                return False
+
+            await asyncio.sleep(10)
+
+        return True
 
 
 def setup_parser_for_pairing(parser: ArgumentParser) -> None:
@@ -465,11 +430,11 @@ async def main(argv: list[str] | None = None) -> None:
         title="available commands", metavar="command [options ...]"
     )
 
-    # discover_ip
+    # discover
     discover_parser = subparsers.add_parser(
-        "discover-ip", help="Find HomeKit devices accessible by LAN/WiFi"
+        "discover", help="Find HomeKit devices accessible from this controller"
     )
-    discover_parser.set_defaults(func=discover_ip)
+    discover_parser.set_defaults(func=discover)
     discover_parser.add_argument(
         "-t",
         action="store",
@@ -484,29 +449,7 @@ async def main(argv: list[str] | None = None) -> None:
         action="store_true",
         required=False,
         dest="unpaired_only",
-        help="If activated, this option will show only unpaired HomeKit IP Devices",
-    )
-
-    # discover_ble
-    discover_parser = subparsers.add_parser(
-        "discover-ble", help="Find HomeKit devices accessible by BLE"
-    )
-    discover_parser.set_defaults(func=discover_ble)
-    discover_parser.add_argument(
-        "-t",
-        action="store",
-        required=False,
-        dest="timeout",
-        type=int,
-        default=30,
-        help="Number of seconds to wait",
-    )
-    discover_parser.add_argument(
-        "-u",
-        action="store_true",
-        required=False,
-        dest="unpaired_only",
-        help="If activated, this option will show only unpaired HomeKit BLE Devices",
+        help="If activated, this option will show only unpaired HomeKit devices",
     )
 
     # pair

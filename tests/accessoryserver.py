@@ -46,7 +46,7 @@ from aiohomekit.exceptions import (
     FormatError,
 )
 from aiohomekit.http import HttpStatusCodes
-from aiohomekit.model import Accessories, Categories
+from aiohomekit.model import Accessories
 from aiohomekit.protocol import TLV
 from aiohomekit.protocol.statuscodes import HapStatusCode
 
@@ -123,7 +123,7 @@ class AccessoryServer(ThreadingMixIn, HTTPServer):
         desc = {
             "md": str(self.data.name),  # model name of accessory
             # category identifier (page 254, 2 means bridge), must be a String
-            "ci": str(Categories[self.data.category]),
+            "ci": 2,
             "pv": "1.0",  # protocol version
             "c#": str(self.data.configuration_number),
             # configuration (consecutive number, 1 or greater, must be changed on every configuration change)
@@ -244,10 +244,6 @@ class AccessoryServerData:
             category = self.data["category"]
         except KeyError:
             raise ConfigurationError(f'category missing in "{self.data_file}"')
-        if category not in Categories:
-            raise ConfigurationError(
-                f'invalid category "{category}" in "{self.data_file}"'
-            )
         return category
 
     def remove_peer(self, pairing_id: bytes):

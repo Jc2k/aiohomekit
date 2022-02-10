@@ -15,49 +15,11 @@
 #
 
 
-class _IpStatusFlags:
-    """
-    Data taken form table 5-9 page 70
-    """
-
-    def __getitem__(self, item: int) -> str:
-        i = int(item)
-        result = []
-        if i & 0x01:
-            result.append("Accessory has not been paired with any controllers.")
-            i = i - 0x01
-        else:
-            result.append("Accessory has been paired.")
-        if i & 0x02:
-            result.append("Accessory has not been configured to join a Wi-Fi network.")
-            i = i - 0x02
-        if i & 0x04:
-            result.append("A problem has been detected on the accessory.")
-            i = i - 0x04
-        if i == 0:
-            return " ".join(result)
-        else:
-            raise KeyError(f"Item {item} not found")
+from enum import IntFlag
 
 
-class _BleStatusFlags:
-    """
-    Data taken form table 6-32 page 125
-    """
+class StatusFlags(IntFlag):
 
-    def __getitem__(self, item):
-        i = int(item)
-        result = []
-        if i & 0x01:
-            result.append("The accessory has not been paired with any controllers.")
-            i = i - 0x01
-        else:
-            result.append("The accessory has been paired with a controllers.")
-        if i == 0:
-            return " ".join(result)
-        else:
-            raise KeyError(f"Item {item} not found")
-
-
-IpStatusFlags = _IpStatusFlags()
-BleStatusFlags = _BleStatusFlags()
+    UNPAIRED = 0x01
+    WIFI_UNCONFIGURED = 0x02
+    PROBLEM_DETECTED = 0x04

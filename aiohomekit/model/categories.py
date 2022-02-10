@@ -14,13 +14,10 @@
 # limitations under the License.
 #
 
+import enum
 
-class _Categories:
-    """
-    This data is taken from Table 12-3 Accessory Categories on page 254. Values above 19 are reserved.
-    Additional categories ( 20-23 pulled from
-    https://github.com/abedinpour/HAS/blob/master/src/categories.ts )
-    """
+
+class Categories(enum.IntFlag):
 
     OTHER = 1
     BRIDGE = 2
@@ -55,63 +52,3 @@ class _Categories:
     TELEVISION = 31
     REMOTE = 32
     ROUTER = 33
-
-    def __init__(self) -> None:
-        self._categories = {
-            _Categories.OTHER: "Other",
-            _Categories.BRIDGE: "Bridge",
-            _Categories.FAN: "Fan",
-            _Categories.GARAGE: "Garage",
-            _Categories.LIGHTBULB: "Lightbulb",
-            _Categories.DOOR_LOCK: "Door Lock",
-            _Categories.OUTLET: "Outlet",
-            _Categories.SWITCH: "Switch",
-            _Categories.THERMOSTAT: "Thermostat",
-            _Categories.SENSOR: "Sensor",
-            _Categories.SECURITY_SYSTEM: "Security System",
-            _Categories.DOOR: "Door",
-            _Categories.WINDOW: "Window",
-            _Categories.WINDOW_COVERING: "Window Covering",
-            _Categories.PROGRAMMABLE_SWITCH: "Programmable Switch",
-            _Categories.RANGE_EXTENDER: "Range Extender",
-            _Categories.IP_CAMERA: "IP Camera",
-            _Categories.VIDEO_DOOR_BELL: "Video Door Bell",
-            _Categories.AIR_PURIFIER: "Air Purifier",
-            _Categories.HEATER: "Heater",
-            _Categories.AIR_CONDITIONER: "Air Conditioner",
-            _Categories.HUMIDIFIER: "Humidifier",
-            _Categories.DEHUMIDIFER: "Dehumidifier",
-            _Categories.APPLE_TV: "Apple TV",
-            _Categories.HOMEPOD: "HomePod",
-            _Categories.SPEAKER: "Speaker",
-            _Categories.AIRPORT: "AirPort",
-            _Categories.SPRINKLER: "Sprinkler",
-            _Categories.FAUCET: "Faucet",
-            _Categories.SHOWER_HEAD: "Shower Head",
-            _Categories.TELEVISION: "Television",
-            _Categories.REMOTE: "Remote",
-            _Categories.ROUTER: "Router",
-        }
-
-        self._categories_rev = {self._categories[k]: k for k in self._categories.keys()}
-
-    def __contains__(self, item):
-        if item in self._categories:
-            return True
-
-        if item in self._categories_rev:
-            return True
-
-        return False
-
-    def __getitem__(self, item: int) -> str:
-        if item in self._categories:
-            return self._categories[item]
-
-        if item in self._categories_rev:
-            return self._categories_rev[item]
-
-        return "Unknown"
-
-
-Categories = _Categories()
