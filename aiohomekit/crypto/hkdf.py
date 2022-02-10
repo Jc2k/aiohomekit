@@ -21,12 +21,12 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 backend = default_backend()
 
 
-def hkdf_derive(input: bytes, salt: str, info: str) -> bytes:
+def hkdf_derive(input: bytes, salt: bytes, info: bytes, length: int = 32) -> bytes:
     hkdf = HKDF(
         algorithm=hashes.SHA512(),
-        length=32,
-        salt=salt.encode(),
-        info=info.encode(),
+        length=length,
+        salt=salt,
+        info=info,
         backend=backend,
     )
     return hkdf.derive(input)

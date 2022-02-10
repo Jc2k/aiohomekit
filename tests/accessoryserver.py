@@ -932,7 +932,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 6) derive session key
             session_key = hkdf_derive(
-                shared_secret, "Pair-Verify-Encrypt-Salt", "Pair-Verify-Encrypt-Info"
+                shared_secret, b"Pair-Verify-Encrypt-Salt", b"Pair-Verify-Encrypt-Info"
             )
             self.server.sessions[self.session_id]["session_key"] = session_key
 
@@ -1027,7 +1027,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             shared_secret = self.server.sessions[self.session_id]["shared_secret"]
 
             controller_to_accessory_key = hkdf_derive(
-                shared_secret, "Control-Salt", "Control-Write-Encryption-Key"
+                shared_secret, b"Control-Salt", b"Control-Write-Encryption-Key"
             )
             self.server.sessions[self.session_id][
                 "controller_to_accessory_key"
@@ -1035,7 +1035,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             self.server.sessions[self.session_id]["controller_to_accessory_count"] = 0
 
             accessory_to_controller_key = hkdf_derive(
-                shared_secret, "Control-Salt", "Control-Read-Encryption-Key"
+                shared_secret, b"Control-Salt", b"Control-Read-Encryption-Key"
             )
             self.server.sessions[self.session_id][
                 "accessory_to_controller_key"
@@ -1356,8 +1356,8 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             session_key = hkdf_derive(
                 SrpServer.to_byte_array(server.get_session_key()),
-                "Pair-Setup-Encrypt-Salt",
-                "Pair-Setup-Encrypt-Info",
+                b"Pair-Setup-Encrypt-Salt",
+                b"Pair-Setup-Encrypt-Info",
             )
             self.server.sessions[self.session_id]["session_key"] = session_key
 
@@ -1449,8 +1449,8 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             ios_device_x = hkdf_derive(
                 SrpServer.to_byte_array(shared_secret),
-                "Pair-Setup-Controller-Sign-Salt",
-                "Pair-Setup-Controller-Sign-Info",
+                b"Pair-Setup-Controller-Sign-Salt",
+                b"Pair-Setup-Controller-Sign-Info",
             )
 
             # 4) construct ios_device_info
@@ -1505,8 +1505,8 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 2) derive AccessoryX
             accessory_x = hkdf_derive(
                 SrpServer.to_byte_array(shared_secret),
-                "Pair-Setup-Accessory-Sign-Salt",
-                "Pair-Setup-Accessory-Sign-Info",
+                b"Pair-Setup-Accessory-Sign-Salt",
+                b"Pair-Setup-Accessory-Sign-Info",
             )
 
             # 3)

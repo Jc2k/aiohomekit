@@ -242,14 +242,14 @@ def perform_pair_setup_part2(
     #   Pair-Setup-Encrypt-Info instead of Pair-Setup-Controller-Sign-Info
     ios_device_x = hkdf_derive(
         SrpClient.to_byte_array(session_key),
-        "Pair-Setup-Controller-Sign-Salt",
-        "Pair-Setup-Controller-Sign-Info",
+        b"Pair-Setup-Controller-Sign-Salt",
+        b"Pair-Setup-Controller-Sign-Info",
     )
 
     session_key = hkdf_derive(
         SrpClient.to_byte_array(session_key),
-        "Pair-Setup-Encrypt-Salt",
-        "Pair-Setup-Encrypt-Info",
+        b"Pair-Setup-Encrypt-Salt",
+        b"Pair-Setup-Encrypt-Info",
     )
 
     # if TLV.kTLVType_EncryptedData in response_tlv:
@@ -323,8 +323,8 @@ def perform_pair_setup_part2(
 
     accessory_x = hkdf_derive(
         SrpClient.to_byte_array(srp_client.get_session_key()),
-        "Pair-Setup-Accessory-Sign-Salt",
-        "Pair-Setup-Accessory-Sign-Info",
+        b"Pair-Setup-Accessory-Sign-Salt",
+        b"Pair-Setup-Accessory-Sign-Info",
     )
 
     accessory_info = accessory_x + accessory_pairing_id + accessory_ltpk
@@ -350,8 +350,89 @@ def perform_pair_setup_part2(
     }
 
 
+def resume_m1(
+    session_id: bytes, pub_key: bytes, derive: Callable[[bytes, bytes], bytes]
+) -> list[tuple[int, bytes]]:
+    request_key = derive(
+        pub_key + session_id,
+        b"Pair-Resume-Request-Info",
+    )
+
+    logger.debug("resume request key: %s", request_key)
+
+    auth_tag = chacha20_aead_encrypt(
+        bytes(),
+        request_key,
+        b"PR-Msg01",
+        bytes([0, 0, 0, 0]),
+        b"",
+    )
+
+    logger.debug("auth tag: %s", auth_tag)
+
+    return [
+        (TLV.kTLVType_State, TLV.M1),
+        (TLV.kTLVType_Method, TLV.kTLVMethod_Resume.to_bytes(1, "little")),
+        (TLV.kTLVType_PublicKey, pub_key),
+        (TLV.kTLVType_SessionID, session_id),
+        (TLV.kTLVType_EncryptedData, auth_tag),
+    ]
+
+
+def resume_m3(
+    pub_key: bytes, derive: Callable[[bytes, bytes], bytes], response: dict[int, bytes]
+) -> Callable[[bytes, bytes], bytes] | None:
+    if (
+        int.from_bytes(response.get(TLV.kTLVType_Method), "little")
+        != TLV.kTLVMethod_Resume
+    ):
+        logger.debug("M3: Failure to resume existing session: Method != Resume")
+        return None
+
+    if not (session_id := response.get(TLV.kTLVType_SessionID)):
+        logger.debug("M3: Failure to resume existing session: No session id present")
+        return None
+
+    if not (auth_tag := response.get(TLV.kTLVType_EncryptedData)):
+        logger.debug("M3: Failure to resume existing session: No auth tag present")
+        return None
+
+    response_key = derive(
+        pub_key + session_id,
+        b"Pair-Resume-Response-Info",
+    )
+
+    plaintext = chacha20_aead_decrypt(
+        bytes(),
+        response_key,
+        b"PR-Msg02",
+        bytes([0, 0, 0, 0]),
+        auth_tag,
+    )
+
+    if plaintext != b"":
+        logger.debug(
+            "M3: Failure to resume existing session: Could not decrypt kTLVType_EncryptedData"
+        )
+        return None
+
+    shared_secret = derive(
+        pub_key + session_id,
+        b"Pair-Resume-Shared-Secret-Info",
+    )
+
+    def derive(salt: bytes, info: bytes, length: int = 32) -> bytes:
+        return hkdf_derive(shared_secret, salt, info, length=length)
+
+    logger.debug("M3: Resume exchange success")
+
+    return session_id, derive
+
+
 def get_session_keys(
-    pairing_data: dict[str, str | int | list[Any]]
+    pairing_data: dict[str, str | int | list[Any]],
+    session_id=None,
+    derive=None,
 ) -> Generator[
     (
         tuple[list[tuple[int, bytearray] | tuple[int, bytes]], list[int]]
@@ -380,6 +461,10 @@ def get_session_keys(
 
     request_tlv = [(TLV.kTLVType_State, TLV.M1), (TLV.kTLVType_PublicKey, ios_key_pub)]
 
+    # If session_id is provided we can request that the accessory resumes it
+    if session_id and derive:
+        request_tlv = resume_m1(session_id, ios_key_pub, derive)
+
     step2_expectations = [
         TLV.kTLVType_State,
         TLV.kTLVType_PublicKey,
@@ -392,6 +477,10 @@ def get_session_keys(
     #
     response_tlv = dict(response_tlv)
     handle_state_step(response_tlv, TLV.M2)
+
+    # Check for kTLVMethod_Resume - we might be able to shortcut the pair-verify
+    if derive and (response := resume_m3(ios_key_pub, derive, response_tlv)):
+        return response
 
     if TLV.kTLVType_PublicKey not in response_tlv:
         raise InvalidError("M2: Missing public key")
@@ -408,7 +497,7 @@ def get_session_keys(
 
     # 2) derive session key
     session_key = hkdf_derive(
-        shared_secret, "Pair-Verify-Encrypt-Salt", "Pair-Verify-Encrypt-Info"
+        shared_secret, b"Pair-Verify-Encrypt-Salt", b"Pair-Verify-Encrypt-Info"
     )
 
     # 3) verify auth tag on encrypted data and 4) decrypt
@@ -495,7 +584,13 @@ def get_session_keys(
     handle_state_step(response_tlv, TLV.M4)
 
     # return function to calculate session keys
-    def derive(salt, info):
-        return hkdf_derive(shared_secret, salt, info)
+    def derive(salt: bytes, info: bytes, length: int = 32) -> bytes:
+        return hkdf_derive(shared_secret, salt, info, length=length)
 
-    return derive
+    session_id = derive(
+        b"Pair-Verify-ResumeSessionID-Salt",
+        b"Pair-Verify-ResumeSessionID-Info",
+        length=8,
+    )
+
+    return session_id, derive

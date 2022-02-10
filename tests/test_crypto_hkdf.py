@@ -3,7 +3,7 @@ from aiohomekit.crypto import hkdf_derive
 
 def test_derive():
     material = hkdf_derive(
-        b"1" * 32, "Pair-Verify-Encrypt-Salt", "Pair-Verify-Encrypt-Info"
+        b"1" * 32, b"Pair-Verify-Encrypt-Salt", b"Pair-Verify-Encrypt-Info"
     )
 
     assert material == (

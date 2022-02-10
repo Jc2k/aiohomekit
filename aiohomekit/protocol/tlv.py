@@ -105,7 +105,7 @@ class TLV:
     kTLVError_Busy = bytearray(b"\x07")
 
     # Table 6-27 page 116
-    kTLVMethod_Resume = 0x07
+    kTLVMethod_Resume = 0x06
 
     @staticmethod
     def decode_bytes(bs: bytearray | bytes, expected: list[int] | None = None) -> list:

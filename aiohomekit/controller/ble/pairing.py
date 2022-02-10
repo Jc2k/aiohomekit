@@ -78,6 +78,9 @@ class BlePairing(AbstractPairing):
 
         self.pairing_data = pairing_data
 
+        self._session_id = None
+        self._derive = None
+
     @property
     def is_connected(self) -> bool:
         return self.client.is_connected and self._encryption_key
@@ -126,17 +129,21 @@ class BlePairing(AbstractPairing):
             await self._async_pair_verify()
 
     async def _async_pair_verify(self):
-        derive = await drive_pairing_state_machine(
+        session_id, derive = await drive_pairing_state_machine(
             self.client,
             CharacteristicsTypes.PAIR_VERIFY,
-            get_session_keys(self.pairing_data),
+            get_session_keys(self.pairing_data, self._session_id, self._derive),
         )
         self._encryption_key = EncryptionKey(
-            derive("Control-Salt", "Control-Write-Encryption-Key")
+            derive(b"Control-Salt", b"Control-Write-Encryption-Key")
         )
         self._decryption_key = DecryptionKey(
-            derive("Control-Salt", "Control-Read-Encryption-Key")
+            derive(b"Control-Salt", b"Control-Read-Encryption-Key")
         )
+
+        # Used for session resume
+        self._session_id = session_id
+        self._derive = derive
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         accessory = Accessory()
