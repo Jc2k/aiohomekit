@@ -26,7 +26,7 @@ class CoAPController(ZeroconfController):
         if not (hkid := pairing_data.get("AccessoryPairingID")):
             return None
 
-        pairing = self.pairings[hkid] = CoAPPairing(self, pairing_data)
+        pairing = self.pairings[hkid.lower()] = CoAPPairing(self, pairing_data)
         self.aliases[alias] = pairing
 
         return pairing

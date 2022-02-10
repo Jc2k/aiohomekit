@@ -128,7 +128,7 @@ class Controller(AbstractController):
 
         for transport in self._transports:
             if pairing := transport.load_pairing(alias, pairing_data):
-                self.pairings[pairing_data["AccessoryPairingID"]] = pairing
+                self.pairings[pairing_data["AccessoryPairingID"].lower()] = pairing
                 self.aliases[alias] = pairing
                 return pairing
 

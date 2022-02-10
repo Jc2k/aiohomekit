@@ -46,6 +46,9 @@ class AbstractPairing(metaclass=ABCMeta):
         self.listeners = set()
         self.subscriptions = set()
 
+    def _async_description_update(self, description: AbstractDescription | None):
+        self.description = description
+
     @abstractmethod
     async def close(self):
         pass
