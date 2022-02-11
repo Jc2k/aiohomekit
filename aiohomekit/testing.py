@@ -281,7 +281,10 @@ class FakeController(Controller):
         return self.discoveries.values()
 
     async def find_ip_by_device_id(self, device_id, max_seconds=10):
-        return self.discoveries[device_id]
+        try:
+            return self.discoveries[device_id]
+        except KeyError:
+            raise AccessoryNotFoundError(device_id)
 
     async def remove_pairing(self, alias: str) -> None:
         del self.pairings[alias]
