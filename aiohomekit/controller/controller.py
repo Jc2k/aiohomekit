@@ -54,6 +54,19 @@ class Controller:
         self.ble_adapter = ble_adapter
         self.logger = logging.getLogger(__name__)
 
+    async def async_start(self) -> None:
+        pass
+
+    async def async_stop(self) -> None:
+        pass
+
+    async def __aenter__(self) -> "Controller":
+        await self.async_start()
+        return self
+
+    async def __aexit__(self, *args) -> None:
+        await self.async_stop()
+
     async def discover_ip(self, max_seconds=10):
         """
         Perform a Bonjour discovery for HomeKit accessory. The discovery will last for the given amount of seconds. The
