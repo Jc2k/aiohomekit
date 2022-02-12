@@ -20,6 +20,7 @@ from json.decoder import JSONDecodeError
 import logging
 import pathlib
 import re
+from typing import AsyncIterable
 
 from ..const import BLE_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
 from ..exceptions import (
@@ -66,6 +67,14 @@ class Controller:
 
     async def __aexit__(self, *args) -> None:
         await self.async_stop()
+
+    async def async_discover(self, max_seconds: int = 10) -> AsyncIterable[IpDiscovery]:
+        discoveries = self.discover_ip(max_seconds)
+        for discovery in discoveries:
+            yield discovery
+
+    async def async_find(self, device_id, max_seconds=10) -> IpDiscovery:
+        return await self.find_ip_by_device_id(device_id, max_seconds)
 
     async def discover_ip(self, max_seconds=10):
         """

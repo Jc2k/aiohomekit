@@ -290,14 +290,21 @@ class FakeController(Controller):
         finish_pairing = await discovery.start_pairing(alias or discovery.device_id)
         return await finish_pairing(discovery.pairing_code)
 
-    async def discover_ip(self, max_seconds: int = 10):
-        return self.discoveries.values()
+    async def async_discover(self, max_seconds: int = 10):
+        for discovery in self.discoveries.values():
+            yield discovery
 
-    async def find_ip_by_device_id(self, device_id, max_seconds=10):
+    async def async_find(self, device_id, max_seconds=10):
         try:
             return self.discoveries[device_id]
         except KeyError:
             raise AccessoryNotFoundError(device_id)
+
+    async def discover_ip(self, max_seconds: int = 10):
+        return await self.discoveries.values()
+
+    async def find_ip_by_device_id(self, device_id, max_seconds=10):
+        return await self.async_find(device_id)
 
     async def remove_pairing(self, alias: str) -> None:
         del self.pairings[alias]
