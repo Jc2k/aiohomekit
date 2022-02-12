@@ -73,7 +73,7 @@ class FakeDiscovery:
         return await finish_pairing(pin)
 
     async def async_start_pairing(self, alias: str):
-        return await self.async_start_pairing(alias)
+        return await self.start_pairing(alias)
 
     async def start_pairing(self, alias: str):
         if self.device_id in self.controller.pairings:
