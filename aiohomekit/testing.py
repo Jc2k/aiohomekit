@@ -100,6 +100,7 @@ class FakeDiscovery:
     async def async_identify(self):
         return True
 
+
 class PairingTester:
     """
     A holding class for test-only helpers.
