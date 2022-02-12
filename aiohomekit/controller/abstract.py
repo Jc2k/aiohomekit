@@ -49,6 +49,14 @@ class AbstractPairing(metaclass=ABCMeta):
     def _async_description_update(self, description: AbstractDescription | None):
         self.description = description
 
+    @property
+    @abstractmethod
+    def is_connected(self) -> bool:
+        """
+        Returns true if the device is currently connected.
+        """
+        pass
+
     @abstractmethod
     async def close(self):
         pass

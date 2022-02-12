@@ -79,7 +79,7 @@ class IpPairing(AbstractPairing):
         self.supports_subscribe = True
 
     @property
-    def is_connected(self):
+    def is_connected(self) -> bool:
         return self.connection.is_connected
 
     def event_received(self, event):
