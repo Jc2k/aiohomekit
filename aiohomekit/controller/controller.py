@@ -212,3 +212,6 @@ class Controller(AbstractController):
 
         self.aliases.pop(alias, None)
         pairing.controller.aliases.pop(alias, None)
+
+        self.pairings.pop(pairing.id, None)
+        pairing.controller.pairings.pop(pairing.id, None)

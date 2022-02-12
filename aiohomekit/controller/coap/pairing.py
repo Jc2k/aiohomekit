@@ -29,6 +29,8 @@ class CoAPPairing(AbstractPairing):
     def __init__(self, controller, pairing_data):
         super().__init__(controller)
 
+        self.id = pairing_data["AccessoryPairingID"]
+
         self.connection = CoAPHomeKitConnection(
             self, pairing_data["AccessoryIP"], pairing_data["AccessoryPort"]
         )

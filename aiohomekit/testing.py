@@ -88,6 +88,7 @@ class FakeDiscovery(AbstractDiscovery):
             pairing_data = {}
             # pairing_data["AccessoryIP"] = self.address
             # pairing_data["AccessoryPort"] = self.port
+            pairing_data["AccessoryPairingID"] = "00:00:00:00:00:00"
             pairing_data["Connection"] = "Fake"
 
             obj = FakePairing(self.controller, pairing_data, self.accessories)
@@ -197,8 +198,10 @@ class FakePairing(AbstractPairing):
         """Create a fake pairing from an accessory model."""
         super().__init__(controller)
 
+        self.id = pairing_data["AccessoryPairingID"]
+
         self.accessories = accessories
-        self.pairing_data: dict[str, AbstractPairing] = {}
+        self.pairing_data: dict[str, str] = {}
         self.available = True
 
         self.testing = PairingTester(self)
@@ -308,6 +311,7 @@ class FakeController(AbstractController):
             raise AccessoryNotFoundError(device_id)
 
     async def remove_pairing(self, alias: str) -> None:
+        del self.pairings[self.aliases[alias]].id
         del self.aliases[alias]
 
     def load_pairing(self, alias: str, pairing_data):

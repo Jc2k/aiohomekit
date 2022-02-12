@@ -85,9 +85,10 @@ class BlePairing(AbstractPairing):
 
     def __init__(self, controller: BleController, pairing_data):
         super().__init__(controller)
-        self.pairing_id = pairing_data["AccessoryPairingID"]
 
-        if cache := self.controller._char_cache.get_map(self.pairing_id):
+        self.id = pairing_data["AccessoryPairingID"]
+
+        if cache := self.controller._char_cache.get_map(self.id):
             self._accessories = Accessories.from_list(cache["accessories"])
 
         self.pairing_data = pairing_data
@@ -164,7 +165,7 @@ class BlePairing(AbstractPairing):
         if not self._accessories:
             self._accessories = await self._async_fetch_gatt_database()
             self.controller._char_cache.async_create_or_update_map(
-                self.pairing_id,
+                self.id,
                 0,
                 self._accessories.serialize(),
             )

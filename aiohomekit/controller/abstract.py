@@ -41,6 +41,10 @@ class AbstractPairing(metaclass=ABCMeta):
     # This can be used to detect address changes, s# changes, c# changes, etc
     description: AbstractDescription | None = None
 
+    # The normalised (lower case) form of the device id (as seen in zeroconf
+    # and BLE advertisements), and also as AccessoryPairingID i pairing data.
+    id: str
+
     def __init__(self, controller):
         self.controller = controller
         self.listeners = set()
