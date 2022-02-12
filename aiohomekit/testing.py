@@ -191,14 +191,24 @@ class FakePairing(AbstractPairing):
         """Create a fake pairing from an accessory model."""
         super().__init__(controller)
 
-        self.connection = HomeKitConnection(None, "fake_host", 1234)
+        class MockConnection(HomeKitConnection):
+            @property
+            def is_connected(self):
+                raise ValueError("This attribute is removed")
+
+        self.connection = MockConnection(None, "fake_host", 1234)
         self.connection.transport = "mock_transport"
         self.connection.protocol = "mock_protocol"
+
         self.accessories = accessories
         self.pairing_data: dict[str, AbstractPairing] = {}
         self.available = True
 
         self.testing = PairingTester(self)
+
+    @property
+    def is_connected(self):
+        return True
 
     async def close(self):
         pass

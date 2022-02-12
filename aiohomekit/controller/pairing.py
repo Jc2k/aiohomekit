@@ -23,6 +23,14 @@ class AbstractPairing(abc.ABC):
         self.listeners = set()
         self.subscriptions = set()
 
+    @property
+    @abc.abstractmethod
+    def is_connected(self) -> bool:
+        """
+        Returns true if the device is currently connected.
+        """
+        pass
+
     @abc.abstractmethod
     async def close(self):
         """
