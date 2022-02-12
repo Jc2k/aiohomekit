@@ -57,6 +57,9 @@ class IpDiscovery:
         finish_pairing = await self.start_pairing(alias)
         return await finish_pairing(pin)
 
+    async def async_start_pairing(self, alias: str):
+        return await self.start_pairing(alias)
+
     async def start_pairing(self, alias):
         await self._ensure_connected()
 
@@ -113,6 +116,9 @@ class IpDiscovery:
             return obj
 
         return finish_pairing
+
+    async def async_identify(self):
+        await self.identify()
 
     async def identify(self):
         await self._ensure_connected()
