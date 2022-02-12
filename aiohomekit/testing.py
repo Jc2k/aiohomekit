@@ -196,7 +196,7 @@ class FakePairing(AbstractPairing):
             def is_connected(self) -> bool:
                 raise ValueError("This attribute is removed")
 
-            def reconnect_soon(self) -> None:
+            async def reconnect_soon(self) -> None:
                 pass
 
         self.connection = MockConnection(None, "fake_host", 1234)
