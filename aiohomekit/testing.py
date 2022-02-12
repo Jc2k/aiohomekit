@@ -72,6 +72,9 @@ class FakeDiscovery:
         finish_pairing = await self.start_pairing(alias)
         return await finish_pairing(pin)
 
+    async def async_start_pairing(self, alias: str):
+        return await self.async_start_pairing(alias)
+
     async def start_pairing(self, alias: str):
         if self.device_id in self.controller.pairings:
             raise exceptions.AlreadyPairedError(f"{self.device_id} already paired")
@@ -94,6 +97,8 @@ class FakeDiscovery:
     async def identify(self):
         return True
 
+    async def async_identify(self):
+        return True
 
 class PairingTester:
     """
