@@ -69,12 +69,23 @@ class BlePairing(AbstractPairing):
     _encryption_key: EncryptionKey | None = None
     _decryption_key: DecryptionKey | None = None
 
+    client: BleakClient | None = None
+
+    # Used to keep track of which characteristics we already started
+    # notifications for
+    _notifications: set[int]
+
+    # We don't want to read/write from characteristics in parallel
+    # * If 2 coroutines read from the same char at the same time there
+    #   would be a race error - a read result could be overwritten by another.
+    # * The enc/dec counters are global. Therefore our API's for
+    #   a read/write need to be atomic otherwise we end up having
+    #   to guess what encryption counter to use for the decrypt
+    _lock: asyncio.Lock
+
     def __init__(self, controller: BleController, pairing_data):
         super().__init__(controller)
         self.pairing_id = pairing_data["AccessoryPairingID"]
-
-        self.client = BleakClient(pairing_data["AccessoryAddress"])
-        self.client.set_disconnected_callback(self._async_disconnected)
 
         if cache := self.controller._char_cache.get_map(self.pairing_id):
             self._accessories = Accessories.from_list(cache["accessories"])
@@ -83,6 +94,9 @@ class BlePairing(AbstractPairing):
 
         self._session_id = None
         self._derive = None
+
+        self._notifications = set()
+        self._lock = asyncio.Lock()
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         if description and self.description:
@@ -125,26 +139,27 @@ class BlePairing(AbstractPairing):
         )
 
     def _async_disconnected(self, *args, **kwargs):
-        print("DISCONNECT", *args, **kwargs)
+        logger.debug("Session closed")
 
     async def _ensure_connected(self):
-        while not self.client.is_connected:
-            # If connection is lost, make sure we re-do session
-            self._encryption_key = None
-            self._decryption_key = None
-
-            if self.description and self.client.address != self.description.address:
+        while not self.client or not self.client.is_connected:
+            if self.client:
                 await self.close()
 
-                self.client = BleakClient(self.description.address)
-                self.client.set_disconnected_callback(self._async_disconnected)
+            if self.description:
+                address = self.description.address
+            else:
+                address = self.pairing_data["AccessoryAddress"]
+
+            self.client = BleakClient(address)
+            self.client.set_disconnected_callback(self._async_disconnected)
 
             try:
                 await self.client.connect()
             except BleakError as e:
                 logger.debug("Failed to connect to %s: %s", self.client.address, str(e))
-
-            await asyncio.sleep(5)
+                self.client = None
+                await asyncio.sleep(5)
 
         if not self._accessories:
             self._accessories = await self._async_fetch_gatt_database()
@@ -156,6 +171,33 @@ class BlePairing(AbstractPairing):
 
         if not self._encryption_key:
             await self._async_pair_verify()
+
+        for (aid, iid) in self.subscriptions:
+            if iid not in self._notifications:
+                await self._async_start_notify(iid)
+
+    async def _async_start_notify(self, iid: int) -> None:
+        if not self._accessories:
+            return
+
+        char = self._accessories.aid(1).characteristics.iid(iid)
+
+        # Find the GATT Characteristic object for this iid
+        service = self.client.services.get_service(char.service.type)
+        endpoint = service.get_characteristic(char.type)
+
+        async def _async_callback() -> None:
+            logger.debug("Retrieving event for iid: %s", iid)
+            results = await self.get_characteristics([(1, iid)])
+            for listener in self.listeners:
+                listener(results)
+
+        def _callback(id, data) -> None:
+            async_create_task(_async_callback())
+
+        logger.debug("Subscribing to iid: %s", iid)
+        await self.client.start_notify(endpoint, _callback)
+        self._notifications.add(iid)
 
     async def _async_pair_verify(self):
         session_id, derive = await drive_pairing_state_machine(
@@ -227,18 +269,21 @@ class BlePairing(AbstractPairing):
         return accessories
 
     async def close(self):
-        if self.client and self.client.is_connected:
+        if self.client:
             await self.client.disconnect()
+            self.client = None
+            self._notifications = set()
+
+        self._encryption_key = None
+        self._decryption_key = None
 
     async def list_accessories_and_characteristics(self):
-        await self._ensure_connected()
-
+        async with self._lock:
+            await self._ensure_connected()
         results = self._accessories.serialize()
         return results
 
     async def list_pairings(self):
-        await self._ensure_connected()
-
         request_tlv = TLV.encode_list(
             [(TLV.kTLVType_State, TLV.M1), (TLV.kTLVType_Method, TLV.ListPairings)]
         )
@@ -254,7 +299,9 @@ class BlePairing(AbstractPairing):
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
 
-        resp = await self._async_request(OpCode.CHAR_WRITE, char.iid, request_tlv)
+        async with self._lock:
+            await self._ensure_connected()
+            resp = await self._async_request(OpCode.CHAR_WRITE, char.iid, request_tlv)
 
         response = dict(TLV.decode_bytes(resp))
 
@@ -290,9 +337,9 @@ class BlePairing(AbstractPairing):
             data = dict(TLV.decode_bytes(data))[1]
 
             char = self._accessories.aid(1).characteristics.iid(iid)
-            results[(aid, iid)] = from_bytes(char, data)
+            results[(aid, iid)] = {"value": from_bytes(char, data)}
 
-        return {}
+        return results
 
     async def put_characteristics(
         self, characteristics: list[tuple[int, int, Any]]
@@ -322,24 +369,27 @@ class BlePairing(AbstractPairing):
         return results
 
     async def subscribe(self, characteristics):
-        pass
+        await super().subscribe(characteristics)
+        async with self._lock:
+            await self._ensure_connected()
 
     async def unsubscribe(self, characteristics):
         pass
 
     async def identify(self):
-        await self._ensure_connected()
+        async with self._lock:
+            await self._ensure_connected()
 
-        info = self._accessories.aid(1).services.first(
-            service_type=ServicesTypes.ACCESSORY_INFORMATION
-        )
-        char = info[CharacteristicsTypes.IDENTIFY]
+            info = self._accessories.aid(1).services.first(
+                service_type=ServicesTypes.ACCESSORY_INFORMATION
+            )
+            char = info[CharacteristicsTypes.IDENTIFY]
 
-        await self.put_characteristics(
-            [
-                (1, char.iid, True),
-            ]
-        )
+            await self.put_characteristics(
+                [
+                    (1, char.iid, True),
+                ]
+            )
 
     async def add_pairing(
         self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
