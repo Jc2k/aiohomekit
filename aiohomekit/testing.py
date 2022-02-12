@@ -88,12 +88,13 @@ class FakeDiscovery(AbstractDiscovery):
             pairing_data = {}
             # pairing_data["AccessoryIP"] = self.address
             # pairing_data["AccessoryPort"] = self.port
-            pairing_data["AccessoryPairingID"] = "00:00:00:00:00:00"
+            pairing_data["AccessoryPairingID"] = discovery.description.id
             pairing_data["Connection"] = "Fake"
 
             obj = FakePairing(self.controller, pairing_data, self.accessories)
             self.controller.aliases[alias] = obj
-            self.controller.pairings[self.description.id] = obj
+            self.controller.pairings[discovery.description.id] = obj
+
             return obj
 
         return finish_pairing
@@ -311,7 +312,7 @@ class FakeController(AbstractController):
             raise AccessoryNotFoundError(device_id)
 
     async def remove_pairing(self, alias: str) -> None:
-        del self.pairings[self.aliases[alias]].id
+        del self.pairings[self.aliases[alias].id]
         del self.aliases[alias]
 
     def load_pairing(self, alias: str, pairing_data):
