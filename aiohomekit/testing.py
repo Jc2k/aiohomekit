@@ -253,7 +253,7 @@ class FakePairing(AbstractPairing):
         self.testing.update_aid_iid(filtered)
         return results
 
-    async def image(self, accessory, width, height):
+    async def image(self, accessory: int, width: int, height: int) -> bytes:
         return base64.b64decode(FAKE_CAMERA_IMAGE)
 
 

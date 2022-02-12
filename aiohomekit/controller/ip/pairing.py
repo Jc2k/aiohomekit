@@ -428,7 +428,7 @@ class IpPairing(AbstractPairing):
 
         return True
 
-    async def image(self, accessory, width, height):
+    async def image(self, accessory: int, width: int, height: int) -> bytes:
         await self._ensure_connected()
 
         try:
