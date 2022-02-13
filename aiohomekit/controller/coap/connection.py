@@ -454,7 +454,7 @@ class CoAPHomeKitConnection:
                         )
                     else:
                         # characteristic wasn't readable
-                        logger.warning(
+                        logger.debug(
                             "Failed to read %X.%X iid %d"
                             % (
                                 service.type,
@@ -472,7 +472,7 @@ class CoAPHomeKitConnection:
         for (idx, result) in enumerate(pdu_results):
             aid_iid = ids[idx]
             if isinstance(result, PDUStatus):
-                logger.warning(
+                logger.debug(
                     "Failed to read aid %d iid %d" % (int(aid_iid[0]), int(aid_iid[1]))
                 )
                 results[aid_iid] = {
