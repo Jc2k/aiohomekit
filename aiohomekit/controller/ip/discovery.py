@@ -14,9 +14,11 @@
 # limitations under the License.
 #
 
+from dataclasses import dataclass
 import uuid
 
 from aiohomekit.exceptions import AlreadyPairedError
+from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
 from aiohomekit.protocol.statuscodes import to_status_code
@@ -25,11 +27,35 @@ from .connection import HomeKitConnection
 from .pairing import IpPairing
 
 
+@dataclass
+class HomeKitService:
+
+    # This is discovery data from zeroconf
+
+    name: str
+    id: str
+    model: str
+    feature_flags: FeatureFlags
+    status_flags: 0
+    config_num: int
+    state_num: int
+    category: Categories
+    protocol_version: str
+
+    type: str
+
+    address: str
+    addresses: list[str]
+    port: int
+
+
 class IpDiscovery:
 
     """
     A discovered IP HAP device that is unpaired.
     """
+
+    description: HomeKitService
 
     def __init__(self, controller, discovery_data):
         self.controller = controller
@@ -38,10 +64,31 @@ class IpDiscovery:
         self.device_id = discovery_data["id"]
         self.info = discovery_data
 
+        self.description = HomeKitService(
+            name=discovery_data["name"].removesuffix("._hap._tcp.local."),
+            id=discovery_data["id"].lower(),
+            model=discovery_data.get("md", ""),
+            config_num=int(discovery_data.get("c#", 0)),
+            state_num=int(discovery_data.get("s#", 0)),
+            feature_flags=FeatureFlags(int(discovery_data.get("ff", 0))),
+            status_flags=int(discovery_data.get("sf", 0)),
+            category=Categories[int(discovery_data.get("ci", 1))],
+            protocol_version=discovery_data.get("pv", "1.0"),
+            type="_hap._tcp.local.",
+            address=discovery_data["address"],
+            addresses=[discovery_data["address"]],
+            port=self.port,
+        )
+
         self.connection = HomeKitConnection(None, self.host, self.port)
 
     def __repr__(self):
         return "IPDiscovery(host={self.host}, port={self.port})".format(self=self)
+
+    @property
+    def paired(self) -> bool:
+        status_flags = self.description.status_flags
+        return not status_flags & 0x01
 
     async def _ensure_connected(self):
         await self.connection.ensure_connection()

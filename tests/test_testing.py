@@ -12,7 +12,7 @@ async def test_pairing():
     controller = FakeController()
     device = controller.add_device(accessories)
 
-    discovery = await controller.find_ip_by_device_id(device.device_id)
+    discovery = await controller.find_ip_by_device_id(device.description.id)
     finish_pairing = await discovery.start_pairing("alias")
     pairing = await finish_pairing("111-22-333")
 
@@ -25,7 +25,7 @@ async def test_get_and_set():
     controller = FakeController()
     device = controller.add_device(accessories)
 
-    discovery = await controller.find_ip_by_device_id(device.device_id)
+    discovery = await controller.find_ip_by_device_id(device.description.id)
     finish_pairing = await discovery.start_pairing("alias")
     pairing = await finish_pairing("111-22-333")
 
@@ -48,7 +48,7 @@ async def test_get_failure():
     controller = FakeController()
     device = controller.add_device(accessories)
 
-    discovery = await controller.find_ip_by_device_id(device.device_id)
+    discovery = await controller.find_ip_by_device_id(device.description.id)
     finish_pairing = await discovery.start_pairing("alias")
     pairing = await finish_pairing("111-22-333")
 
@@ -65,7 +65,7 @@ async def test_put_failure():
     controller = FakeController()
     device = controller.add_device(accessories)
 
-    discovery = await controller.find_ip_by_device_id(device.device_id)
+    discovery = await controller.find_ip_by_device_id(device.description.id)
     finish_pairing = await discovery.start_pairing("alias")
     pairing = await finish_pairing("111-22-333")
 

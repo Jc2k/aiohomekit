@@ -92,6 +92,7 @@ async def controller_and_unpaired_accessory(request, event_loop):
 
     with patch("aiohomekit.zeroconf._async_find_data_for_device_id") as find:
         find.return_value = {
+            "name": "TestDevice._hap._tcp.local.",
             "address": "127.0.0.1",
             "port": 51842,
             "id": "12:34:56:00:01:0A",
@@ -180,6 +181,7 @@ async def controller_and_paired_accessory(request, event_loop):
 
     with patch("aiohomekit.zeroconf._async_find_data_for_device_id") as find:
         find.return_value = {
+            "name": "TestDevice._hap._tcp.local.",
             "address": "127.0.0.1",
             "port": 51842,
             "id": "12:34:56:00:01:0A",

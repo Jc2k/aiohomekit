@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import base64
+from dataclasses import dataclass
 import logging
 
 from aiohomekit import exceptions
@@ -36,12 +37,26 @@ FAKE_CAMERA_IMAGE = (
 )
 
 
+@dataclass
+class FakeDescription:
+
+    name: str = "TestDevice"
+    id: str = "00:00:00:00:00:00"
+    model: str = "TestDevice"
+    status_flags: int = 1
+    config_num: int = 1
+    state_num: int = 1
+    category: str = "Other"
+
+
 class FakeDiscovery:
+
+    description = FakeDescription()
+
     def __init__(
         self, controller: FakeController, device_id: str, accessories: Accessories
     ):
         self.controller = controller
-        self.device_id = device_id
         self.accessories = accessories
 
         self.pairing_code = "111-22-333"
@@ -51,7 +66,7 @@ class FakeDiscovery:
         sf = 0
 
         # Is accessory unpaired?
-        if self.device_id not in self.controller.pairings:
+        if self.description.id not in self.controller.pairings:
             sf = sf | 0x01
 
         return {
@@ -60,13 +75,17 @@ class FakeDiscovery:
             "port": 8080,
             "md": "TestDevice",
             "pv": "1.0",
-            "id": self.device_id,
+            "id": self.description.id,
             "c#": 1,
             "s#": 1,
             "ff": 0,
             "ci": 0,
             "sf": sf,
         }
+
+    @property
+    def paired(self) -> bool:
+        return self.description.id in self.controller.pairings
 
     async def perform_pairing(self, alias: str, pin):
         finish_pairing = await self.start_pairing(alias)
@@ -76,8 +95,8 @@ class FakeDiscovery:
         return await self.start_pairing(alias)
 
     async def start_pairing(self, alias: str):
-        if self.device_id in self.controller.pairings:
-            raise exceptions.AlreadyPairedError(f"{self.device_id} already paired")
+        if self.description.id in self.controller.pairings:
+            raise exceptions.AlreadyPairedError(f"{self.description.id} already paired")
 
         async def finish_pairing(pairing_code):
             if pairing_code != self.pairing_code:
