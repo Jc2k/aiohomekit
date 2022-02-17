@@ -18,6 +18,7 @@ import asyncio
 import logging
 
 from aiohomekit.controller.abstract import AbstractPairing
+from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.uuid import normalize_uuid
 
 from .connection import CoAPHomeKitConnection
@@ -34,7 +35,8 @@ class CoAPPairing(AbstractPairing):
         self.connection = CoAPHomeKitConnection(
             self, pairing_data["AccessoryIP"], pairing_data["AccessoryPort"]
         )
-        self.connection_lock = asyncio.Lock()
+        self.connection_future = None
+        self.connection_lock = asyncio.Condition()
         self.pairing_data = pairing_data
 
     @property
@@ -42,12 +44,34 @@ class CoAPPairing(AbstractPairing):
         return self.connection.is_connected
 
     async def _ensure_connected(self):
+        # let in one coroutine at a time
         async with self.connection_lock:
+            # are we already connected?
             if self.connection.is_connected:
                 return
 
-            await self.connection.connect(self.pairing_data)
+            # if there isn't a connection in progress, we're in the driver's seat
+            if self.connection_future is None:
+                # start a connection but don't await it here
+                self.connection_future = self.connection.connect(self.pairing_data)
+            else:
+                # we'll wait on the primary coroutine & copy how it returns
+                # this drops the lock and reacquires it when we're notified
+                await self.connection_lock.wait()
+                # if the primary coroutine failed to connect, we also raise
+                if not self.connection.is_connected:
+                    raise AccessoryDisconnectedError(
+                        "primary coroutine failed to connect"
+                    )
+                return
 
+        try:
+            # await the connection outside of the lock
+            # this allows other coroutines to show up & wait
+            await self.connection_future
+        except BaseException:
+            raise AccessoryDisconnectedError("failed to connect")
+        else:
             # in case this was a reconnect, re-subscribe
             if len(self.subscriptions):
                 logger.debug(
@@ -55,6 +79,14 @@ class CoAPPairing(AbstractPairing):
                     % (len(self.subscriptions), self.subscriptions)
                 )
                 await self.connection.subscribe_to(list(self.subscriptions))
+        finally:
+            # until we re-acquire the lock & clear connection_future,
+            # other coroutines that show up will all hit the .wait() path.
+            async with self.connection_lock:
+                # clear the flag indicating a connection is in progress
+                self.connection_future = None
+                # wake up any coroutines that showed up while we were connecting
+                self.connection_lock.notify_all()
 
         return
 
