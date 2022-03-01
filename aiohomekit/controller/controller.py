@@ -69,7 +69,7 @@ class Controller:
         await self.async_stop()
 
     async def async_discover(self, max_seconds: int = 10) -> AsyncIterable[IpDiscovery]:
-        discoveries = self.discover_ip(max_seconds)
+        discoveries = await self.discover_ip(max_seconds)
         for discovery in discoveries:
             yield discovery
 
