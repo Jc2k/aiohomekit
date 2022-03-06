@@ -151,6 +151,11 @@ class Characteristic:
         """
         This function sets the value of this characteristic.
         """
+
+        if self.format == CharacteristicFormats.bool:
+            # Device might return 1 or 0, so lets case to True/False
+            new_val = bool(new_val)
+
         self._value = new_val
 
     @property
