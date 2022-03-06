@@ -37,6 +37,7 @@ class HapStatusCode(EnumWithDescription):
     RESOURCE_NOT_EXIST = -70409, "Resource does not exist."
     INVALID_VALUE = -70410, "Accessory received an invalid value in a write request."
     INSUFFICIENT_AUTH = -70411, "Insufficient Authorization."
+    NOT_ALLOWED_IN_CURRENT_STATE = -70412, "Not allowed in current state"
 
 
 def to_status_code(status_code: int) -> HapStatusCode:
