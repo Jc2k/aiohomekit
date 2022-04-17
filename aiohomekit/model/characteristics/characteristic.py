@@ -18,7 +18,6 @@ from __future__ import annotations
 import base64
 import binascii
 from decimal import ROUND_HALF_UP, Decimal, localcontext
-from distutils.util import strtobool
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
@@ -58,6 +57,24 @@ INTEGER_TYPES = [
 ]
 
 NUMBER_TYPES = INTEGER_TYPES + [CharacteristicFormats.float]
+
+
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0).
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+
+    This is inlined instead of imported from distutils to avoid
+    importing the ~82 modules that come along with the import.
+    """
+    val = val.lower()
+    if val in ("y", "yes", "t", "true", "on", "1"):
+        return 1
+    elif val in ("n", "no", "f", "false", "off", "0"):
+        return 0
+    else:
+        raise ValueError(f"invalid truth value {val!r}")
 
 
 class Characteristic:
