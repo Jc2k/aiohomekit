@@ -422,7 +422,6 @@ async def test_async_find_data_for_device_id_matches(mock_asynczeroconf):
     }
 
 
-
 async def test_async_find_data_for_upper_case_device_id_matches(mock_asynczeroconf):
     desc = {
         b"c#": b"1",
@@ -464,6 +463,7 @@ async def test_async_find_data_for_upper_case_device_id_matches(mock_asynczeroco
         "sf": "0",
         "statusflags": "Accessory has been paired.",
     }
+
 
 async def test_async_find_data_for_device_id_does_not_match(mock_asynczeroconf):
     desc = {
