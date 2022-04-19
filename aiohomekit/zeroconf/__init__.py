@@ -23,7 +23,7 @@ import contextlib
 import logging
 from typing import Any, Callable
 
-from zeroconf import ServiceBrowser
+from zeroconf import ServiceBrowser, ServiceInfo
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.exceptions import AccessoryNotFoundError
@@ -111,7 +111,7 @@ async def _async_device_data_zeroconf_cache(
     """Find a homekit device in the zeroconf cache."""
     device_id_bytes = device_id.encode()
     devices = await _async_homekit_devices_from_cache(
-        aiozc, lambda info: info.properties[b"id"] == device_id_bytes
+        aiozc, lambda info: _service_info_id_matches(info, device_id_bytes)
     )
     if not devices:
         raise AccessoryNotFoundError("Device not found from active ServiceBrower")
@@ -156,6 +156,15 @@ def _service_info_is_homekit_device(service_info: AsyncServiceInfo) -> bool:
     props = {key.lower() for key in service_info.properties.keys()}
     return (
         service_info.addresses and b"c#" in props and b"md" in props and b"id" in props
+    )
+
+
+def _service_info_id_matches(info: ServiceInfo, device_id_bytes: bytes) -> None:
+    """Check if the id matches."""
+    lower_device_id_bytes = device_id_bytes.lower()
+    return any(
+        key.lower() == b"id" and value.lower() == lower_device_id_bytes
+        for key, value in info.properties.items()
     )
 
 
@@ -285,9 +294,7 @@ async def _async_find_data_for_device_id(
 
     try:
         for info in listener.get_data():
-            if not _service_info_is_homekit_device(info):
-                continue
-            if info.properties[b"id"] == device_id_bytes:
+            if _service_info_id_matches(info, device_id_bytes):
                 logging.debug("Located Homekit IP accessory %s", info.properties)
                 return _build_data_from_service_info(info)
     finally:
