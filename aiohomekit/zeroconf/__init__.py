@@ -162,10 +162,10 @@ def _service_info_is_homekit_device(service_info: AsyncServiceInfo) -> bool:
 def _service_info_id_matches(info: ServiceInfo, device_id_bytes: bytes) -> None:
     """Check if the id matches."""
     lower_device_id_bytes = device_id_bytes.lower()
-    for key, value in info.properties.items():
-        if key.lower() == b"id":
-            return value.lower() == lower_device_id_bytes
-    return False
+    return any(
+        key.lower() == b"id" and value.lower() == lower_device_id_bytes
+        for key, value in info.properties.items()
+    )
 
 
 async def async_discover_homekit_devices(
