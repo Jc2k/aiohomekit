@@ -19,8 +19,8 @@ import json
 import logging
 
 from aiohomekit.crypto.chacha20poly1305 import (
-    chacha20_aead_decrypt,
-    chacha20_aead_encrypt,
+    ChaCha20Poly1305Decryptor,
+    ChaCha20Poly1305Encryptor,
 )
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -132,6 +132,9 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
         self.a2c_key = a2c_key
         self.c2a_key = c2a_key
 
+        self.encryptor = ChaCha20Poly1305Encryptor(self.c2a_key)
+        self.decryptor = ChaCha20Poly1305Decryptor(self.a2c_key)
+
     async def send_bytes(self, payload):
         buffer = b""
 
@@ -143,9 +146,8 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             cnt_bytes = self.c2a_counter.to_bytes(8, byteorder="little")
             self.c2a_counter += 1
 
-            data = chacha20_aead_encrypt(
+            data = self.encryptor.encrypt(
                 len_bytes,
-                self.c2a_key,
                 cnt_bytes,
                 bytes([0, 0, 0, 0]),
                 current,
@@ -185,9 +187,8 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             tag = self._incoming_buffer[:16]
             del self._incoming_buffer[:16]
 
-            decrypted = chacha20_aead_decrypt(
+            decrypted = self.decryptor.decrypt(
                 block_length_bytes,
-                self.a2c_key,
                 self.a2c_counter.to_bytes(8, byteorder="little"),
                 bytes([0, 0, 0, 0]),
                 block + tag,
