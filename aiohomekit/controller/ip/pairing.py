@@ -322,9 +322,8 @@ class IpPairing(AbstractPairing):
         # We do one aid at a time to match what iOS does
         # even though its inefficient
         # https://github.com/home-assistant/core/issues/37996
-
-        for _, aid_iids in groupby(characteristics, key=itemgetter(0)):
-            response = await self.connection.put_json(
+        tasks = [
+            self.connection.put_json(
                 "/characteristics",
                 {
                     "characteristics": [
@@ -332,6 +331,9 @@ class IpPairing(AbstractPairing):
                     ]
                 },
             )
+            for _, aid_iids in groupby(characteristics, key=itemgetter(0))
+        ]
+        for response in await asyncio.gather(*tasks):
             if response:
                 # An empty body is a success response
                 for row in response.get("characteristics", []):
