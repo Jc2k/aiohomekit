@@ -15,8 +15,8 @@
 #
 
 from aiohomekit.crypto.chacha20poly1305 import (
-    chacha20_aead_decrypt,
-    chacha20_aead_encrypt,
+    ChaCha20Poly1305Decryptor,
+    ChaCha20Poly1305Encryptor,
 )
 
 
@@ -173,11 +173,14 @@ def test_example2_8_2():
         ),
     )
 
-    r = chacha20_aead_encrypt(aad, key, iv, fixed, plain_text)
+    r = ChaCha20Poly1305Encryptor(key).encrypt(aad, iv, fixed, plain_text)
     assert r[:-16] == r_[0], "ciphertext"
     assert r[-16:] == r_[1], "tag"
 
-    plain_text_ = chacha20_aead_decrypt(aad, key, iv, fixed, r)
+    plain_text_ = ChaCha20Poly1305Decryptor(key).decrypt(aad, iv, fixed, r)
     assert plain_text == plain_text_
 
-    assert chacha20_aead_decrypt(aad, key, iv, fixed, r + bytes([0, 1, 2, 3])) is False
+    assert (
+        ChaCha20Poly1305Decryptor(key).decrypt(aad, iv, fixed, r + bytes([0, 1, 2, 3]))
+        is False
+    )
