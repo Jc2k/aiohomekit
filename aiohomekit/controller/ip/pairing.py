@@ -322,15 +322,17 @@ class IpPairing(AbstractPairing):
         # We do one aid at a time to match what iOS does
         # even though its inefficient
         # https://github.com/home-assistant/core/issues/37996
-
-        for _, aid_iids in groupby(characteristics, key=itemgetter(0)):
+        #
+        # Prebuild the payloads to avoid the set size changing
+        # between await calls
+        char_payloads = [
+            [{"aid": aid, "iid": iid, "ev": ev} for aid, iid in aid_iids]
+            for _, aid_iids in groupby(characteristics, key=itemgetter(0))
+        ]
+        for char_payload in char_payloads:
             response = await self.connection.put_json(
                 "/characteristics",
-                {
-                    "characteristics": [
-                        {"aid": aid, "iid": iid, "ev": ev} for aid, iid in aid_iids
-                    ]
-                },
+                {"characteristics": char_payload},
             )
             if response:
                 # An empty body is a success response
