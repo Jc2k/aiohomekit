@@ -123,7 +123,7 @@ pycparser = "*"
 
 [[package]]
 name = "chacha20poly1305-reuseable"
-version = "0.0.3"
+version = "0.0.4"
 description = "ChaCha20Poly1305 that is reuseable for asyncio"
 category = "main"
 optional = false
@@ -611,7 +611,7 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "89826435b5565ccc054616f12c3db9bc1646d2db59496ba010e7deab0229edfe"
+content-hash = "f67fe475740fdd398c788333e83eab913655e33e8bd0ee9c54d681545414fead"
 
 [metadata.files]
 aiohttp = [
@@ -794,8 +794,8 @@ cffi = [
     {file = "cffi-1.15.0.tar.gz", hash = "sha256:920f0d66a896c2d99f0adbb391f990a84091179542c205fa53ce5787aff87954"},
 ]
 chacha20poly1305-reuseable = [
-    {file = "chacha20poly1305-reuseable-0.0.3.tar.gz", hash = "sha256:0b94680636fb76dac3668ab6b1714e0803d557333149bac4dd7fb0b68012ae45"},
-    {file = "chacha20poly1305_reuseable-0.0.3-py3-none-any.whl", hash = "sha256:6836c1980d1c0e40c77e375ac2c3e9b6f9602565dfea3a856e028de8b99f12e4"},
+    {file = "chacha20poly1305-reuseable-0.0.4.tar.gz", hash = "sha256:bfb307f1db956c4fe80387a229641de37594b0381d6f4af49a5ea5fbf8ea3492"},
+    {file = "chacha20poly1305_reuseable-0.0.4-py3-none-any.whl", hash = "sha256:df5ef53ef5de7f5df4ee2395285fb1582e40f7f4e220910393b396be65bb7dde"},
 ]
 charset-normalizer = [
     {file = "charset-normalizer-2.0.11.tar.gz", hash = "sha256:98398a9d69ee80548c762ba991a4728bfc3836768ed226b3945908d1a688371c"},
