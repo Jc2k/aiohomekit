@@ -157,3 +157,11 @@ class AbstractPairing(abc.ABC):
             self.listeners.discard(callback)
 
         return stop_listening
+
+    async def reconnect_soon(self):
+        """
+        Notify the pairing that we have noticed a network change that means its connection maybe stale.
+
+        This will be removed in a future release.
+        """
+        pass
