@@ -940,7 +940,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             encrypted_data_with_auth_tag = ChaCha20Poly1305Encryptor(
                 session_key
             ).encrypt(
-                bytes(),
+                b"",
                 b"PV-Msg02",
                 bytes([0, 0, 0, 0]),
                 sub_tlv_b,
@@ -972,7 +972,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 2) decrypt
             encrypted = d_req[1][1]
             decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
-                bytes(),
+                b"",
                 b"PV-Msg03",
                 bytes([0, 0, 0, 0]),
                 encrypted,
@@ -1418,7 +1418,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             decrypted_data = ChaCha20Poly1305Decryptor(
                 self.server.sessions[self.session_id]["session_key"]
             ).decrypt(
-                bytes(),
+                b"",
                 b"PS-Msg05",
                 bytes([0, 0, 0, 0]),
                 encrypted_data,
@@ -1532,7 +1532,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             encrypted_data_with_auth_tag = ChaCha20Poly1305Encryptor(
                 self.server.sessions[self.session_id]["session_key"]
             ).encrypt(
-                bytes(),
+                b"",
                 b"PS-Msg06",
                 bytes([0, 0, 0, 0]),
                 sub_tlv_b,
