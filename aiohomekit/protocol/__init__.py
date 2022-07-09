@@ -24,9 +24,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
 
 from aiohomekit.crypto import (
+    ChaCha20Poly1305Decryptor,
+    ChaCha20Poly1305Encryptor,
     SrpClient,
-    chacha20_aead_decrypt,
-    chacha20_aead_encrypt,
     hkdf_derive,
 )
 from aiohomekit.exceptions import (
@@ -140,9 +140,8 @@ def perform_pair_setup_part1(
 def validate_mfi(session_key, response_tlv):
     # If pairing method is PairSetupWithAuth there should be an EncryptedData TLV in M4
     # It should have a signature and a certificate from an Apple secure co-processor.
-    decrypted = chacha20_aead_decrypt(
-        bytes(),
-        session_key,
+    decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
+        b"",
         b"PS-Msg04",
         bytes([0, 0, 0, 0]),
         response_tlv[TLV.kTLVType_EncryptedData],
@@ -270,8 +269,8 @@ def perform_pair_setup_part2(
     # taking tge iOSDeviceX as key was reversed from
     # https://github.com/KhaosT/HAP-NodeJS/blob/2ea9d761d9bd7593dd1949fec621ab085af5e567/lib/HAPServer.js
     # function handlePairStepFive calling encryption.encryptAndSeal
-    encrypted_data_with_auth_tag = chacha20_aead_encrypt(
-        bytes(), session_key, b"PS-Msg05", bytes([0, 0, 0, 0]), sub_tlv_b
+    encrypted_data_with_auth_tag = ChaCha20Poly1305Encryptor(session_key).encrypt(
+        b"", b"PS-Msg05", bytes([0, 0, 0, 0]), sub_tlv_b
     )
 
     response_tlv = [
@@ -295,9 +294,8 @@ def perform_pair_setup_part2(
     if TLV.kTLVType_EncryptedData not in response_tlv:
         raise InvalidError("M6: Encrypted data not sent be accessory")
 
-    decrypted_data = chacha20_aead_decrypt(
-        bytes(),
-        session_key,
+    decrypted_data = ChaCha20Poly1305Decryptor(session_key).decrypt(
+        b"",
         b"PS-Msg06",
         bytes([0, 0, 0, 0]),
         response_tlv[TLV.kTLVType_EncryptedData],
@@ -360,9 +358,10 @@ def resume_m1(
 
     logger.debug("resume request key: %s", request_key)
 
-    auth_tag = chacha20_aead_encrypt(
-        bytes(),
-        request_key,
+    key = ChaCha20Poly1305Encryptor(request_key)
+
+    auth_tag = key.ecnrypt(
+        b"",
         b"PR-Msg01",
         bytes([0, 0, 0, 0]),
         b"",
@@ -402,9 +401,9 @@ def resume_m3(
         b"Pair-Resume-Response-Info",
     )
 
-    plaintext = chacha20_aead_decrypt(
-        bytes(),
-        response_key,
+    key = ChaCha20Poly1305Decryptor(response_key)
+    plaintext = key.chacha20_aead_decrypt(
+        b"",
         b"PR-Msg02",
         bytes([0, 0, 0, 0]),
         auth_tag,
@@ -502,8 +501,8 @@ def get_session_keys(
 
     # 3) verify auth tag on encrypted data and 4) decrypt
     encrypted = response_tlv[TLV.kTLVType_EncryptedData]
-    decrypted = chacha20_aead_decrypt(
-        bytes(), session_key, b"PV-Msg02", bytes([0, 0, 0, 0]), encrypted
+    decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
+        b"", b"PV-Msg02", bytes([0, 0, 0, 0]), encrypted
     )
     if type(decrypted) == bool and not decrypted:
         raise InvalidAuthTagError("step 3")
@@ -564,8 +563,8 @@ def get_session_keys(
     )
 
     # 10) encrypt and sign
-    encrypted_data_with_auth_tag = chacha20_aead_encrypt(
-        bytes(), session_key, b"PV-Msg03", bytes([0, 0, 0, 0]), sub_tlv
+    encrypted_data_with_auth_tag = ChaCha20Poly1305Encryptor(session_key).encrypt(
+        b"", b"PV-Msg03", bytes([0, 0, 0, 0]), sub_tlv
     )
 
     # 11) create tlv

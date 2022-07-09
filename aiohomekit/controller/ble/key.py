@@ -17,35 +17,31 @@
 from __future__ import annotations
 
 from aiohomekit.crypto.chacha20poly1305 import (
-    chacha20_aead_decrypt,
-    chacha20_aead_encrypt,
+    ChaCha20Poly1305Decryptor,
+    ChaCha20Poly1305Encryptor,
 )
 
 
 class EncryptionKey:
     def __init__(self, key: bytes):
-        self.key = key
+        self.key = ChaCha20Poly1305Encryptor(key)
         self.counter = 0
 
     def encrypt(self, data: bytes | bytearray):
         cnt_bytes = self.counter.to_bytes(8, byteorder="little")
-        data = chacha20_aead_encrypt(
-            bytes(), self.key, cnt_bytes, bytes([0, 0, 0, 0]), data
-        )
+        data = self.key.encrypt(b"", cnt_bytes, bytes([0, 0, 0, 0]), data)
         self.counter += 1
         return data
 
 
 class DecryptionKey:
     def __init__(self, key: bytes):
-        self.key = key
+        self.key = ChaCha20Poly1305Decryptor(key)
         self.counter = 0
 
     def decrypt(self, data: bytes | bytearray):
         counter = self.counter.to_bytes(8, byteorder="little")
 
-        data = chacha20_aead_decrypt(
-            bytes(), self.key, counter, bytes([0, 0, 0, 0]), data
-        )
+        data = self.key.decrypt(b"", counter, bytes([0, 0, 0, 0]), data)
         self.counter += 1
         return data

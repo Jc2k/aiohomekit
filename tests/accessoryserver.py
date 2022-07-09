@@ -33,8 +33,8 @@ from zeroconf import ServiceInfo, Zeroconf
 
 from aiohomekit.crypto import hkdf_derive
 from aiohomekit.crypto.chacha20poly1305 import (
-    chacha20_aead_decrypt,
-    chacha20_aead_encrypt,
+    ChaCha20Poly1305Decryptor,
+    ChaCha20Poly1305Encryptor,
 )
 from aiohomekit.crypto.srp import SrpServer
 from aiohomekit.exceptions import (
@@ -435,8 +435,8 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 cnt_bytes = self.server.sessions[self.session_id][
                     "accessory_to_controller_count"
                 ].to_bytes(8, byteorder="little")
-                ciper_and_mac = chacha20_aead_encrypt(
-                    len_bytes, a2c_key, cnt_bytes, bytes([0, 0, 0, 0]), block
+                ciper_and_mac = ChaCha20Poly1305Encryptor(a2c_key).encrypt(
+                    len_bytes, cnt_bytes, bytes([0, 0, 0, 0]), block
                 )
                 self.server.sessions[self.session_id][
                     "accessory_to_controller_count"
@@ -516,8 +516,8 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
         cnt_bytes = self.server.sessions[self.session_id][
             "controller_to_accessory_count"
         ].to_bytes(8, byteorder="little")
-        decrypted = chacha20_aead_decrypt(
-            len_bytes, c2a_key, cnt_bytes, bytes([0, 0, 0, 0]), data
+        decrypted = ChaCha20Poly1305Decryptor(c2a_key).decrypt(
+            len_bytes, cnt_bytes, bytes([0, 0, 0, 0]), data
         )
         if decrypted is False:
             # crypto error, log it and request close of connection
@@ -937,9 +937,10 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             self.server.sessions[self.session_id]["session_key"] = session_key
 
             # 7) encrypt sub tlv
-            encrypted_data_with_auth_tag = chacha20_aead_encrypt(
-                bytes(),
-                session_key,
+            encrypted_data_with_auth_tag = ChaCha20Poly1305Encryptor(
+                session_key
+            ).encrypt(
+                b"",
                 b"PV-Msg02",
                 bytes([0, 0, 0, 0]),
                 sub_tlv_b,
@@ -970,9 +971,8 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 1) verify ios' authtag
             # 2) decrypt
             encrypted = d_req[1][1]
-            decrypted = chacha20_aead_decrypt(
-                bytes(),
-                session_key,
+            decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
+                b"",
                 b"PV-Msg03",
                 bytes([0, 0, 0, 0]),
                 encrypted,
@@ -1415,9 +1415,10 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 2) decrypt and test
             encrypted_data = d_req[1][1]
-            decrypted_data = chacha20_aead_decrypt(
-                bytes(),
-                self.server.sessions[self.session_id]["session_key"],
+            decrypted_data = ChaCha20Poly1305Decryptor(
+                self.server.sessions[self.session_id]["session_key"]
+            ).decrypt(
+                b"",
                 b"PS-Msg05",
                 bytes([0, 0, 0, 0]),
                 encrypted_data,
@@ -1528,9 +1529,10 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             sub_tlv_b = TLV.encode_list(sub_tlv)
 
             # 6) encrypt sub_tlv
-            encrypted_data_with_auth_tag = chacha20_aead_encrypt(
-                bytes(),
-                self.server.sessions[self.session_id]["session_key"],
+            encrypted_data_with_auth_tag = ChaCha20Poly1305Encryptor(
+                self.server.sessions[self.session_id]["session_key"]
+            ).encrypt(
+                b"",
                 b"PS-Msg06",
                 bytes([0, 0, 0, 0]),
                 sub_tlv_b,
