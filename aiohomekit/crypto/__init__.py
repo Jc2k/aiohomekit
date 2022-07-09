@@ -15,13 +15,13 @@
 #
 
 __all__ = [
-    "chacha20_aead_decrypt",
-    "chacha20_aead_encrypt",
+    "ChaCha20Poly1305Encryptor",
+    "ChaCha20Poly1305Decryptor",
     "hkdf_derive",
     "SrpClient",
     "SrpServer",
 ]
 
-from .chacha20poly1305 import chacha20_aead_decrypt, chacha20_aead_encrypt
+from .chacha20poly1305 import ChaCha20Poly1305Decryptor, ChaCha20Poly1305Encryptor
 from .hkdf import hkdf_derive
 from .srp import SrpClient, SrpServer

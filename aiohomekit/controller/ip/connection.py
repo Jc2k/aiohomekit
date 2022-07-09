@@ -19,8 +19,8 @@ import json
 import logging
 
 from aiohomekit.crypto.chacha20poly1305 import (
-    chacha20_aead_decrypt,
-    chacha20_aead_encrypt,
+    ChaCha20Poly1305Decryptor,
+    ChaCha20Poly1305Encryptor,
 )
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -131,6 +131,9 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
         self.a2c_key = a2c_key
         self.c2a_key = c2a_key
 
+        self.encryptor = ChaCha20Poly1305Encryptor(self.c2a_key)
+        self.decryptor = ChaCha20Poly1305Decryptor(self.a2c_key)
+
     async def send_bytes(self, payload):
         buffer = b""
 
@@ -142,9 +145,8 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             cnt_bytes = self.c2a_counter.to_bytes(8, byteorder="little")
             self.c2a_counter += 1
 
-            data = chacha20_aead_encrypt(
+            data = self.encryptor.encrypt(
                 len_bytes,
-                self.c2a_key,
                 cnt_bytes,
                 bytes([0, 0, 0, 0]),
                 current,
@@ -184,9 +186,8 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             tag = self._incoming_buffer[:16]
             del self._incoming_buffer[:16]
 
-            decrypted = chacha20_aead_decrypt(
+            decrypted = self.decryptor.decrypt(
                 block_length_bytes,
-                self.a2c_key,
                 self.a2c_counter.to_bytes(8, byteorder="little"),
                 bytes([0, 0, 0, 0]),
                 block + tag,
@@ -217,6 +218,8 @@ class HomeKitConnection:
         self._connector = None
 
         self.is_secure = False
+
+        self._connect_lock = asyncio.Lock()
 
         self._concurrency_limit = asyncio.Semaphore(concurrency_limit)
         self._reconnect_wait_task = None
@@ -495,6 +498,7 @@ class HomeKitConnection:
         self.protocol = None
 
     async def _connect_once(self):
+        """_connect_once must only ever be called from _reconnect to ensure its done with a lock."""
         loop = asyncio.get_event_loop()
 
         logger.debug("Attempting connection to %s:%s", self.host, self.port)
@@ -525,39 +529,46 @@ class HomeKitConnection:
         # saw will already be in the cache and will be available to
         # _connect_once without having to do I/O
         #
-        interval = 0.5
+        if self._connect_lock.locked():
+            # Reconnect already in progress.
+            return
+        async with self._connect_lock:
+            interval = 0.5
 
-        logger.debug("Starting reconnect loop to %s:%s", self.host, self.port)
-        while not self.closing:
-            try:
-                return await self._connect_once()
+            logger.debug("Starting reconnect loop to %s:%s", self.host, self.port)
+            while not self.closing:
+                try:
+                    return await self._connect_once()
 
-            except AuthenticationError:
-                # Authentication errors should bubble up because auto-reconnect is unlikely to help
-                raise
+                except AuthenticationError:
+                    # Authentication errors should bubble up because auto-reconnect is unlikely to help
+                    raise
 
-            except asyncio.CancelledError:
-                return
+                except asyncio.CancelledError:
+                    return
 
-            except HomeKitException:
-                logger.debug(
-                    "Connecting to accessory failed. Retrying in %i seconds", interval
+                except HomeKitException:
+                    logger.debug(
+                        "Connecting to accessory failed. Retrying in %i seconds",
+                        interval,
+                    )
+
+                except Exception:
+                    logger.exception(
+                        "Unexpected error whilst trying to connect to accessory. Will retry."
+                    )
+
+                interval = min(60, 1.5 * interval)
+                self._reconnect_wait_task = asyncio.ensure_future(
+                    asyncio.sleep(interval)
                 )
 
-            except Exception:
-                logger.exception(
-                    "Unexpected error whilst trying to connect to accessory. Will retry."
-                )
-
-            interval = min(60, 1.5 * interval)
-            self._reconnect_wait_task = async_create_task(asyncio.sleep(interval))
-
-            try:
-                await self._reconnect_wait_task
-            except asyncio.CancelledError:
-                pass
-            finally:
-                self._reconnect_wait_task = None
+                try:
+                    await self._reconnect_wait_task
+                except asyncio.CancelledError:
+                    pass
+                finally:
+                    self._reconnect_wait_task = None
 
     def event_received(self, event):
         if not self.owner:
@@ -594,6 +605,7 @@ class SecureHomeKitConnection(HomeKitConnection):
         return super().is_connected and self.is_secure
 
     async def _connect_once(self):
+        """_connect_once must only ever be called from _reconnect to ensure its done with a lock."""
         self.is_secure = False
 
         """
