@@ -23,7 +23,7 @@ from aiohomekit.model.characteristics import (
     RemoteKeyValues,
 )
 from aiohomekit.model.services import ServicesTypes
-from aiohomekit.utils import clamp_enum_to_char
+from aiohomekit.utils import clamp_enum_to_char, domain_supported, domain_to_name
 from aiohomekit.uuid import normalize_uuid, shorten_uuid
 
 
@@ -117,3 +117,13 @@ def test_clamp_enum_min_max_unclamped_button_press():
         InputEventValues.DOUBLE_PRESS,
         InputEventValues.LONG_PRESS,
     }
+
+
+def test_domain_to_name():
+    assert domain_to_name("Bar._hap._tcp.local.") == "Bar"
+    assert domain_to_name("Foo's Library._music._tcp.local.") == "Foo's Library"
+
+
+def test_domain_supported():
+    assert domain_supported("Bar._hap._tcp.local.")
+    assert not domain_supported("Bar._music._tcp.local.")
