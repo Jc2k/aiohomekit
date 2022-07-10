@@ -6,6 +6,7 @@ import logging
 import re
 from typing import Awaitable, TypeVar
 
+from aiohomekit.const import COAP_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
 from aiohomekit.exceptions import MalformedPinError
 from aiohomekit.model.characteristics import Characteristic
 from aiohomekit.model.feature_flags import FeatureFlags
@@ -76,4 +77,26 @@ def pair_with_auth(ff: FeatureFlags) -> bool:
         return False
 
     # We don't know what kind of pairing this is, assume no auth
+    return False
+
+
+def domain_to_name(domain) -> str:
+    """
+    Given a Bonjour domain name, return a human readable name.
+
+    Zealous Lizard's Tune Studio._music._tcp.local. -> Zealous Lizard's Tune Studio
+    Fooo._hap._tcp.local. -> Fooo
+    Baaar._hap._tcp.local. -> Baar
+    """
+    if "." not in domain:
+        return domain
+
+    return domain.split(".")[0]
+
+
+def domain_supported(domain) -> bool:
+    if domain.endswith("._hap._tcp.local.") and IP_TRANSPORT_SUPPORTED:
+        return True
+    if domain.endswith("._hap._udp.local.") and COAP_TRANSPORT_SUPPORTED:
+        return True
     return False

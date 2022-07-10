@@ -457,3 +457,6 @@ class IpPairing(AbstractPairing):
             return None
 
         return resp.body
+
+    async def reconnect_soon(self):
+        return await self.connection.reconnect_soon()

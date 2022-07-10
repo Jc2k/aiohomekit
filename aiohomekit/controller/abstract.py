@@ -104,6 +104,14 @@ class AbstractPairing(metaclass=ABCMeta):
     async def unsubscribe(self, characteristics):
         self.subscriptions.difference_update(characteristics)
 
+    async def reconnect_soon(self):
+        """
+        Notify the pairing that we have noticed a network change that means its connection maybe stale.
+
+        This will be removed in a future release.
+        """
+        pass
+
     def dispatcher_connect(self, callback):
         """
         Register an event handler to be called when a characteristic (or multiple characteristics) change.

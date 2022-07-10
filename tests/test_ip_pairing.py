@@ -57,9 +57,9 @@ async def test_reconnect_soon_after_disconnected(pairing):
     assert not pairing.connection.is_connected
 
     # Ensure we can safely call multiple times
-    await pairing.connection.reconnect_soon()
-    await pairing.connection.reconnect_soon()
-    await pairing.connection.reconnect_soon()
+    await pairing.reconnect_soon()
+    await pairing.reconnect_soon()
+    await pairing.reconnect_soon()
 
     await asyncio.wait_for(pairing.connection._connector, timeout=0.5)
     assert pairing.connection.is_connected
@@ -85,14 +85,14 @@ async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing):
         assert not pairing.connection.is_connected
 
         for _ in range(3):
-            await pairing.connection.reconnect_soon()
+            await pairing.reconnect_soon()
             with pytest.raises(asyncio.TimeoutError):
                 await asyncio.wait_for(
                     asyncio.shield(pairing.connection._connector), timeout=0.2
                 )
             assert not pairing.connection.is_connected
 
-    await pairing.connection.reconnect_soon()
+    await pairing.reconnect_soon()
     await asyncio.wait_for(pairing.connection._connector, timeout=0.5)
     assert pairing.connection.is_connected
 
