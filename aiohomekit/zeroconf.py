@@ -75,9 +75,6 @@ class HomeKitService:
         if "id" not in props:
             raise ValueError("Invalid HomeKit Zeroconf record: Missing device ID")
 
-        if "c#" not in props:
-            raise ValueError("Invalid HomeKit Zeroconf record: Missing device ID")
-
         return cls(
             name=service.name.removesuffix(f".{service.type}"),
             id=props["id"].lower(),
@@ -159,6 +156,8 @@ class ZeroconfController(AbstractController):
         pass
 
     async def async_find(self, device_id: str) -> AbstractDiscovery:
+        device_id = device_id.lower()
+
         async for device in self.async_discover():
             if device.description.id == device_id:
                 return device
