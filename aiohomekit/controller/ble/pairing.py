@@ -122,7 +122,7 @@ class BlePairing(AbstractPairing):
 
     @property
     def is_connected(self) -> bool:
-        return self.client.is_connected and self._encryption_key
+        return self.client and self.client.is_connected and self._encryption_key
 
     async def _async_request(
         self, opcode: OpCode, iid: int, data: bytes | None = None
