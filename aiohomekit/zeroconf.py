@@ -23,8 +23,8 @@ from dataclasses import dataclass
 import logging
 from typing import AsyncIterable
 
-from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
-from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
+from zeroconf import ServiceListener, Zeroconf
+from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController, AbstractDiscovery
