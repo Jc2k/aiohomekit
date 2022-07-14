@@ -60,7 +60,7 @@ def mock_asynczeroconf():
         async_browser.async_cancel = AsyncMock()
         return async_browser
 
-    with patch("aiohomekit.zeroconf.AsyncServiceBrowser") as mock_browser:
+    with patch("zeroconf.asyncio.AsyncServiceBrowser") as mock_browser:
         mock_browser.side_effect = browser
 
         with patch("aiohomekit.zeroconf.AsyncZeroconf") as mock_zc:
