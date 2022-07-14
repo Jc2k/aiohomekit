@@ -96,3 +96,14 @@ async def test_discover_none(mock_asynczeroconf):
 
     results = [d async for d in controller.async_discover()]
     assert results == []
+
+
+async def test_discover_missing_csharp(mock_asynczeroconf):
+    controller = IpController(
+        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
+    )
+
+    with _install_mock_service_info(mock_asynczeroconf) as svc_info:
+        del svc_info.properties[b"c#"]
+        results = [d async for d in controller.async_discover()]
+    assert results == []

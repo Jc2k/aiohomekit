@@ -75,6 +75,9 @@ class HomeKitService:
         if "id" not in props:
             raise ValueError("Invalid HomeKit Zeroconf record: Missing device ID")
 
+        if "c#" not in props:
+            raise ValueError("Invalid HomeKit Zeroconf record: Missing device ID")
+
         return cls(
             name=service.name.removesuffix(f".{service.type}"),
             id=props["id"].lower(),
