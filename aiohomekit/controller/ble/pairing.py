@@ -156,13 +156,7 @@ class BlePairing(AbstractPairing):
         async with self._connection_lock:
             while not self.client or not self.client.is_connected:
                 if self.client:
-                    try:
-                        await self.close()
-                    except BleakError:
-                        self.client = None
-                        logger.debug(
-                            "Failed to close connection, client may have already closed it"
-                        )
+                    await self.close()
 
                 if self.description:
                     address = self.description.address
@@ -178,7 +172,7 @@ class BlePairing(AbstractPairing):
                     logger.debug(
                         "Failed to connect to %s: %s", self.client.address, str(e)
                     )
-                    self.client = None
+                    await self.close()
                     await asyncio.sleep(5)
 
             if not self._accessories:
@@ -290,7 +284,12 @@ class BlePairing(AbstractPairing):
 
     async def close(self):
         if self.client:
-            await self.client.disconnect()
+            try:
+                await self.client.disconnect()
+            except BleakError:
+                logger.debug(
+                    "Failed to close connection, client may have already closed it"
+                )
             self.client = None
             self._notifications = set()
 
