@@ -173,7 +173,7 @@ class BlePairing(AbstractPairing):
         if not self._encryption_key:
             await self._async_pair_verify()
 
-        for (aid, iid) in self.subscriptions:
+        for (aid, iid) in list(self.subscriptions):
             if iid not in self._notifications:
                 await self._async_start_notify(iid)
 
