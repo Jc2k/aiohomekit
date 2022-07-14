@@ -27,12 +27,13 @@ import re
 import sys
 from typing import AsyncIterator
 
-from zeroconf.asyncio import AsyncZeroconf
+from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheFile
 
 from .controller import Controller
 from .exceptions import HomeKitException
+from .zeroconf import ZeroconfServiceListener
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +59,19 @@ async def get_controller(args: argparse.Namespace) -> AsyncIterator[Controller]:
         raise SystemExit
 
     async with zeroconf:
+        browser = AsyncServiceBrowser(
+            zeroconf.zeroconf,
+            [
+                "_hap._tcp.local.",
+                "_hap._udp.local.",
+            ],
+            handlers=[ZeroconfServiceListener()],
+        )
+
         async with controller:
             yield controller
+
+        await browser.async_cancel()
 
 
 def pin_from_keyboard():

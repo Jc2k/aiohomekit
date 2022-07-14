@@ -15,6 +15,7 @@
 #
 from __future__ import annotations
 
+from asyncio.log import logger
 from contextlib import AsyncExitStack
 import json
 from json.decoder import JSONDecodeError
@@ -109,14 +110,16 @@ class Controller(AbstractController):
 
     async def async_find(self, device_id: str) -> AbstractDiscovery:
         for transport in self._transports:
-            if device_id in transport.discoveries:
-                return transport.discoveries[device_id]
+            try:
+                return transport.async_find(device_id)
+            except AccessoryNotFoundError:
+                pass
 
         raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
 
     async def async_discover(self, timeout=10) -> AsyncIterable[AbstractDiscovery]:
         for transport in self._transports:
-            for device in transport.discoveries.values():
+            async for device in transport.async_discover():
                 yield device
 
     def load_pairing(self, alias: str, pairing_data: dict[str, str]) -> AbstractPairing:
@@ -145,7 +148,10 @@ class Controller(AbstractController):
             with open(filename) as input_fp:
                 data = json.load(input_fp)
                 for pairing_id in data:
-                    self.load_pairing(pairing_id, data[pairing_id])
+                    try:
+                        self.load_pairing(pairing_id, data[pairing_id])
+                    except TransportNotSupportedError as e:
+                        logger.error("Skipped pairing: %s", e)
         except PermissionError:
             raise ConfigLoadingError(
                 f'Could not open "{filename}" due to missing permissions'
