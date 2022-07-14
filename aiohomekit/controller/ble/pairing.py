@@ -156,7 +156,7 @@ class BlePairing(AbstractPairing):
         async with self._connection_lock:
             while not self.client or not self.client.is_connected:
                 if self.client:
-                    await self.close()
+                    await self._close_while_locked()
 
                 if self.description:
                     address = self.description.address
@@ -172,7 +172,7 @@ class BlePairing(AbstractPairing):
                     logger.debug(
                         "Failed to connect to %s: %s", self.client.address, str(e)
                     )
-                    await self.close()
+                    await self._close_while_locked()
                     await asyncio.sleep(5)
 
             if not self._accessories:
@@ -283,6 +283,10 @@ class BlePairing(AbstractPairing):
         return accessories
 
     async def close(self):
+        async with self._connection_lock():
+            await self._close_while_locked()
+
+    async def _close_while_locked(self):
         if self.client:
             try:
                 await self.client.disconnect()
