@@ -108,7 +108,7 @@ class Controller(AbstractController):
     async def async_find(self, device_id: str) -> AbstractDiscovery:
         for transport in self._transports:
             try:
-                return transport.async_find(device_id)
+                return await transport.async_find(device_id)
             except AccessoryNotFoundError:
                 pass
 
