@@ -14,20 +14,28 @@
 # limitations under the License.
 #
 
-try:
-    __import__("bleak")
-    BLE_TRANSPORT_SUPPORTED = True
-except ModuleNotFoundError:
-    BLE_TRANSPORT_SUPPORTED = False
+import os
+
+BLE_TRANSPORT_SUPPORTED = False
+COAP_TRANSPORT_SUPPORTED = False
+IP_TRANSPORT_SUPPORTED = False
 
 try:
-    __import__("aiocoap")
-    COAP_TRANSPORT_SUPPORTED = True
+    if "AIOHOMEKIT_TRANSPORT_BLE" in os.environ:
+        __import__("bleak")
+        BLE_TRANSPORT_SUPPORTED = True
 except ModuleNotFoundError:
-    COAP_TRANSPORT_SUPPORTED = False
+    pass
+
+try:
+    if "AIOHOMEKIT_TRANSPORT_COAP" in os.environ:
+        __import__("aiocoap")
+        COAP_TRANSPORT_SUPPORTED = True
+except ModuleNotFoundError:
+    pass
 
 try:
     __import__("zeroconf")
     IP_TRANSPORT_SUPPORTED = True
 except ModuleNotFoundError:
-    IP_TRANSPORT_SUPPORTED = False
+    pass
