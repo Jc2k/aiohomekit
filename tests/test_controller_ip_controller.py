@@ -63,6 +63,21 @@ async def test_discover_find_one(mock_asynczeroconf):
     assert result.paired is True
 
 
+async def test_discover_find_one_unpaired(mock_asynczeroconf):
+    controller = IpController(
+        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
+    )
+
+    with _install_mock_service_info(mock_asynczeroconf) as svc:
+        svc.properties[b"sf"] = b"1"
+
+        result = await controller.async_find("00:00:01:00:00:02")
+
+    assert result.description.id == "00:00:01:00:00:02"
+    assert result.description.status_flags == StatusFlags.UNPAIRED
+    assert result.paired is False
+
+
 async def test_discover_find_none(mock_asynczeroconf):
     controller = IpController(
         char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
