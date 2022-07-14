@@ -55,7 +55,7 @@ def mock_asynczeroconf():
     def browser(zeroconf, service, handlers):
         # Make sure we get the right mocked object
         assert zeroconf._extract_mock_name() == "zeroconf_mock"
-        # handler.add_service(zeroconf, service, f"name.{service}")
+        handlers.add_service(zeroconf, service, f"name.{service}")
         async_browser = MagicMock()
         async_browser.async_cancel = AsyncMock()
         return async_browser

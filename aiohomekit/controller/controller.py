@@ -105,9 +105,6 @@ class Controller(AbstractController):
     async def async_stop(self) -> None:
         await self._tasks.aclose()
 
-        # for p in self.pairings:
-        #    await self.pairings[p].close()
-
     async def async_find(self, device_id: str) -> AbstractDiscovery:
         for transport in self._transports:
             try:
