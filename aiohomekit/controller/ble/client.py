@@ -97,7 +97,7 @@ async def ble_request(
             next = decryption_key.decrypt(next)
         logger.debug("Read fragment: %s", next)
 
-        data += decode_pdu_continuation(next)
+        data += decode_pdu_continuation(tid, next)
 
     return data
 

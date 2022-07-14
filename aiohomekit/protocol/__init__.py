@@ -360,7 +360,7 @@ def resume_m1(
 
     key = ChaCha20Poly1305Encryptor(request_key)
 
-    auth_tag = key.ecnrypt(
+    auth_tag = key.encrypt(
         b"",
         b"PR-Msg01",
         bytes([0, 0, 0, 0]),
