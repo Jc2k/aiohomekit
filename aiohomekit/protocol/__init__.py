@@ -402,7 +402,7 @@ def resume_m3(
     )
 
     key = ChaCha20Poly1305Decryptor(response_key)
-    plaintext = key.chacha20_aead_decrypt(
+    plaintext = key.decrypt(
         b"",
         b"PR-Msg02",
         bytes([0, 0, 0, 0]),
