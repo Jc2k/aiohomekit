@@ -92,17 +92,6 @@ class HomeKitService:
         )
 
 
-def async_zeroconf_has_hap_service_browser(
-    async_zeroconf_instance: AsyncZeroconf, hap_type: str = HAP_TYPE_TCP
-) -> bool:
-    """Check to see if the zeroconf instance has an active HAP ServiceBrowser."""
-    return any(
-        isinstance(listener, (ServiceBrowser, AsyncServiceBrowser))
-        and hap_type in listener.types
-        for listener in async_zeroconf_instance.zeroconf.listeners
-    )
-
-
 class ZeroconfServiceListener(ServiceListener):
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         pass
