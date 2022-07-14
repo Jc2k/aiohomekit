@@ -158,7 +158,7 @@ class BlePairing(AbstractPairing):
             try:
                 await self.client.connect()
             except BleakError as e:
-                logger.debug("Failed to connect to %s: %s", self.client.address, str(e))
+                logger.debug("Failed to connect to %s: %s", address, str(e))
                 self.client = None
                 await asyncio.sleep(5)
 
