@@ -92,7 +92,7 @@ class CoAPPairing(AbstractPairing):
 
         return
 
-    async def close(self):
+    async def close(self) -> None:
         if self.connection.is_connected:
             await self.unsubscribe(list(self.subscriptions))
         return

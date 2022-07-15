@@ -133,16 +133,16 @@ class AbstractPairing(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    async def close(self):
-        pass
+    async def close(self) -> None:
+        """Close the connection."""
 
     @abstractmethod
     async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
-        pass
+        """List all accessories and characteristics."""
 
     @abstractmethod
     async def list_pairings(self):
-        pass
+        """List pairings."""
 
     @abstractmethod
     async def get_characteristics(
@@ -153,23 +153,26 @@ class AbstractPairing(metaclass=ABCMeta):
         include_type=False,
         include_events=False,
     ):
-        pass
+        """Get characteristics."""
 
     @abstractmethod
     async def put_characteristics(self, characteristics):
-        pass
+        """Put characteristics."""
 
     @abstractmethod
     async def identify(self):
-        pass
+        """Identify the device."""
 
     @abstractmethod
     async def remove_pairing(self, pairing_id: str) -> None:
-        pass
+        """Remove a pairing."""
 
     @abstractmethod
     async def _process_config_changed(self, config_num: int) -> None:
-        pass
+        """Process a config change.
+
+        This method is called when the config num changes.
+        """
 
     def notify_config_changed(self, config_num: int) -> None:
         """Notify the pairing that the config number has changed."""
@@ -190,7 +193,6 @@ class AbstractPairing(metaclass=ABCMeta):
 
         This will be removed in a future release.
         """
-        pass
 
     def dispatcher_connect_config_changed(
         self, callback: Callable[[int], None]
@@ -234,11 +236,11 @@ class AbstractDiscovery(metaclass=ABCMeta):
 
     @abstractmethod
     async def async_start_pairing(self, alias: str) -> FinishPairing:
-        pass
+        """Start pairing."""
 
     @abstractmethod
     async def async_identify(self) -> None:
-        pass
+        """Do an unpaired identify."""
 
 
 class AbstractController(metaclass=ABCMeta):
@@ -271,20 +273,20 @@ class AbstractController(metaclass=ABCMeta):
 
     @abstractmethod
     async def async_find(self, device_id: str, timeout=10) -> AbstractDiscovery:
-        pass
+        """Find a device by id."""
 
     @abstractmethod
     async def async_discover(self, timeout=10) -> AsyncIterable[AbstractDiscovery]:
-        pass
+        """Discover all devices."""
 
     @abstractmethod
     async def async_start(self) -> None:
-        pass
+        """Start the controller."""
 
     @abstractmethod
     async def async_stop(self) -> None:
-        pass
+        """Stop the controller."""
 
     @abstractmethod
     def load_pairing(self, alias: str, pairing_data: dict[str, str]) -> AbstractPairing:
-        pass
+        """Load a pairing from data."""

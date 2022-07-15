@@ -117,7 +117,7 @@ class IpPairing(AbstractPairing):
                 "Ensure connection returned but still not connected"
             )
 
-    async def close(self):
+    async def close(self) -> None:
         """
         Close the pairing's communications. This closes the session.
         """
