@@ -337,7 +337,7 @@ class IpPairing(AbstractPairing):
 
         return status
 
-    async def async_populate_accessories_state(self) -> None:
+    async def async_populate_accessories_state(self) -> bool:
         """Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless
@@ -345,6 +345,7 @@ class IpPairing(AbstractPairing):
         """
         if not self._accessories:
             await self.list_accessories_and_characteristics()
+        return True
 
     async def _process_config_changed(self, config_num: int) -> None:
         """Process a config change.

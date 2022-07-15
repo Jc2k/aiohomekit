@@ -142,7 +142,7 @@ class CoAPPairing(AbstractPairing):
         for callback in self.config_changed_listeners:
             callback(self._config_num)
 
-    async def async_populate_accessories_state(self) -> None:
+    async def async_populate_accessories_state(self) -> bool:
         """Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless
@@ -150,6 +150,7 @@ class CoAPPairing(AbstractPairing):
         """
         if not self._accessories:
             await self.list_accessories_and_characteristics()
+        return True
 
     async def get_characteristics(
         self,
