@@ -178,7 +178,7 @@ class BlePairing(AbstractPairing):
                 await self._close_while_locked()
                 await asyncio.sleep(5)
 
-            logger.debug("%s: Connected", address)
+        logger.debug("%s: Connected", address)
 
     async def _ensure_setup_and_connected(self):
         if (
