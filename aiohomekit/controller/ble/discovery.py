@@ -64,6 +64,7 @@ class BleDiscovery(AbstractDiscovery):
         self.description = description
         self.controller = controller
         self.device = device
+        logger.debug("Init BleDiscovery with device %s", self.device)
 
         self.client = BleakClient(self.device)
         self._connection_lock = asyncio.Lock()
@@ -73,6 +74,7 @@ class BleDiscovery(AbstractDiscovery):
             return
         async with self._connection_lock:
             while not self.client.is_connected:
+                logger.debug("Connecting to %s", self.device)
                 try:
                     await self.client.connect()
                     break
@@ -86,17 +88,21 @@ class BleDiscovery(AbstractDiscovery):
 
                 await asyncio.sleep(5)
 
+            logger.debug("Connected to %s", self.client.address)
+
     async def _close(self):
         if not self.client:
             return
         async with self._connection_lock:
-            if self.client:
-                try:
-                    await self.client.disconnect()
-                except BleakError:
-                    logger.debug(
-                        "Failed to close connection, client may have already closed it"
-                    )
+            if not self.client:
+                return
+            logger.debug("Disconnecting from %s", self.client.address)
+            try:
+                await self.client.disconnect()
+            except BleakError:
+                logger.debug(
+                    "Failed to close connection, client may have already closed it"
+                )
 
     async def async_start_pairing(self, alias: str) -> FinishPairing:
         await self._ensure_connected()
