@@ -417,11 +417,13 @@ class BlePairing(AbstractPairing):
                 self._update_accessories_state_cache()
 
             if config_changed:
-                for callback in self.config_changed_listeners:
-                    callback(self._config_num)
+                super()._process_config_changed(self._config_num)
 
     async def _process_config_changed(self, config_num: int) -> None:
-        """Notify the pairing that the config number has changed."""
+        """Process a config change.
+
+        This method is called when the config num changes.
+        """
         await self._populate_accessories_and_characteristics()
 
     async def list_pairings(self):

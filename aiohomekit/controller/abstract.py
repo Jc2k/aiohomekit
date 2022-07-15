@@ -174,6 +174,12 @@ class AbstractPairing(metaclass=ABCMeta):
         This method is called when the config num changes.
         """
 
+    def _callback_and_save_config_changed(self, _config_num: int) -> None:
+        """Notify config changed listeners and save the config."""
+        for callback in self.config_changed_listeners:
+            callback(self._config_num)
+        self._update_accessories_state_cache()
+
     def notify_config_changed(self, config_num: int) -> None:
         """Notify the pairing that the config number has changed."""
         if config_num != self._config_num:
