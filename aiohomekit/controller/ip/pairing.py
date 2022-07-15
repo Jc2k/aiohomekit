@@ -335,6 +335,11 @@ class IpPairing(AbstractPairing):
 
         return status
 
+    async def async_populate_accessories_state(self) -> None:
+        """Populate the state of all accessories."""
+        if not self._accessories:
+            await self.list_accessories_and_characteristics()
+
     async def identify(self):
         """
         This call can be used to trigger the identification of a paired accessory. A successful call should

@@ -121,6 +121,10 @@ class AbstractPairing(metaclass=ABCMeta):
         return accessory_info.value(CharacteristicsTypes.NAME, "")
 
     @abstractmethod
+    async def async_populate_accessories_state(self) -> None:
+        """Populate the state of all accessories."""
+
+    @abstractmethod
     async def close(self):
         pass
 

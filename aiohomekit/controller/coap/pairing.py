@@ -19,6 +19,7 @@ import logging
 
 from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.exceptions import AccessoryDisconnectedError
+from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.uuid import normalize_uuid
 
 from .connection import CoAPHomeKitConnection
@@ -122,7 +123,15 @@ class CoAPPairing(AbstractPairing):
                 for characteristic in service["characteristics"]:
                     characteristic["type"] = normalize_uuid(characteristic["type"])
 
+        self._accessories_state = AccessoriesState(
+            Accessories.from_list(accessories), self._config_num or 0
+        )
         return accessories
+
+    async def async_populate_accessories_state(self) -> None:
+        """Populate the state of all accessories."""
+        if not self._accessories:
+            await self.list_accessories_and_characteristics()
 
     async def get_characteristics(
         self,

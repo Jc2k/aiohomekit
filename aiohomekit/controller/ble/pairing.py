@@ -369,6 +369,10 @@ class BlePairing(AbstractPairing):
                 if "value" in result:
                     char.value = result["value"]
 
+    async def async_populate_accessories_state(self) -> None:
+        """Populate the state of all accessories."""
+        await self._populate_accessories_and_characteristics()
+
     async def _populate_accessories_and_characteristics(self) -> None:
         was_locked = False
         if self._config_lock.locked():
