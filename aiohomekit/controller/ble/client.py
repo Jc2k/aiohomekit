@@ -27,7 +27,13 @@ from bleak.backends.characteristic import BleakGATTCharacteristic
 from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
 from aiohomekit.exceptions import EncryptionError
 from aiohomekit.model.services import ServicesTypes
-from aiohomekit.pdu import OpCode, decode_pdu, decode_pdu_continuation, encode_pdu
+from aiohomekit.pdu import (
+    OpCode,
+    decode_pdu,
+    decode_pdu_continuation,
+    encode_pdu,
+    PDUStatus,
+)
 from aiohomekit.protocol.tlv import TLV
 
 from .const import HAP_MIN_REQUIRED_MTU, AdditionalParameterTypes
@@ -60,7 +66,7 @@ async def ble_request(
     handle: int,
     iid: int,
     data: bytes | None = None,
-) -> bytes:
+) -> tuple[PDUStatus, bytes]:
     tid = random.randrange(1, 254)
 
     # We think there is a 3 byte overhead for ATT
@@ -90,10 +96,14 @@ async def ble_request(
     logger.debug("Read fragment: %s", data)
 
     # Validate the PDU header
-    expected_length, data = decode_pdu(tid, data)
+    status, expected_length, data = decode_pdu(tid, data)
 
     # If packet is too short then there may be 1 or more continuation
     # packets. Keep reading until we have enough data.
+    #
+    # Even if the status is failure, we must read the whole
+    # data set or the encryption will be out of sync.
+    #
     while len(data) < expected_length:
         next = await client.read_gatt_char(handle)
         if decryption_key:
@@ -104,7 +114,7 @@ async def ble_request(
 
         data += decode_pdu_continuation(tid, next)
 
-    return data
+    return status, data
 
 
 async def char_write(
@@ -116,9 +126,13 @@ async def char_write(
     body: bytes,
 ):
     body = BleRequest(expect_response=1, value=body).encode()
-    data = await ble_request(
+    pdu_status, data = await ble_request(
         client, encryption_key, decryption_key, OpCode.CHAR_WRITE, handle, iid, body
     )
+    if pdu_status != PDUStatus.SUCCESS:
+        raise ValueError(
+            f"{client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
+        )
     decoded = dict(TLV.decode_bytes(data))
     return decoded[AdditionalParameterTypes.Value.value]
 
@@ -130,9 +144,13 @@ async def char_read(
     handle: int,
     iid: int,
 ):
-    data = await ble_request(
+    pdu_status, data = await ble_request(
         client, encryption_key, decryption_key, OpCode.CHAR_READ, handle, iid
     )
+    if pdu_status != PDUStatus.SUCCESS:
+        raise ValueError(
+            f"{client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
+        )
     decoded = dict(TLV.decode_bytes(data))
     return decoded[AdditionalParameterTypes.Value.value]
 

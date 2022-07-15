@@ -44,7 +44,7 @@ from aiohomekit.model import (
 )
 from aiohomekit.model.characteristics import CharacteristicPermissions
 from aiohomekit.model.services import ServicesTypes
-from aiohomekit.pdu import OpCode, decode_pdu, encode_pdu
+from aiohomekit.pdu import OpCode, PDUStatus, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.protocol.tlv import TLV
@@ -165,7 +165,7 @@ class BlePairing(AbstractPairing):
             if not self.client or not self.client.is_connected:
                 logger.debug("%s: Client not connected", self.address)
                 return
-            return await ble_request(
+            pdu_status, result_data = await ble_request(
                 self.client,
                 self._encryption_key,
                 self._decryption_key,
@@ -174,6 +174,11 @@ class BlePairing(AbstractPairing):
                 iid,
                 data,
             )
+            if pdu_status != PDUStatus.SUCCESS:
+                raise ValueError(
+                    f"{self.client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
+                )
+            return result_data
 
     def _async_disconnected(self, client: BleakClient) -> None:
         logger.debug("%s: Session closed", self.address)

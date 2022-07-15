@@ -80,7 +80,7 @@ def encode_pdu(
         yield struct.pack("<BB", 0x80, tid) + data[i : i + next_size]
 
 
-def decode_pdu(expected_tid: int, data: bytes) -> tuple[bool, bytes]:
+def decode_pdu(expected_tid: int, data: bytes) -> tuple[PDUStatus, bool, bytes]:
     control, tid, status = struct.unpack("<BBB", data[:3])
     status = PDUStatus(status)
 
@@ -106,12 +106,12 @@ def decode_pdu(expected_tid: int, data: bytes) -> tuple[bool, bytes]:
         )
 
     if len(data) < 5:
-        return 0, b""
+        return status, 0, b""
 
     expected_length = struct.unpack("<H", data[3:5])[0]
     data = data[5:]
 
-    return expected_length, data
+    return status, expected_length, data
 
 
 def decode_pdu_continuation(expected_tid, data):
