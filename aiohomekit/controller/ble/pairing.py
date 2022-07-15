@@ -414,7 +414,8 @@ class BlePairing(AbstractPairing):
         return results
 
     async def subscribe(self, characteristics):
-        await super().subscribe(characteristics)
+        new_chars = await super().subscribe(characteristics)
+        logger.debug("%s: subscribing to %s", self.address, new_chars)
         await self._ensure_connected()
 
     async def unsubscribe(self, characteristics):
