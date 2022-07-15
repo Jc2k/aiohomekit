@@ -326,9 +326,7 @@ class BlePairing(AbstractPairing):
         self._decryption_key = None
 
     async def list_accessories_and_characteristics(self):
-        await self._ensure_connected()
-        results = self._accessories.serialize()
-        return results
+        return self._accessories.serialize()
 
     async def list_pairings(self):
         request_tlv = TLV.encode_list(
