@@ -104,7 +104,6 @@ class BlePairing(AbstractPairing):
         self._is_secure = False
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
-        schedule_repopulate = False
         if description and self.description:
             if description.config_num > self.description.config_num:
                 # TODO: we need to re-read the characteristics
@@ -378,6 +377,9 @@ class BlePairing(AbstractPairing):
             if not self._accessories:
                 accessories_changed = True
                 if accessories := self.pairing_data.get("accessories"):
+                    logger.debug(
+                        "%s: Loading accessories from pairing data", self.address
+                    )
                     self._accessories = Accessories.from_list(accessories)
                     if (
                         new_config_num is None
@@ -386,6 +388,7 @@ class BlePairing(AbstractPairing):
                     ):
                         new_config_num = self.description.config_num
                 elif cache := self.controller._char_cache.get_map(self.id):
+                    logger.debug("%s: Loading accessories from cache", self.address)
                     self._accessories = Accessories.from_list(cache["accessories"])
                     new_config_num = self.description.config_num
 
