@@ -415,7 +415,7 @@ class BlePairing(AbstractPairing):
                 self._update_accessories_state_cache()
 
             if config_changed:
-                super()._process_config_changed(self._config_num)
+                self._callback_and_save_config_changed(self._config_num)
 
     async def _process_config_changed(self, config_num: int) -> None:
         """Process a config change.
