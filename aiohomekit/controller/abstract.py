@@ -22,6 +22,8 @@ from typing import Any, AsyncIterable, Awaitable, Callable, Protocol, final
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.model.categories import Categories
+from aiohomekit.model.characteristics.characteristic_types import CharacteristicsTypes
+from aiohomekit.model.services.service_types import ServicesTypes
 from aiohomekit.model.status_flags import StatusFlags
 
 
@@ -84,7 +86,7 @@ class AbstractPairing(metaclass=ABCMeta):
         accessories = Accessories.from_list(cache["accessories"])
         self._accessories_state = AccessoriesState(accessories, config_num)
 
-    async def restore_accessories_state(
+    def restore_accessories_state(
         self, accessories: list[dict[str, Any]], config_num: int
     ) -> None:
         """Restore accessories from cache."""
@@ -99,6 +101,19 @@ class AbstractPairing(metaclass=ABCMeta):
             self._config_num,
             self._accessories.serialize(),
         )
+
+    async def get_primary_name(self) -> str:
+        """Return the primary name of the device."""
+        if not self._accessories:
+            accessories = await self.list_accessories_and_characteristics()
+            parsed = Accessories.from_list(accessories)
+        else:
+            parsed = self._accessories
+
+        accessory_info = parsed.aid(1).services.first(
+            service_type=ServicesTypes.ACCESSORY_INFORMATION
+        )
+        return accessory_info.value(CharacteristicsTypes.NAME, "")
 
     @abstractmethod
     async def close(self):

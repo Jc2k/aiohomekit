@@ -135,13 +135,6 @@ class Controller(AbstractController):
 
         raise TransportNotSupportedError(pairing_data["Connection"])
 
-    async def restore_accessories_from_cache(
-        self, accessories: list[dict[str, Any]], config_num: int
-    ) -> None:
-        """Restore accessories from cache."""
-        accessories = Accessories.from_list(accessories)
-        self._accessories_state = AccessoriesState(accessories, config_num)
-
     def load_data(self, filename: str) -> None:
         """
         Loads the pairing data of the controller from a file.
