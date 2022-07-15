@@ -156,6 +156,8 @@ class BlePairing(AbstractPairing):
 
     def _async_disconnected(self, *args, **kwargs):
         logger.debug("%s: Session closed", self.address)
+        self._encryption_key = None
+        self._decryption_key = None
 
     @property
     def address(self):
@@ -203,7 +205,6 @@ class BlePairing(AbstractPairing):
             #        await self.client._acquire_mtu()
             #    except (RuntimeError, StopIteration) as ex:
             #        logger.debug("%s: Failed to acquire MTU: %s", ex, address)
-            await self._async_pair_verify()
             for _, iid in list(self.subscriptions):
                 if iid not in self._notifications:
                     await self._async_start_notify(iid)
@@ -391,6 +392,9 @@ class BlePairing(AbstractPairing):
                 )
                 self._accessories = await self._async_fetch_gatt_database()
                 accessories_changed = True
+
+            if not self._encryption_key:
+                await self._async_pair_verify()
 
             if not accessories_changed:
                 return
