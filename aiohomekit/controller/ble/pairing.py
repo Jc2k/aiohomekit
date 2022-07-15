@@ -32,7 +32,6 @@ from aiohomekit.controller.ble.client import (
     get_characteristic,
 )
 from aiohomekit.exceptions import (
-    AccessoryDisconnectedError,
     AuthenticationError,
     InvalidError,
     UnknownError,
