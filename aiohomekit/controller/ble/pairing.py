@@ -371,6 +371,9 @@ class BlePairing(AbstractPairing):
             if not self._accessories:
                 accessories_changed = True
                 if accessories := self.pairing_data.get("accessories"):
+                    logger.debug(
+                        "%s: Loading accessories from pairing data", self.address
+                    )
                     accessories_config_num = self.pairing_data.get("config_num", 0)
                     self._accessories = Accessories.from_list(accessories)
                     if (
@@ -386,8 +389,19 @@ class BlePairing(AbstractPairing):
                     )
                 elif cache := self.controller._char_cache.get_map(self.id):
                     logger.debug("%s: Loading accessories from cache", self.address)
+                    accessories_config_num = cache.get("config_num", 0)
                     self._accessories = Accessories.from_list(cache["accessories"])
-                    new_config_num = self.description.config_num
+                    if (
+                        new_config_num is None
+                        and accessories_config_num != self.description.config_num
+                    ):
+                        new_config_num = self.description.config_num
+                    logger.debug(
+                        "%s: Loading accessories from cache with config number %s, current config number is %s",
+                        self.address,
+                        accessories_config_num,
+                        self.description.config_num,
+                    )
 
             if not self._accessories or new_config_num:
                 logger.debug(
