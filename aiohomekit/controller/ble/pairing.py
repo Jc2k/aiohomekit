@@ -539,7 +539,7 @@ class BlePairing(AbstractPairing):
                 payload = TLV.encode_list(
                     [
                         (HAP_TLV.kTLVHAPParamValue, to_bytes(char, value)),
-                        (HAP_TLV.kTLVHAPParamTTL, b"\x32"),  # 5s
+                        (HAP_TLV.kTLVHAPParamTTL, b"\x1E"),  # 3s
                     ]
                 )
                 response = await self._async_request(
