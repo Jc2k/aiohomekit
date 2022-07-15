@@ -548,6 +548,8 @@ class BlePairing(AbstractPairing):
                 decoded = dict(TLV.decode_bytes(response))
                 logger.debug("%s: Timed write response: %s", self.address, decoded)
                 await self._async_request(OpCode.CHAR_EXEC_WRITE, iid)
+                decoded = dict(TLV.decode_bytes(response))
+                logger.debug("%s: Timed write execute response: %s", self.address, decoded)
 
             elif CharacteristicPermissions.paired_write in char.perms:
                 payload = TLV.encode_list(
