@@ -274,7 +274,7 @@ class Accessories:
             return cls.from_list(json.load(fp))
 
     @classmethod
-    def from_list(cls, accessories) -> Accessories:
+    def from_list(cls, accessories: list[dict[str, Any]]) -> Accessories:
         self = cls()
         for accessory in accessories:
             self.add_accessory(Accessory.create_from_dict(accessory))

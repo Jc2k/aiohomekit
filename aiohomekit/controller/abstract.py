@@ -17,9 +17,10 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import AsyncIterable, Awaitable, Callable, Protocol, final
+from typing import Any, AsyncIterable, Awaitable, Callable, Protocol, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
+from aiohomekit.model import AccessoriesState
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.status_flags import StatusFlags
 
@@ -49,6 +50,7 @@ class AbstractPairing(metaclass=ABCMeta):
         self.controller = controller
         self.listeners = set()
         self.subscriptions = set()
+        self._accessories_state: AccessoriesState | None = None
 
     def _async_description_update(self, description: AbstractDescription | None):
         self.description = description
@@ -63,6 +65,10 @@ class AbstractPairing(metaclass=ABCMeta):
 
     @abstractmethod
     async def close(self):
+        pass
+
+    @abstractmethod
+    async def restore_accessories_from_cache(self, accessories: list[dict[str, Any]], config_num: int) -> None:
         pass
 
     @abstractmethod
