@@ -168,6 +168,9 @@ class BlePairing(AbstractPairing):
 
                 try:
                     await self.client.connect()
+                    # The MTU will always be 23 if we do not fetch it
+                    if self.client.__class__.__name__ == "BleakClientBlueZDBus":
+                        await self.client._acquire_mtu()
                 except BleakError as e:
                     logger.debug(
                         "Failed to connect to %s: %s", self.client.address, str(e)

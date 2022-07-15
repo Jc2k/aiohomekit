@@ -66,19 +66,40 @@ class BleDiscovery(AbstractDiscovery):
         self.device = device
 
         self.client = BleakClient(self.device)
+        self._connect_lock = asyncio.Lock()
 
     async def _ensure_connected(self):
-        while not self.client.is_connected:
-            try:
-                await self.client.connect()
-                break
-            except BleakError as e:
-                logger.debug("Failed to connect to %s: %s", self.client.address, str(e))
+        if self.client.is_connected:
+            return
+        async with self._connect_lock:
+            while not self.client.is_connected:
+                try:
+                    await self.client.connect()
+                    # The MTU will always be 23 if we do not fetch it
+                    if self.client.__class__.__name__ == "BleakClientBlueZDBus":
+                        await self.client._acquire_mtu()
+                    break
+                except BleakError as e:
+                    logger.debug(
+                        "Failed to connect to %s: %s", self.client.address, str(e)
+                    )
 
-            if self.description.address != self.client.address:
-                self.client = BleakClient(self.description.address)
+                if self.description.address != self.client.address:
+                    self.client = BleakClient(self.description.address)
 
-            await asyncio.sleep(5)
+                await asyncio.sleep(5)
+
+    async def _close(self):
+        if not self.client:
+            return
+        async with self._connection_lock():
+            if self.client:
+                try:
+                    await self.client.disconnect()
+                except BleakError:
+                    logger.debug(
+                        "Failed to close connection, client may have already closed it"
+                    )
 
     async def async_start_pairing(self, alias: str) -> FinishPairing:
         await self._ensure_connected()
@@ -118,6 +139,7 @@ class BleDiscovery(AbstractDiscovery):
             pairing["Connection"] = "BLE"
 
             obj = self.controller.pairings[alias] = BlePairing(self.controller, pairing)
+            await self._close()
 
             return obj
 
