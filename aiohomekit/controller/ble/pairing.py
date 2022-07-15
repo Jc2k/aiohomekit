@@ -80,10 +80,8 @@ class BlePairing(AbstractPairing):
 
         self.id = pairing_data["AccessoryPairingID"]
 
-        if accessories := pairing_data.get("accessories"):
-            self._accessories = Accessories.from_list(accessories)
-        elif cache := self.controller._char_cache.get_map(self.id):
-            self._accessories = Accessories.from_list(cache["accessories"])
+        self._accessories: Accessories | None = None
+        self._config_num = 0
 
         self.pairing_data = pairing_data
         logger.debug("%s: Pairing data: %s", self.address, self.pairing_data)
@@ -107,7 +105,7 @@ class BlePairing(AbstractPairing):
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         if description and self.description:
-            if description.config_num > self.description.config_num:
+            if description.config_num > self._config_num:
                 self._did_first_read = False
                 # TODO: we need to re-read the characteristics
                 logger.debug(
@@ -196,11 +194,20 @@ class BlePairing(AbstractPairing):
             address = self.address
 
             if not self._accessories:
-                logger.debug("%s: Reading gatt database", address)
-                self._accessories = await self._async_fetch_gatt_database()
+                if accessories := self.pairing_data.get("accessories"):
+                    self._accessories = Accessories.from_list(accessories)
+                    self._config_num = self.pairing_data.get("config_num", 0)
+                elif cache := self.controller._char_cache.get_map(self.id):
+                    self._accessories = Accessories.from_list(cache["accessories"])
+
+                if self._config_num != self.description.config_num:
+                    logger.debug("%s: Reading gatt database", address)
+                    self._accessories = await self._async_fetch_gatt_database()
+                    self._config_num = self.description.config_num
+
                 self.controller._char_cache.async_create_or_update_map(
                     self.id,
-                    0,
+                    self._config_num,
                     self._accessories.serialize(),
                 )
 
