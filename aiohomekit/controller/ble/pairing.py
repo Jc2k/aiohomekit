@@ -207,6 +207,13 @@ class BlePairing(AbstractPairing):
             #        await self.client._acquire_mtu()
             #    except (RuntimeError, StopIteration) as ex:
             #        logger.debug("%s: Failed to acquire MTU: %s", ex, address)
+
+        # Release the lock to allow whatever operation is currently in progress
+        # that created the connection to continue
+        async with self._connection_lock:
+            if not self.client or self.client.is_connected:
+                logger.debug("%s: Client not connected", self.address)
+                return
             for _, iid in list(self.subscriptions):
                 if iid not in self._notifications:
                     await self._async_start_notify(iid)
