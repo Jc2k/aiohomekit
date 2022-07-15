@@ -25,7 +25,6 @@ from bleak import BleakClient
 from bleak.exc import BleakError
 
 from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
-from aiohomekit.exceptions import AccessoryDisconnectedError, AccessoryNotFoundError
 from aiohomekit.model import CharacteristicsTypes, ServicesTypes
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
@@ -79,12 +78,9 @@ class BleDiscovery(AbstractDiscovery):
         if self.client and self.client.is_connected:
             return
         async with self._connection_lock:
-            try:
-                self.client = await establish_connection(
-                    self.get_address, self._async_disconnected
-                )
-            except AccessoryDisconnectedError as ex:
-                raise AccessoryNotFoundError(str(ex)) from ex
+            self.client = await establish_connection(
+                self.get_address, self._async_disconnected
+            )
 
     def _async_disconnected(self, client: BleakClient) -> None:
         logger.debug("%s: Session closed", client.address)
