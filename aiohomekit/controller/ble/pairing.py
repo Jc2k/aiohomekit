@@ -300,7 +300,10 @@ class BlePairing(AbstractPairing):
                 _, signature = decode_pdu(tid, payload)
 
                 decoded = CharacteristicTLV.decode(signature).to_dict()
+
                 char = s.add_char(normalize_uuid(char.uuid))
+                logger.debug("%s: char: %s decoded: %s", self.address, char, decoded)
+
                 char.iid = iid
 
                 char.perms = decoded["perms"]
