@@ -430,7 +430,9 @@ class BlePairing(AbstractPairing):
 
             if not self._accessories or self._config_num != self.description.config_num:
                 logger.debug(
-                    "Fetching gatt database because new config num: %s", new_config_num
+                    "Fetching gatt database because, cached_config_num: %s, adv config_num: %s",
+                    self._config_num,
+                    self.description.config_num,
                 )
                 accessories = await self._async_fetch_gatt_database()
                 config_num = self.description.config_num
