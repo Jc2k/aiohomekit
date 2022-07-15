@@ -322,6 +322,14 @@ class BlePairing(AbstractPairing):
                     logger.debug(
                         "%s: char: %s decoded: %s", self.address, char, decoded
                     )
+
+                    hap_char.iid = iid
+                    hap_char.perms = decoded["perms"]
+                    hap_char.format = decoded["format"]
+
+                    if CharacteristicPermissions.paired_read not in hap_char.perms:
+                        continue
+                    logger.debug("%s: Reading value for %s", self.address, hap_char)
                     data = await ble_request(
                         self.client,
                         self._encryption_key,
@@ -331,9 +339,6 @@ class BlePairing(AbstractPairing):
                         iid,
                     )
                     data = dict(TLV.decode_bytes(data))[1]
-                    hap_char.iid = iid
-                    hap_char.perms = decoded["perms"]
-                    hap_char.format = decoded["format"]
                     hap_char.value = from_bytes(char, data)
 
         accessories = Accessories()
