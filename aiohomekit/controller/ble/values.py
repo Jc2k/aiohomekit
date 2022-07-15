@@ -4,10 +4,22 @@ import struct
 
 from aiohomekit.model import Characteristic, CharacteristicFormats
 
+INT_TYPES = {
+    CharacteristicFormats.uint8,
+    CharacteristicFormats.uint16,
+    CharacteristicFormats.uint32,
+    CharacteristicFormats.uint64,
+    CharacteristicFormats.int,
+}
+
 
 def from_bytes(char: Characteristic, value: bytes) -> bool | str | float | int | bytes:
     if char.format == CharacteristicFormats.bool:
         return struct.unpack("?", value)[0]
+    # iOS seems to be quite permissive about bools in
+    # integer formatted characteristics.
+    elif len(value) == 1 and char.format in INT_TYPES:
+        return int(struct.unpack("?", value)[0])
     elif char.format == CharacteristicFormats.uint8:
         return struct.unpack("B", value)[0]
     elif char.format == CharacteristicFormats.uint16:
