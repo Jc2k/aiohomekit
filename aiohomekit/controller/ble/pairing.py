@@ -302,29 +302,23 @@ class BlePairing(AbstractPairing):
 
                     decoded = CharacteristicTLV.decode(signature).to_dict()
 
-                    char = s.add_char(normalize_uuid(char.uuid))
+                    hap_char = s.add_char(normalize_uuid(char.uuid))
                     logger.debug(
                         "%s: char: %s decoded: %s", self.address, char, decoded
                     )
-
-                    char = self._accessories.aid(1).characteristics.iid(iid)
-                    endpoint = get_characteristic(
-                        self.client, char.service.type, char.type
-                    )
-
                     data = await ble_request(
                         self.client,
                         self._encryption_key,
                         self._decryption_key,
                         OpCode.CHAR_READ,
-                        endpoint.handle,
+                        char.handle,
                         iid,
                     )
                     data = dict(TLV.decode_bytes(data))[1]
-                    char.iid = iid
-                    char.perms = decoded["perms"]
-                    char.format = decoded["format"]
-                    char.value = from_bytes(char, data)
+                    hap_char.iid = iid
+                    hap_char.perms = decoded["perms"]
+                    hap_char.format = decoded["format"]
+                    hap_char.value = from_bytes(char, data)
 
         accessories = Accessories()
         accessories.add_accessory(accessory)
