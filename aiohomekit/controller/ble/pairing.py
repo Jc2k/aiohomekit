@@ -353,10 +353,15 @@ class BlePairing(AbstractPairing):
         return self._accessories.serialize()
 
     async def _populate_accessories_and_characteristics(self):
+        was_locked = False
         if self._config_lock.locked():
-            return
+            was_locked = True
         async with self._config_lock:
             await self._ensure_connected()
+            if was_locked:
+                # No need to do it twice
+                return
+
             accessories_changed = False
 
             if not self._accessories:
