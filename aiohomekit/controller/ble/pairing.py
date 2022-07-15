@@ -290,7 +290,7 @@ class BlePairing(AbstractPairing):
         return accessories
 
     async def close(self):
-        async with self._connection_lock():
+        async with self._connection_lock:
             await self._close_while_locked()
 
     async def _close_while_locked(self):
