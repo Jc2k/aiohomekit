@@ -125,6 +125,7 @@ class BlePairing(AbstractPairing):
         return self.client and self.client.is_connected and self._encryption_key
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
+        logger.debug("%s: Description updated: %s", self.address, description)
         repopulate_accessories = False
         if description and self.description:
             if description.config_num > self.description.config_num:
