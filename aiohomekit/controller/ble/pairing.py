@@ -185,7 +185,11 @@ class BlePairing(AbstractPairing):
             self.client = await establish_connection(
                 self.get_address, self._async_disconnected
             )
-
+            logger.debug(
+                "%s: Connected, processing subscriptions: %s",
+                self.address,
+                self.subscriptions,
+            )
             # The MTU will always be 23 if we do not fetch it
             #
             #  Currently doesn't work, and we need to store it forever since
@@ -326,7 +330,7 @@ class BlePairing(AbstractPairing):
 
         return accessories
 
-    async def close(self):
+    async def close(self) -> None:
         async with self._connection_lock:
             await self._close_while_locked()
 
