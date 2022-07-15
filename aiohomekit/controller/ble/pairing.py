@@ -103,12 +103,11 @@ class BlePairing(AbstractPairing):
         self._config_lock = asyncio.Lock()
 
         self._is_secure = False
-        self._did_first_read = False
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
+        schedule_repopulate = False
         if description and self.description:
             if description.config_num > self._config_num:
-                self._did_first_read = False
                 # TODO: we need to re-read the characteristics
                 logger.debug(
                     "%s: Config number has changed from %s to %s; char cache invalid",
@@ -116,6 +115,7 @@ class BlePairing(AbstractPairing):
                     self._config_num,
                     description.config_num,
                 )
+                schedule_repopulate = True
 
             if description.state_num > self.description.state_num:
                 logger.debug(
@@ -132,7 +132,9 @@ class BlePairing(AbstractPairing):
                 )
                 async_create_task(self.close())
 
-        return super()._async_description_update(description)
+        super()._async_description_update(description)
+        if schedule_repopulate:
+            async_create_task(self._populate_accessories_and_characteristics())
 
     @property
     def is_connected(self) -> bool:
