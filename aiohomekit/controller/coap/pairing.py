@@ -16,10 +16,12 @@
 
 import asyncio
 import logging
+from typing import Any
 
 from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Accessories, AccessoriesState
+from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from .connection import CoAPHomeKitConnection
@@ -111,7 +113,7 @@ class CoAPPairing(AbstractPairing):
         await self._ensure_connected()
         return await self.connection.do_identify()
 
-    async def list_accessories_and_characteristics(self):
+    async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         await self._ensure_connected()
 
         accessories = await self.connection.get_accessory_info()
@@ -127,6 +129,22 @@ class CoAPPairing(AbstractPairing):
             Accessories.from_list(accessories), self._config_num or 0
         )
         return accessories
+
+    async def _process_config_changed(self, config_num: int) -> None:
+        """Process a config change.
+
+        This method is called when the config num changes.
+        """
+        await self.list_accessories_and_characteristics()
+        self._accessories_state = AccessoriesState(
+            self._accessories_state.accessories, config_num
+        )
+        for callback in self.config_changed_listeners:
+            callback(self._config_num)
+
+    def notify_config_changed(self, config_num: int) -> None:
+        """Notify the pairing that the config number has changed."""
+        async_create_task(self._process_config_changed(config_num))
 
     async def async_populate_accessories_state(self) -> None:
         """Populate the state of all accessories.

@@ -19,6 +19,7 @@ from itertools import groupby
 import json
 import logging
 from operator import itemgetter
+from typing import Any
 
 from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.exceptions import (
@@ -36,6 +37,7 @@ from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.protocol import error_handler
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.protocol.tlv import TLV
+from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from .connection import SecureHomeKitConnection
@@ -123,7 +125,7 @@ class IpPairing(AbstractPairing):
         await self.connection.close()
         await asyncio.sleep(0)
 
-    async def list_accessories_and_characteristics(self):
+    async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         """
         This retrieves a current set of accessories and characteristics behind this pairing.
 
@@ -343,6 +345,22 @@ class IpPairing(AbstractPairing):
         """
         if not self._accessories:
             await self.list_accessories_and_characteristics()
+
+    async def _process_config_changed(self, config_num: int) -> None:
+        """Process a config change.
+
+        This method is called when the config num changes.
+        """
+        await self.list_accessories_and_characteristics()
+        self._accessories_state = AccessoriesState(
+            self._accessories_state.accessories, config_num
+        )
+        for callback in self.config_changed_listeners:
+            callback(self._config_num)
+
+    def notify_config_changed(self, config_num: int) -> None:
+        """Notify the pairing that the config number has changed."""
+        async_create_task(self._process_config_changed(config_num))
 
     async def identify(self):
         """

@@ -350,7 +350,7 @@ class BlePairing(AbstractPairing):
         self._encryption_key = None
         self._decryption_key = None
 
-    async def list_accessories_and_characteristics(self):
+    async def list_accessories_and_characteristics(self) -> dict[str, Any]:
         await self._populate_accessories_and_characteristics()
         return self._accessories.serialize()
 
@@ -392,15 +392,18 @@ class BlePairing(AbstractPairing):
             if not self._accessories:
                 self._load_accessories_from_cache()
 
-            if not self._accessories or self._config_num != self.description.config_num:
+            config_changed = self._config_num != self.description.config_num
+
+            if not self._accessories or config_changed:
                 logger.debug(
                     "Fetching gatt database because, cached_config_num: %s, adv config_num: %s",
                     self._config_num,
                     self.description.config_num,
                 )
                 accessories = await self._async_fetch_gatt_database()
-                config_num = self.description.config_num
-                self._accessories_state = AccessoriesState(accessories, config_num)
+                self._accessories_state = AccessoriesState(
+                    accessories, self.description.config_num
+                )
                 accessories_changed = True
 
             if not self._encryption_key:
@@ -411,6 +414,13 @@ class BlePairing(AbstractPairing):
 
             await self._populate_char_values()
             self._update_accessories_state_cache()
+            if config_changed:
+                for callback in self.config_changed_listeners:
+                    callback(self._config_num)
+
+    def notify_config_changed(self, config_num: int) -> None:
+        """Notify the pairing that the config number has changed."""
+        async_create_task(self._populate_accessories_and_characteristics)
 
     async def list_pairings(self):
         request_tlv = TLV.encode_list(

@@ -52,6 +52,7 @@ class AbstractPairing(metaclass=ABCMeta):
         self.controller = controller
         self.listeners = set()
         self.subscriptions = set()
+        self.config_changed_listeners: set[Callable[[int], None]] = set()
         self._accessories_state: AccessoriesState | None = None
 
     @property
@@ -121,6 +122,11 @@ class AbstractPairing(metaclass=ABCMeta):
         return accessory_info.value(CharacteristicsTypes.NAME, "")
 
     @abstractmethod
+    def notify_config_changed(self, config_num: int) -> None:
+        """Notify the pairing that the config number has changed."""
+        pass
+
+    @abstractmethod
     async def async_populate_accessories_state(self) -> None:
         """Populate the state of all accessories.
 
@@ -178,6 +184,19 @@ class AbstractPairing(metaclass=ABCMeta):
         This will be removed in a future release.
         """
         pass
+
+    def dispatcher_connect_config_changed(
+        self, callback: Callable[[int], None]
+    ) -> None:
+        """
+        Notify the pairing that the config number has changed.
+        """
+        self.config_changed_listeners.add(callback)
+
+        def stop_listening():
+            self.config_changed_listeners.discard(callback)
+
+        return stop_listening
 
     def dispatcher_connect(self, callback):
         """
