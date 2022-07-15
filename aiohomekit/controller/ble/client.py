@@ -25,6 +25,7 @@ from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
 
 from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
+from aiohomekit.exceptions import EncryptionError
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import OpCode, decode_pdu, decode_pdu_continuation, encode_pdu
 from aiohomekit.protocol.tlv import TLV
@@ -84,6 +85,8 @@ async def ble_request(
     data = await client.read_gatt_char(handle)
     if decryption_key:
         data = decryption_key.decrypt(data)
+        if data is False:
+            raise EncryptionError("Decryption failed")
     logger.debug("Read fragment: %s", data)
 
     # Validate the PDU header
