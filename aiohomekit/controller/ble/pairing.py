@@ -412,7 +412,7 @@ class BlePairing(AbstractPairing):
     async def get_characteristics(
         self,
         characteristics: list[tuple[int, int]],
-    ) -> dict[tuple[int, int], Any]:
+    ) -> dict[tuple[int, int], dict[str, Any]]:
         await self._ensure_setup_and_connected()
         logger.debug("%s: Reading characteristics: %s", self.address, characteristics)
 
