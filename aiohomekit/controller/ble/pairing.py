@@ -388,11 +388,13 @@ class BlePairing(AbstractPairing):
                 return
 
             accessories_changed = not self._accessories
+            config_changed = False
 
             if not self._accessories:
                 self._load_accessories_from_cache()
 
-            config_changed = self._config_num != self.description.config_num
+            if not config_changed and self.description:
+                config_changed = self._config_num != self.description.config_num
 
             if not self._accessories or config_changed:
                 logger.debug(
