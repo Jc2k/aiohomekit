@@ -81,7 +81,6 @@ class BlePairing(AbstractPairing):
         self.id = pairing_data["AccessoryPairingID"]
 
         self._accessories: Accessories | None = None
-        self._config_num = 0
 
         self.pairing_data = pairing_data
         logger.debug("%s: Pairing data: %s", self.address, self.pairing_data)
@@ -107,15 +106,19 @@ class BlePairing(AbstractPairing):
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         schedule_repopulate = False
         if description and self.description:
-            if description.config_num > self._config_num:
+            if description.config_num > self.description.config_num:
                 # TODO: we need to re-read the characteristics
                 logger.debug(
                     "%s: Config number has changed from %s to %s; char cache invalid",
                     self.address,
-                    self._config_num,
+                    self.description.config_num,
                     description.config_num,
                 )
-                schedule_repopulate = True
+                async_create_task(
+                    self._populate_accessories_and_characteristics(
+                        description.config_num
+                    )
+                )
 
             if description.state_num > self.description.state_num:
                 logger.debug(
@@ -132,9 +135,7 @@ class BlePairing(AbstractPairing):
                 )
                 async_create_task(self.close())
 
-        super()._async_description_update(description)
-        if schedule_repopulate and not self._config_lock.locked():
-            async_create_task(self._populate_accessories_and_characteristics())
+        return super()._async_description_update(description)
 
     @property
     def is_connected(self) -> bool:
@@ -361,7 +362,9 @@ class BlePairing(AbstractPairing):
         await self._populate_accessories_and_characteristics()
         return self._accessories.serialize()
 
-    async def _populate_accessories_and_characteristics(self):
+    async def _populate_accessories_and_characteristics(
+        self, new_config_num: int | None
+    ) -> None:
         was_locked = False
         if self._config_lock.locked():
             was_locked = True
@@ -372,25 +375,25 @@ class BlePairing(AbstractPairing):
                 return
 
             accessories_changed = False
-
             if not self._accessories:
+                accessories_changed = True
                 if accessories := self.pairing_data.get("accessories"):
-                    accessories_changed = True
                     self._accessories = Accessories.from_list(accessories)
-                    self._config_num = self.pairing_data.get("config_num", 0)
+                    if (
+                        new_config_num is None
+                        and self.pairing_data.get("config_num", 0)
+                        != self.description.config_num
+                    ):
+                        new_config_num = self.description.config_num
                 elif cache := self.controller._char_cache.get_map(self.id):
                     self._accessories = Accessories.from_list(cache["accessories"])
-                    accessories_changed = True
+                    new_config_num = self.description.config_num
 
-            if self._config_num != self.description.config_num:
+            if new_config_num:
                 logger.debug(
-                    "%s: Reading gatt database because config number %s does not match description config number %",
-                    self._config_num,
-                    self.description.config_num,
-                    self.address,
+                    "Fetching gatt database because new config num: %s", new_config_num
                 )
                 self._accessories = await self._async_fetch_gatt_database()
-                self._config_num = self.description.config_num
                 accessories_changed = True
 
             if not accessories_changed:
