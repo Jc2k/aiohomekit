@@ -75,9 +75,6 @@ class BleDiscovery(AbstractDiscovery):
             while not self.client.is_connected:
                 try:
                     await self.client.connect()
-                    # The MTU will always be 23 if we do not fetch it
-                    if self.client.__class__.__name__ == "BleakClientBlueZDBus":
-                        await self.client._acquire_mtu()
                     break
                 except BleakError as e:
                     logger.debug(

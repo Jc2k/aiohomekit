@@ -168,9 +168,6 @@ class BlePairing(AbstractPairing):
 
                 try:
                     await self.client.connect()
-                    # The MTU will always be 23 if we do not fetch it
-                    if self.client.__class__.__name__ == "BleakClientBlueZDBus":
-                        await self.client._acquire_mtu()
                 except BleakError as e:
                     logger.debug(
                         "Failed to connect to %s: %s", self.client.address, str(e)
@@ -188,6 +185,13 @@ class BlePairing(AbstractPairing):
 
             if not self._encryption_key:
                 await self._async_pair_verify()
+
+            # The MTU will always be 23 if we do not fetch it
+            if self.client.__class__.__name__ == "BleakClientBlueZDBus":
+                try:
+                    await self.client._acquire_mtu()
+                except StopIteration as ex:
+                    logger.debug("Failed to acquire MTU: %s", ex)
 
             for (aid, iid) in list(self.subscriptions):
                 if iid not in self._notifications:
