@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.uuid import normalize_uuid
@@ -46,7 +46,7 @@ class Services:
     def __init__(self):
         self._services: list[Service] = []
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Service]:
         return iter(self._services)
 
     def iid(self, iid: int) -> Service:
@@ -262,7 +262,7 @@ class Accessories:
     def __init__(self) -> None:
         self.accessories = []
 
-    def __iter__(self) -> Iterable[Accessory]:
+    def __iter__(self) -> Iterator[Accessory]:
         return iter(self.accessories)
 
     def __getitem__(self, idx) -> Accessory:

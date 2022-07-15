@@ -19,6 +19,7 @@ from itertools import groupby
 import json
 import logging
 from operator import itemgetter
+from typing import Any
 
 from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.exceptions import (
@@ -31,6 +32,7 @@ from aiohomekit.exceptions import (
     UnpairedError,
 )
 from aiohomekit.http import HttpContentTypes
+from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.protocol import error_handler
 from aiohomekit.protocol.statuscodes import to_status_code
@@ -142,7 +144,9 @@ class IpPairing(AbstractPairing):
                 for characteristic in service["characteristics"]:
                     characteristic["type"] = normalize_uuid(characteristic["type"])
 
-        self.pairing_data["accessories"] = accessories
+        self._accessories_state = AccessoriesState(
+            accessories, self._accessories_state.config_num
+        )
         return accessories
 
     async def list_pairings(self):
@@ -215,7 +219,7 @@ class IpPairing(AbstractPairing):
         """
         await self._ensure_connected()
 
-        if "accessories" not in self.pairing_data:
+        if not self._accessories:
             await self.list_accessories_and_characteristics()
 
         url = "/characteristics?id=" + ",".join(
@@ -240,7 +244,7 @@ class IpPairing(AbstractPairing):
         """
         await self._ensure_connected()
 
-        if "accessories" not in self.pairing_data:
+        if not self._accessories:
             await self.list_accessories_and_characteristics()
 
         data = []
@@ -344,19 +348,19 @@ class IpPairing(AbstractPairing):
         """
         await self._ensure_connected()
 
-        if "accessories" not in self.pairing_data:
+        if not self._accessories:
             await self.list_accessories_and_characteristics()
 
         # we are looking for a characteristic of the identify type
         identify_type = CharacteristicsTypes.IDENTIFY
 
         # search all accessories, all services and all characteristics
-        for accessory in self.pairing_data["accessories"]:
-            aid = accessory["aid"]
-            for service in accessory["services"]:
-                for characteristic in service["characteristics"]:
-                    iid = characteristic["iid"]
-                    c_type = normalize_uuid(characteristic["type"])
+        for accessory in self._accessories:
+            aid = accessory.aid
+            for service in accessory.services:
+                for characteristic in service.characteristics:
+                    iid = characteristic.iid
+                    c_type = normalize_uuid(characteristic.type)
                     if identify_type == c_type:
                         # found the identify characteristic, so let's put a value there
                         if not await self.put_characteristics([(aid, iid, True)]):

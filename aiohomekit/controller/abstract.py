@@ -20,7 +20,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Any, AsyncIterable, Awaitable, Callable, Protocol, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
-from aiohomekit.model import AccessoriesState
+from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.status_flags import StatusFlags
 
@@ -46,14 +46,25 @@ class AbstractPairing(metaclass=ABCMeta):
     # and BLE advertisements), and also as AccessoryPairingID i pairing data.
     id: str
 
-    def __init__(self, controller):
+    def __init__(self, controller: AbstractController) -> None:
         self.controller = controller
         self.listeners = set()
         self.subscriptions = set()
         self._accessories_state: AccessoriesState | None = None
 
-    def _async_description_update(self, description: AbstractDescription | None):
-        self.description = description
+    @property
+    def _accessories(self) -> Accessories:
+        """Wrapper around the accessories state to make it easier to use."""
+        if not self._accessories_state:
+            return None
+        return self._accessories_state.accessories
+
+    @property
+    def _config_num(self) -> int:
+        """Wrapper around the accessories state to make it easier to use."""
+        if not self._accessories_state:
+            return None
+        return self._accessories_state.config_num
 
     @property
     @abstractmethod
@@ -63,12 +74,34 @@ class AbstractPairing(metaclass=ABCMeta):
         """
         pass
 
-    @abstractmethod
-    async def close(self):
-        pass
+    def _async_description_update(self, description: AbstractDescription | None):
+        self.description = description
+
+    def _load_accessories_from_cache(self) -> None:
+        if (cache := self.controller._char_cache.get_map(self.id)) is None:
+            return
+        config_num = cache.get("config_num", 0)
+        accessories = Accessories.from_list(cache["accessories"])
+        self._accessories_state = AccessoriesState(accessories, config_num)
+
+    async def restore_accessories_state(
+        self, accessories: list[dict[str, Any]], config_num: int
+    ) -> None:
+        """Restore accessories from cache."""
+        accessories = Accessories.from_list(accessories)
+        self._accessories_state = AccessoriesState(accessories, config_num)
+        self._update_accessories_state_cache()
+
+    def _update_accessories_state_cache(self):
+        """Update the cache with the current state of the accessories."""
+        self.controller._char_cache.async_create_or_update_map(
+            self.id,
+            self._config_num,
+            self._accessories.serialize(),
+        )
 
     @abstractmethod
-    async def restore_accessories_from_cache(self, accessories: list[dict[str, Any]], config_num: int) -> None:
+    async def close(self):
         pass
 
     @abstractmethod

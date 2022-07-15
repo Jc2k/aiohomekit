@@ -70,8 +70,6 @@ class BlePairing(AbstractPairing):
     description: HomeKitAdvertisement | None
     controller: BleController
 
-    _accessories_state: AccessoriesState | None = None
-
     _encryption_key: EncryptionKey | None = None
     _decryption_key: DecryptionKey | None = None
 
@@ -85,8 +83,6 @@ class BlePairing(AbstractPairing):
         super().__init__(controller)
 
         self.id = pairing_data["AccessoryPairingID"]
-
-        self._accessories_state: AccessoriesState | None = None
 
         self.pairing_data = pairing_data
 
@@ -105,20 +101,6 @@ class BlePairing(AbstractPairing):
         self._ble_request_lock = asyncio.Lock()
 
         self._config_lock = asyncio.Lock()
-
-    @property
-    def _accessories(self) -> Accessories:
-        """Wrapper around the accessories state to make it easier to use."""
-        if not self._accessories_state:
-            return None
-        return self._accessories_state.accessories
-
-    @property
-    def _config_num(self) -> int:
-        """Wrapper around the accessories state to make it easier to use."""
-        if not self._accessories_state:
-            return None
-        return self._accessories_state.config_num
 
     @property
     def address(self):
@@ -372,21 +354,6 @@ class BlePairing(AbstractPairing):
         await self._populate_accessories_and_characteristics()
         return self._accessories.serialize()
 
-    def _load_accessories_from_cache(self) -> None:
-        if accessories := self.pairing_data.get("accessories"):
-            logger.debug("%s: Loading accessories from pairing data", self.address)
-            config_num = self.pairing_data.get("config_num", 0)
-            accessories = Accessories.from_list(accessories)
-            self._accessories_state = AccessoriesState(accessories, config_num)
-            return
-
-        if cache := self.controller._char_cache.get_map(self.id):
-            logger.debug("%s: Loading accessories from cache", self.address)
-            config_num = cache.get("config_num", 0)
-            accessories = Accessories.from_list(cache["accessories"])
-            self._accessories_state = AccessoriesState(accessories, config_num)
-            return
-
     async def _populate_char_values(self):
         """Populate the values of all characteristics."""
         for service in self._accessories.aid(1).services:
@@ -401,17 +368,6 @@ class BlePairing(AbstractPairing):
                 result = results[aid_iid]
                 if "value" in result:
                     char.value = result["value"]
-
-    def _update_accessories_state_cache(self):
-        """Update the cache with the current state of the accessories."""
-        self.controller._char_cache.async_create_or_update_map(
-            self.id,
-            self._config_num,
-            self._accessories.serialize(),
-        )
-        accessories_state = self._accessories_state
-        self.pairing_data["accessories"] = accessories_state.accessories.serialize()
-        self.pairing_data["config_num"] = accessories_state.config_num
 
     async def _populate_accessories_and_characteristics(self) -> None:
         was_locked = False
