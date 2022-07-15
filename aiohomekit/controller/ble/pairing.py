@@ -99,6 +99,8 @@ class BlePairing(AbstractPairing):
         #   to guess what encryption counter to use for the decrypt
         self._ble_request_lock = asyncio.Lock()
 
+        self._pending_callbacks: list[asyncio.Task] = []
+
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         if description and self.description:
             if description.config_num > self.description.config_num:
@@ -142,6 +144,9 @@ class BlePairing(AbstractPairing):
 
     def _async_disconnected(self, *args, **kwargs):
         logger.debug("Session closed")
+        for task in self._pending_callbacks:
+            task.cancel()
+        self._pending_callbacks.clear()
 
     async def _ensure_connected(self):
         if self.client and self.client.is_connected:
@@ -208,7 +213,7 @@ class BlePairing(AbstractPairing):
                 listener(results)
 
         def _callback(id, data) -> None:
-            async_create_task(_async_callback())
+            self._pending_callbacks.append(async_create_task(_async_callback()))
 
         logger.debug("Subscribing to iid: %s", iid)
         await self.client.start_notify(endpoint, _callback)
