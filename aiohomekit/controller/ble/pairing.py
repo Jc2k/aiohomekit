@@ -133,7 +133,7 @@ class BlePairing(AbstractPairing):
                 async_create_task(self.close())
 
         super()._async_description_update(description)
-        if schedule_repopulate:
+        if schedule_repopulate and not self._config_lock.locked():
             async_create_task(self._populate_accessories_and_characteristics())
 
     @property
@@ -353,6 +353,8 @@ class BlePairing(AbstractPairing):
         return self._accessories.serialize()
 
     async def _populate_accessories_and_characteristics(self):
+        if self._config_lock.locked():
+            return
         async with self._config_lock:
             await self._ensure_connected()
             accessories_changed = False
