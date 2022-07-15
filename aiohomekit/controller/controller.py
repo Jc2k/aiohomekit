@@ -20,7 +20,7 @@ from contextlib import AsyncExitStack
 import json
 from json.decoder import JSONDecodeError
 import pathlib
-from typing import Any, AsyncIterable
+from typing import AsyncIterable
 
 from zeroconf.asyncio import AsyncZeroconf
 
@@ -29,7 +29,6 @@ from aiohomekit.characteristic_cache import (
     CharacteristicCacheType,
 )
 from aiohomekit.controller.abstract import AbstractDiscovery
-from aiohomekit.model import Accessories, AccessoriesState
 
 from ..const import (
     BLE_TRANSPORT_SUPPORTED,
