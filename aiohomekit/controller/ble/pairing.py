@@ -225,7 +225,7 @@ class BlePairing(AbstractPairing):
                 for char in service.characteristics:
                     if CharacteristicPermissions.paired_read not in char.perms:
                         continue
-                    results = self.get_characteristics([1, char.iid])
+                    results = await self.get_characteristics([1, char.iid])
                     char.value = results[(1, char.iid)]["value"]
 
     async def _async_start_notify(self, iid: int) -> None:
