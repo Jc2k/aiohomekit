@@ -25,6 +25,7 @@ from bleak import BleakClient
 from bleak.exc import BleakError
 
 from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
+from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import CharacteristicsTypes, ServicesTypes
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
@@ -37,6 +38,7 @@ from .client import (
     get_characteristic,
     get_characteristic_iid,
 )
+from .connection import establish_connection
 from .manufacturer_data import HomeKitAdvertisement
 from .pairing import BlePairing
 
@@ -68,29 +70,21 @@ class BleDiscovery(AbstractDiscovery):
         self.client: BleakClient | None = None
         self._connection_lock = asyncio.Lock()
 
+    def get_address(self) -> str:
+        """Return the most current address for the device."""
+        return self.description.address
+
     async def _ensure_connected(self):
         logger.debug("Ensure connected with device %s", self.device)
-        if not self.client:
-            self.client = BleakClient(self.device)
-        if self.client.is_connected:
+        if self.client and self.client.is_connected:
             return
         async with self._connection_lock:
-            while not self.client.is_connected:
-                logger.debug("Connecting to %s", self.device)
-                try:
-                    await self.client.connect()
-                    break
-                except BleakError as e:
-                    logger.debug(
-                        "Failed to connect to %s: %s", self.client.address, str(e)
-                    )
+            self.client = await establish_connection(
+                self.get_address, self._async_disconnected
+            )
 
-                if self.description.address != self.client.address:
-                    self.client = BleakClient(self.description.address)
-
-                await asyncio.sleep(5)
-
-            logger.debug("Connected to %s", self.client.address)
+    def _async_disconnected(self, client: BleakClient) -> None:
+        logger.debug("%s: Session closed", client.address)
 
     async def _close(self):
         if not self.client:

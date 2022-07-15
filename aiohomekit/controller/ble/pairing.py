@@ -31,7 +31,12 @@ from aiohomekit.controller.ble.client import (
     drive_pairing_state_machine,
     get_characteristic,
 )
-from aiohomekit.exceptions import AuthenticationError, InvalidError, UnknownError
+from aiohomekit.exceptions import (
+    AccessoryDisconnectedError,
+    AuthenticationError,
+    InvalidError,
+    UnknownError,
+)
 from aiohomekit.model import (
     Accessories,
     AccessoriesState,
@@ -48,6 +53,7 @@ from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from ..abstract import AbstractPairing
+from .connection import establish_connection
 from .key import DecryptionKey, EncryptionKey
 from .manufacturer_data import HomeKitAdvertisement
 from .structs import Characteristic as CharacteristicTLV
@@ -59,6 +65,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
+MAX_CONNECT_ATTEMPTS = 3
 
 
 class BlePairing(AbstractPairing):
@@ -101,6 +108,10 @@ class BlePairing(AbstractPairing):
         self._ble_request_lock = asyncio.Lock()
 
         self._config_lock = asyncio.Lock()
+
+    def get_address(self) -> str:
+        """Return the most current address for the device."""
+        return self.address
 
     @property
     def address(self):
@@ -161,36 +172,20 @@ class BlePairing(AbstractPairing):
                 data,
             )
 
-    def _async_disconnected(self, *args, **kwargs):
+    def _async_disconnected(self, client: BleakClient) -> None:
         logger.debug("%s: Session closed", self.address)
         self._encryption_key = None
         self._decryption_key = None
-
-    async def _establish_connection(self):
-        address = self.address
-        while not self.client or not self.client.is_connected:
-            if self.client:
-                await self._close_while_locked()
-
-            logger.debug("%s: Connecting", address)
-            self.client = BleakClient(address)
-            self.client.set_disconnected_callback(self._async_disconnected)
-
-            try:
-                await self.client.connect()
-            except BleakError as e:
-                logger.debug("Failed to connect to %s: %s", self.client.address, str(e))
-                await self._close_while_locked()
-                await asyncio.sleep(5)
-
-        logger.debug("%s: Connected", address)
 
     async def _ensure_connected(self):
         if self.client and self.client.is_connected:
             return
 
         async with self._connection_lock:
-            await self._establish_connection()
+            self.client = await establish_connection(
+                self.get_address, self._async_disconnected
+            )
+
             # The MTU will always be 23 if we do not fetch it
             #
             #  Currently doesn't work, and we need to store it forever since
@@ -379,7 +374,7 @@ class BlePairing(AbstractPairing):
         """
         try:
             await self._populate_accessories_and_characteristics(force_update)
-        except BleakError as ex:
+        except (AccessoryDisconnectedError, BleakError) as ex:
             logger.debug("%s: Failed to populate accessories: %s", self.address, ex)
             return False
         return True
