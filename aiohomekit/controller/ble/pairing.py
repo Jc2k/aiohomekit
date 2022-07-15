@@ -386,7 +386,7 @@ class BlePairing(AbstractPairing):
                     self._accessories = Accessories.from_list(cache["accessories"])
                     new_config_num = self.description.config_num
 
-            if new_config_num:
+            if not self._accessories or new_config_num:
                 logger.debug(
                     "Fetching gatt database because new config num: %s", new_config_num
                 )
