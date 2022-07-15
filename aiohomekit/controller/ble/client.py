@@ -29,10 +29,10 @@ from aiohomekit.exceptions import EncryptionError
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import (
     OpCode,
+    PDUStatus,
     decode_pdu,
     decode_pdu_continuation,
     encode_pdu,
-    PDUStatus,
 )
 from aiohomekit.protocol.tlv import TLV
 

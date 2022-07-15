@@ -31,11 +31,7 @@ from aiohomekit.controller.ble.client import (
     drive_pairing_state_machine,
     get_characteristic,
 )
-from aiohomekit.exceptions import (
-    AuthenticationError,
-    InvalidError,
-    UnknownError,
-)
+from aiohomekit.exceptions import AuthenticationError, InvalidError, UnknownError
 from aiohomekit.model import (
     Accessories,
     AccessoriesState,
