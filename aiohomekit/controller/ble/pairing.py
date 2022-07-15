@@ -376,7 +376,7 @@ class BlePairing(AbstractPairing):
                     if "value" in result:
                         char.value = result["value"]
             self._did_first_read = True
-        accessories =  self._accessories.serialize()
+        accessories = self._accessories.serialize()
         self.pairing_data["accessories"] = accessories
         return accessories
 
