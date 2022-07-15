@@ -326,7 +326,9 @@ class BlePairing(AbstractPairing):
 
                 payload = await self.client.read_gatt_char(char.handle)
 
-                _, signature = decode_pdu(tid, payload)
+                status, _, signature = decode_pdu(tid, payload)
+                if status != PDUStatus.SUCCESS:
+                    continue
 
                 decoded = CharacteristicTLV.decode(signature).to_dict()
 
