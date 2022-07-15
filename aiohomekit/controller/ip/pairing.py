@@ -337,13 +337,15 @@ class IpPairing(AbstractPairing):
 
         return status
 
-    async def async_populate_accessories_state(self) -> bool:
+    async def async_populate_accessories_state(
+        self, force_update: bool = False
+    ) -> bool:
         """Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless
-        we know the config num is out of date.
+        we know the config num is out of date or force_update is True
         """
-        if not self._accessories:
+        if not self._accessories or force_update:
             try:
                 await self.list_accessories_and_characteristics()
             except AccessoryDisconnectedError as ex:
