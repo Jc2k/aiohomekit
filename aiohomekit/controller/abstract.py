@@ -125,7 +125,7 @@ class AbstractPairing(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    async def list_accessories_and_characteristics(self):
+    async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod
