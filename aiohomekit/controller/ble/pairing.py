@@ -19,9 +19,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import struct
 from typing import TYPE_CHECKING, Any
 import uuid
-import struct
+
 from bleak import BleakClient
 from bleak.exc import BleakError
 
