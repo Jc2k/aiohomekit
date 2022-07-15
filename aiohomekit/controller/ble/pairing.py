@@ -387,9 +387,33 @@ class BlePairing(AbstractPairing):
             self._accessories_state = AccessoriesState(accessories, config_num)
             return
 
-    async def _populate_accessories_and_characteristics(
-        self, new_config_num: int | None = None
-    ) -> None:
+    async def _populate_char_values(self):
+        """Populate the values of all characteristics."""
+        for service in self._accessories.aid(1).services:
+            if service.type == ServicesTypes.PAIRING:
+                continue
+            for char in service.characteristics:
+                if CharacteristicPermissions.paired_read not in char.perms:
+                    continue
+                aid_iid = (1, char.iid)
+                results = await self._get_characteristics_while_connected([aid_iid])
+                logger.debug("%s: Read %s", self.address, results)
+                result = results[aid_iid]
+                if "value" in result:
+                    char.value = result["value"]
+
+    def _update_accessories_state_cache(self):
+        """Update the cache with the current state of the accessories."""
+        self.controller._char_cache.async_create_or_update_map(
+            self.id,
+            self._config_num,
+            self._accessories.serialize(),
+        )
+        accessories_state = self._accessories_state
+        self.pairing_data["accessories"] = accessories_state.accessories.serialize()
+        self.pairing_data["config_num"] = accessories_state.config_num
+
+    async def _populate_accessories_and_characteristics(self) -> None:
         was_locked = False
         if self._config_lock.locked():
             was_locked = True
@@ -419,31 +443,8 @@ class BlePairing(AbstractPairing):
             if not accessories_changed:
                 return
 
-            self.controller._char_cache.async_create_or_update_map(
-                self.id,
-                self._config_num,
-                self._accessories.serialize(),
-            )
-            # Populate the char values so the device has a serial number
-            # name, and initial data
-            for service in self._accessories.aid(1).services:
-                if service.type == ServicesTypes.PAIRING:
-                    continue
-                for char in service.characteristics:
-                    if CharacteristicPermissions.paired_read not in char.perms:
-                        continue
-                    aid_iid = (1, char.iid)
-                    results = await self._get_characteristics_while_connected([aid_iid])
-                    logger.debug("%s: Read %s", self.address, results)
-                    result = results[aid_iid]
-                    if "value" in result:
-                        char.value = result["value"]
-
-            accessories_state = self._accessories_state
-            self.pairing_data["accessories"] = accessories_state.accessories.serialize()
-            self.pairing_data["config_num"] = accessories_state.config_num
-
-        return
+            await self._populate_char_values()
+            self._update_accessories_state_cache()
 
     async def list_pairings(self):
         request_tlv = TLV.encode_list(
