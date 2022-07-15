@@ -363,7 +363,7 @@ class BlePairing(AbstractPairing):
         return self._accessories.serialize()
 
     async def _populate_accessories_and_characteristics(
-        self, new_config_num: int | None
+        self, new_config_num: int | None = None
     ) -> None:
         was_locked = False
         if self._config_lock.locked():
