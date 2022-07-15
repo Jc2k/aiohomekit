@@ -209,6 +209,11 @@ class BlePairing(AbstractPairing):
         # Find the GATT Characteristic object for this iid
         service = self.client.services.get_service(char.service.type)
         endpoint = service.get_characteristic(char.type)
+
+        # We only want to allow one in flight read
+        # and one pending read at a time since there
+        # may be a notify storm and the read it always
+        # going to give us the latest value anyways
         max_callback_enforcer = asyncio.Semaphore(2)
 
         async def _async_callback() -> None:
