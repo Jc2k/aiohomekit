@@ -64,12 +64,13 @@ class BleDiscovery(AbstractDiscovery):
         self.description = description
         self.controller = controller
         self.device = device
-        logger.debug("Init BleDiscovery with device %s", self.device)
 
         self.client = BleakClient(self.device)
         self._connection_lock = asyncio.Lock()
 
     async def _ensure_connected(self):
+        logger.debug("Ensure connected with device %s", self.device)
+
         if self.client.is_connected:
             return
         async with self._connection_lock:
