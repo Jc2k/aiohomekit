@@ -101,8 +101,6 @@ class BlePairing(AbstractPairing):
 
         self._config_lock = asyncio.Lock()
 
-        self._is_secure = False
-
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         if description and self.description:
             if description.config_num > self.description.config_num:
@@ -158,7 +156,6 @@ class BlePairing(AbstractPairing):
 
     def _async_disconnected(self, *args, **kwargs):
         logger.debug("%s: Session closed", self.address)
-        self._is_secure = False
 
     @property
     def address(self):
@@ -188,7 +185,7 @@ class BlePairing(AbstractPairing):
         logger.debug("%s: Connected", address)
 
     async def _ensure_connected(self):
-        if self.client and self.client.is_connected and self._is_secure:
+        if self.client and self.client.is_connected:
             return
 
         async with self._connection_lock:
@@ -206,10 +203,7 @@ class BlePairing(AbstractPairing):
             #        await self.client._acquire_mtu()
             #    except (RuntimeError, StopIteration) as ex:
             #        logger.debug("%s: Failed to acquire MTU: %s", ex, address)
-
-            if not self._is_secure:
-                await self._async_pair_verify()
-
+            await self._async_pair_verify()
             for _, iid in list(self.subscriptions):
                 if iid not in self._notifications:
                     await self._async_start_notify(iid)
@@ -281,7 +275,6 @@ class BlePairing(AbstractPairing):
         # Used for session resume
         self._session_id = session_id
         self._derive = derive
-        self._is_secure = True
 
     async def _async_process_disconnected_events(self) -> None:
         logger.debug(
