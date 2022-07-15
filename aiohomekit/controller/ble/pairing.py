@@ -55,7 +55,7 @@ from ..abstract import AbstractPairing
 from .connection import establish_connection
 from .key import DecryptionKey, EncryptionKey
 from .manufacturer_data import HomeKitAdvertisement
-from .structs import Characteristic as CharacteristicTLV
+from .structs import HAP_TLV, Characteristic as CharacteristicTLV
 from .values import from_bytes, to_bytes
 
 if TYPE_CHECKING:
@@ -528,12 +528,16 @@ class BlePairing(AbstractPairing):
             char = self._accessories.aid(1).characteristics.iid(iid)
 
             if CharacteristicPermissions.timed_write in char.perms:
-                payload = TLV.encode_list([(1, to_bytes(char, value))])
+                payload = TLV.encode_list(
+                    [(HAP_TLV.kTLVHAPParamValue, to_bytes(char, value))]
+                )
                 await self._async_request(OpCode.CHAR_TIMED_WRITE, iid, payload)
                 await self._async_request(OpCode.CHAR_EXEC_WRITE, iid)
 
             elif CharacteristicPermissions.paired_write in char.perms:
-                payload = TLV.encode_list([(1, to_bytes(char, value))])
+                payload = TLV.encode_list(
+                    [(HAP_TLV.kTLVHAPParamValue, to_bytes(char, value))]
+                )
                 await self._async_request(OpCode.CHAR_WRITE, iid, payload)
 
             else:
