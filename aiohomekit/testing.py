@@ -100,7 +100,7 @@ class FakeDiscovery(AbstractDiscovery):
         return finish_pairing
 
     async def async_identify(self) -> None:
-        pass
+        """Trigger an identify routinue."""
 
 
 class PairingTester:
@@ -212,16 +212,17 @@ class FakePairing(AbstractPairing):
         return True
 
     async def close(self):
-        pass
+        """Close the connection."""
 
     async def identify(self):
-        pass
+        """Identify the accessory."""
 
     async def list_pairings(self):
+        """List pairing."""
         return []
 
     async def remove_pairing(self, pairing_id):
-        pass
+        """Remove a pairing."""
 
     async def async_populate_accessories_state(
         self, force_update: bool = False
