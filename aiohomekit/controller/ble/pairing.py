@@ -375,7 +375,11 @@ class BlePairing(AbstractPairing):
         This method should try not to fetch all the accessories unless
         we know the config num is out of date.
         """
-        await self._populate_accessories_and_characteristics()
+        try:
+            await self._populate_accessories_and_characteristics()
+        except BleakError as ex:
+            logger.debug("%s: Failed to populate accessories: %s", self.address, ex)
+            return False
         return True
 
     async def _populate_accessories_and_characteristics(self) -> None:

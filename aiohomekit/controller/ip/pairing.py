@@ -344,7 +344,11 @@ class IpPairing(AbstractPairing):
         we know the config num is out of date.
         """
         if not self._accessories:
-            await self.list_accessories_and_characteristics()
+            try:
+                await self.list_accessories_and_characteristics()
+            except AccessoryDisconnectedError as ex:
+                logger.debug("Failed to list accessories: %s", ex)
+                return False
         return True
 
     async def _process_config_changed(self, config_num: int) -> None:
