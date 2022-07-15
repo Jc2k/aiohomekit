@@ -188,9 +188,7 @@ class AbstractPairing(metaclass=ABCMeta):
     def dispatcher_connect_config_changed(
         self, callback: Callable[[int], None]
     ) -> None:
-        """
-        Notify the pairing that the config number has changed.
-        """
+        """Notify subscribers of a new accessories state."""
         self.config_changed_listeners.add(callback)
 
         def stop_listening():
