@@ -200,7 +200,6 @@ class BlePairing(AbstractPairing):
                 if iid not in self._notifications:
                     await self._async_start_notify(iid)
 
-
     async def _async_start_notify(self, iid: int) -> None:
         if not self._accessories:
             return
@@ -421,7 +420,6 @@ class BlePairing(AbstractPairing):
         for (aid, iid) in new_chars:
             if iid not in self._notifications:
                 await self._async_start_notify(iid)
-
 
     async def unsubscribe(self, characteristics):
         pass
