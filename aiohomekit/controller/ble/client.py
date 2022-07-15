@@ -29,7 +29,7 @@ from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import OpCode, decode_pdu, decode_pdu_continuation, encode_pdu
 from aiohomekit.protocol.tlv import TLV
 
-from .const import AdditionalParameterTypes
+from .const import HAP_MIN_REQUIRED_MTU, AdditionalParameterTypes
 from .structs import BleRequest
 
 logger = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ async def ble_request(
     # https://github.com/jlusiardi/homekit_python/issues/211#issuecomment-996751939
     # But we haven't confirmed that this isn't already taken into account
 
-    fragment_size = client.mtu_size - 3
+    fragment_size = max(HAP_MIN_REQUIRED_MTU, client.mtu_size) - 3
     if encryption_key:
         # Secure session means an extra 16 bytes of overhead
         fragment_size -= 16

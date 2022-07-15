@@ -65,20 +65,46 @@ class BleDiscovery(AbstractDiscovery):
         self.controller = controller
         self.device = device
 
-        self.client = BleakClient(self.device)
+        self.client: BleakClient | None = None
+        self._connection_lock = asyncio.Lock()
 
     async def _ensure_connected(self):
-        while not self.client.is_connected:
+        logger.debug("Ensure connected with device %s", self.device)
+        if not self.client:
+            self.client = BleakClient(self.device)
+        if self.client.is_connected:
+            return
+        async with self._connection_lock:
+            while not self.client.is_connected:
+                logger.debug("Connecting to %s", self.device)
+                try:
+                    await self.client.connect()
+                    break
+                except BleakError as e:
+                    logger.debug(
+                        "Failed to connect to %s: %s", self.client.address, str(e)
+                    )
+
+                if self.description.address != self.client.address:
+                    self.client = BleakClient(self.description.address)
+
+                await asyncio.sleep(5)
+
+            logger.debug("Connected to %s", self.client.address)
+
+    async def _close(self):
+        if not self.client:
+            return
+        async with self._connection_lock:
+            if not self.client:
+                return
+            logger.debug("Disconnecting from %s", self.client.address)
             try:
-                await self.client.connect()
-                break
-            except BleakError as e:
-                logger.debug("Failed to connect to %s: %s", self.client.address, str(e))
-
-            if self.description.address != self.client.address:
-                self.client = BleakClient(self.description.address)
-
-            await asyncio.sleep(5)
+                await self.client.disconnect()
+            except BleakError:
+                logger.debug(
+                    "Failed to close connection, client may have already closed it"
+                )
 
     async def async_start_pairing(self, alias: str) -> FinishPairing:
         await self._ensure_connected()
@@ -118,6 +144,7 @@ class BleDiscovery(AbstractDiscovery):
             pairing["Connection"] = "BLE"
 
             obj = self.controller.pairings[alias] = BlePairing(self.controller, pairing)
+            await self._close()
 
             return obj
 
@@ -127,15 +154,16 @@ class BleDiscovery(AbstractDiscovery):
         if self.paired:
             raise RuntimeError("Cannot anonymously identify a paired accessory")
 
-        async with self.client as client:
-            char = get_characteristic(
-                client,
-                ServicesTypes.ACCESSORY_INFORMATION,
-                CharacteristicsTypes.IDENTIFY,
-            )
-            iid = await get_characteristic_iid(client, char)
+        await self._ensure_connected()
 
-            await char_write(client, None, None, char.handle, iid, b"\x01")
+        char = get_characteristic(
+            self.client,
+            ServicesTypes.ACCESSORY_INFORMATION,
+            CharacteristicsTypes.IDENTIFY,
+        )
+        iid = await get_characteristic_iid(self.client, char)
+
+        await char_write(self.client, None, None, char.handle, iid, b"\x01")
 
     def _async_process_advertisement(self, description: HomeKitAdvertisement):
         self.description = description

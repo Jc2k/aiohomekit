@@ -16,6 +16,8 @@
 
 from enum import IntEnum
 
+HAP_MIN_REQUIRED_MTU = 100
+
 
 class AdditionalParameterTypes(IntEnum):
     # Additional Parameter Types for BLE (Table 6-9 page 98)

@@ -107,6 +107,9 @@ class TLV:
     # Table 6-27 page 116
     kTLVMethod_Resume = 0x06
 
+    kTLVHAPParamValue = 0x01
+    kTLVHAPParamParamReturnResponse = 0x09
+
     @staticmethod
     def decode_bytes(bs: bytearray | bytes, expected: list[int] | None = None) -> list:
         return TLV.decode_bytearray(bytearray(bs), expected)

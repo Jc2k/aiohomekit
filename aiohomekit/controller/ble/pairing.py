@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import struct
 from typing import TYPE_CHECKING, Any
 import uuid
 
@@ -31,7 +32,12 @@ from aiohomekit.controller.ble.client import (
     get_characteristic,
 )
 from aiohomekit.exceptions import AuthenticationError, InvalidError, UnknownError
-from aiohomekit.model import Accessories, Accessory, CharacteristicsTypes
+from aiohomekit.model import (
+    Accessories,
+    AccessoriesState,
+    Accessory,
+    CharacteristicsTypes,
+)
 from aiohomekit.model.characteristics import CharacteristicPermissions
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import OpCode, decode_pdu, encode_pdu
@@ -64,7 +70,7 @@ class BlePairing(AbstractPairing):
     description: HomeKitAdvertisement | None
     controller: BleController
 
-    _accessories: Accessories | None = None
+    _accessories_state: AccessoriesState | None = None
 
     _encryption_key: EncryptionKey | None = None
     _decryption_key: DecryptionKey | None = None
@@ -75,21 +81,12 @@ class BlePairing(AbstractPairing):
     # notifications for
     _notifications: set[int]
 
-    # We don't want to read/write from characteristics in parallel
-    # * If 2 coroutines read from the same char at the same time there
-    #   would be a race error - a read result could be overwritten by another.
-    # * The enc/dec counters are global. Therefore our API's for
-    #   a read/write need to be atomic otherwise we end up having
-    #   to guess what encryption counter to use for the decrypt
-    _lock: asyncio.Lock
-
     def __init__(self, controller: BleController, pairing_data):
         super().__init__(controller)
 
         self.id = pairing_data["AccessoryPairingID"]
 
-        if cache := self.controller._char_cache.get_map(self.id):
-            self._accessories = Accessories.from_list(cache["accessories"])
+        self._accessories_state: AccessoriesState | None = None
 
         self.pairing_data = pairing_data
 
@@ -97,16 +94,60 @@ class BlePairing(AbstractPairing):
         self._derive = None
 
         self._notifications = set()
-        self._lock = asyncio.Lock()
+        self._connection_lock = asyncio.Lock()
+
+        # We don't want to read/write from characteristics in parallel
+        # * If 2 coroutines read from the same char at the same time there
+        #   would be a race error - a read result could be overwritten by another.
+        # * The enc/dec counters are global. Therefore our API's for
+        #   a read/write need to be atomic otherwise we end up having
+        #   to guess what encryption counter to use for the decrypt
+        self._ble_request_lock = asyncio.Lock()
+
+        self._config_lock = asyncio.Lock()
+
+    @property
+    def _accessories(self) -> Accessories:
+        """Wrapper around the accessories state to make it easier to use."""
+        if not self._accessories_state:
+            return None
+        return self._accessories_state.accessories
+
+    @property
+    def _config_num(self) -> int:
+        """Wrapper around the accessories state to make it easier to use."""
+        if not self._accessories_state:
+            return None
+        return self._accessories_state.config_num
+
+    @property
+    def address(self):
+        return (
+            self.description.address
+            if self.description
+            else self.pairing_data["AccessoryAddress"]
+        )
+
+    @property
+    def is_connected(self) -> bool:
+        return self.client and self.client.is_connected and self._encryption_key
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
+        repopulate_accessories = False
         if description and self.description:
             if description.config_num > self.description.config_num:
-                logger.debug("Config number has changed; char cache invalid")
+                logger.debug(
+                    "%s: Config number has changed from %s to %s; char cache invalid",
+                    self.address,
+                    self.description.config_num,
+                    description.config_num,
+                )
+                repopulate_accessories = True
 
             if description.state_num > self.description.state_num:
                 logger.debug(
-                    "Disconnected event notification received; Triggering catch-up poll"
+                    "%s: Disconnected event notification received; Triggering catch-up poll",
+                    self.address,
                 )
                 async_create_task(self._async_process_disconnected_events())
 
@@ -118,64 +159,72 @@ class BlePairing(AbstractPairing):
                 )
                 async_create_task(self.close())
 
-        return super()._async_description_update(description)
-
-    @property
-    def is_connected(self) -> bool:
-        return self.client and self.client.is_connected and self._encryption_key
+        super()._async_description_update(description)
+        if repopulate_accessories:
+            async_create_task(self._populate_accessories_and_characteristics())
 
     async def _async_request(
         self, opcode: OpCode, iid: int, data: bytes | None = None
     ) -> bytes:
         char = self._accessories.aid(1).characteristics.iid(iid)
         endpoint = get_characteristic(self.client, char.service.type, char.type)
-        return await ble_request(
-            self.client,
-            self._encryption_key,
-            self._decryption_key,
-            opcode,
-            endpoint.handle,
-            iid,
-            data,
-        )
+        async with self._ble_request_lock:
+            return await ble_request(
+                self.client,
+                self._encryption_key,
+                self._decryption_key,
+                opcode,
+                endpoint.handle,
+                iid,
+                data,
+            )
 
     def _async_disconnected(self, *args, **kwargs):
-        logger.debug("Session closed")
+        logger.debug("%s: Session closed", self.address)
+        self._encryption_key = None
+        self._decryption_key = None
 
-    async def _ensure_connected(self):
+    async def _establish_connection(self):
+        address = self.address
         while not self.client or not self.client.is_connected:
             if self.client:
-                await self.close()
+                await self._close_while_locked()
 
-            if self.description:
-                address = self.description.address
-            else:
-                address = self.pairing_data["AccessoryAddress"]
-
+            logger.debug("%s: Connecting", address)
             self.client = BleakClient(address)
             self.client.set_disconnected_callback(self._async_disconnected)
 
             try:
                 await self.client.connect()
             except BleakError as e:
-                logger.debug("Failed to connect to %s: %s", address, str(e))
-                self.client = None
+                logger.debug("Failed to connect to %s: %s", self.client.address, str(e))
+                await self._close_while_locked()
                 await asyncio.sleep(5)
 
-        if not self._accessories:
-            self._accessories = await self._async_fetch_gatt_database()
-            self.controller._char_cache.async_create_or_update_map(
-                self.id,
-                0,
-                self._accessories.serialize(),
-            )
+        logger.debug("%s: Connected", address)
 
-        if not self._encryption_key:
-            await self._async_pair_verify()
+    async def _ensure_connected(self):
+        if self.client and self.client.is_connected:
+            return
 
-        for (aid, iid) in list(self.subscriptions):
-            if iid not in self._notifications:
-                await self._async_start_notify(iid)
+        async with self._connection_lock:
+            await self._establish_connection()
+            # The MTU will always be 23 if we do not fetch it
+            #
+            #  Currently doesn't work, and we need to store it forever since
+            #  it will not change
+            #
+            # if (
+            #    self.client.__class__.__name__ == "BleakClientBlueZDBus"
+            #    and not self.client._mtu_size
+            # ):
+            #    try:
+            #        await self.client._acquire_mtu()
+            #    except (RuntimeError, StopIteration) as ex:
+            #        logger.debug("%s: Failed to acquire MTU: %s", ex, address)
+            for _, iid in list(self.subscriptions):
+                if iid not in self._notifications:
+                    await self._async_start_notify(iid)
 
     async def _async_start_notify(self, iid: int) -> None:
         if not self._accessories:
@@ -187,25 +236,53 @@ class BlePairing(AbstractPairing):
         service = self.client.services.get_service(char.service.type)
         endpoint = service.get_characteristic(char.type)
 
+        # We only want to allow one in flight read
+        # and one pending read at a time since there
+        # may be a notify storm and the read it always
+        # going to give us the latest value anyways
+        max_callback_enforcer = asyncio.Semaphore(2)
+
         async def _async_callback() -> None:
-            logger.debug("Retrieving event for iid: %s", iid)
-            results = await self.get_characteristics([(1, iid)])
-            for listener in self.listeners:
-                listener(results)
+            if max_callback_enforcer.locked():
+                # Already one being read now, and one pending
+                return
+            async with max_callback_enforcer:
+                if not self.client or not self.client.is_connected:
+                    # Client disconnected
+                    return
+                logger.debug("%s: Retrieving event for iid: %s", self.address, iid)
+                results = await self._get_characteristics_while_connected([(1, iid)])
+                for listener in self.listeners:
+                    listener(results)
 
         def _callback(id, data) -> None:
+            if max_callback_enforcer.locked():
+                # Already one being read now, and one pending
+                return
             async_create_task(_async_callback())
 
-        logger.debug("Subscribing to iid: %s", iid)
+        logger.debug("%s: Subscribing to iid: %s", self.address, iid)
         await self.client.start_notify(endpoint, _callback)
         self._notifications.add(iid)
 
     async def _async_pair_verify(self):
-        session_id, derive = await drive_pairing_state_machine(
-            self.client,
-            CharacteristicsTypes.PAIR_VERIFY,
-            get_session_keys(self.pairing_data, self._session_id, self._derive),
-        )
+        # If resume fails, we are allowed to try again
+        # without the previous derive and session_id but
+        # that is not yet implemented
+        try:
+            session_id, derive = await drive_pairing_state_machine(
+                self.client,
+                CharacteristicsTypes.PAIR_VERIFY,
+                get_session_keys(self.pairing_data, self._session_id, self._derive),
+            )
+        # FIXME: this should not be a broad except handler
+        except Exception:  # pylint: disable=broad-except
+            logger.debug("%s: Failed to resume, doing full", self.address)
+            session_id, derive = await drive_pairing_state_machine(
+                self.client,
+                CharacteristicsTypes.PAIR_VERIFY,
+                get_session_keys(self.pairing_data),
+            )
         self._encryption_key = EncryptionKey(
             derive(b"Control-Salt", b"Control-Write-Encryption-Key")
         )
@@ -218,7 +295,9 @@ class BlePairing(AbstractPairing):
         self._derive = derive
 
     async def _async_process_disconnected_events(self) -> None:
-        logger.debug("Polling subscriptions for changes during disconnection")
+        logger.debug(
+            "%s: Polling subscriptions for changes during disconnection", self.address
+        )
         results = await self.get_characteristics(list(self.subscriptions))
         for listener in self.listeners:
             listener(results)
@@ -226,7 +305,6 @@ class BlePairing(AbstractPairing):
     async def _async_fetch_gatt_database(self) -> Accessories:
         accessory = Accessory()
         accessory.aid = 1
-
         for service in self.client.services:
             s = accessory.add_service(normalize_uuid(service.uuid))
 
@@ -258,11 +336,13 @@ class BlePairing(AbstractPairing):
                 _, signature = decode_pdu(tid, payload)
 
                 decoded = CharacteristicTLV.decode(signature).to_dict()
-                char = s.add_char(normalize_uuid(char.uuid))
-                char.iid = iid
 
-                char.perms = decoded["perms"]
-                char.format = decoded["format"]
+                hap_char = s.add_char(normalize_uuid(char.uuid))
+                logger.debug("%s: char: %s decoded: %s", self.address, char, decoded)
+
+                hap_char.iid = iid
+                hap_char.perms = decoded["perms"]
+                hap_char.format = decoded["format"]
 
         accessories = Accessories()
         accessories.add_accessory(accessory)
@@ -270,8 +350,18 @@ class BlePairing(AbstractPairing):
         return accessories
 
     async def close(self):
+        async with self._connection_lock:
+            await self._close_while_locked()
+
+    async def _close_while_locked(self):
         if self.client:
-            await self.client.disconnect()
+            try:
+                await self.client.disconnect()
+            except BleakError:
+                logger.debug(
+                    "%s: Failed to close connection, client may have already closed it",
+                    self.address,
+                )
             self.client = None
             self._notifications = set()
 
@@ -279,10 +369,84 @@ class BlePairing(AbstractPairing):
         self._decryption_key = None
 
     async def list_accessories_and_characteristics(self):
-        async with self._lock:
+        await self._populate_accessories_and_characteristics()
+        return self._accessories.serialize()
+
+    def _load_accessories_from_cache(self) -> None:
+        if accessories := self.pairing_data.get("accessories"):
+            logger.debug("%s: Loading accessories from pairing data", self.address)
+            config_num = self.pairing_data.get("config_num", 0)
+            accessories = Accessories.from_list(accessories)
+            self._accessories_state = AccessoriesState(accessories, config_num)
+            return
+
+        if cache := self.controller._char_cache.get_map(self.id):
+            logger.debug("%s: Loading accessories from cache", self.address)
+            config_num = cache.get("config_num", 0)
+            accessories = Accessories.from_list(cache["accessories"])
+            self._accessories_state = AccessoriesState(accessories, config_num)
+            return
+
+    async def _populate_char_values(self):
+        """Populate the values of all characteristics."""
+        for service in self._accessories.aid(1).services:
+            if service.type == ServicesTypes.PAIRING:
+                continue
+            for char in service.characteristics:
+                if CharacteristicPermissions.paired_read not in char.perms:
+                    continue
+                aid_iid = (1, char.iid)
+                results = await self._get_characteristics_while_connected([aid_iid])
+                logger.debug("%s: Read %s", self.address, results)
+                result = results[aid_iid]
+                if "value" in result:
+                    char.value = result["value"]
+
+    def _update_accessories_state_cache(self):
+        """Update the cache with the current state of the accessories."""
+        self.controller._char_cache.async_create_or_update_map(
+            self.id,
+            self._config_num,
+            self._accessories.serialize(),
+        )
+        accessories_state = self._accessories_state
+        self.pairing_data["accessories"] = accessories_state.accessories.serialize()
+        self.pairing_data["config_num"] = accessories_state.config_num
+
+    async def _populate_accessories_and_characteristics(self) -> None:
+        was_locked = False
+        if self._config_lock.locked():
+            was_locked = True
+        async with self._config_lock:
             await self._ensure_connected()
-        results = self._accessories.serialize()
-        return results
+            if was_locked:
+                # No need to do it twice
+                return
+
+            accessories_changed = not self._accessories
+
+            if not self._accessories:
+                self._load_accessories_from_cache()
+
+            if not self._accessories or self._config_num != self.description.config_num:
+                logger.debug(
+                    "Fetching gatt database because, cached_config_num: %s, adv config_num: %s",
+                    self._config_num,
+                    self.description.config_num,
+                )
+                accessories = await self._async_fetch_gatt_database()
+                config_num = self.description.config_num
+                self._accessories_state = AccessoriesState(accessories, config_num)
+                accessories_changed = True
+
+            if not self._encryption_key:
+                await self._async_pair_verify()
+
+            if not accessories_changed:
+                return
+
+            await self._populate_char_values()
+            self._update_accessories_state_cache()
 
     async def list_pairings(self):
         request_tlv = TLV.encode_list(
@@ -300,9 +464,8 @@ class BlePairing(AbstractPairing):
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
 
-        async with self._lock:
-            await self._ensure_connected()
-            resp = await self._async_request(OpCode.CHAR_WRITE, char.iid, request_tlv)
+        await self._populate_accessories_and_characteristics()
+        resp = await self._async_request(OpCode.CHAR_WRITE, char.iid, request_tlv)
 
         response = dict(TLV.decode_bytes(resp))
 
@@ -328,24 +491,48 @@ class BlePairing(AbstractPairing):
     async def get_characteristics(
         self,
         characteristics: list[tuple[int, int]],
-    ) -> dict[tuple[int, int], Any]:
-        await self._ensure_connected()
+    ) -> dict[tuple[int, int], dict[str, Any]]:
+        await self._populate_accessories_and_characteristics()
+        return await self._get_characteristics_while_connected(characteristics)
+
+    async def _get_characteristics_while_connected(
+        self,
+        characteristics: list[tuple[int, int]],
+    ) -> dict[tuple[int, int], dict[str, Any]]:
+        logger.debug("%s: Reading characteristics: %s", self.address, characteristics)
 
         results = {}
 
         for aid, iid in characteristics:
             data = await self._async_request(OpCode.CHAR_READ, iid)
-            data = dict(TLV.decode_bytes(data))[1]
+            decoded = dict(TLV.decode_bytes(data))[1]
 
             char = self._accessories.aid(1).characteristics.iid(iid)
-            results[(aid, iid)] = {"value": from_bytes(char, data)}
+            logger.debug(
+                "%s: Read characteristic got data, expected format is %s: %s",
+                self.address,
+                char.format,
+                data,
+            )
+
+            try:
+                results[(aid, iid)] = {"value": from_bytes(char, decoded)}
+            except struct.error as ex:
+                logger.debug(
+                    "%s: Failed to decode characteristic for %s from %s: %s",
+                    self.address,
+                    char,
+                    decoded,
+                    ex,
+                )
+                results[(aid, iid)] = {"status": HapStatusCode.INVALID_VALUE}
 
         return results
 
     async def put_characteristics(
         self, characteristics: list[tuple[int, int, Any]]
     ) -> dict[tuple[int, int], Any]:
-        await self._ensure_connected()
+        await self._populate_accessories_and_characteristics()
 
         results: dict[tuple[int, int], Any] = {}
 
@@ -370,31 +557,36 @@ class BlePairing(AbstractPairing):
         return results
 
     async def subscribe(self, characteristics):
-        await super().subscribe(characteristics)
-        async with self._lock:
-            await self._ensure_connected()
+        new_chars = await super().subscribe(characteristics)
+        if not new_chars:
+            return
+        logger.debug("%s: subscribing to %s", self.address, new_chars)
+        await self._ensure_connected()
+        for (aid, iid) in new_chars:
+            if iid not in self._notifications:
+                await self._async_start_notify(iid)
 
     async def unsubscribe(self, characteristics):
         pass
 
     async def identify(self):
-        async with self._lock:
-            await self._ensure_connected()
+        await self._populate_accessories_and_characteristics()
 
-            info = self._accessories.aid(1).services.first(
-                service_type=ServicesTypes.ACCESSORY_INFORMATION
-            )
-            char = info[CharacteristicsTypes.IDENTIFY]
+        info = self._accessories.aid(1).services.first(
+            service_type=ServicesTypes.ACCESSORY_INFORMATION
+        )
+        char = info[CharacteristicsTypes.IDENTIFY]
 
-            await self.put_characteristics(
-                [
-                    (1, char.iid, True),
-                ]
-            )
+        await self.put_characteristics(
+            [
+                (1, char.iid, True),
+            ]
+        )
 
     async def add_pairing(
         self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
     ):
+        await self._populate_accessories_and_characteristics()
         if permissions == "User":
             permissions = TLV.kTLVType_Permission_RegularUser
         elif permissions == "Admin":
@@ -442,7 +634,7 @@ class BlePairing(AbstractPairing):
             raise UnknownError("Add pairing failed: unknown error")
 
     async def remove_pairing(self, pairingId: str):
-        await self._ensure_connected()
+        await self._populate_accessories_and_characteristics()
 
         request_tlv = TLV.encode_list(
             [
