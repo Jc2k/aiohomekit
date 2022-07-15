@@ -31,7 +31,7 @@ from aiohomekit.exceptions import (
     UnpairedError,
 )
 from aiohomekit.http import HttpContentTypes
-from aiohomekit.model import AccessoriesState
+from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.protocol import error_handler
 from aiohomekit.protocol.statuscodes import to_status_code
@@ -143,7 +143,9 @@ class IpPairing(AbstractPairing):
                 for characteristic in service["characteristics"]:
                     characteristic["type"] = normalize_uuid(characteristic["type"])
 
-        self._accessories_state = AccessoriesState(accessories, self._config_num or 0)
+        self._accessories_state = AccessoriesState(
+            Accessories.from_list(accessories), self._config_num or 0
+        )
         return accessories
 
     async def list_pairings(self):
@@ -352,6 +354,7 @@ class IpPairing(AbstractPairing):
         identify_type = CharacteristicsTypes.IDENTIFY
 
         # search all accessories, all services and all characteristics
+        logger.debug("Searching for identify characteristic in %s", self._accessories)
         for accessory in self._accessories:
             aid = accessory.aid
             for service in accessory.services:

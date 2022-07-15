@@ -16,7 +16,6 @@
 
 import asyncio
 import logging
-from typing import Any
 
 from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.exceptions import AccessoryDisconnectedError
