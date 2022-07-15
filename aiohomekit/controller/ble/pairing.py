@@ -212,13 +212,13 @@ class BlePairing(AbstractPairing):
         max_callback_enforcer = asyncio.Semaphore(2)
 
         async def _async_callback() -> None:
-            if not self.client or not self.client.is_connected:
-                # Client disconnected
-                return
             if max_callback_enforcer.locked():
                 # Already one being read now, and one pending
                 return
             async with max_callback_enforcer:
+                if not self.client or not self.client.is_connected:
+                    # Client disconnected
+                    return
                 logger.debug("%s: Retrieving event for iid: %s", iid, self.address)
                 results = await self.get_characteristics([(1, iid)])
                 for listener in self.listeners:
