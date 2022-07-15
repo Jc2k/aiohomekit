@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 import logging
 import random
 import struct
@@ -32,7 +33,12 @@ from aiohomekit.controller.ble.client import (
     get_characteristic,
 )
 from aiohomekit.exceptions import AuthenticationError, InvalidError, UnknownError
-from aiohomekit.model import Accessories, Accessory, CharacteristicsTypes
+from aiohomekit.model import (
+    Accessories,
+    AccessoriesState,
+    Accessory,
+    CharacteristicsTypes,
+)
 from aiohomekit.model.characteristics import CharacteristicPermissions
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import OpCode, decode_pdu, encode_pdu
@@ -65,7 +71,7 @@ class BlePairing(AbstractPairing):
     description: HomeKitAdvertisement | None
     controller: BleController
 
-    _accessories: Accessories | None = None
+    _accessories_state: AccessoriesState | None = None
 
     _encryption_key: EncryptionKey | None = None
     _decryption_key: DecryptionKey | None = None
@@ -81,7 +87,7 @@ class BlePairing(AbstractPairing):
 
         self.id = pairing_data["AccessoryPairingID"]
 
-        self._accessories: Accessories | None = None
+        self._accessories_state: AccessoriesState | None = None
 
         self.pairing_data = pairing_data
         logger.debug("%s: Pairing data: %s", self.address, self.pairing_data)
@@ -102,7 +108,22 @@ class BlePairing(AbstractPairing):
 
         self._config_lock = asyncio.Lock()
 
+    @property
+    def _accessories(self) -> Accessories:
+        """Wrapper around the accessories state to make it easier to use."""
+        if not self._accessories_state:
+            return None
+        return self._accessories_state.accessories
+
+    @property
+    def _config_num(self) -> int:
+        """Wrapper around the accessories state to make it easier to use."""
+        if not self._accessories_state:
+            return None
+        return self._accessories_state.config_num
+
     def _async_description_update(self, description: HomeKitAdvertisement | None):
+        repopulate_accessories = False
         if description and self.description:
             if description.config_num > self.description.config_num:
                 logger.debug(
@@ -111,11 +132,7 @@ class BlePairing(AbstractPairing):
                     self.description.config_num,
                     description.config_num,
                 )
-                async_create_task(
-                    self._populate_accessories_and_characteristics(
-                        description.config_num
-                    )
-                )
+                repopulate_accessories = True
 
             if description.state_num > self.description.state_num:
                 logger.debug(
@@ -132,7 +149,9 @@ class BlePairing(AbstractPairing):
                 )
                 async_create_task(self.close())
 
-        return super()._async_description_update(description)
+        super()._async_description_update(description)
+        if repopulate_accessories:
+            async_create_task(self._populate_accessories_and_characteristics())
 
     @property
     def is_connected(self) -> bool:
@@ -355,6 +374,21 @@ class BlePairing(AbstractPairing):
         await self._populate_accessories_and_characteristics()
         return self._accessories.serialize()
 
+    def _load_accessories_from_cache(self) -> None:
+        if accessories := self.pairing_data.get("accessories"):
+            logger.debug("%s: Loading accessories from pairing data", self.address)
+            config_num = self.pairing_data.get("config_num", 0)
+            accessories = Accessories.from_list(accessories)
+            self._accessories_state = AccessoriesState(accessories, config_num)
+            return
+
+        if cache := self.controller._char_cache.get_map(self.id):
+            logger.debug("%s: Loading accessories from cache", self.address)
+            config_num = cache.get("config_num", 0)
+            accessories = Accessories.from_list(cache["accessories"])
+            self._accessories_state = AccessoriesState(accessories, config_num)
+            return
+
     async def _populate_accessories_and_characteristics(
         self, new_config_num: int | None = None
     ) -> None:
@@ -367,43 +401,12 @@ class BlePairing(AbstractPairing):
                 # No need to do it twice
                 return
 
-            accessories_changed = False
-            if not self._accessories:
-                accessories_changed = True
-                if accessories := self.pairing_data.get("accessories"):
-                    logger.debug(
-                        "%s: Loading accessories from pairing data", self.address
-                    )
-                    accessories_config_num = self.pairing_data.get("config_num", 0)
-                    self._accessories = Accessories.from_list(accessories)
-                    if (
-                        new_config_num is None
-                        and accessories_config_num != self.description.config_num
-                    ):
-                        new_config_num = self.description.config_num
-                    logger.debug(
-                        "%s: Loading accessories from pairing data with config number %s, current config number is %s",
-                        self.address,
-                        accessories_config_num,
-                        self.description.config_num,
-                    )
-                elif cache := self.controller._char_cache.get_map(self.id):
-                    logger.debug("%s: Loading accessories from cache", self.address)
-                    accessories_config_num = cache.get("config_num", 0)
-                    self._accessories = Accessories.from_list(cache["accessories"])
-                    if (
-                        new_config_num is None
-                        and accessories_config_num != self.description.config_num
-                    ):
-                        new_config_num = self.description.config_num
-                    logger.debug(
-                        "%s: Loading accessories from cache with config number %s, current config number is %s",
-                        self.address,
-                        accessories_config_num,
-                        self.description.config_num,
-                    )
+            accessories_changed = not self._accessories
 
-            if not self._accessories or new_config_num:
+            if not self._accessories:
+                self._load_accessories_from_cache()
+
+            if not self._accessories or self._config_num != self.description.config_num:
                 logger.debug(
                     "Fetching gatt database because new config num: %s", new_config_num
                 )
@@ -438,8 +441,9 @@ class BlePairing(AbstractPairing):
                     if "value" in result:
                         char.value = result["value"]
 
-            self.pairing_data["accessories"] = self._accessories.serialize()
-            self.pairing_data["config_num"] = config_num
+            accessories_state = self._accessories_state
+            self.pairing_data["accessories"] = accessories_state.accessories.serialize()
+            self.pairing_data["config_num"] = accessories_state.config_num
 
         return
 

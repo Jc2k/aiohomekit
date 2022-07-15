@@ -15,6 +15,7 @@
 #
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 from typing import Any, Iterable
 
@@ -309,3 +310,10 @@ class Accessories:
                 char.set_value(value["value"])
 
             char.status = to_status_code(value.get("status", 0))
+
+
+@dataclass
+class AccessoriesState:
+
+    accessories: Accessories
+    config_num: int
