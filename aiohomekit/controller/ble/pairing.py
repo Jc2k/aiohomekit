@@ -197,6 +197,10 @@ class BlePairing(AbstractPairing):
         if not self._encryption_key:
             await self._ensure_connected()
             await self._async_pair_verify()
+            # The connection always seems to close after
+            # a verify so we close it to make sure we reconnect
+            # in the next stop since there is a race otherwise
+            await self.close()
 
         if not self._accessories:
             await self._ensure_connected()
