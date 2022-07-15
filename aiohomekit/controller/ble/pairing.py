@@ -176,6 +176,7 @@ class BlePairing(AbstractPairing):
         logger.debug("%s: Session closed", self.address)
         self._encryption_key = None
         self._decryption_key = None
+        self._notifications = set()
 
     async def _ensure_connected(self):
         if self.client and self.client.is_connected:
@@ -344,10 +345,7 @@ class BlePairing(AbstractPairing):
                     self.address,
                 )
             self.client = None
-            self._notifications = set()
-
-        self._encryption_key = None
-        self._decryption_key = None
+            self._async_disconnected(self.client)
 
     async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         await self._populate_accessories_and_characteristics()
