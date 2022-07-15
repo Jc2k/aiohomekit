@@ -16,7 +16,13 @@
 
 import pytest
 
-from aiohomekit.pdu import OpCode, PDUStatus, decode_pdu, decode_pdu_continuation, encode_pdu
+from aiohomekit.pdu import (
+    OpCode,
+    PDUStatus,
+    decode_pdu,
+    decode_pdu_continuation,
+    encode_pdu,
+)
 
 
 def test_encode():
@@ -48,7 +54,11 @@ def test_decode():
 
 
 def test_decode_with_body():
-    assert decode_pdu(23, b"\x00\x17\x00\x08\x00SOMEDATA") == (PDUStatus.SUCCESS, 8, b"SOMEDATA")
+    assert decode_pdu(23, b"\x00\x17\x00\x08\x00SOMEDATA") == (
+        PDUStatus.SUCCESS,
+        8,
+        b"SOMEDATA",
+    )
 
 
 def test_decode_invalid_tid():
