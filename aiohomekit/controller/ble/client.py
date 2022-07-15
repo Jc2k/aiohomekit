@@ -98,6 +98,8 @@ async def ble_request(
         next = await client.read_gatt_char(handle)
         if decryption_key:
             next = decryption_key.decrypt(next)
+            if next is False:
+                raise EncryptionError("Decryption failed")
         logger.debug("Read fragment: %s", next)
 
         data += decode_pdu_continuation(tid, next)
