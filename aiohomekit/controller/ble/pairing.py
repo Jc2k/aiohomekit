@@ -109,7 +109,10 @@ class BlePairing(AbstractPairing):
                 self._did_first_read = False
                 # TODO: we need to re-read the characteristics
                 logger.debug(
-                    "%s: Config number has changed; char cache invalid", self.address
+                    "%s: Config number has changed from %s to %s; char cache invalid",
+                    self._config_num,
+                    description.config_num,
+                    self.address,
                 )
 
             if description.state_num > self.description.state_num:
