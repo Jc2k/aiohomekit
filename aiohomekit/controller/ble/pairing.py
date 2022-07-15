@@ -413,6 +413,8 @@ class BlePairing(AbstractPairing):
             # Populate the char values so the device has a serial number
             # name, and initial data
             for service in self._accessories.aid(1).services:
+                if service.type == ServicesTypes.PAIRING:
+                    continue
                 for char in service.characteristics:
                     if CharacteristicPermissions.paired_read not in char.perms:
                         continue
