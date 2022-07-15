@@ -155,12 +155,8 @@ class BlePairing(AbstractPairing):
         )
 
     async def _ensure_connected(self):
-        if self.client and self.client.is_connected:
-            return
-
+        address = self.address
         async with self._connection_lock:
-            address = self.address
-
             while not self.client or not self.client.is_connected:
                 if self.client:
                     await self._close_while_locked()
@@ -178,28 +174,44 @@ class BlePairing(AbstractPairing):
                     await self._close_while_locked()
                     await asyncio.sleep(5)
 
-            # The MTU will always be 23 if we do not fetch it
-            if self.client.__class__.__name__ == "BleakClientBlueZDBus":
-                try:
-                    await self.client._acquire_mtu()
-                except (RuntimeError, StopIteration) as ex:
-                    logger.debug("%s: Failed to acquire MTU: %s", ex, address)
+                logger.debug("%s: Connected", address)
 
-            if not self._encryption_key:
-                await self._async_pair_verify()
+    async def _ensure_setup_and_connected(self):
+        if (
+            self.client
+            and self.client.is_connected
+            and self._encryption_key
+            and self._accessories
+        ):
+            return
 
-            if not self._accessories:
-                logger.debug("%s: Reading gatt database", address)
-                self._accessories = await self._async_fetch_gatt_database()
-                self.controller._char_cache.async_create_or_update_map(
-                    self.id,
-                    0,
-                    self._accessories.serialize(),
-                )
+        await self._ensure_connected()
+        address = self.address
+        # The MTU will always be 23 if we do not fetch it
+        if self.client.__class__.__name__ == "BleakClientBlueZDBus":
+            try:
+                await self.client._acquire_mtu()
+            except (RuntimeError, StopIteration) as ex:
+                logger.debug("%s: Failed to acquire MTU: %s", ex, address)
 
-            for (aid, iid) in list(self.subscriptions):
-                if iid not in self._notifications:
-                    await self._async_start_notify(iid)
+        if not self._encryption_key:
+            await self._ensure_connected()
+            await self._async_pair_verify()
+
+        if not self._accessories:
+            await self._ensure_connected()
+            logger.debug("%s: Reading gatt database", address)
+            self._accessories = await self._async_fetch_gatt_database()
+            self.controller._char_cache.async_create_or_update_map(
+                self.id,
+                0,
+                self._accessories.serialize(),
+            )
+
+        await self._ensure_connected()
+        for (aid, iid) in list(self.subscriptions):
+            if iid not in self._notifications:
+                await self._async_start_notify(iid)
 
     async def _async_start_notify(self, iid: int) -> None:
         if not self._accessories:
@@ -363,7 +375,7 @@ class BlePairing(AbstractPairing):
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
 
-        await self._ensure_connected()
+        await self._ensure_setup_and_connected()
         resp = await self._async_request(OpCode.CHAR_WRITE, char.iid, request_tlv)
 
         response = dict(TLV.decode_bytes(resp))
@@ -391,7 +403,7 @@ class BlePairing(AbstractPairing):
         self,
         characteristics: list[tuple[int, int]],
     ) -> dict[tuple[int, int], Any]:
-        await self._ensure_connected()
+        await self._ensure_setup_and_connected()
         logger.debug("%s: Reading characteristics: %s", self.address, characteristics)
 
         results = {}
@@ -408,7 +420,7 @@ class BlePairing(AbstractPairing):
     async def put_characteristics(
         self, characteristics: list[tuple[int, int, Any]]
     ) -> dict[tuple[int, int], Any]:
-        await self._ensure_connected()
+        await self._ensure_setup_and_connected()
 
         results: dict[tuple[int, int], Any] = {}
 
@@ -437,7 +449,7 @@ class BlePairing(AbstractPairing):
         if not new_chars:
             return
         logger.debug("%s: subscribing to %s", self.address, new_chars)
-        await self._ensure_connected()
+        await self._ensure_setup_and_connected()
         for (aid, iid) in new_chars:
             if iid not in self._notifications:
                 await self._async_start_notify(iid)
@@ -446,7 +458,7 @@ class BlePairing(AbstractPairing):
         pass
 
     async def identify(self):
-        await self._ensure_connected()
+        await self._ensure_setup_and_connected()
 
         info = self._accessories.aid(1).services.first(
             service_type=ServicesTypes.ACCESSORY_INFORMATION
@@ -462,7 +474,7 @@ class BlePairing(AbstractPairing):
     async def add_pairing(
         self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
     ):
-        await self._ensure_connected()
+        await self._ensure_setup_and_connected()
         if permissions == "User":
             permissions = TLV.kTLVType_Permission_RegularUser
         elif permissions == "Admin":
@@ -510,7 +522,7 @@ class BlePairing(AbstractPairing):
             raise UnknownError("Add pairing failed: unknown error")
 
     async def remove_pairing(self, pairingId: str):
-        await self._ensure_connected()
+        await self._ensure_setup_and_connected()
 
         request_tlv = TLV.encode_list(
             [
