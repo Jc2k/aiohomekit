@@ -120,6 +120,18 @@ class BlePairing(AbstractPairing):
             return None
         return self._accessories_state.config_num
 
+    @property
+    def address(self):
+        return (
+            self.description.address
+            if self.description
+            else self.pairing_data["AccessoryAddress"]
+        )
+
+    @property
+    def is_connected(self) -> bool:
+        return self.client and self.client.is_connected and self._encryption_key
+
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         repopulate_accessories = False
         if description and self.description:
@@ -151,10 +163,6 @@ class BlePairing(AbstractPairing):
         if repopulate_accessories:
             async_create_task(self._populate_accessories_and_characteristics())
 
-    @property
-    def is_connected(self) -> bool:
-        return self.client and self.client.is_connected and self._encryption_key
-
     async def _async_request(
         self, opcode: OpCode, iid: int, data: bytes | None = None
     ) -> bytes:
@@ -175,14 +183,6 @@ class BlePairing(AbstractPairing):
         logger.debug("%s: Session closed", self.address)
         self._encryption_key = None
         self._decryption_key = None
-
-    @property
-    def address(self):
-        return (
-            self.description.address
-            if self.description
-            else self.pairing_data["AccessoryAddress"]
-        )
 
     async def _establish_connection(self):
         address = self.address
