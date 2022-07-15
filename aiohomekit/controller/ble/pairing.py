@@ -162,7 +162,7 @@ class BlePairing(AbstractPairing):
         char = self._accessories.aid(1).characteristics.iid(iid)
         endpoint = get_characteristic(self.client, char.service.type, char.type)
         async with self._ble_request_lock:
-            if not self.client:
+            if not self.client or not self.client.is_connected:
                 logger.debug("%s: Client not connected", self.address)
                 return
             return await ble_request(
