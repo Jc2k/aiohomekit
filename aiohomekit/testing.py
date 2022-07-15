@@ -241,8 +241,7 @@ class FakePairing(AbstractPairing):
         self._accessories_state = AccessoriesState(
             self._accessories_state.accessories, config_num
         )
-        for callback in self.config_changed_listeners:
-            callback(self._config_num)
+        self._callback_and_save_config_changed(config_num)
 
     async def list_accessories_and_characteristics(self):
         """Fake implementation of list_accessories_and_characteristics."""
