@@ -201,14 +201,18 @@ class BlePairing(AbstractPairing):
                 needs_read_values = True
 
             # The MTU will always be 23 if we do not fetch it
-            if (
-                self.client.__class__.__name__ == "BleakClientBlueZDBus"
-                and not self.client._mtu_size
-            ):
-                try:
-                    await self.client._acquire_mtu()
-                except (RuntimeError, StopIteration) as ex:
-                    logger.debug("%s: Failed to acquire MTU: %s", ex, address)
+            #
+            #  Currently doesn't work, and we need to store it forever since
+            #  it will not change
+            #
+            # if (
+            #    self.client.__class__.__name__ == "BleakClientBlueZDBus"
+            #    and not self.client._mtu_size
+            # ):
+            #    try:
+            #        await self.client._acquire_mtu()
+            #    except (RuntimeError, StopIteration) as ex:
+            #        logger.debug("%s: Failed to acquire MTU: %s", ex, address)
 
             if not self._is_secure:
                 await self._ensure_connected()
