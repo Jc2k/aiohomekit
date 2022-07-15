@@ -102,11 +102,14 @@ class BlePairing(AbstractPairing):
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         if description and self.description:
             if description.config_num > self.description.config_num:
-                logger.debug("Config number has changed; char cache invalid")
+                logger.debug(
+                    "%s: Config number has changed; char cache invalid", self.address
+                )
 
             if description.state_num > self.description.state_num:
                 logger.debug(
-                    "Disconnected event notification received; Triggering catch-up poll"
+                    "%s: Disconnected event notification received; Triggering catch-up poll",
+                    self.address,
                 )
                 async_create_task(self._async_process_disconnected_events())
 
@@ -141,22 +144,28 @@ class BlePairing(AbstractPairing):
             )
 
     def _async_disconnected(self, *args, **kwargs):
-        logger.debug("Session closed")
+        logger.debug("%s: Session closed", self.address)
+
+    @property
+    def address(self):
+        return (
+            self.description.address
+            if self.description
+            else self.pairing_data["AccessoryAddress"]
+        )
 
     async def _ensure_connected(self):
         if self.client and self.client.is_connected:
             return
 
         async with self._connection_lock:
+            address = self.address
+
             while not self.client or not self.client.is_connected:
                 if self.client:
                     await self._close_while_locked()
 
-                if self.description:
-                    address = self.description.address
-                else:
-                    address = self.pairing_data["AccessoryAddress"]
-
+                logger.debug("%s: Connecting", address)
                 self.client = BleakClient(address)
                 self.client.set_disconnected_callback(self._async_disconnected)
 
@@ -185,7 +194,7 @@ class BlePairing(AbstractPairing):
                 try:
                     await self.client._acquire_mtu()
                 except (RuntimeError, StopIteration) as ex:
-                    logger.debug("Failed to acquire MTU: %s", ex)
+                    logger.debug("%s: Failed to acquire MTU: %s", ex, address)
 
             for (aid, iid) in list(self.subscriptions):
                 if iid not in self._notifications:
@@ -210,7 +219,7 @@ class BlePairing(AbstractPairing):
                 # Already one being read now, and one pending
                 return
             async with max_callback_enforcer:
-                logger.debug("Retrieving event for iid: %s", iid)
+                logger.debug("%s: Retrieving event for iid: %s", iid, self.address)
                 results = await self.get_characteristics([(1, iid)])
                 for listener in self.listeners:
                     listener(results)
@@ -221,7 +230,7 @@ class BlePairing(AbstractPairing):
                 return
             async_create_task(_async_callback())
 
-        logger.debug("Subscribing to iid: %s", iid)
+        logger.debug("%s: Subscribing to iid: %s", self.address, iid)
         await self.client.start_notify(endpoint, _callback)
         self._notifications.add(iid)
 
@@ -243,7 +252,9 @@ class BlePairing(AbstractPairing):
         self._derive = derive
 
     async def _async_process_disconnected_events(self) -> None:
-        logger.debug("Polling subscriptions for changes during disconnection")
+        logger.debug(
+            "%s: Polling subscriptions for changes during disconnection", self.address
+        )
         results = await self.get_characteristics(list(self.subscriptions))
         for listener in self.listeners:
             listener(results)
@@ -304,7 +315,8 @@ class BlePairing(AbstractPairing):
                 await self.client.disconnect()
             except BleakError:
                 logger.debug(
-                    "Failed to close connection, client may have already closed it"
+                    "%s: Failed to close connection, client may have already closed it",
+                    self.address,
                 )
             self.client = None
             self._notifications = set()
