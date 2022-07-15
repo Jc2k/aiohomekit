@@ -369,20 +369,24 @@ class BlePairing(AbstractPairing):
                 if "value" in result:
                     char.value = result["value"]
 
-    async def async_populate_accessories_state(self) -> bool:
+    async def async_populate_accessories_state(
+        self, force_update: bool = False
+    ) -> bool:
         """Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless
         we know the config num is out of date.
         """
         try:
-            await self._populate_accessories_and_characteristics()
+            await self._populate_accessories_and_characteristics(force_update)
         except BleakError as ex:
             logger.debug("%s: Failed to populate accessories: %s", self.address, ex)
             return False
         return True
 
-    async def _populate_accessories_and_characteristics(self) -> None:
+    async def _populate_accessories_and_characteristics(
+        self, force_update: bool = False
+    ) -> None:
         was_locked = False
         if self._config_lock.locked():
             was_locked = True
@@ -392,7 +396,7 @@ class BlePairing(AbstractPairing):
                 # No need to do it twice
                 return
 
-            accessories_changed = not self._accessories
+            update_values = force_update or not self._accessories
             config_changed = False
 
             if not self._accessories:
@@ -411,16 +415,15 @@ class BlePairing(AbstractPairing):
                 self._accessories_state = AccessoriesState(
                     accessories, self.description.config_num
                 )
-                accessories_changed = True
+                update_values = True
 
             if not self._encryption_key:
                 await self._async_pair_verify()
 
-            if not accessories_changed:
-                return
+            if update_values:
+                await self._populate_char_values()
+                self._update_accessories_state_cache()
 
-            await self._populate_char_values()
-            self._update_accessories_state_cache()
             if config_changed:
                 for callback in self.config_changed_listeners:
                     callback(self._config_num)

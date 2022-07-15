@@ -128,11 +128,13 @@ class AbstractPairing(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    async def async_populate_accessories_state(self) -> bool:
+    async def async_populate_accessories_state(
+        self, force_update: bool = False
+    ) -> bool:
         """Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless
-        we know the config num is out of date.
+        we know the config num is out of date or force_update is True
         """
 
     @abstractmethod
