@@ -84,6 +84,7 @@ class BlePairing(AbstractPairing):
             self._accessories = Accessories.from_list(cache["accessories"])
 
         self.pairing_data = pairing_data
+        logger.debug("%s: Pairing data: %s", self.address, self.pairing_data)
 
         self._session_id = None
         self._derive = None
