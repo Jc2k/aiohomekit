@@ -99,6 +99,8 @@ def decode_pdu(expected_tid: int, data: bytes) -> tuple[bool, bytes]:
         )
 
     if status != PDUStatus.SUCCESS:
+        # We can't currently raise here or it will break the encryption
+        # stream
         logger.warning(
             f"Transaction {tid} failed with error {status} ({status.description})"
         )
