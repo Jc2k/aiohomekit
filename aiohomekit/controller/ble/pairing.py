@@ -349,7 +349,8 @@ class BlePairing(AbstractPairing):
         self._decryption_key = None
 
     async def list_accessories_and_characteristics(self):
-        return await self._populate_accessories_and_characteristics()
+        await self._populate_accessories_and_characteristics()
+        return self._accessories.serialize()
 
     async def _populate_accessories_and_characteristics(self):
         async with self._config_lock:
@@ -377,7 +378,7 @@ class BlePairing(AbstractPairing):
                 accessories_changed = True
 
             if not accessories_changed:
-                return self._accessories.serialize()
+                return
 
             self.controller._char_cache.async_create_or_update_map(
                 self.id,
@@ -396,13 +397,11 @@ class BlePairing(AbstractPairing):
                     result = results[aid_iid]
                     if "value" in result:
                         char.value = result["value"]
-            self._did_first_read = True
 
-            accessories = self._accessories.serialize()
-            self.pairing_data["accessories"] = accessories
+            self.pairing_data["accessories"] = self._accessories.serialize()
             self.pairing_data["config_num"] = self._config_num
 
-        return accessories
+        return
 
     async def list_pairings(self):
         request_tlv = TLV.encode_list(
