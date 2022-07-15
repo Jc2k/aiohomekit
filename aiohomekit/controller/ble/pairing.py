@@ -361,8 +361,7 @@ class BlePairing(AbstractPairing):
                 aid_iid = (1, char.iid)
                 results = await self._get_characteristics_while_connected([aid_iid])
                 logger.debug("%s: Read %s", self.address, results)
-                result = results[aid_iid]
-                if "value" in result:
+                if (result := results.get(aid_iid)) and "value" in result:
                     char.value = result["value"]
 
     async def async_populate_accessories_state(
