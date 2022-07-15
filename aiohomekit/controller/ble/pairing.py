@@ -419,11 +419,9 @@ class BlePairing(AbstractPairing):
             if not accessories_changed:
                 return
 
-            config_num = new_config_num or self.description.config_num
-
             self.controller._char_cache.async_create_or_update_map(
                 self.id,
-                config_num,
+                self._config_num,
                 self._accessories.serialize(),
             )
             # Populate the char values so the device has a serial number
