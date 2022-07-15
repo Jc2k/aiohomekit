@@ -29,7 +29,7 @@ from aiohomekit.controller.abstract import (
     FinishPairing,
 )
 from aiohomekit.exceptions import AccessoryNotFoundError
-from aiohomekit.model import Accessories
+from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.status_flags import StatusFlags
@@ -222,6 +222,26 @@ class FakePairing(AbstractPairing):
 
     async def remove_pairing(self, pairing_id):
         pass
+
+    async def async_populate_accessories_state(
+        self, force_update: bool = False
+    ) -> bool:
+        """Populate the state of all accessories.
+
+        This method should try not to fetch all the accessories unless
+        we know the config num is out of date or force_update is True
+        """
+        if not self._accessories or force_update:
+            await self.list_accessories_and_characteristics()
+        return True
+
+    async def _process_config_changed(self, config_num: int) -> None:
+        await self.list_accessories_and_characteristics()
+        self._accessories_state = AccessoriesState(
+            self._accessories_state.accessories, config_num
+        )
+        for callback in self.config_changed_listeners:
+            callback(self._config_num)
 
     async def list_accessories_and_characteristics(self):
         """Fake implementation of list_accessories_and_characteristics."""
