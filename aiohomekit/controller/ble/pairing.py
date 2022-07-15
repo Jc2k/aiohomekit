@@ -100,6 +100,7 @@ class BlePairing(AbstractPairing):
         self._ble_request_lock = asyncio.Lock()
 
         self._is_secure = False
+        self._did_first_read = False
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         if description and self.description:
@@ -180,7 +181,7 @@ class BlePairing(AbstractPairing):
         if (
             self.client
             and self.client.is_connected
-            and self._encryption_key
+            and self._is_secure
             and self._accessories
         ):
             return
@@ -188,7 +189,6 @@ class BlePairing(AbstractPairing):
         async with self._connection_lock:
             await self._ensure_connected()
             address = self.address
-            needs_read_values = False
 
             if not self._accessories:
                 logger.debug("%s: Reading gatt database", address)
@@ -198,7 +198,6 @@ class BlePairing(AbstractPairing):
                     0,
                     self._accessories.serialize(),
                 )
-                needs_read_values = True
 
             # The MTU will always be 23 if we do not fetch it
             #
@@ -222,9 +221,11 @@ class BlePairing(AbstractPairing):
                 if iid not in self._notifications:
                     await self._async_start_notify(iid)
 
-            if not needs_read_values:
+            if self._did_first_read:
                 return
 
+            # Populate the char values so the device has a serial number
+            # name, and initial data
             for service in self._accessories.aid(1).services:
                 for char in service.characteristics:
                     if CharacteristicPermissions.paired_read not in char.perms:
@@ -234,6 +235,8 @@ class BlePairing(AbstractPairing):
                     logger.debug("%s: Read %s", address, results)
                     result = results[char]
                     char.value = result["value"]
+
+            self._did_first_read = True
 
     async def _async_start_notify(self, iid: int) -> None:
         if not self._accessories:
