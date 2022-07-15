@@ -66,12 +66,12 @@ class BleDiscovery(AbstractDiscovery):
         self.device = device
 
         self.client = BleakClient(self.device)
-        self._connect_lock = asyncio.Lock()
+        self._connection_lock = asyncio.Lock()
 
     async def _ensure_connected(self):
         if self.client.is_connected:
             return
-        async with self._connect_lock:
+        async with self._connection_lock:
             while not self.client.is_connected:
                 try:
                     await self.client.connect()
@@ -89,7 +89,7 @@ class BleDiscovery(AbstractDiscovery):
     async def _close(self):
         if not self.client:
             return
-        async with self._connection_lock():
+        async with self._connection_lock:
             if self.client:
                 try:
                     await self.client.disconnect()
