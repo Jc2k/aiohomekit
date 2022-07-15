@@ -21,7 +21,7 @@ import logging
 import random
 from typing import TYPE_CHECKING, Any
 import uuid
-
+import struct
 from bleak import BleakClient
 from bleak.exc import BleakError
 
@@ -234,7 +234,8 @@ class BlePairing(AbstractPairing):
                     results = await self._get_characteristics_while_connected([aid_iid])
                     logger.debug("%s: Read %s", address, results)
                     result = results[aid_iid]
-                    char.value = result["value"]
+                    if "value" in result:
+                        char.value = result["value"]
 
             self._did_first_read = True
 
@@ -442,7 +443,17 @@ class BlePairing(AbstractPairing):
                 data,
             )
 
-            results[(aid, iid)] = {"value": from_bytes(char, decoded)}
+            try:
+                results[(aid, iid)] = {"value": from_bytes(char, decoded)}
+            except struct.error as ex:
+                logger.debug(
+                    "%s: Failed to decode characteristic for %s from %s: %s",
+                    self.address,
+                    char,
+                    decoded,
+                    ex,
+                )
+                results[(aid, iid)] = {"status": HapStatusCode.INVALID_VALUE}
 
         return results
 
