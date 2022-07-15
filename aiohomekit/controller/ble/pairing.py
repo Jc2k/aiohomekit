@@ -350,7 +350,7 @@ class BlePairing(AbstractPairing):
         self._encryption_key = None
         self._decryption_key = None
 
-    async def list_accessories_and_characteristics(self) -> dict[str, Any]:
+    async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         await self._populate_accessories_and_characteristics()
         return self._accessories.serialize()
 
@@ -418,9 +418,9 @@ class BlePairing(AbstractPairing):
                 for callback in self.config_changed_listeners:
                     callback(self._config_num)
 
-    def notify_config_changed(self, config_num: int) -> None:
+    async def _process_config_changed(self, config_num: int) -> None:
         """Notify the pairing that the config number has changed."""
-        async_create_task(self._populate_accessories_and_characteristics)
+        await self._populate_accessories_and_characteristics()
 
     async def list_pairings(self):
         request_tlv = TLV.encode_list(

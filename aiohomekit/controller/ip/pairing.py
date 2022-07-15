@@ -358,10 +358,6 @@ class IpPairing(AbstractPairing):
         for callback in self.config_changed_listeners:
             callback(self._config_num)
 
-    def notify_config_changed(self, config_num: int) -> None:
-        """Notify the pairing that the config number has changed."""
-        async_create_task(self._process_config_changed(config_num))
-
     async def identify(self):
         """
         This call can be used to trigger the identification of a paired accessory. A successful call should

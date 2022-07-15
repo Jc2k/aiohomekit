@@ -25,6 +25,7 @@ from aiohomekit.model.categories import Categories
 from aiohomekit.model.characteristics.characteristic_types import CharacteristicsTypes
 from aiohomekit.model.services.service_types import ServicesTypes
 from aiohomekit.model.status_flags import StatusFlags
+from aiohomekit.utils import async_create_task
 
 
 class AbstractDescription(Protocol):
@@ -168,6 +169,15 @@ class AbstractPairing(metaclass=ABCMeta):
     @abstractmethod
     async def remove_pairing(self, pairing_id: str) -> None:
         pass
+
+    @abstractmethod
+    async def _process_config_changed(self, config_num: int) -> None:
+        pass
+
+    def notify_config_changed(self, config_num: int) -> None:
+        """Notify the pairing that the config number has changed."""
+        if config_num != self._config_num:
+            async_create_task(self._process_config_changed(config_num))
 
     async def subscribe(self, characteristics):
         new_characteristics = set(characteristics) - self.subscriptions
