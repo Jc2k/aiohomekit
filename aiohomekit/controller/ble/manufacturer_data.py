@@ -21,11 +21,10 @@ class HomeKitAdvertisement:
     address: str
 
     @classmethod
-    def from_advertisement(cls, device, advertisement_data) -> HomeKitAdvertisement:
-        if not (mfr_data := advertisement_data.manufacturer_data):
-            raise ValueError("No manufacturer data")
-
-        if not (data := mfr_data.get(76)):
+    def from_manufacturer_data(
+        cls, name, address, manufacturer_data
+    ) -> HomeKitAdvertisement:
+        if not (data := manufacturer_data.get(76)):
             raise ValueError("Not an Apple device")
 
         if data[0] != 0x06:
@@ -39,12 +38,19 @@ class HomeKitAdvertisement:
         sh = data[15:19]
 
         return cls(
-            name=device.name,
+            name=name,
             id=device_id,
             category=Categories(acid),
             status_flags=StatusFlags(sf),
             config_num=cn,
             state_num=gsn,
             setup_hash=sh,
-            address=device.address,
+            address=address,
         )
+
+    @classmethod
+    def from_advertisement(cls, device, advertisement_data) -> HomeKitAdvertisement:
+        if not (mfr_data := advertisement_data.manufacturer_data):
+            raise ValueError("No manufacturer data")
+
+        return cls.from_manufacturer_data(device.name, device.address, mfr_data)
