@@ -106,6 +106,8 @@ class BlePairing(AbstractPairing):
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         if description and self.description:
             if description.config_num > self.description.config_num:
+                self._did_first_read = False
+                # TODO: we need to re-read the characteristics
                 logger.debug(
                     "%s: Config number has changed; char cache invalid", self.address
                 )
@@ -221,24 +223,6 @@ class BlePairing(AbstractPairing):
             for _, iid in list(self.subscriptions):
                 if iid not in self._notifications:
                     await self._async_start_notify(iid)
-
-            if self._did_first_read:
-                return
-
-            # Populate the char values so the device has a serial number
-            # name, and initial data
-            for service in self._accessories.aid(1).services:
-                for char in service.characteristics:
-                    if CharacteristicPermissions.paired_read not in char.perms:
-                        continue
-                    aid_iid = (1, char.iid)
-                    results = await self._get_characteristics_while_connected([aid_iid])
-                    logger.debug("%s: Read %s", address, results)
-                    result = results[aid_iid]
-                    if "value" in result:
-                        char.value = result["value"]
-
-            self._did_first_read = True
 
     async def _async_start_notify(self, iid: int) -> None:
         if not self._accessories:
@@ -375,6 +359,21 @@ class BlePairing(AbstractPairing):
         self._decryption_key = None
 
     async def list_accessories_and_characteristics(self):
+        await self._ensure_setup_and_connected()
+        if not self._did_first_read:
+            # Populate the char values so the device has a serial number
+            # name, and initial data
+            for service in self._accessories.aid(1).services:
+                for char in service.characteristics:
+                    if CharacteristicPermissions.paired_read not in char.perms:
+                        continue
+                    aid_iid = (1, char.iid)
+                    results = await self._get_characteristics_while_connected([aid_iid])
+                    logger.debug("%s: Read %s", self.address, results)
+                    result = results[aid_iid]
+                    if "value" in result:
+                        char.value = result["value"]
+            self._did_first_read = True
         return self._accessories.serialize()
 
     async def list_pairings(self):
