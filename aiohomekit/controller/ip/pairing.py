@@ -143,9 +143,7 @@ class IpPairing(AbstractPairing):
                 for characteristic in service["characteristics"]:
                     characteristic["type"] = normalize_uuid(characteristic["type"])
 
-        self._accessories_state = AccessoriesState(
-            accessories, self._accessories_state.config_num
-        )
+        self._accessories_state = AccessoriesState(accessories, self._config_num or 0)
         return accessories
 
     async def list_pairings(self):
