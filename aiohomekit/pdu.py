@@ -100,7 +100,7 @@ def decode_pdu(expected_tid: int, data: bytes) -> tuple[bool, bytes]:
 
     if status != PDUStatus.SUCCESS:
         logger.warning(
-            f"Transaction {tid} failed with error {status} ({status.description}"
+            f"Transaction {tid} failed with error {status} ({status.description})"
         )
 
     if len(data) < 5:
