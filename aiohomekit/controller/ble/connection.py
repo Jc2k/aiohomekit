@@ -54,8 +54,10 @@ async def establish_connection(
             logger.debug("%s: Connected", address)
             return client
 
-        if attempts == MAX_CONNECT_ATTEMPTS:
+        if attempts == max_attempts:
             break
         await asyncio.sleep(5)
 
-    raise AccessoryDisconnectedError(f"Failed to connect to {address}")
+    raise AccessoryDisconnectedError(
+        f"Failed to connect to {address} after {max_attempts}"
+    )
