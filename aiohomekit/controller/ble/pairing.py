@@ -471,7 +471,8 @@ class BlePairing(AbstractPairing):
     ) -> dict[tuple[int, int], dict[str, Any]]:
         await self._populate_accessories_and_characteristics()
         results = await self._get_characteristics_while_connected(characteristics)
-        await self.close()
+        async with self._ble_request_lock:
+            await self.close()
         return results
 
     async def _get_characteristics_while_connected(
@@ -533,7 +534,8 @@ class BlePairing(AbstractPairing):
                     "description": HapStatusCode.CANT_WRITE_READ_ONLY.description,
                 }
 
-        await self.close()
+        async with self._ble_request_lock:
+            await self.close()
         return results
 
     async def subscribe(self, characteristics):
