@@ -55,6 +55,11 @@ class AbstractPairing(metaclass=ABCMeta):
         self._accessories_state: AccessoriesState | None = None
 
     @property
+    def accessories_state(self) -> AccessoriesState:
+        """Return the current state of the accessories."""
+        return self._accessories_state
+
+    @property
     def _accessories(self) -> Accessories:
         """Wrapper around the accessories state to make it easier to use."""
         if not self._accessories_state:
