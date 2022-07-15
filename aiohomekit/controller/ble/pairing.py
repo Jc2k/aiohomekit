@@ -217,7 +217,7 @@ class BlePairing(AbstractPairing):
                 await self._ensure_connected()
                 await self._async_pair_verify()
 
-            for (aid, iid) in list(self.subscriptions):
+            for _, iid in list(self.subscriptions):
                 if iid not in self._notifications:
                     await self._async_start_notify(iid)
 
@@ -230,10 +230,10 @@ class BlePairing(AbstractPairing):
                 for char in service.characteristics:
                     if CharacteristicPermissions.paired_read not in char.perms:
                         continue
-                    char = (1, char.iid)
-                    results = await self._get_characteristics_while_connected([char])
+                    aid_iid = (1, char.iid)
+                    results = await self._get_characteristics_while_connected([aid_iid])
                     logger.debug("%s: Read %s", address, results)
-                    result = results[char]
+                    result = results[aid_iid]
                     char.value = result["value"]
 
             self._did_first_read = True
