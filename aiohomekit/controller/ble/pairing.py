@@ -100,6 +100,8 @@ class BlePairing(AbstractPairing):
         #   to guess what encryption counter to use for the decrypt
         self._ble_request_lock = asyncio.Lock()
 
+        self._config_lock = asyncio.Lock()
+
         self._is_secure = False
         self._did_first_read = False
 
@@ -164,7 +166,7 @@ class BlePairing(AbstractPairing):
             else self.pairing_data["AccessoryAddress"]
         )
 
-    async def _ensure_connected(self):
+    async def _establish_connection(self):
         address = self.address
         while not self.client or not self.client.is_connected:
             if self.client:
@@ -183,42 +185,12 @@ class BlePairing(AbstractPairing):
 
         logger.debug("%s: Connected", address)
 
-    async def _ensure_setup_and_connected(self):
-        if (
-            self.client
-            and self.client.is_connected
-            and self._is_secure
-            and self._accessories
-        ):
+    async def _ensure_connected(self):
+        if self.client and self.client.is_connected and self._is_secure:
             return
 
         async with self._connection_lock:
-            await self._ensure_connected()
-            address = self.address
-
-            if not self._accessories:
-                if accessories := self.pairing_data.get("accessories"):
-                    self._accessories = Accessories.from_list(accessories)
-                    self._config_num = self.pairing_data.get("config_num", 0)
-                elif cache := self.controller._char_cache.get_map(self.id):
-                    self._accessories = Accessories.from_list(cache["accessories"])
-
-                if self._config_num != self.description.config_num:
-                    logger.debug(
-                        "%s: Reading gatt database because config number %s does not match description config number %",
-                        self._config_num,
-                        self.description.config_num,
-                        address,
-                    )
-                    self._accessories = await self._async_fetch_gatt_database()
-                    self._config_num = self.description.config_num
-
-                self.controller._char_cache.async_create_or_update_map(
-                    self.id,
-                    self._config_num,
-                    self._accessories.serialize(),
-                )
-
+            await self._establish_connection()
             # The MTU will always be 23 if we do not fetch it
             #
             #  Currently doesn't work, and we need to store it forever since
@@ -234,7 +206,6 @@ class BlePairing(AbstractPairing):
             #        logger.debug("%s: Failed to acquire MTU: %s", ex, address)
 
             if not self._is_secure:
-                await self._ensure_connected()
                 await self._async_pair_verify()
 
             for _, iid in list(self.subscriptions):
@@ -376,8 +347,41 @@ class BlePairing(AbstractPairing):
         self._decryption_key = None
 
     async def list_accessories_and_characteristics(self):
-        await self._ensure_setup_and_connected()
-        if not self._did_first_read:
+        return await self._populate_accessories_and_characteristics()
+
+    async def _populate_accessories_and_characteristics(self):
+        async with self._config_lock:
+            await self._ensure_connected()
+            accessories_changed = False
+
+            if not self._accessories:
+                if accessories := self.pairing_data.get("accessories"):
+                    accessories_changed = True
+                    self._accessories = Accessories.from_list(accessories)
+                    self._config_num = self.pairing_data.get("config_num", 0)
+                elif cache := self.controller._char_cache.get_map(self.id):
+                    self._accessories = Accessories.from_list(cache["accessories"])
+                    accessories_changed = True
+
+            if self._config_num != self.description.config_num:
+                logger.debug(
+                    "%s: Reading gatt database because config number %s does not match description config number %",
+                    self._config_num,
+                    self.description.config_num,
+                    self.address,
+                )
+                self._accessories = await self._async_fetch_gatt_database()
+                self._config_num = self.description.config_num
+                accessories_changed = True
+
+            if not accessories_changed:
+                return self._accessories.serialize()
+
+            self.controller._char_cache.async_create_or_update_map(
+                self.id,
+                self._config_num,
+                self._accessories.serialize(),
+            )
             # Populate the char values so the device has a serial number
             # name, and initial data
             for service in self._accessories.aid(1).services:
@@ -391,8 +395,11 @@ class BlePairing(AbstractPairing):
                     if "value" in result:
                         char.value = result["value"]
             self._did_first_read = True
-        accessories = self._accessories.serialize()
-        self.pairing_data["accessories"] = accessories
+
+            accessories = self._accessories.serialize()
+            self.pairing_data["accessories"] = accessories
+            self.pairing_data["config_num"] = self._config_num
+
         return accessories
 
     async def list_pairings(self):
@@ -411,7 +418,7 @@ class BlePairing(AbstractPairing):
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
 
-        await self._ensure_setup_and_connected()
+        await self._populate_accessories_and_characteristics()
         resp = await self._async_request(OpCode.CHAR_WRITE, char.iid, request_tlv)
 
         response = dict(TLV.decode_bytes(resp))
@@ -439,7 +446,7 @@ class BlePairing(AbstractPairing):
         self,
         characteristics: list[tuple[int, int]],
     ) -> dict[tuple[int, int], dict[str, Any]]:
-        await self._ensure_setup_and_connected()
+        await self._populate_accessories_and_characteristics()
         return await self._get_characteristics_while_connected(characteristics)
 
     async def _get_characteristics_while_connected(
@@ -479,7 +486,7 @@ class BlePairing(AbstractPairing):
     async def put_characteristics(
         self, characteristics: list[tuple[int, int, Any]]
     ) -> dict[tuple[int, int], Any]:
-        await self._ensure_setup_and_connected()
+        await self._populate_accessories_and_characteristics()
 
         results: dict[tuple[int, int], Any] = {}
 
@@ -508,7 +515,7 @@ class BlePairing(AbstractPairing):
         if not new_chars:
             return
         logger.debug("%s: subscribing to %s", self.address, new_chars)
-        await self._ensure_setup_and_connected()
+        await self._ensure_connected()
         for (aid, iid) in new_chars:
             if iid not in self._notifications:
                 await self._async_start_notify(iid)
@@ -517,7 +524,7 @@ class BlePairing(AbstractPairing):
         pass
 
     async def identify(self):
-        await self._ensure_setup_and_connected()
+        await self._populate_accessories_and_characteristics()
 
         info = self._accessories.aid(1).services.first(
             service_type=ServicesTypes.ACCESSORY_INFORMATION
@@ -533,7 +540,7 @@ class BlePairing(AbstractPairing):
     async def add_pairing(
         self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
     ):
-        await self._ensure_setup_and_connected()
+        await self._populate_accessories_and_characteristics()
         if permissions == "User":
             permissions = TLV.kTLVType_Permission_RegularUser
         elif permissions == "Admin":
@@ -581,7 +588,7 @@ class BlePairing(AbstractPairing):
             raise UnknownError("Add pairing failed: unknown error")
 
     async def remove_pairing(self, pairingId: str):
-        await self._ensure_setup_and_connected()
+        await self._populate_accessories_and_characteristics()
 
         request_tlv = TLV.encode_list(
             [
