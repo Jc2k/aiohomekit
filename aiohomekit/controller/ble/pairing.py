@@ -99,6 +99,8 @@ class BlePairing(AbstractPairing):
         #   to guess what encryption counter to use for the decrypt
         self._ble_request_lock = asyncio.Lock()
 
+        self._is_secure = False
+
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         if description and self.description:
             if description.config_num > self.description.config_num:
@@ -145,6 +147,7 @@ class BlePairing(AbstractPairing):
 
     def _async_disconnected(self, *args, **kwargs):
         logger.debug("%s: Session closed", self.address)
+        self._is_secure = False
 
     @property
     def address(self):
@@ -156,25 +159,22 @@ class BlePairing(AbstractPairing):
 
     async def _ensure_connected(self):
         address = self.address
-        async with self._connection_lock:
-            while not self.client or not self.client.is_connected:
-                if self.client:
-                    await self._close_while_locked()
+        while not self.client or not self.client.is_connected:
+            if self.client:
+                await self._close_while_locked()
 
-                logger.debug("%s: Connecting", address)
-                self.client = BleakClient(address)
-                self.client.set_disconnected_callback(self._async_disconnected)
+            logger.debug("%s: Connecting", address)
+            self.client = BleakClient(address)
+            self.client.set_disconnected_callback(self._async_disconnected)
 
-                try:
-                    await self.client.connect()
-                except BleakError as e:
-                    logger.debug(
-                        "Failed to connect to %s: %s", self.client.address, str(e)
-                    )
-                    await self._close_while_locked()
-                    await asyncio.sleep(5)
+            try:
+                await self.client.connect()
+            except BleakError as e:
+                logger.debug("Failed to connect to %s: %s", self.client.address, str(e))
+                await self._close_while_locked()
+                await asyncio.sleep(5)
 
-                logger.debug("%s: Connected", address)
+            logger.debug("%s: Connected", address)
 
     async def _ensure_setup_and_connected(self):
         if (
@@ -185,37 +185,46 @@ class BlePairing(AbstractPairing):
         ):
             return
 
-        await self._ensure_connected()
-        address = self.address
-        # The MTU will always be 23 if we do not fetch it
-        if self.client.__class__.__name__ == "BleakClientBlueZDBus":
-            try:
-                await self.client._acquire_mtu()
-            except (RuntimeError, StopIteration) as ex:
-                logger.debug("%s: Failed to acquire MTU: %s", ex, address)
-
-        if not self._encryption_key:
+        async with self._connection_lock:
             await self._ensure_connected()
-            await self._async_pair_verify()
-            # The connection always seems to close after
-            # a verify so we close it to make sure we reconnect
-            # in the next stop since there is a race otherwise
-            await self.close()
+            address = self.address
+            needs_read_values = False
 
-        if not self._accessories:
-            await self._ensure_connected()
-            logger.debug("%s: Reading gatt database", address)
-            self._accessories = await self._async_fetch_gatt_database()
-            self.controller._char_cache.async_create_or_update_map(
-                self.id,
-                0,
-                self._accessories.serialize(),
-            )
+            if not self._accessories:
+                logger.debug("%s: Reading gatt database", address)
+                self._accessories = await self._async_fetch_gatt_database()
+                self.controller._char_cache.async_create_or_update_map(
+                    self.id,
+                    0,
+                    self._accessories.serialize(),
+                )
+                needs_read_values = True
 
-        await self._ensure_connected()
-        for (aid, iid) in list(self.subscriptions):
-            if iid not in self._notifications:
-                await self._async_start_notify(iid)
+            # The MTU will always be 23 if we do not fetch it
+            if (
+                self.client.__class__.__name__ == "BleakClientBlueZDBus"
+                and not self.client._mtu_size
+            ):
+                try:
+                    await self.client._acquire_mtu()
+                except (RuntimeError, StopIteration) as ex:
+                    logger.debug("%s: Failed to acquire MTU: %s", ex, address)
+
+            if not self._is_secure:
+                await self._ensure_connected()
+                await self._async_pair_verify()
+
+            for (aid, iid) in list(self.subscriptions):
+                if iid not in self._notifications:
+                    await self._async_start_notify(iid)
+
+            if needs_read_values:
+                for service in self._accessories.aid(1).services:
+                    for char in service.characteristics:
+                        if CharacteristicPermissions.paired_read not in char.perms:
+                            continue
+                        results = self.get_characteristics([1, char.iid])
+                        char.value = results[(1, char.iid)]["value"]
 
     async def _async_start_notify(self, iid: int) -> None:
         if not self._accessories:
@@ -257,6 +266,9 @@ class BlePairing(AbstractPairing):
         self._notifications.add(iid)
 
     async def _async_pair_verify(self):
+        # If resume fails, we are allowed to try again
+        # without the previous derive and session_id but
+        # that is not yet implemented
         session_id, derive = await drive_pairing_state_machine(
             self.client,
             CharacteristicsTypes.PAIR_VERIFY,
@@ -272,6 +284,7 @@ class BlePairing(AbstractPairing):
         # Used for session resume
         self._session_id = session_id
         self._derive = derive
+        self._is_secure = True
 
     async def _async_process_disconnected_events(self) -> None:
         logger.debug(
@@ -284,62 +297,44 @@ class BlePairing(AbstractPairing):
     async def _async_fetch_gatt_database(self) -> Accessories:
         accessory = Accessory()
         accessory.aid = 1
-        async with self._ble_request_lock:
+        for service in self.client.services:
+            s = accessory.add_service(normalize_uuid(service.uuid))
 
-            for service in self.client.services:
-                s = accessory.add_service(normalize_uuid(service.uuid))
+            for char in service.characteristics:
+                if normalize_uuid(char.uuid) == SERVICE_INSTANCE_ID:
+                    continue
 
-                for char in service.characteristics:
-                    if normalize_uuid(char.uuid) == SERVICE_INSTANCE_ID:
-                        continue
+                iid_handle = char.get_descriptor(
+                    uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A")
+                )
+                if not iid_handle:
+                    continue
 
-                    iid_handle = char.get_descriptor(
-                        uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A")
-                    )
-                    if not iid_handle:
-                        continue
+                iid = int.from_bytes(
+                    await self.client.read_gatt_descriptor(iid_handle.handle),
+                    byteorder="little",
+                )
 
-                    iid = int.from_bytes(
-                        await self.client.read_gatt_descriptor(iid_handle.handle),
-                        byteorder="little",
-                    )
+                tid = random.randint(1, 254)
+                for data in encode_pdu(
+                    OpCode.CHAR_SIG_READ,
+                    tid,
+                    iid,
+                ):
+                    await self.client.write_gatt_char(char.handle, data)
 
-                    tid = random.randint(1, 254)
-                    for data in encode_pdu(
-                        OpCode.CHAR_SIG_READ,
-                        tid,
-                        iid,
-                    ):
-                        await self.client.write_gatt_char(char.handle, data)
+                payload = await self.client.read_gatt_char(char.handle)
 
-                    payload = await self.client.read_gatt_char(char.handle)
+                _, signature = decode_pdu(tid, payload)
 
-                    _, signature = decode_pdu(tid, payload)
+                decoded = CharacteristicTLV.decode(signature).to_dict()
 
-                    decoded = CharacteristicTLV.decode(signature).to_dict()
+                hap_char = s.add_char(normalize_uuid(char.uuid))
+                logger.debug("%s: char: %s decoded: %s", self.address, char, decoded)
 
-                    hap_char = s.add_char(normalize_uuid(char.uuid))
-                    logger.debug(
-                        "%s: char: %s decoded: %s", self.address, char, decoded
-                    )
-
-                    hap_char.iid = iid
-                    hap_char.perms = decoded["perms"]
-                    hap_char.format = decoded["format"]
-
-                    if CharacteristicPermissions.paired_read not in hap_char.perms:
-                        continue
-                    logger.debug("%s: Reading value for %s", self.address, hap_char)
-                    data = await ble_request(
-                        self.client,
-                        self._encryption_key,
-                        self._decryption_key,
-                        OpCode.CHAR_READ,
-                        char.handle,
-                        iid,
-                    )
-                    data = dict(TLV.decode_bytes(data))[1]
-                    hap_char.value = from_bytes(char, data)
+                hap_char.iid = iid
+                hap_char.perms = decoded["perms"]
+                hap_char.format = decoded["format"]
 
         accessories = Accessories()
         accessories.add_accessory(accessory)
