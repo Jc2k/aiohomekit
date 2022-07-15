@@ -178,6 +178,13 @@ class BlePairing(AbstractPairing):
                     await self._close_while_locked()
                     await asyncio.sleep(5)
 
+            # The MTU will always be 23 if we do not fetch it
+            if self.client.__class__.__name__ == "BleakClientBlueZDBus":
+                try:
+                    await self.client._acquire_mtu()
+                except (RuntimeError, StopIteration) as ex:
+                    logger.debug("%s: Failed to acquire MTU: %s", ex, address)
+
             if not self._encryption_key:
                 await self._async_pair_verify()
 
@@ -189,13 +196,6 @@ class BlePairing(AbstractPairing):
                     0,
                     self._accessories.serialize(),
                 )
-
-            # The MTU will always be 23 if we do not fetch it
-            if self.client.__class__.__name__ == "BleakClientBlueZDBus":
-                try:
-                    await self.client._acquire_mtu()
-                except (RuntimeError, StopIteration) as ex:
-                    logger.debug("%s: Failed to acquire MTU: %s", ex, address)
 
             for (aid, iid) in list(self.subscriptions):
                 if iid not in self._notifications:
