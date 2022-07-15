@@ -409,7 +409,9 @@ class BlePairing(AbstractPairing):
                 logger.debug(
                     "Fetching gatt database because new config num: %s", new_config_num
                 )
-                self._accessories = await self._async_fetch_gatt_database()
+                accessories = await self._async_fetch_gatt_database()
+                config_num = self.description.config_num
+                self._accessories_state = AccessoriesState(accessories, config_num)
                 accessories_changed = True
 
             if not self._encryption_key:
