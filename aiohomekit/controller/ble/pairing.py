@@ -31,7 +31,12 @@ from aiohomekit.controller.ble.client import (
     drive_pairing_state_machine,
     get_characteristic,
 )
-from aiohomekit.exceptions import AuthenticationError, InvalidError, UnknownError
+from aiohomekit.exceptions import (
+    AccessoryDisconnectedError,
+    AuthenticationError,
+    InvalidError,
+    UnknownError,
+)
 from aiohomekit.model import (
     Accessories,
     AccessoriesState,
@@ -160,7 +165,7 @@ class BlePairing(AbstractPairing):
         async with self._ble_request_lock:
             if not self.client or not self.client.is_connected:
                 logger.debug("%s: Client not connected", self.address)
-                return
+                raise AccessoryDisconnectedError(f"{self.address} is not connected")
             pdu_status, result_data = await ble_request(
                 self.client,
                 self._encryption_key,
