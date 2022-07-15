@@ -178,6 +178,9 @@ class BlePairing(AbstractPairing):
                     await self._close_while_locked()
                     await asyncio.sleep(5)
 
+            if not self._encryption_key:
+                await self._async_pair_verify()
+
             if not self._accessories:
                 logger.debug("%s: Reading gatt database", address)
                 self._accessories = await self._async_fetch_gatt_database()
@@ -186,9 +189,6 @@ class BlePairing(AbstractPairing):
                     0,
                     self._accessories.serialize(),
                 )
-
-            if not self._encryption_key:
-                await self._async_pair_verify()
 
             # The MTU will always be 23 if we do not fetch it
             if self.client.__class__.__name__ == "BleakClientBlueZDBus":
