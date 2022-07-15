@@ -58,6 +58,4 @@ async def establish_connection(
             break
         await asyncio.sleep(5)
 
-    raise AccessoryDisconnectedError(
-        f"Failed to connect to {address}"
-    )
+    raise AccessoryDisconnectedError(f"Failed to connect to {address}")
