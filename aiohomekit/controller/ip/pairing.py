@@ -37,7 +37,6 @@ from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.protocol import error_handler
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.protocol.tlv import TLV
-from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from .connection import SecureHomeKitConnection

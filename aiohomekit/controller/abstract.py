@@ -123,11 +123,6 @@ class AbstractPairing(metaclass=ABCMeta):
         return accessory_info.value(CharacteristicsTypes.NAME, "")
 
     @abstractmethod
-    def notify_config_changed(self, config_num: int) -> None:
-        """Notify the pairing that the config number has changed."""
-        pass
-
-    @abstractmethod
     async def async_populate_accessories_state(
         self, force_update: bool = False
     ) -> bool:

@@ -21,7 +21,6 @@ from typing import Any
 from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Accessories, AccessoriesState
-from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from .connection import CoAPHomeKitConnection
