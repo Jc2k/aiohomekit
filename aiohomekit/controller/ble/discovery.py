@@ -65,12 +65,13 @@ class BleDiscovery(AbstractDiscovery):
         self.controller = controller
         self.device = device
 
-        self.client = BleakClient(self.device)
+        self.client: BleakClient | None = None
         self._connection_lock = asyncio.Lock()
 
     async def _ensure_connected(self):
         logger.debug("Ensure connected with device %s", self.device)
-
+        if not self.client:
+            self.client = BleakClient(self.device)
         if self.client.is_connected:
             return
         async with self._connection_lock:
@@ -153,15 +154,16 @@ class BleDiscovery(AbstractDiscovery):
         if self.paired:
             raise RuntimeError("Cannot anonymously identify a paired accessory")
 
-        async with self.client as client:
-            char = get_characteristic(
-                client,
-                ServicesTypes.ACCESSORY_INFORMATION,
-                CharacteristicsTypes.IDENTIFY,
-            )
-            iid = await get_characteristic_iid(client, char)
+        await self._ensure_connected()
 
-            await char_write(client, None, None, char.handle, iid, b"\x01")
+        char = get_characteristic(
+            self.client,
+            ServicesTypes.ACCESSORY_INFORMATION,
+            CharacteristicsTypes.IDENTIFY,
+        )
+        iid = await get_characteristic_iid(self.client, char)
+
+        await char_write(self.client, None, None, char.handle, iid, b"\x01")
 
     def _async_process_advertisement(self, description: HomeKitAdvertisement):
         self.description = description
