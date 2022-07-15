@@ -75,14 +75,6 @@ class BlePairing(AbstractPairing):
     # notifications for
     _notifications: set[int]
 
-    # We don't want to read/write from characteristics in parallel
-    # * If 2 coroutines read from the same char at the same time there
-    #   would be a race error - a read result could be overwritten by another.
-    # * The enc/dec counters are global. Therefore our API's for
-    #   a read/write need to be atomic otherwise we end up having
-    #   to guess what encryption counter to use for the decrypt
-    _lock: asyncio.Lock
-
     def __init__(self, controller: BleController, pairing_data):
         super().__init__(controller)
 
@@ -99,10 +91,12 @@ class BlePairing(AbstractPairing):
         self._notifications = set()
         self._connection_lock = asyncio.Lock()
 
-        # We can only issue one request at a time
-        # since we need the encryption/decryption to increment
-        # each time and if it gets out of order we'll end up
-        # in a failure state
+        # We don't want to read/write from characteristics in parallel
+        # * If 2 coroutines read from the same char at the same time there
+        #   would be a race error - a read result could be overwritten by another.
+        # * The enc/dec counters are global. Therefore our API's for
+        #   a read/write need to be atomic otherwise we end up having
+        #   to guess what encryption counter to use for the decrypt
         self._ble_request_lock = asyncio.Lock()
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
