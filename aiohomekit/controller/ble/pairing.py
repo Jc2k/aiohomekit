@@ -502,7 +502,7 @@ class BlePairing(AbstractPairing):
                     decoded,
                     ex,
                 )
-                results[(aid, iid)] = {"status": HapStatusCode.INVALID_VALUE}
+                results[(aid, iid)] = {"status": HapStatusCode.INVALID_VALUE.value}
 
         return results
 
