@@ -29,7 +29,7 @@ from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import OpCode, decode_pdu, decode_pdu_continuation, encode_pdu
 from aiohomekit.protocol.tlv import TLV
 
-from .const import AdditionalParameterTypes, HAP_MIN_REQUIRED_MTU
+from .const import HAP_MIN_REQUIRED_MTU, AdditionalParameterTypes
 from .structs import BleRequest
 
 logger = logging.getLogger(__name__)
