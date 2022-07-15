@@ -125,7 +125,7 @@ class AbstractPairing(metaclass=ABCMeta):
     @abstractmethod
     async def async_populate_accessories_state(
         self, force_update: bool = False
-    ) -> bool:
+    ) -> None:
         """Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless

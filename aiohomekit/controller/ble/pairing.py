@@ -368,18 +368,13 @@ class BlePairing(AbstractPairing):
 
     async def async_populate_accessories_state(
         self, force_update: bool = False
-    ) -> bool:
+    ) -> None:
         """Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless
         we know the config num is out of date.
         """
-        try:
-            await self._populate_accessories_and_characteristics(force_update)
-        except (AccessoryDisconnectedError, BleakError) as ex:
-            logger.debug("%s: Failed to populate accessories: %s", self.address, ex)
-            return False
-        return True
+        await self._populate_accessories_and_characteristics(force_update)
 
     async def _populate_accessories_and_characteristics(
         self, force_update: bool = False

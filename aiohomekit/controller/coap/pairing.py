@@ -150,12 +150,7 @@ class CoAPPairing(AbstractPairing):
         we know the config num is out of date or force_update is True
         """
         if not self._accessories or force_update:
-            try:
-                await self.list_accessories_and_characteristics()
-            except Exception:  # pylint: disable=broad-except
-                logger.exception("Failed to list accessories")
-                return False
-        return True
+            await self.list_accessories_and_characteristics()
 
     async def get_characteristics(
         self,
