@@ -179,6 +179,7 @@ class BlePairing(AbstractPairing):
                     await asyncio.sleep(5)
 
             if not self._accessories:
+                logger.debug("%s: Reading gatt database", address)
                 self._accessories = await self._async_fetch_gatt_database()
                 self.controller._char_cache.async_create_or_update_map(
                     self.id,
@@ -377,6 +378,7 @@ class BlePairing(AbstractPairing):
         characteristics: list[tuple[int, int]],
     ) -> dict[tuple[int, int], Any]:
         await self._ensure_connected()
+        logger.debug("%s: Reading characteristics: %s", self.address, characteristics)
 
         results = {}
 
