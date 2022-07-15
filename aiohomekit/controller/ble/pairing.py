@@ -220,7 +220,7 @@ class BlePairing(AbstractPairing):
                 if not self.client or not self.client.is_connected:
                     # Client disconnected
                     return
-                logger.debug("%s: Retrieving event for iid: %s", iid, self.address)
+                logger.debug("%s: Retrieving event for iid: %s", self.address, iid)
                 results = await self.get_characteristics([(1, iid)])
                 for listener in self.listeners:
                     listener(results)
