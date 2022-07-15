@@ -80,7 +80,9 @@ class BlePairing(AbstractPairing):
 
         self.id = pairing_data["AccessoryPairingID"]
 
-        if cache := self.controller._char_cache.get_map(self.id):
+        if accessories := self.pairing_data.get("accessories"):
+            self._accessories = Accessories.from_list(accessories)
+        elif cache := self.controller._char_cache.get_map(self.id):
             self._accessories = Accessories.from_list(cache["accessories"])
 
         self.pairing_data = pairing_data
@@ -374,7 +376,9 @@ class BlePairing(AbstractPairing):
                     if "value" in result:
                         char.value = result["value"]
             self._did_first_read = True
-        return self._accessories.serialize()
+        accessories =  self._accessories.serialize()
+        self.pairing_data["accessories"] = accessories
+        return accessories
 
     async def list_pairings(self):
         request_tlv = TLV.encode_list(
