@@ -19,7 +19,6 @@ from itertools import groupby
 import json
 import logging
 from operator import itemgetter
-from typing import Any
 
 from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.exceptions import (
@@ -32,7 +31,7 @@ from aiohomekit.exceptions import (
     UnpairedError,
 )
 from aiohomekit.http import HttpContentTypes
-from aiohomekit.model import Accessories, AccessoriesState
+from aiohomekit.model import AccessoriesState
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.protocol import error_handler
 from aiohomekit.protocol.statuscodes import to_status_code
