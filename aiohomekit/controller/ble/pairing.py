@@ -530,9 +530,16 @@ class BlePairing(AbstractPairing):
 
             if CharacteristicPermissions.timed_write in char.perms:
                 payload = TLV.encode_list(
-                    [(HAP_TLV.kTLVHAPParamValue, to_bytes(char, value))]
+                    [
+                        (HAP_TLV.kTLVHAPParamValue, to_bytes(char, value)),
+                        (HAP_TLV.kTLVHAPParamTTL, 500),
+                    ]
                 )
-                await self._async_request(OpCode.CHAR_TIMED_WRITE, iid, payload)
+                response = await self._async_request(
+                    OpCode.CHAR_TIMED_WRITE, iid, payload
+                )
+                decoded = dict(TLV.decode_bytes(response))
+                logger.debug("%s: Timed write response: %s", self.address, decoded)
                 await self._async_request(OpCode.CHAR_EXEC_WRITE, iid)
 
             elif CharacteristicPermissions.paired_write in char.perms:
