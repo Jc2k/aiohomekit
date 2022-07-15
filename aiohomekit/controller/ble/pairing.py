@@ -230,8 +230,10 @@ class BlePairing(AbstractPairing):
                     if CharacteristicPermissions.paired_read not in char.perms:
                         continue
                     char = (1, char.iid)
-                    results = await self.get_characteristics([char])
-                    char.value = results[char]["value"]
+                    results = await self._get_characteristics_while_connected([char])
+                    logger.debug("%s: Read %s", address, results)
+                    result = results[char]
+                    char.value = result["value"]
 
     async def _async_start_notify(self, iid: int) -> None:
         if not self._accessories:
@@ -258,7 +260,7 @@ class BlePairing(AbstractPairing):
                     # Client disconnected
                     return
                 logger.debug("%s: Retrieving event for iid: %s", self.address, iid)
-                results = await self.get_characteristics([(1, iid)])
+                results = await self._get_characteristics_while_connected([(1, iid)])
                 for listener in self.listeners:
                     listener(results)
 
@@ -415,6 +417,12 @@ class BlePairing(AbstractPairing):
         characteristics: list[tuple[int, int]],
     ) -> dict[tuple[int, int], dict[str, Any]]:
         await self._ensure_setup_and_connected()
+        return await self._get_characteristics_while_connected(characteristics)
+
+    async def _get_characteristics_while_connected(
+        self,
+        characteristics: list[tuple[int, int]],
+    ) -> dict[tuple[int, int], dict[str, Any]]:
         logger.debug("%s: Reading characteristics: %s", self.address, characteristics)
 
         results = {}
