@@ -432,10 +432,17 @@ class BlePairing(AbstractPairing):
 
         for aid, iid in characteristics:
             data = await self._async_request(OpCode.CHAR_READ, iid)
-            data = dict(TLV.decode_bytes(data))[1]
+            decoded = dict(TLV.decode_bytes(data))[1]
 
             char = self._accessories.aid(1).characteristics.iid(iid)
-            results[(aid, iid)] = {"value": from_bytes(char, data)}
+            logger.debug(
+                "%s: Read characteristic got data, expected format is %s: %s",
+                self.address,
+                char.format,
+                data,
+            )
+
+            results[(aid, iid)] = {"value": from_bytes(char, decoded)}
 
         return results
 
