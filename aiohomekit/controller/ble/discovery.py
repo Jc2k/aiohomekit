@@ -25,7 +25,6 @@ from bleak import BleakClient
 from bleak.exc import BleakError
 
 from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
-from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import CharacteristicsTypes, ServicesTypes
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
