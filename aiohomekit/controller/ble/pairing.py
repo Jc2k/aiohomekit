@@ -105,7 +105,6 @@ class BlePairing(AbstractPairing):
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         if description and self.description:
             if description.config_num > self.description.config_num:
-                # TODO: we need to re-read the characteristics
                 logger.debug(
                     "%s: Config number has changed from %s to %s; char cache invalid",
                     self.address,
