@@ -190,7 +190,7 @@ class BlePairing(AbstractPairing):
             if self.client.__class__.__name__ == "BleakClientBlueZDBus":
                 try:
                     await self.client._acquire_mtu()
-                except StopIteration as ex:
+                except (RuntimeError, StopIteration) as ex:
                     logger.debug("Failed to acquire MTU: %s", ex)
 
             for (aid, iid) in list(self.subscriptions):
