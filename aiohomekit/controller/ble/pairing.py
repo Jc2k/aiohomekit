@@ -486,10 +486,11 @@ class BlePairing(AbstractPairing):
 
             char = self._accessories.aid(1).characteristics.iid(iid)
             logger.debug(
-                "%s: Read characteristic got data, expected format is %s: %s",
+                "%s: Read characteristic got data, expected format is %s: data=%s decoded=%s",
                 self.address,
                 char.format,
                 data,
+                decoded,
             )
 
             try:
@@ -502,7 +503,6 @@ class BlePairing(AbstractPairing):
                     decoded,
                     ex,
                 )
-                results[(aid, iid)] = {"status": HapStatusCode.INVALID_VALUE.value}
 
         return results
 
