@@ -80,7 +80,7 @@ class BlePairing(AbstractPairing):
 
         self.id = pairing_data["AccessoryPairingID"]
 
-        if accessories := self.pairing_data.get("accessories"):
+        if accessories := pairing_data.get("accessories"):
             self._accessories = Accessories.from_list(accessories)
         elif cache := self.controller._char_cache.get_map(self.id):
             self._accessories = Accessories.from_list(cache["accessories"])
