@@ -370,7 +370,11 @@ class BlePairing(AbstractPairing):
                     char.value = result["value"]
 
     async def async_populate_accessories_state(self) -> None:
-        """Populate the state of all accessories."""
+        """Populate the state of all accessories.
+
+        This method should try not to fetch all the accessories unless
+        we know the config num is out of date.
+        """
         await self._populate_accessories_and_characteristics()
 
     async def _populate_accessories_and_characteristics(self) -> None:
