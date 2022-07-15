@@ -37,6 +37,7 @@ async def establish_connection(
 ) -> BleakClient:
     """Establish a connection to the accessory."""
     attempts = 0
+    client: BleakClient | None = None
     while True:
         attempts += 1
         address = address_callback()
