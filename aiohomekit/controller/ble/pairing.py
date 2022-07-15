@@ -201,7 +201,12 @@ class BlePairing(AbstractPairing):
                     self._accessories = Accessories.from_list(cache["accessories"])
 
                 if self._config_num != self.description.config_num:
-                    logger.debug("%s: Reading gatt database", address)
+                    logger.debug(
+                        "%s: Reading gatt database because config number %s does not match description config number %",
+                        self._config_num,
+                        self.description.config_num,
+                        address,
+                    )
                     self._accessories = await self._async_fetch_gatt_database()
                     self._config_num = self.description.config_num
 
