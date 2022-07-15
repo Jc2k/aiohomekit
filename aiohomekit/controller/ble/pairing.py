@@ -268,46 +268,63 @@ class BlePairing(AbstractPairing):
     async def _async_fetch_gatt_database(self) -> Accessories:
         accessory = Accessory()
         accessory.aid = 1
+        async with self._ble_request_lock:
 
-        for service in self.client.services:
-            s = accessory.add_service(normalize_uuid(service.uuid))
+            for service in self.client.services:
+                s = accessory.add_service(normalize_uuid(service.uuid))
 
-            for char in service.characteristics:
-                if normalize_uuid(char.uuid) == SERVICE_INSTANCE_ID:
-                    continue
+                for char in service.characteristics:
+                    if normalize_uuid(char.uuid) == SERVICE_INSTANCE_ID:
+                        continue
 
-                iid_handle = char.get_descriptor(
-                    uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A")
-                )
-                if not iid_handle:
-                    continue
+                    iid_handle = char.get_descriptor(
+                        uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A")
+                    )
+                    if not iid_handle:
+                        continue
 
-                iid = int.from_bytes(
-                    await self.client.read_gatt_descriptor(iid_handle.handle),
-                    byteorder="little",
-                )
+                    iid = int.from_bytes(
+                        await self.client.read_gatt_descriptor(iid_handle.handle),
+                        byteorder="little",
+                    )
 
-                tid = random.randint(1, 254)
-                for data in encode_pdu(
-                    OpCode.CHAR_SIG_READ,
-                    tid,
-                    iid,
-                ):
-                    await self.client.write_gatt_char(char.handle, data)
+                    tid = random.randint(1, 254)
+                    for data in encode_pdu(
+                        OpCode.CHAR_SIG_READ,
+                        tid,
+                        iid,
+                    ):
+                        await self.client.write_gatt_char(char.handle, data)
 
-                payload = await self.client.read_gatt_char(char.handle)
+                    payload = await self.client.read_gatt_char(char.handle)
 
-                _, signature = decode_pdu(tid, payload)
+                    _, signature = decode_pdu(tid, payload)
 
-                decoded = CharacteristicTLV.decode(signature).to_dict()
+                    decoded = CharacteristicTLV.decode(signature).to_dict()
 
-                char = s.add_char(normalize_uuid(char.uuid))
-                logger.debug("%s: char: %s decoded: %s", self.address, char, decoded)
+                    char = s.add_char(normalize_uuid(char.uuid))
+                    logger.debug(
+                        "%s: char: %s decoded: %s", self.address, char, decoded
+                    )
 
-                char.iid = iid
+                    char = self._accessories.aid(1).characteristics.iid(iid)
+                    endpoint = get_characteristic(
+                        self.client, char.service.type, char.type
+                    )
 
-                char.perms = decoded["perms"]
-                char.format = decoded["format"]
+                    data = await ble_request(
+                        self.client,
+                        self._encryption_key,
+                        self._decryption_key,
+                        OpCode.CHAR_READ,
+                        endpoint.handle,
+                        iid,
+                    )
+                    data = dict(TLV.decode_bytes(data))[1]
+                    char.iid = iid
+                    char.perms = decoded["perms"]
+                    char.format = decoded["format"]
+                    char.value = from_bytes(char, data)
 
         accessories = Accessories()
         accessories.add_accessory(accessory)
