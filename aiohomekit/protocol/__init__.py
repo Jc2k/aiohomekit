@@ -381,10 +381,11 @@ def resume_m1(
 def resume_m3(
     pub_key: bytes, derive: Callable[[bytes, bytes], bytes], response: dict[int, bytes]
 ) -> Callable[[bytes, bytes], bytes] | None:
-    if (
-        int.from_bytes(response.get(TLV.kTLVType_Method), "little")
-        != TLV.kTLVMethod_Resume
-    ):
+    if not (method := response.get(TLV.kTLVType_Method)):
+        logger.debug("M3: Failure to resume existing session: Method not present")
+        return None
+
+    if int.from_bytes(method, "little") != TLV.kTLVMethod_Resume:
         logger.debug("M3: Failure to resume existing session: Method != Resume")
         return None
 
