@@ -60,7 +60,7 @@ class AbstractPairing(metaclass=ABCMeta):
         return self._accessories_state
 
     @property
-    def _accessories(self) -> Accessories:
+    def _accessories(self) -> Accessories | None:
         """Wrapper around the accessories state to make it easier to use."""
         if not self._accessories_state:
             return None
@@ -70,7 +70,7 @@ class AbstractPairing(metaclass=ABCMeta):
     def _config_num(self) -> int:
         """Wrapper around the accessories state to make it easier to use."""
         if not self._accessories_state:
-            return None
+            return 0
         return self._accessories_state.config_num
 
     @property
