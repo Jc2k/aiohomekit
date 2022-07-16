@@ -62,7 +62,7 @@ def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFu
                 try:
                     return await func(*args, **kwargs)
                 except (AccessoryDisconnectedError, BleakError):
-                    if attempt == 1:
+                    if attempt == attempts - 1:
                         raise
                     logger.debug(
                         "Bleak error calling %s, retrying...", func, exc_info=True
