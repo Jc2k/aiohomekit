@@ -360,6 +360,8 @@ class BlePairing(AbstractPairing):
 
     async def _close_while_locked(self):
         if self.client:
+            if not self.client.is_connected:
+                return
             try:
                 await self.client.disconnect()
             except BleakError:
