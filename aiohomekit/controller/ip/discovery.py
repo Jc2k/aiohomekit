@@ -103,7 +103,7 @@ class IpDiscovery(ZeroconfDiscovery):
 
         return finish_pairing
 
-    async def async_identify(self):
+    async def async_identify(self) -> None:
         await self._ensure_connected()
 
         response = await self.connection.post_json("/identify", {})
