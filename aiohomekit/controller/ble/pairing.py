@@ -127,6 +127,12 @@ class BlePairing(AbstractPairing):
         )
 
     @property
+    def name(self):
+        if self.description:
+            return f"{self.description.name} ({self.address})"
+        return self.address
+
+    @property
     def is_connected(self) -> bool:
         return self.client and self.client.is_connected and self._encryption_key
 
@@ -137,7 +143,7 @@ class BlePairing(AbstractPairing):
             if description.config_num > self.description.config_num:
                 logger.debug(
                     "%s: Config number has changed from %s to %s; char cache invalid",
-                    self.address,
+                    self.name,
                     self.description.config_num,
                     description.config_num,
                 )
@@ -146,7 +152,7 @@ class BlePairing(AbstractPairing):
             if description.state_num > self.description.state_num:
                 logger.debug(
                     "%s: Disconnected event notification received; Triggering catch-up poll",
-                    self.address,
+                    self.name,
                 )
                 async_create_task(self._async_process_disconnected_events())
 
@@ -169,8 +175,8 @@ class BlePairing(AbstractPairing):
         endpoint = get_characteristic(self.client, char.service.type, char.type)
         async with self._ble_request_lock:
             if not self.client or not self.client.is_connected:
-                logger.debug("%s: Client not connected", self.address)
-                raise AccessoryDisconnectedError(f"{self.address} is not connected")
+                logger.debug("%s: Client not connected", self.name)
+                raise AccessoryDisconnectedError(f"{self.name} is not connected")
             pdu_status, result_data = await ble_request(
                 self.client,
                 self._encryption_key,
@@ -187,7 +193,7 @@ class BlePairing(AbstractPairing):
             return result_data
 
     def _async_disconnected(self, client: BleakClient) -> None:
-        logger.debug("%s: Session closed", self.address)
+        logger.debug("%s: Session closed", self.name)
         self._encryption_key = None
         self._decryption_key = None
         self._notifications = set()
@@ -202,7 +208,7 @@ class BlePairing(AbstractPairing):
             )
             logger.debug(
                 "%s: Connected, processing subscriptions: %s",
-                self.address,
+                self.name,
                 self.subscriptions,
             )
             # The MTU will always be 23 if we do not fetch it
@@ -223,7 +229,7 @@ class BlePairing(AbstractPairing):
         # that created the connection to continue
         async with self._connection_lock:
             if not self.client or self.client.is_connected:
-                logger.debug("%s: Client not connected", self.address)
+                logger.debug("%s: Client not connected", self.name)
                 return
             for _, iid in list(self.subscriptions):
                 if iid not in self._notifications:
@@ -253,7 +259,7 @@ class BlePairing(AbstractPairing):
                 if not self.client or not self.client.is_connected:
                     # Client disconnected
                     return
-                logger.debug("%s: Retrieving event for iid: %s", self.address, iid)
+                logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
                 results = await self._get_characteristics_while_connected([(1, iid)])
                 for listener in self.listeners:
                     listener(results)
@@ -264,7 +270,7 @@ class BlePairing(AbstractPairing):
                 return
             async_create_task(_async_callback())
 
-        logger.debug("%s: Subscribing to iid: %s", self.address, iid)
+        logger.debug("%s: Subscribing to iid: %s", self.name, iid)
         await self.client.start_notify(endpoint, _callback)
         self._notifications.add(iid)
 
@@ -280,7 +286,7 @@ class BlePairing(AbstractPairing):
             )
         # FIXME: this should not be a broad except handler
         except Exception:  # pylint: disable=broad-except
-            logger.debug("%s: Failed to resume, doing full", self.address)
+            logger.debug("%s: Failed to resume, doing full", self.name)
             session_id, derive = await drive_pairing_state_machine(
                 self.client,
                 CharacteristicsTypes.PAIR_VERIFY,
@@ -299,7 +305,7 @@ class BlePairing(AbstractPairing):
 
     async def _async_process_disconnected_events(self) -> None:
         logger.debug(
-            "%s: Polling subscriptions for changes during disconnection", self.address
+            "%s: Polling subscriptions for changes during disconnection", self.name
         )
         results = await self.get_characteristics(list(self.subscriptions))
         for listener in self.listeners:
@@ -343,7 +349,7 @@ class BlePairing(AbstractPairing):
                 decoded = CharacteristicTLV.decode(signature).to_dict()
 
                 hap_char = s.add_char(normalize_uuid(char.uuid))
-                logger.debug("%s: char: %s decoded: %s", self.address, char, decoded)
+                logger.debug("%s: char: %s decoded: %s", self.name, char, decoded)
 
                 hap_char.iid = iid
                 hap_char.perms = decoded["perms"]
@@ -367,7 +373,7 @@ class BlePairing(AbstractPairing):
             except BleakError:
                 logger.debug(
                     "%s: Failed to close connection, client may have already closed it",
-                    self.address,
+                    self.name,
                 )
             self.client = None
             self._async_disconnected(self.client)
@@ -507,7 +513,7 @@ class BlePairing(AbstractPairing):
         self,
         characteristics: list[tuple[int, int]],
     ) -> dict[tuple[int, int], dict[str, Any]]:
-        logger.debug("%s: Reading characteristics: %s", self.address, characteristics)
+        logger.debug("%s: Reading characteristics: %s", self.name, characteristics)
 
         results = {}
 
@@ -518,7 +524,7 @@ class BlePairing(AbstractPairing):
             char = self._accessories.aid(1).characteristics.iid(iid)
             logger.debug(
                 "%s: Read characteristic got data, expected format is %s: data=%s decoded=%s",
-                self.address,
+                self.name,
                 char.format,
                 data,
                 decoded,
@@ -529,7 +535,7 @@ class BlePairing(AbstractPairing):
             except struct.error as ex:
                 logger.debug(
                     "%s: Failed to decode characteristic for %s from %s: %s",
-                    self.address,
+                    self.name,
                     char,
                     decoded,
                     ex,
@@ -557,17 +563,15 @@ class BlePairing(AbstractPairing):
                 payload = (len(payload_inner)).to_bytes(
                     length=2, byteorder="little"
                 ) + payload_inner
-                logger.debug("%s: Timed write payload: %s", self.address, payload)
+                logger.debug("%s: Timed write payload: %s", self.name, payload)
                 response = await self._async_request(
                     OpCode.CHAR_TIMED_WRITE, iid, payload
                 )
                 decoded = dict(TLV.decode_bytes(response))
-                logger.debug("%s: Timed write response: %s", self.address, decoded)
+                logger.debug("%s: Timed write response: %s", self.name, decoded)
                 response = await self._async_request(OpCode.CHAR_EXEC_WRITE, iid)
                 decoded = dict(TLV.decode_bytes(response))
-                logger.debug(
-                    "%s: Timed write execute response: %s", self.address, decoded
-                )
+                logger.debug("%s: Timed write execute response: %s", self.name, decoded)
 
             elif CharacteristicPermissions.paired_write in char.perms:
                 payload = TLV.encode_list(
@@ -587,7 +591,7 @@ class BlePairing(AbstractPairing):
         new_chars = await super().subscribe(characteristics)
         if not new_chars:
             return
-        logger.debug("%s: subscribing to %s", self.address, new_chars)
+        logger.debug("%s: subscribing to %s", self.name, new_chars)
         await self._ensure_connected()
         for (aid, iid) in new_chars:
             if iid not in self._notifications:
