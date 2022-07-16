@@ -104,11 +104,15 @@ async def ble_request(
 
     # Wrap data in one or more PDU's split at fragment_size
     # And write each one to the target characterstic handle
+    writes = []
     for data in encode_pdu(opcode, tid, iid, data, fragment_size):
-        logger.debug("Writing fragment: %s", data)
+        logger.debug("Queuing fragment for write: %s", data)
         if encryption_key:
             data = encryption_key.encrypt(data)
-        await client.write_gatt_char(handle, data)
+        writes.append(data)
+
+    for write in writes:
+        await client.write_gatt_char(handle, write)
 
     data = await client.read_gatt_char(handle)
     if decryption_key:
