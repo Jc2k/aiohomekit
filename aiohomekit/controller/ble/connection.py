@@ -44,6 +44,7 @@ async def establish_connection(
         attempts += 1
         address = address_callback()
         if not client or client.address != address:
+            # Only replace the client if the address has changed
             client = BleakClientWrapper(address)
             client.set_disconnected_callback(disconnected_callback)
 
