@@ -146,7 +146,7 @@ class BleDiscovery(AbstractDiscovery):
             pairing["Connection"] = "BLE"
 
             obj = self.controller.pairings[alias] = BlePairing(
-                self.controller, pairing, self.client
+                self.controller, pairing, self.client, self.description
             )
             return obj
 
