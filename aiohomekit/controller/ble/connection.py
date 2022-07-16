@@ -31,6 +31,7 @@ MAX_CONNECT_ATTEMPTS = 4
 
 
 async def establish_connection(
+    name: str,
     address_callback: Callable[[None], str],
     disconnected_callback: Callable[[BleakClient], None],
     max_attempts: int = MAX_CONNECT_ATTEMPTS,
@@ -45,17 +46,17 @@ async def establish_connection(
             client = BleakClient(address)
             client.set_disconnected_callback(disconnected_callback)
 
-        logger.debug("%s: Connecting", address)
+        logger.debug("%s: Connecting", name)
         try:
             await client.connect()
         except (asyncio.TimeoutError, BleakError, AttributeError) as e:
-            logger.debug("Failed to connect to %s: %s", address, str(e))
+            logger.debug("Failed to connect to %s: %s", name, str(e))
         else:
-            logger.debug("%s: Connected", address)
+            logger.debug("%s: Connected", name)
             return client
 
         if attempts == max_attempts:
             break
         await asyncio.sleep(5)
 
-    raise AccessoryDisconnectedError(f"Failed to connect to {address}")
+    raise AccessoryDisconnectedError(f"Failed to connect to {name}")

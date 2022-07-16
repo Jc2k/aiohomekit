@@ -204,7 +204,7 @@ class BlePairing(AbstractPairing):
 
         async with self._connection_lock:
             self.client = await establish_connection(
-                self.get_address, self._async_disconnected
+                self.name, self.get_address, self._async_disconnected
             )
             logger.debug(
                 "%s: Connected, processing subscriptions: %s",

@@ -73,25 +73,29 @@ class BleDiscovery(AbstractDiscovery):
         """Return the most current address for the device."""
         return self.description.address
 
+    @property
+    def name(self):
+        return f"{self.description.name} ({self.description.address})"
+
     async def _ensure_connected(self):
         logger.debug("Ensure connected with device %s", self.device)
         if self.client and self.client.is_connected:
             return
         async with self._connection_lock:
             self.client = await establish_connection(
-                self.get_address, self._async_disconnected
+                self.name, self.get_address, self._async_disconnected
             )
 
     def _async_disconnected(self, client: BleakClient) -> None:
-        logger.debug("%s: Session closed", client.address)
+        logger.debug("%s: Session closed", self.name)
 
     async def _close(self):
         if not self.client:
             return
         async with self._connection_lock:
-            if not self.client:
+            if not self.client or not self.client.is_connected:
                 return
-            logger.debug("Disconnecting from %s", self.client.address)
+            logger.debug("Disconnecting from %s", self.name)
             try:
                 await self.client.disconnect()
             except BleakError:
@@ -145,7 +149,9 @@ class BleDiscovery(AbstractDiscovery):
 
     async def async_identify(self) -> None:
         if self.paired:
-            raise RuntimeError("Cannot anonymously identify a paired accessory")
+            raise RuntimeError(
+                f"{self.name}: Cannot anonymously identify a paired accessory"
+            )
 
         await self._ensure_connected()
 
