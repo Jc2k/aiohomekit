@@ -498,6 +498,8 @@ class BlePairing(AbstractPairing):
             if iid not in self._notifications:
                 await self._async_start_notify(iid)
 
+    @operation_lock
+    @retry_bluetooth_connection_error
     async def _process_config_changed(self, config_num: int) -> None:
         """Process a config change.
 
