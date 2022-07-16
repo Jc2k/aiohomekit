@@ -135,6 +135,9 @@ class BlePairing(AbstractPairing):
         # Only allow a single attempt to sync config at a time
         self._config_lock = asyncio.Lock()
 
+        # Only subscribe to characteristics one at a time
+        self._subscription_lock = asyncio.Lock()
+
         self._restore_subscriptions_timer: asyncio.TimerHandle | None = None
 
     def get_address(self) -> str:
@@ -503,8 +506,13 @@ class BlePairing(AbstractPairing):
     ) -> None:
         """Start notifications for the given subscriptions."""
         for _, iid in subscriptions:
-            if iid not in self._notifications:
-                await self._async_start_notify(iid)
+            if iid in self._notifications:
+                continue
+            # The iid will not be in in self._notifications until
+            # the _async_start_notify call returns.
+            async with self._subscription_lock:
+                if iid not in self._notifications:
+                    await self._async_start_notify(iid)
 
     @operation_lock
     @retry_bluetooth_connection_error()
