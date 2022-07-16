@@ -276,7 +276,7 @@ class BlePairing(AbstractPairing):
                     # Client disconnected
                     return
                 logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
-                results = await self._get_characteristics_while_connected([(1, iid)])
+                results = await self.get_characteristics([(1, iid)])
                 for listener in self.listeners:
                     listener(results)
 
