@@ -15,7 +15,7 @@
 #
 
 from __future__ import annotations
-from bleak.backends.device import BLEDevice
+
 import logging
 import random
 from typing import Any, Callable, TypeVar, cast
@@ -23,6 +23,7 @@ import uuid
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
+from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
 
 from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
