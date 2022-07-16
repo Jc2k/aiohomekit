@@ -15,8 +15,8 @@
 #
 
 from __future__ import annotations
-from ctypes import cast
 
+from ctypes import cast
 import logging
 import random
 from typing import Any, Callable, TypeVar
@@ -24,6 +24,7 @@ import uuid
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
+from bleak.exc import BleakError
 
 from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
 from aiohomekit.exceptions import EncryptionError
@@ -36,7 +37,6 @@ from aiohomekit.pdu import (
     encode_pdu,
 )
 from aiohomekit.protocol.tlv import TLV
-from bleak.exc import BleakError
 
 from .const import HAP_MIN_REQUIRED_MTU, AdditionalParameterTypes
 from .structs import BleRequest
@@ -48,7 +48,7 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 def retry_bleak_error(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to retry on bleak error.
-    
+
     The accessory is allowed to disconnect us any time so
     we need to retry the operation.
     """
@@ -63,8 +63,6 @@ def retry_bleak_error(func: WrapFuncType) -> WrapFuncType:
                 logger.debug("Bleak error calling %s, retrying...", func, exc_info=True)
 
     return cast(WrapFuncType, _async_wrap)
-
-
 
 
 def get_characteristic(
