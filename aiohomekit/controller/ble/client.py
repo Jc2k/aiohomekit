@@ -15,7 +15,7 @@
 #
 
 from __future__ import annotations
-
+from bleak.backends.device import BLEDevice
 import logging
 import random
 from typing import Any, Callable, TypeVar, cast
@@ -215,30 +215,18 @@ async def drive_pairing_state_machine(
             return result.value
 
 
-class BleakClientWrapper:
+class BleakClientWrapper(BleakClient):
     """Wrapper for bleak.BleakClient that auto discovers the max mtu."""
 
-    def __init__(self, client: BleakClient) -> None:
+    def __init__(self, address_or_ble_device: BLEDevice | str) -> None:
         """Wrap bleak."""
-        self.client = client
+        super().__init__(address_or_ble_device)
         self._discovered_mtu = 0
-
-    @property
-    def is_connected(self) -> bool:
-        return self.client.is_connected
 
     @property
     def mtu_size(self) -> int:
         """Return the mtu size of the client."""
-        return max(self._discovered_mtu, self.client.mtu_size, HAP_MIN_REQUIRED_MTU)
-
-    async def connect(self) -> bool:
-        """Connect to the device"""
-        return await self.client.connect()
-
-    async def disconnect(self) -> bool:
-        """Disconnect from the device."""
-        return await self.client.disconnect()
+        return max(self._discovered_mtu, super().mtu_size, HAP_MIN_REQUIRED_MTU)
 
     async def read_gatt_char(
         self,
@@ -246,27 +234,8 @@ class BleakClientWrapper:
         **kwargs: Any,
     ) -> bytearray:
         """Read a GATT characteristic"""
-        data = await self.client.read_gatt_char(char_specifier, **kwargs)
+        data = await super().read_gatt_char(char_specifier, **kwargs)
         data_len = len(data)
         if data_len > self._discovered_mtu:
             self._discovered_mtu = data_len
         return data
-
-    async def write_gatt_char(
-        self,
-        char_specifier: BleakGATTCharacteristic | int | str | uuid.UUID,
-        data: bytes | bytearray | memoryview,
-        response: bool = False,
-    ) -> None:
-        """Write a GATT characteristic"""
-        return await self.client.write_gatt_char(char_specifier, data, response)
-
-    async def read_gatt_descriptor(self, handle: int, **kwargs: Any) -> bytearray:
-        """Read a GATT descriptor"""
-        return await self.client.read_gatt_descriptor(handle, **kwargs)
-
-    async def write_gatt_descriptor(
-        self, handle: int, data: bytes | bytearray | memoryview
-    ) -> None:
-        """Write a GATT descriptor"""
-        return await self.client.write_gatt_descriptor(handle, data)

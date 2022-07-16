@@ -21,7 +21,6 @@ import logging
 from typing import TYPE_CHECKING
 import uuid
 
-from .client import BleakClientWrapper
 from bleak.exc import BleakError
 
 from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
@@ -31,6 +30,7 @@ from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_par
 from aiohomekit.utils import check_pin_format, pair_with_auth
 
 from .client import (
+    BleakClientWrapper,
     char_read,
     char_write,
     drive_pairing_state_machine,
@@ -84,7 +84,7 @@ class BleDiscovery(AbstractDiscovery):
             return
         async with self._connection_lock:
             self.client = await establish_connection(
-                self.name, self.get_address, self._async_disconnected
+                self.client, self.name, self.get_address, self._async_disconnected
             )
 
     def _async_disconnected(self, client: BleakClientWrapper) -> None:

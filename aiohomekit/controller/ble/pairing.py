@@ -25,7 +25,6 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 import uuid
 
 from bleak.exc import BleakError
-from .client import BleakClientWrapper
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -50,6 +49,7 @@ from aiohomekit.uuid import normalize_uuid
 
 from ..abstract import AbstractPairing
 from .client import (
+    BleakClientWrapper,
     ble_request,
     drive_pairing_state_machine,
     get_characteristic,
@@ -100,7 +100,7 @@ class BlePairing(AbstractPairing):
     _encryption_key: EncryptionKey | None = None
     _decryption_key: DecryptionKey | None = None
 
-    client: BleakClient | None = None
+    client: BleakClientWrapper | None = None
 
     # Used to keep track of which characteristics we already started
     # notifications for
