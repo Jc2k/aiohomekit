@@ -17,15 +17,16 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 import logging
 import random
 import struct
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 import uuid
 
 from bleak import BleakClient
 from bleak.exc import BleakError
-from collections.abc import Callable
+
 from aiohomekit.controller.ble.client import (
     ble_request,
     drive_pairing_state_machine,
@@ -59,7 +60,6 @@ from .key import DecryptionKey, EncryptionKey
 from .manufacturer_data import HomeKitAdvertisement
 from .structs import HAP_TLV, Characteristic as CharacteristicTLV
 from .values import from_bytes, to_bytes
-from typing import cast
 
 if TYPE_CHECKING:
     from aiohomekit.controller.ble.controller import BleController

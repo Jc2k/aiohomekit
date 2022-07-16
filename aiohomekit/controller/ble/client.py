@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import random
-from typing import cast, Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, cast
 import uuid
 
 from bleak import BleakClient
