@@ -282,9 +282,9 @@ class BlePairing(AbstractPairing):
                     # Client disconnected
                     return
                 logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
-                results = await self._get_characteristics_without_retry([(1, iid)])
-                for listener in self.listeners:
-                    listener(results)
+                if results := await self._get_characteristics_without_retry([(1, iid)]):
+                    for listener in self.listeners:
+                        listener(results)
 
         def _callback(id, data) -> None:
             if max_callback_enforcer.locked():
