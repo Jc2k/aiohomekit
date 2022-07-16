@@ -376,10 +376,15 @@ class BlePairing(AbstractPairing):
         await self._populate_accessories_and_characteristics()
         return self._accessories.serialize()
 
-    async def _populate_char_values(self):
+    async def _populate_char_values(self, config_changed: bool) -> None:
         """Populate the values of all characteristics."""
         for service in self._accessories.aid(1).services:
             if service.type in SKIP_SYNC_SERVICES:
+                continue
+            if (
+                not config_changed
+                and service.type == ServicesTypes.ACCESSORY_INFORMATION
+            ):
                 continue
             for char in service.characteristics:
                 if CharacteristicPermissions.paired_read not in char.perms:
@@ -437,7 +442,7 @@ class BlePairing(AbstractPairing):
                 await self._async_pair_verify()
 
             if update_values:
-                await self._populate_char_values()
+                await self._populate_char_values(config_changed)
                 self._update_accessories_state_cache()
 
             if config_changed:
