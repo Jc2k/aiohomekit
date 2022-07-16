@@ -349,7 +349,11 @@ class BlePairing(AbstractPairing):
                     tid,
                     iid,
                 ):
-                    await self.client.write_gatt_char(char.handle, data)
+                    await self.client.write_gatt_char(
+                        char.handle,
+                        data,
+                        "write-without-response" not in char.properties,
+                    )
 
                 payload = await self.client.read_gatt_char(char.handle)
 

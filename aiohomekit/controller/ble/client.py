@@ -122,7 +122,7 @@ async def ble_request(
         writes.append(data)
 
     for write in writes:
-        await client.write_gatt_char(handle, write)
+        await client.write_gatt_char(handle, write, True)
 
     data = await client.read_gatt_char(handle)
     if decryption_key:
