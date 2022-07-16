@@ -100,6 +100,9 @@ class Characteristic(TLVStruct):
     )
     service_instance_id: bytes = tlv_entry(HAP_TLV.kTLVHAPParamServiceInstanceId)
     service_type: bytes = tlv_entry(HAP_TLV.kTLVHAPParamServiceType)
+    user_description: bytes = tlv_entry(
+        HAP_TLV.kTLVHAPParamGATTUserDescriptionDescriptor
+    )
 
     @property
     def supports_read(self) -> bool:

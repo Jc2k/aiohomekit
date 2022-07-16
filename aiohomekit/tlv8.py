@@ -269,15 +269,19 @@ class TLVStruct:
         return bytes(result)
 
     @classmethod
+    @lru_cache(maxsize=None)
+    def _tlv_types(cls: T) -> dict:
+        """Return the TLV types for this class."""
+        return {
+            field.metadata["tlv_type"]: field for field in fields(cls) if field.init
+        }
+
+    @classmethod
     def decode(cls: T, encoded_struct: bytes) -> T:
         kwargs = {}
         offset = 0
 
-        # FIXME: Would by good if we could cache this per cls
-        # And not rebuild it every time decode() is called
-        tlv_types = {
-            field.metadata["tlv_type"]: field for field in fields(cls) if field.init
-        }
+        tlv_types = cls._tlv_types()
 
         for offset, type, length, value in tlv_iterator(encoded_struct):
             if type not in tlv_types:
