@@ -555,7 +555,7 @@ class BlePairing(AbstractPairing):
 
             if CharacteristicPermissions.timed_write in char.perms:
                 payload_inner = TLV.encode_list(
-                    [  # to_bytes(char, value)
+                    [
                         (HAP_TLV.kTLVHAPParamValue, to_bytes(char, value)),
                         (HAP_TLV.kTLVHAPParamTTL, b"\x1e"),  # 3.0s
                     ]
