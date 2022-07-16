@@ -20,12 +20,12 @@ import asyncio
 import logging
 import random
 import struct
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 import uuid
 
 from bleak import BleakClient
 from bleak.exc import BleakError
-
+from collections.abc import Callable
 from aiohomekit.controller.ble.client import (
     ble_request,
     drive_pairing_state_machine,
@@ -59,6 +59,7 @@ from .key import DecryptionKey, EncryptionKey
 from .manufacturer_data import HomeKitAdvertisement
 from .structs import HAP_TLV, Characteristic as CharacteristicTLV
 from .values import from_bytes, to_bytes
+from typing import cast
 
 if TYPE_CHECKING:
     from aiohomekit.controller.ble.controller import BleController
@@ -72,6 +73,18 @@ SKIP_SYNC_SERVICES = {
     ServicesTypes.PAIRING,
     ServicesTypes.TRANSFER_TRANSPORT_MANAGEMENT,
 }
+
+WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
+
+
+def operation_lock(func: WrapFuncType) -> WrapFuncType:
+    """Define a wrapper to only allow a single operation at a time."""
+
+    async def _async_wrap(self: BlePairing, *args: Any, **kwargs: Any) -> None:
+        async with self._operation_lock:
+            return await func(self, *args, **kwargs)
+
+    return cast(WrapFuncType, _async_wrap)
 
 
 class BlePairing(AbstractPairing):
@@ -103,6 +116,8 @@ class BlePairing(AbstractPairing):
         self._derive = None
 
         self._notifications = set()
+
+        # Only allow one attempt to aquire the connection at a time
         self._connection_lock = asyncio.Lock()
 
         # We don't want to read/write from characteristics in parallel
@@ -113,6 +128,10 @@ class BlePairing(AbstractPairing):
         #   to guess what encryption counter to use for the decrypt
         self._ble_request_lock = asyncio.Lock()
 
+        # Only allow a single operation at at time
+        self._operation_lock = asyncio.Lock()
+
+        # Only allow a single attempt to sync config at a time
         self._config_lock = asyncio.Lock()
 
     def get_address(self) -> str:
@@ -377,6 +396,7 @@ class BlePairing(AbstractPairing):
             logger.debug("%s: Connection closed from close call", self.name)
 
     @retry_bluetooth_connection_error
+    @operation_lock
     async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         await self._populate_accessories_and_characteristics()
         return self._accessories.serialize()
@@ -472,6 +492,7 @@ class BlePairing(AbstractPairing):
         await self._populate_accessories_and_characteristics()
 
     @retry_bluetooth_connection_error
+    @operation_lock
     async def list_pairings(self):
         request_tlv = TLV.encode_list(
             [(TLV.kTLVType_State, TLV.M1), (TLV.kTLVType_Method, TLV.ListPairings)]
@@ -555,6 +576,7 @@ class BlePairing(AbstractPairing):
         return results
 
     @retry_bluetooth_connection_error
+    @operation_lock
     async def put_characteristics(
         self, characteristics: list[tuple[int, int, Any]]
     ) -> dict[tuple[int, int], Any]:
@@ -599,6 +621,7 @@ class BlePairing(AbstractPairing):
 
         return results
 
+    @operation_lock
     async def subscribe(self, characteristics):
         new_chars = await super().subscribe(characteristics)
         if not new_chars:
@@ -611,6 +634,7 @@ class BlePairing(AbstractPairing):
         pass
 
     @retry_bluetooth_connection_error
+    @operation_lock
     async def identify(self):
         await self._populate_accessories_and_characteristics()
 
@@ -626,6 +650,7 @@ class BlePairing(AbstractPairing):
         )
 
     @retry_bluetooth_connection_error
+    @operation_lock
     async def add_pairing(
         self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
     ):
@@ -681,6 +706,7 @@ class BlePairing(AbstractPairing):
             raise UnknownError(f"{self.name}: Add pairing failed: unknown error")
 
     @retry_bluetooth_connection_error
+    @operation_lock
     async def remove_pairing(self, pairingId: str):
         await self._populate_accessories_and_characteristics()
 
