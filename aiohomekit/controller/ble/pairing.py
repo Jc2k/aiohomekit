@@ -420,8 +420,6 @@ class BlePairing(AbstractPairing):
                 if (result := results.get(aid_iid)) and "value" in result:
                     char.value = result["value"]
 
-    @operation_lock
-    @retry_bluetooth_connection_error
     async def async_populate_accessories_state(
         self, force_update: bool = False
     ) -> None:
@@ -429,7 +427,21 @@ class BlePairing(AbstractPairing):
 
         This method should try not to fetch all the accessories unless
         we know the config num is out of date.
+
+        Callers should not get BleakError as they expect to trap
+        AccessoryDisconnectedError.
         """
+        try:
+            await self._async_populate_accessories_state(force_update)
+        except BleakError as ex:
+            raise AccessoryDisconnectedError(f"{self.name} connection failed: {ex}")
+
+    @operation_lock
+    @retry_bluetooth_connection_error
+    async def _async_populate_accessories_state(
+        self, force_update: bool = False
+    ) -> None:
+        """Populate the state of all accessories under the lock."""
         await self._populate_accessories_and_characteristics(force_update)
 
     async def _populate_accessories_and_characteristics(
