@@ -402,7 +402,7 @@ class BlePairing(AbstractPairing):
             logger.debug("%s: Connection closed from close call", self.name)
 
     @operation_lock
-    @retry_bluetooth_connection_error
+    @retry_bluetooth_connection_error()
     async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         await self._populate_accessories_and_characteristics()
         return self._accessories.serialize()
@@ -443,7 +443,7 @@ class BlePairing(AbstractPairing):
             raise AccessoryDisconnectedError(f"{self.name} connection failed: {ex}")
 
     @operation_lock
-    @retry_bluetooth_connection_error
+    @retry_bluetooth_connection_error()
     async def _async_populate_accessories_state(
         self, force_update: bool = False
     ) -> None:
@@ -514,7 +514,7 @@ class BlePairing(AbstractPairing):
                 await self._async_start_notify(iid)
 
     @operation_lock
-    @retry_bluetooth_connection_error
+    @retry_bluetooth_connection_error()
     async def _process_config_changed(self, config_num: int) -> None:
         """Process a config change.
 
@@ -523,7 +523,7 @@ class BlePairing(AbstractPairing):
         await self._populate_accessories_and_characteristics()
 
     @operation_lock
-    @retry_bluetooth_connection_error
+    @retry_bluetooth_connection_error()
     async def list_pairings(self):
         request_tlv = TLV.encode_list(
             [(TLV.kTLVType_State, TLV.M1), (TLV.kTLVType_Method, TLV.ListPairings)]
@@ -564,7 +564,7 @@ class BlePairing(AbstractPairing):
                 r["controllerType"] = controller_type
         return tmp
 
-    @retry_bluetooth_connection_error
+    @retry_bluetooth_connection_error()
     async def get_characteristics(
         self,
         characteristics: list[tuple[int, int]],
@@ -614,7 +614,7 @@ class BlePairing(AbstractPairing):
         return results
 
     @operation_lock
-    @retry_bluetooth_connection_error
+    @retry_bluetooth_connection_error()
     async def put_characteristics(
         self, characteristics: list[tuple[int, int, Any]]
     ) -> dict[tuple[int, int], Any]:
@@ -673,7 +673,7 @@ class BlePairing(AbstractPairing):
         pass
 
     @operation_lock
-    @retry_bluetooth_connection_error
+    @retry_bluetooth_connection_error()
     async def identify(self):
         await self._populate_accessories_and_characteristics()
 
@@ -689,7 +689,7 @@ class BlePairing(AbstractPairing):
         )
 
     @operation_lock
-    @retry_bluetooth_connection_error
+    @retry_bluetooth_connection_error()
     async def add_pairing(
         self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
     ):

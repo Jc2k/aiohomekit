@@ -47,25 +47,30 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 DEFAULT_ATTEMPTS = 2
 
 
-def retry_bluetooth_connection_error(
-    func: WrapFuncType, attempts: int = DEFAULT_ATTEMPTS
-) -> WrapFuncType:
-    """Define a wrapper to retry on bleak error.
+def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFuncType:
+    """Define a wrapper to retry on bluetooth connetion error."""
 
-    The accessory is allowed to disconnect us any time so
-    we need to retry the operation.
-    """
+    def _decorator_retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
+        """Define a wrapper to retry on bleak error.
 
-    async def _async_wrap(*args: Any, **kwargs: Any) -> Any:
-        for attempt in range(attempts):
-            try:
-                return await func(*args, **kwargs)
-            except (AccessoryDisconnectedError, BleakError):
-                if attempt == 1:
-                    raise
-                logger.debug("Bleak error calling %s, retrying...", func, exc_info=True)
+        The accessory is allowed to disconnect us any time so
+        we need to retry the operation.
+        """
 
-    return cast(WrapFuncType, _async_wrap)
+        async def _async_wrap(*args: Any, **kwargs: Any) -> Any:
+            for attempt in range(attempts):
+                try:
+                    return await func(*args, **kwargs)
+                except (AccessoryDisconnectedError, BleakError):
+                    if attempt == 1:
+                        raise
+                    logger.debug(
+                        "Bleak error calling %s, retrying...", func, exc_info=True
+                    )
+
+        return cast(WrapFuncType, _async_wrap)
+
+    return cast(WrapFuncType, _decorator_retry_bluetooth_connection_error)
 
 
 def get_characteristic(

@@ -104,7 +104,7 @@ class BleDiscovery(AbstractDiscovery):
                     "Failed to close connection, client may have already closed it"
                 )
 
-    @retry_bluetooth_connection_error
+    @retry_bluetooth_connection_error()
     async def async_start_pairing(self, alias: str) -> FinishPairing:
         await self._ensure_connected()
 
@@ -125,7 +125,7 @@ class BleDiscovery(AbstractDiscovery):
             ),
         )
 
-        @retry_bluetooth_connection_error
+        @retry_bluetooth_connection_error()
         async def finish_pairing(pin: str) -> BlePairing:
             check_pin_format(pin)
 
