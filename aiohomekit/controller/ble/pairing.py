@@ -24,7 +24,6 @@ import struct
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 import uuid
 
-from bleak import BleakClient
 from bleak.exc import BleakError
 
 from aiohomekit.exceptions import (
@@ -50,6 +49,7 @@ from aiohomekit.uuid import normalize_uuid
 
 from ..abstract import AbstractPairing
 from .client import (
+    AIOHomeKitBleakClient,
     ble_request,
     drive_pairing_state_machine,
     get_characteristic,
@@ -100,7 +100,7 @@ class BlePairing(AbstractPairing):
     _encryption_key: EncryptionKey | None = None
     _decryption_key: DecryptionKey | None = None
 
-    client: BleakClient | None = None
+    client: AIOHomeKitBleakClient | None = None
 
     # Used to keep track of which characteristics we already started
     # notifications for
@@ -216,7 +216,7 @@ class BlePairing(AbstractPairing):
                 )
             return result_data
 
-    def _async_disconnected(self, client: BleakClient) -> None:
+    def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
         """Called when bleak disconnects from the accessory closed the connection."""
         logger.debug("%s: Session closed callback", self.name)
         self._async_reset_connection_state()
@@ -233,29 +233,18 @@ class BlePairing(AbstractPairing):
     async def _ensure_connected(self):
         if self.client and self.client.is_connected:
             return
-
         async with self._connection_lock:
+            # Check again while holding the lock
+            if self.client and self.client.is_connected:
+                return
             self.client = await establish_connection(
-                self.name, self.get_address, self._async_disconnected
+                self.client, self.name, self.get_address, self._async_disconnected
             )
             logger.debug(
                 "%s: Connected, processing subscriptions: %s",
                 self.name,
                 self.subscriptions,
             )
-            # The MTU will always be 23 if we do not fetch it
-            #
-            #  Currently doesn't work, and we need to store it forever since
-            #  it will not change
-            #
-            # if (
-            #    self.client.__class__.__name__ == "BleakClientBlueZDBus"
-            #    and not self.client._mtu_size
-            # ):
-            #    try:
-            #        await self.client._acquire_mtu()
-            #    except (RuntimeError, StopIteration) as ex:
-            #        logger.debug("%s: Failed to acquire MTU: %s", ex, address)
 
     async def _async_start_notify(self, iid: int) -> None:
         if not self.accessories:

@@ -23,6 +23,7 @@ import uuid
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
+from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
 
 from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
@@ -37,7 +38,7 @@ from aiohomekit.pdu import (
 )
 from aiohomekit.protocol.tlv import TLV
 
-from .const import HAP_MIN_REQUIRED_MTU, AdditionalParameterTypes
+from .const import HAP_MIN_REQUIRED_MTU, HAP_MIN_SHOULD_MTU, AdditionalParameterTypes
 from .structs import BleRequest
 
 logger = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFu
 
 
 def get_characteristic(
-    client: BleakClient, service_type: str, characteristic_type: str
+    client: AIOHomeKitBleakClient, service_type: str, characteristic_type: str
 ) -> BleakGATTCharacteristic:
     service = client.services.get_service(service_type)
     char = service.get_characteristic(characteristic_type)
@@ -82,7 +83,7 @@ def get_characteristic(
 
 
 async def get_characteristic_iid(
-    client: BleakClient, char: BleakGATTCharacteristic
+    client: AIOHomeKitBleakClient, char: BleakGATTCharacteristic
 ) -> int:
     iid_handle = char.get_descriptor(uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A"))
     value = bytes(await client.read_gatt_descriptor(iid_handle.handle))
@@ -90,7 +91,7 @@ async def get_characteristic_iid(
 
 
 async def ble_request(
-    client: BleakClient,
+    client: AIOHomeKitBleakClient,
     encryption_key: EncryptionKey | None,
     decryption_key: DecryptionKey | None,
     opcode: OpCode,
@@ -104,7 +105,7 @@ async def ble_request(
     # https://github.com/jlusiardi/homekit_python/issues/211#issuecomment-996751939
     # But we haven't confirmed that this isn't already taken into account
 
-    fragment_size = max(HAP_MIN_REQUIRED_MTU, client.mtu_size) - 3
+    fragment_size = client.mtu_size - 3
     if encryption_key:
         # Secure session means an extra 16 bytes of overhead
         fragment_size -= 16
@@ -191,7 +192,7 @@ async def char_read(
 
 
 async def drive_pairing_state_machine(
-    client: BleakClient,
+    client: AIOHomeKitBleakClient,
     characteristic: str,
     state_machine: Any,
 ) -> Any:
@@ -213,3 +214,33 @@ async def drive_pairing_state_machine(
             request, expected = state_machine.send(TLV.decode_bytes(response))
         except StopIteration as result:
             return result.value
+
+
+class AIOHomeKitBleakClient(BleakClient):
+    """Wrapper for bleak.BleakClient that auto discovers the max mtu."""
+
+    def __init__(self, address_or_ble_device: BLEDevice | str) -> None:
+        """Wrap bleak."""
+        super().__init__(address_or_ble_device)
+        self._discovered_mtu = 0
+
+    @property
+    def mtu_size(self) -> int:
+        """Return the mtu size of the client."""
+        # Nanoleaf light strips fail if we use an mtu > HAP_MIN_SHOULD_MTU
+        return min(
+            HAP_MIN_SHOULD_MTU,
+            max(self._discovered_mtu, super().mtu_size, HAP_MIN_REQUIRED_MTU),
+        )
+
+    async def read_gatt_char(
+        self,
+        char_specifier: BleakGATTCharacteristic | int | str | uuid.UUID,
+        **kwargs: Any,
+    ) -> bytearray:
+        """Read a GATT characteristic"""
+        data = await super().read_gatt_char(char_specifier, **kwargs)
+        data_len = len(data)
+        if data_len > self._discovered_mtu:
+            self._discovered_mtu = data_len
+        return data

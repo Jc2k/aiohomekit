@@ -21,7 +21,6 @@ import logging
 from typing import TYPE_CHECKING
 import uuid
 
-from bleak import BleakClient
 from bleak.exc import BleakError
 
 from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
@@ -31,6 +30,7 @@ from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_par
 from aiohomekit.utils import check_pin_format, pair_with_auth
 
 from .client import (
+    AIOHomeKitBleakClient,
     char_read,
     char_write,
     drive_pairing_state_machine,
@@ -67,7 +67,7 @@ class BleDiscovery(AbstractDiscovery):
         self.controller = controller
         self.device = device
 
-        self.client: BleakClient | None = None
+        self.client: AIOHomeKitBleakClient | None = None
         self._connection_lock = asyncio.Lock()
 
     def get_address(self) -> str:
@@ -83,11 +83,14 @@ class BleDiscovery(AbstractDiscovery):
         if self.client and self.client.is_connected:
             return
         async with self._connection_lock:
+            # Check again while holding the lock
+            if self.client and self.client.is_connected:
+                return
             self.client = await establish_connection(
-                self.name, self.get_address, self._async_disconnected
+                self.client, self.name, self.get_address, self._async_disconnected
             )
 
-    def _async_disconnected(self, client: BleakClient) -> None:
+    def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
         logger.debug("%s: Session closed", self.name)
 
     async def _close(self):
@@ -125,7 +128,6 @@ class BleDiscovery(AbstractDiscovery):
             ),
         )
 
-        @retry_bluetooth_connection_error()
         async def finish_pairing(pin: str) -> BlePairing:
             check_pin_format(pin)
 
