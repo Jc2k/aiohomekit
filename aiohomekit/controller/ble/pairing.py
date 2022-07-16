@@ -49,6 +49,7 @@ from aiohomekit.pdu import OpCode, PDUStatus, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.protocol.tlv import TLV
+from aiohomekit.tlv8 import T
 from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
@@ -541,11 +542,18 @@ class BlePairing(AbstractPairing):
             char = self._accessories.aid(1).characteristics.iid(iid)
 
             if CharacteristicPermissions.timed_write in char.perms:
-                payload = TLV.encode_list(
-                    [
-                        (HAP_TLV.kTLVHAPParamValue, to_bytes(char, value)),
-                        (HAP_TLV.kTLVHAPParamTTL, b"\x0f"),  # 1.5s
-                    ]
+                value_payload = TLV.encode_list(
+                    [(HAP_TLV.kTLVHAPParamValue, to_bytes(char, value))]
+                )
+                ttl_payload = TLV.encode_list(
+                    [(HAP_TLV.kTLVHAPParamTTL, b"\x0f")]
+                )  # 1.5s
+                payload = (
+                    (len(value_payload) + len(ttl_payload)).to_bytes(
+                        length=2, byteorder="little"
+                    )
+                    + value_payload
+                    + ttl_payload
                 )
                 response = await self._async_request(
                     OpCode.CHAR_TIMED_WRITE, iid, payload
