@@ -420,6 +420,8 @@ class BlePairing(AbstractPairing):
                 if (result := results.get(aid_iid)) and "value" in result:
                     char.value = result["value"]
 
+    @operation_lock
+    @retry_bluetooth_connection_error
     async def async_populate_accessories_state(
         self, force_update: bool = False
     ) -> None:
