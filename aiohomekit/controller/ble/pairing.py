@@ -30,7 +30,7 @@ from aiohomekit.controller.ble.client import (
     ble_request,
     drive_pairing_state_machine,
     get_characteristic,
-    retry_bleak_error,
+    retry_bluetooth_connection_error,
 )
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -176,6 +176,9 @@ class BlePairing(AbstractPairing):
         char = self._accessories.aid(1).characteristics.iid(iid)
         endpoint = get_characteristic(self.client, char.service.type, char.type)
         async with self._ble_request_lock:
+            if not self.client or not self.client.is_connected:
+                logger.debug("%s: Client not connected", self.name)
+                raise AccessoryDisconnectedError(f"{self.name} is not connected")
             pdu_status, result_data = await ble_request(
                 self.client,
                 self._encryption_key,
@@ -373,7 +376,7 @@ class BlePairing(AbstractPairing):
             self._async_reset_connection_state()
             logger.debug("%s: Connection closed from close call", self.name)
 
-    @retry_bleak_error
+    @retry_bluetooth_connection_error
     async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         await self._populate_accessories_and_characteristics()
         return self._accessories.serialize()
@@ -468,7 +471,7 @@ class BlePairing(AbstractPairing):
         """
         await self._populate_accessories_and_characteristics()
 
-    @retry_bleak_error
+    @retry_bluetooth_connection_error
     async def list_pairings(self):
         request_tlv = TLV.encode_list(
             [(TLV.kTLVType_State, TLV.M1), (TLV.kTLVType_Method, TLV.ListPairings)]
@@ -509,7 +512,7 @@ class BlePairing(AbstractPairing):
                 r["controllerType"] = controller_type
         return tmp
 
-    @retry_bleak_error
+    @retry_bluetooth_connection_error
     async def get_characteristics(
         self,
         characteristics: list[tuple[int, int]],
@@ -551,7 +554,7 @@ class BlePairing(AbstractPairing):
 
         return results
 
-    @retry_bleak_error
+    @retry_bluetooth_connection_error
     async def put_characteristics(
         self, characteristics: list[tuple[int, int, Any]]
     ) -> dict[tuple[int, int], Any]:
@@ -607,7 +610,7 @@ class BlePairing(AbstractPairing):
     async def unsubscribe(self, characteristics):
         pass
 
-    @retry_bleak_error
+    @retry_bluetooth_connection_error
     async def identify(self):
         await self._populate_accessories_and_characteristics()
 
@@ -622,7 +625,7 @@ class BlePairing(AbstractPairing):
             ]
         )
 
-    @retry_bleak_error
+    @retry_bluetooth_connection_error
     async def add_pairing(
         self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
     ):
@@ -677,7 +680,7 @@ class BlePairing(AbstractPairing):
                 )
             raise UnknownError(f"{self.name}: Add pairing failed: unknown error")
 
-    @retry_bleak_error
+    @retry_bluetooth_connection_error
     async def remove_pairing(self, pairingId: str):
         await self._populate_accessories_and_characteristics()
 

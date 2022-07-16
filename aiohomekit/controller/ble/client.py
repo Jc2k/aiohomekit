@@ -26,7 +26,7 @@ from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.exc import BleakError
 
 from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
-from aiohomekit.exceptions import EncryptionError
+from aiohomekit.exceptions import AccessoryDisconnectedError, EncryptionError
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import (
     OpCode,
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 
-def retry_bleak_error(func: WrapFuncType) -> WrapFuncType:
+def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to retry on bleak error.
 
     The accessory is allowed to disconnect us any time so
@@ -56,7 +56,7 @@ def retry_bleak_error(func: WrapFuncType) -> WrapFuncType:
         for attempt in range(2):
             try:
                 return await func(*args, **kwargs)
-            except BleakError:
+            except (AccessoryDisconnectedError, BleakError):
                 if attempt == 1:
                     raise
                 logger.debug("Bleak error calling %s, retrying...", func, exc_info=True)
