@@ -135,7 +135,7 @@ class BlePairing(AbstractPairing):
         # Only allow a single attempt to sync config at a time
         self._config_lock = asyncio.Lock()
 
-        self._restore_subscriptions_timer: asyncio.TimeoutError | None = None
+        self._restore_subscriptions_timer: asyncio.TimerHandle | None = None
 
     def get_address(self) -> str:
         """Return the most current address for the device."""
@@ -226,9 +226,9 @@ class BlePairing(AbstractPairing):
         self._encryption_key = None
         self._decryption_key = None
         self._notifications = set()
-        if self._restore_subscriptions_task:
-            self._restore_subscriptions_task.cancel()
-            self._restore_subscriptions_task = None
+        if self._restore_subscriptions_timer:
+            self._restore_subscriptions_timer.cancel()
+            self._restore_subscriptions_timer = None
 
     async def _ensure_connected(self):
         if self.client and self.client.is_connected:
