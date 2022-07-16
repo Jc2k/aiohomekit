@@ -4,6 +4,14 @@ import struct
 
 from aiohomekit.model import Characteristic, CharacteristicFormats
 
+INT_TYPES = {
+    CharacteristicFormats.uint8,
+    CharacteristicFormats.uint16,
+    CharacteristicFormats.uint32,
+    CharacteristicFormats.uint64,
+    CharacteristicFormats.int,
+}
+
 
 def from_bytes(char: Characteristic, value: bytes) -> bool | str | float | int | bytes:
     if char.format == CharacteristicFormats.bool:

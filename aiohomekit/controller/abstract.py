@@ -17,11 +17,15 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import AsyncIterable, Awaitable, Callable, Protocol, final
+from typing import Any, AsyncIterable, Awaitable, Callable, Protocol, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
+from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.model.categories import Categories
+from aiohomekit.model.characteristics.characteristic_types import CharacteristicsTypes
+from aiohomekit.model.services.service_types import ServicesTypes
 from aiohomekit.model.status_flags import StatusFlags
+from aiohomekit.utils import async_create_task
 
 
 class AbstractDescription(Protocol):
@@ -45,13 +49,31 @@ class AbstractPairing(metaclass=ABCMeta):
     # and BLE advertisements), and also as AccessoryPairingID i pairing data.
     id: str
 
-    def __init__(self, controller):
+    def __init__(self, controller: AbstractController) -> None:
         self.controller = controller
         self.listeners = set()
         self.subscriptions = set()
+        self.config_changed_listeners: set[Callable[[int], None]] = set()
+        self._accessories_state: AccessoriesState | None = None
 
-    def _async_description_update(self, description: AbstractDescription | None):
-        self.description = description
+    @property
+    def accessories_state(self) -> AccessoriesState:
+        """Return the current state of the accessories."""
+        return self._accessories_state
+
+    @property
+    def _accessories(self) -> Accessories | None:
+        """Wrapper around the accessories state to make it easier to use."""
+        if not self._accessories_state:
+            return None
+        return self._accessories_state.accessories
+
+    @property
+    def _config_num(self) -> int:
+        """Wrapper around the accessories state to make it easier to use."""
+        if not self._accessories_state:
+            return 0
+        return self._accessories_state.config_num
 
     @property
     @abstractmethod
@@ -61,17 +83,66 @@ class AbstractPairing(metaclass=ABCMeta):
         """
         pass
 
-    @abstractmethod
-    async def close(self):
-        pass
+    def _async_description_update(self, description: AbstractDescription | None):
+        self.description = description
+
+    def _load_accessories_from_cache(self) -> None:
+        if (cache := self.controller._char_cache.get_map(self.id)) is None:
+            return
+        config_num = cache.get("config_num", 0)
+        accessories = Accessories.from_list(cache["accessories"])
+        self._accessories_state = AccessoriesState(accessories, config_num)
+
+    def restore_accessories_state(
+        self, accessories: list[dict[str, Any]], config_num: int
+    ) -> None:
+        """Restore accessories from cache."""
+        accessories = Accessories.from_list(accessories)
+        self._accessories_state = AccessoriesState(accessories, config_num)
+        self._update_accessories_state_cache()
+
+    def _update_accessories_state_cache(self):
+        """Update the cache with the current state of the accessories."""
+        self.controller._char_cache.async_create_or_update_map(
+            self.id,
+            self._config_num,
+            self._accessories.serialize(),
+        )
+
+    async def get_primary_name(self) -> str:
+        """Return the primary name of the device."""
+        if not self._accessories:
+            accessories = await self.list_accessories_and_characteristics()
+            parsed = Accessories.from_list(accessories)
+        else:
+            parsed = self._accessories
+
+        accessory_info = parsed.aid(1).services.first(
+            service_type=ServicesTypes.ACCESSORY_INFORMATION
+        )
+        return accessory_info.value(CharacteristicsTypes.NAME, "")
 
     @abstractmethod
-    async def list_accessories_and_characteristics(self):
-        pass
+    async def async_populate_accessories_state(
+        self, force_update: bool = False
+    ) -> None:
+        """Populate the state of all accessories.
+
+        This method should try not to fetch all the accessories unless
+        we know the config num is out of date or force_update is True
+        """
+
+    @abstractmethod
+    async def close(self) -> None:
+        """Close the connection."""
+
+    @abstractmethod
+    async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
+        """List all accessories and characteristics."""
 
     @abstractmethod
     async def list_pairings(self):
-        pass
+        """List pairings."""
 
     @abstractmethod
     async def get_characteristics(
@@ -82,19 +153,37 @@ class AbstractPairing(metaclass=ABCMeta):
         include_type=False,
         include_events=False,
     ):
-        pass
+        """Get characteristics."""
 
     @abstractmethod
     async def put_characteristics(self, characteristics):
-        pass
+        """Put characteristics."""
 
     @abstractmethod
     async def identify(self):
-        pass
+        """Identify the device."""
 
     @abstractmethod
     async def remove_pairing(self, pairing_id: str) -> None:
-        pass
+        """Remove a pairing."""
+
+    @abstractmethod
+    async def _process_config_changed(self, config_num: int) -> None:
+        """Process a config change.
+
+        This method is called when the config num changes.
+        """
+
+    def _callback_and_save_config_changed(self, _config_num: int) -> None:
+        """Notify config changed listeners and save the config."""
+        for callback in self.config_changed_listeners:
+            callback(self._config_num)
+        self._update_accessories_state_cache()
+
+    def notify_config_changed(self, config_num: int) -> None:
+        """Notify the pairing that the config number has changed."""
+        if config_num != self._config_num:
+            async_create_task(self._process_config_changed(config_num))
 
     async def subscribe(self, characteristics):
         new_characteristics = set(characteristics) - self.subscriptions
@@ -110,7 +199,17 @@ class AbstractPairing(metaclass=ABCMeta):
 
         This will be removed in a future release.
         """
-        pass
+
+    def dispatcher_connect_config_changed(
+        self, callback: Callable[[int], None]
+    ) -> None:
+        """Notify subscribers of a new accessories state."""
+        self.config_changed_listeners.add(callback)
+
+        def stop_listening():
+            self.config_changed_listeners.discard(callback)
+
+        return stop_listening
 
     def dispatcher_connect(self, callback):
         """
@@ -143,11 +242,11 @@ class AbstractDiscovery(metaclass=ABCMeta):
 
     @abstractmethod
     async def async_start_pairing(self, alias: str) -> FinishPairing:
-        pass
+        """Start pairing."""
 
     @abstractmethod
     async def async_identify(self) -> None:
-        pass
+        """Do an unpaired identify."""
 
 
 class AbstractController(metaclass=ABCMeta):
@@ -180,20 +279,20 @@ class AbstractController(metaclass=ABCMeta):
 
     @abstractmethod
     async def async_find(self, device_id: str, timeout=10) -> AbstractDiscovery:
-        pass
+        """Find a device by id."""
 
     @abstractmethod
     async def async_discover(self, timeout=10) -> AsyncIterable[AbstractDiscovery]:
-        pass
+        """Discover all devices."""
 
     @abstractmethod
     async def async_start(self) -> None:
-        pass
+        """Start the controller."""
 
     @abstractmethod
     async def async_stop(self) -> None:
-        pass
+        """Stop the controller."""
 
     @abstractmethod
     def load_pairing(self, alias: str, pairing_data: dict[str, str]) -> AbstractPairing:
-        pass
+        """Load a pairing from data."""

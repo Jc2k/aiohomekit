@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING, Any, Iterable, Iterator
 
 from aiohomekit.model.characteristics import Characteristic, CharacteristicsTypes
 from aiohomekit.model.characteristics.characteristic import check_convert_value
@@ -37,7 +37,7 @@ class Characteristics:
     def append(self, char: Characteristic) -> None:
         self._characteristics.append(char)
 
-    def __iter__(self) -> Iterable[Characteristic]:
+    def __iter__(self) -> Iterator[Characteristic]:
         return iter(self._characteristics)
 
     def filter(self, char_types=None) -> Iterable[Characteristic]:

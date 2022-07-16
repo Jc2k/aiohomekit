@@ -16,9 +16,11 @@
 
 import asyncio
 import logging
+from typing import Any
 
 from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.exceptions import AccessoryDisconnectedError
+from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.uuid import normalize_uuid
 
 from .connection import CoAPHomeKitConnection
@@ -90,7 +92,7 @@ class CoAPPairing(AbstractPairing):
 
         return
 
-    async def close(self):
+    async def close(self) -> None:
         if self.connection.is_connected:
             await self.unsubscribe(list(self.subscriptions))
         return
@@ -110,7 +112,7 @@ class CoAPPairing(AbstractPairing):
         await self._ensure_connected()
         return await self.connection.do_identify()
 
-    async def list_accessories_and_characteristics(self):
+    async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         await self._ensure_connected()
 
         accessories = await self.connection.get_accessory_info()
@@ -122,7 +124,32 @@ class CoAPPairing(AbstractPairing):
                 for characteristic in service["characteristics"]:
                     characteristic["type"] = normalize_uuid(characteristic["type"])
 
+        self._accessories_state = AccessoriesState(
+            Accessories.from_list(accessories), self._config_num or 0
+        )
         return accessories
+
+    async def _process_config_changed(self, config_num: int) -> None:
+        """Process a config change.
+
+        This method is called when the config num changes.
+        """
+        await self.list_accessories_and_characteristics()
+        self._accessories_state = AccessoriesState(
+            self._accessories_state.accessories, config_num
+        )
+        self._callback_and_save_config_changed(config_num)
+
+    async def async_populate_accessories_state(
+        self, force_update: bool = False
+    ) -> bool:
+        """Populate the state of all accessories.
+
+        This method should try not to fetch all the accessories unless
+        we know the config num is out of date or force_update is True
+        """
+        if not self._accessories or force_update:
+            await self.list_accessories_and_characteristics()
 
     async def get_characteristics(
         self,

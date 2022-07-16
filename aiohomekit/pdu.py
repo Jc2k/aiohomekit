@@ -16,10 +16,12 @@
 
 from __future__ import annotations
 
-from enum import Enum, IntEnum
+from enum import Enum
 import logging
 import struct
 from typing import Iterable
+
+from aiohomekit.enum import EnumWithDescription
 
 logger = logging.getLogger(__name__)
 
@@ -34,15 +36,15 @@ class OpCode(Enum):
     SERV_SIG_READ = 0x06
 
 
-class PDUStatus(IntEnum):
+class PDUStatus(EnumWithDescription):
 
-    SUCCESS = 0
-    UNSUPPORTED_PDU = 1
-    MAX_PROCEDURES = 2
-    INSUFFICIENT_AUTHORIZATION = 3
-    INVALID_INSTANCE_ID = 4
-    INSUFFICIENT_AUTHENTICATION = 5
-    INVALID_REQUEST = 6
+    SUCCESS = 0, "Success"
+    UNSUPPORTED_PDU = 1, "Unsupported PDU"
+    MAX_PROCEDURES = 2, "Max procedures"
+    INSUFFICIENT_AUTHORIZATION = 3, "Insufficient authorization"
+    INVALID_INSTANCE_ID = 4, "Invalid instance ID"
+    INSUFFICIENT_AUTHENTICATION = 5, "Insufficient authentication"
+    INVALID_REQUEST = 6, "Invalid request"
 
 
 def encode_pdu(
@@ -78,7 +80,7 @@ def encode_pdu(
         yield struct.pack("<BB", 0x80, tid) + data[i : i + next_size]
 
 
-def decode_pdu(expected_tid: int, data: bytes) -> tuple[bool, bytes]:
+def decode_pdu(expected_tid: int, data: bytes) -> tuple[PDUStatus, bool, bytes]:
     control, tid, status = struct.unpack("<BBB", data[:3])
     status = PDUStatus(status)
 
@@ -97,15 +99,19 @@ def decode_pdu(expected_tid: int, data: bytes) -> tuple[bool, bytes]:
         )
 
     if status != PDUStatus.SUCCESS:
-        raise ValueError(f"Transaction {tid} failed with error {status}")
+        # We can't currently raise here or it will break the encryption
+        # stream
+        logger.warning(
+            f"Transaction {tid} failed with error {status} ({status.description})"
+        )
 
     if len(data) < 5:
-        return 0, b""
+        return status, 0, b""
 
     expected_length = struct.unpack("<H", data[3:5])[0]
     data = data[5:]
 
-    return expected_length, data
+    return status, expected_length, data
 
 
 def decode_pdu_continuation(expected_tid, data):

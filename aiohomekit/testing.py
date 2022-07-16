@@ -29,7 +29,7 @@ from aiohomekit.controller.abstract import (
     FinishPairing,
 )
 from aiohomekit.exceptions import AccessoryNotFoundError
-from aiohomekit.model import Accessories
+from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.status_flags import StatusFlags
@@ -100,7 +100,7 @@ class FakeDiscovery(AbstractDiscovery):
         return finish_pairing
 
     async def async_identify(self) -> None:
-        pass
+        """Trigger an identify routinue."""
 
 
 class PairingTester:
@@ -212,16 +212,36 @@ class FakePairing(AbstractPairing):
         return True
 
     async def close(self):
-        pass
+        """Close the connection."""
 
     async def identify(self):
-        pass
+        """Identify the accessory."""
 
     async def list_pairings(self):
+        """List pairing."""
         return []
 
     async def remove_pairing(self, pairing_id):
-        pass
+        """Remove a pairing."""
+
+    async def async_populate_accessories_state(
+        self, force_update: bool = False
+    ) -> bool:
+        """Populate the state of all accessories.
+
+        This method should try not to fetch all the accessories unless
+        we know the config num is out of date or force_update is True
+        """
+        if not self._accessories or force_update:
+            await self.list_accessories_and_characteristics()
+        return True
+
+    async def _process_config_changed(self, config_num: int) -> None:
+        await self.list_accessories_and_characteristics()
+        self._accessories_state = AccessoriesState(
+            self._accessories_state.accessories, config_num
+        )
+        self._callback_and_save_config_changed(config_num)
 
     async def list_accessories_and_characteristics(self):
         """Fake implementation of list_accessories_and_characteristics."""

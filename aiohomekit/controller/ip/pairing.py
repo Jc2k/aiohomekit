@@ -19,6 +19,7 @@ from itertools import groupby
 import json
 import logging
 from operator import itemgetter
+from typing import Any
 
 from aiohomekit.controller.abstract import AbstractPairing
 from aiohomekit.exceptions import (
@@ -31,6 +32,7 @@ from aiohomekit.exceptions import (
     UnpairedError,
 )
 from aiohomekit.http import HttpContentTypes
+from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.protocol import error_handler
 from aiohomekit.protocol.statuscodes import to_status_code
@@ -107,22 +109,22 @@ class IpPairing(AbstractPairing):
             await asyncio.wait_for(self.connection.ensure_connection(), 10)
         except asyncio.TimeoutError:
             raise AccessoryDisconnectedError(
-                "Timeout while waiting for connection to device"
+                f"Timeout while waiting for connection to device {self.connection.host}:{self.connection.port}"
             )
 
         if not self.connection.is_connected:
             raise AccessoryDisconnectedError(
-                "Ensure connection returned but still not connected"
+                f"Ensure connection returned but still not connected: {self.connection.host}:{self.connection.port}"
             )
 
-    async def close(self):
+    async def close(self) -> None:
         """
         Close the pairing's communications. This closes the session.
         """
         await self.connection.close()
         await asyncio.sleep(0)
 
-    async def list_accessories_and_characteristics(self):
+    async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         """
         This retrieves a current set of accessories and characteristics behind this pairing.
 
@@ -142,7 +144,9 @@ class IpPairing(AbstractPairing):
                 for characteristic in service["characteristics"]:
                     characteristic["type"] = normalize_uuid(characteristic["type"])
 
-        self.pairing_data["accessories"] = accessories
+        self._accessories_state = AccessoriesState(
+            Accessories.from_list(accessories), self._config_num or 0
+        )
         return accessories
 
     async def list_pairings(self):
@@ -215,7 +219,7 @@ class IpPairing(AbstractPairing):
         """
         await self._ensure_connected()
 
-        if "accessories" not in self.pairing_data:
+        if not self._accessories:
             await self.list_accessories_and_characteristics()
 
         url = "/characteristics?id=" + ",".join(
@@ -240,7 +244,7 @@ class IpPairing(AbstractPairing):
         """
         await self._ensure_connected()
 
-        if "accessories" not in self.pairing_data:
+        if not self._accessories:
             await self.list_accessories_and_characteristics()
 
         data = []
@@ -332,6 +336,28 @@ class IpPairing(AbstractPairing):
 
         return status
 
+    async def async_populate_accessories_state(
+        self, force_update: bool = False
+    ) -> bool:
+        """Populate the state of all accessories.
+
+        This method should try not to fetch all the accessories unless
+        we know the config num is out of date or force_update is True
+        """
+        if not self._accessories or force_update:
+            await self.list_accessories_and_characteristics()
+
+    async def _process_config_changed(self, config_num: int) -> None:
+        """Process a config change.
+
+        This method is called when the config num changes.
+        """
+        await self.list_accessories_and_characteristics()
+        self._accessories_state = AccessoriesState(
+            self._accessories_state.accessories, config_num
+        )
+        self._callback_and_save_config_changed(self._config_num)
+
     async def identify(self):
         """
         This call can be used to trigger the identification of a paired accessory. A successful call should
@@ -344,19 +370,20 @@ class IpPairing(AbstractPairing):
         """
         await self._ensure_connected()
 
-        if "accessories" not in self.pairing_data:
+        if not self._accessories:
             await self.list_accessories_and_characteristics()
 
         # we are looking for a characteristic of the identify type
         identify_type = CharacteristicsTypes.IDENTIFY
 
         # search all accessories, all services and all characteristics
-        for accessory in self.pairing_data["accessories"]:
-            aid = accessory["aid"]
-            for service in accessory["services"]:
-                for characteristic in service["characteristics"]:
-                    iid = characteristic["iid"]
-                    c_type = normalize_uuid(characteristic["type"])
+        logger.debug("Searching for identify characteristic in %s", self._accessories)
+        for accessory in self._accessories:
+            aid = accessory.aid
+            for service in accessory.services:
+                for characteristic in service.characteristics:
+                    iid = characteristic.iid
+                    c_type = normalize_uuid(characteristic.type)
                     if identify_type == c_type:
                         # found the identify characteristic, so let's put a value there
                         if not await self.put_characteristics([(aid, iid, True)]):

@@ -92,7 +92,9 @@ def decode_pdu(expected_tid: int, data: bytes) -> tuple[int, bytes | PDUStatus]:
         return (body_len, PDUStatus.TID_MISMATCH)
 
     if status != PDUStatus.SUCCESS:
-        logger.warning(f"Transaction {tid} failed with error {status}")
+        logger.warning(
+            f"Transaction {tid} failed with error {status} ({status.description}"
+        )
         return (body_len, status)
 
     if control & 0b0000_1110 != 0b0000_0010:

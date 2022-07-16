@@ -36,7 +36,9 @@ from .client import (
     drive_pairing_state_machine,
     get_characteristic,
     get_characteristic_iid,
+    retry_bluetooth_connection_error,
 )
+from .connection import establish_connection
 from .manufacturer_data import HomeKitAdvertisement
 from .pairing import BlePairing
 
@@ -68,37 +70,33 @@ class BleDiscovery(AbstractDiscovery):
         self.client: BleakClient | None = None
         self._connection_lock = asyncio.Lock()
 
+    def get_address(self) -> str:
+        """Return the most current address for the device."""
+        return self.description.address
+
+    @property
+    def name(self):
+        return f"{self.description.name} ({self.description.address})"
+
     async def _ensure_connected(self):
         logger.debug("Ensure connected with device %s", self.device)
-        if not self.client:
-            self.client = BleakClient(self.device)
-        if self.client.is_connected:
+        if self.client and self.client.is_connected:
             return
         async with self._connection_lock:
-            while not self.client.is_connected:
-                logger.debug("Connecting to %s", self.device)
-                try:
-                    await self.client.connect()
-                    break
-                except BleakError as e:
-                    logger.debug(
-                        "Failed to connect to %s: %s", self.client.address, str(e)
-                    )
+            self.client = await establish_connection(
+                self.name, self.get_address, self._async_disconnected
+            )
 
-                if self.description.address != self.client.address:
-                    self.client = BleakClient(self.description.address)
-
-                await asyncio.sleep(5)
-
-            logger.debug("Connected to %s", self.client.address)
+    def _async_disconnected(self, client: BleakClient) -> None:
+        logger.debug("%s: Session closed", self.name)
 
     async def _close(self):
         if not self.client:
             return
         async with self._connection_lock:
-            if not self.client:
+            if not self.client or not self.client.is_connected:
                 return
-            logger.debug("Disconnecting from %s", self.client.address)
+            logger.debug("Disconnecting from %s", self.name)
             try:
                 await self.client.disconnect()
             except BleakError:
@@ -106,6 +104,7 @@ class BleDiscovery(AbstractDiscovery):
                     "Failed to close connection, client may have already closed it"
                 )
 
+    @retry_bluetooth_connection_error()
     async def async_start_pairing(self, alias: str) -> FinishPairing:
         await self._ensure_connected()
 
@@ -126,6 +125,7 @@ class BleDiscovery(AbstractDiscovery):
             ),
         )
 
+        @retry_bluetooth_connection_error()
         async def finish_pairing(pin: str) -> BlePairing:
             check_pin_format(pin)
 
@@ -152,7 +152,9 @@ class BleDiscovery(AbstractDiscovery):
 
     async def async_identify(self) -> None:
         if self.paired:
-            raise RuntimeError("Cannot anonymously identify a paired accessory")
+            raise RuntimeError(
+                f"{self.name}: Cannot anonymously identify a paired accessory"
+            )
 
         await self._ensure_connected()
 

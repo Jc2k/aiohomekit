@@ -60,6 +60,19 @@ class BleRequest(TLVStruct):
     value: bytes = tlv_entry(AdditionalParameterTypes.Value)
 
 
+DATA_TYPE_STR = {
+    0x01: "bool",
+    0x04: "uint8",
+    0x06: "uint16",
+    0x08: "uint32",
+    0x0A: "uint64",
+    0x10: "int",
+    0x14: "float",
+    0x19: "string",
+    0x1B: "data",
+}
+
+
 @dataclass
 class Characteristic(TLVStruct):
     # raw value
@@ -136,17 +149,7 @@ class Characteristic(TLVStruct):
 
     @property
     def data_type_str(self):
-        if self.pf_format == 0x01:
-            return "bool"
-        elif self.pf_format in [0x04, 0x06, 0x08, 0x0A, 0x10]:
-            return "int"
-        elif self.pf_format == 0x14:
-            return "float"
-        elif self.pf_format == 0x19:
-            return "string"
-        elif self.pf_format == 0x1B:
-            return "data"
-        return "unknown"
+        return DATA_TYPE_STR.get(self.pf_format, "unknown")
 
     @property
     def pf_unit(self):
