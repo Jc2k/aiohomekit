@@ -192,7 +192,7 @@ async def char_read(
 
 
 async def drive_pairing_state_machine(
-    client: BleakClient,
+    client: AIOHomeKitBleakClient,
     characteristic: str,
     state_machine: Any,
 ) -> Any:

@@ -128,7 +128,6 @@ class BleDiscovery(AbstractDiscovery):
             ),
         )
 
-        @retry_bluetooth_connection_error()
         async def finish_pairing(pin: str) -> BlePairing:
             check_pin_format(pin)
 
