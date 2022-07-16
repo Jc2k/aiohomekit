@@ -83,6 +83,9 @@ class BleDiscovery(AbstractDiscovery):
         if self.client and self.client.is_connected:
             return
         async with self._connection_lock:
+            # Check again while holding the lock
+            if self.client and self.client.is_connected:
+                return
             self.client = await establish_connection(
                 self.client, self.name, self.get_address, self._async_disconnected
             )
