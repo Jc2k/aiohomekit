@@ -93,34 +93,33 @@ class BlePairing(AbstractPairing):
     This represents a paired HomeKit IP accessory.
     """
 
-    pairing_id: str
-    description: HomeKitAdvertisement | None
-    controller: BleController
-
-    _encryption_key: EncryptionKey | None = None
-    _decryption_key: DecryptionKey | None = None
-
-    client: AIOHomeKitBleakClient | None = None
-
-    # Used to keep track of which characteristics we already started
-    # notifications for
-    _notifications: set[int]
-
-    def __init__(self, controller: BleController, pairing_data):
+    def __init__(
+        self,
+        controller: BleController,
+        pairing_data: dict[str, Any],
+        client: AIOHomeKitBleakClient | None = None,
+        description: HomeKitAdvertisement | None = None,
+    ) -> None:
         super().__init__(controller)
 
         self.id = pairing_data["AccessoryPairingID"]
-
+        self.client = client
         self.pairing_data = pairing_data
+        self.description = description
+        self.controller = controller
 
-        self._session_id = None
+        # Encryption
         self._derive = None
+        self._session_id = None
+        self._encryption_key: EncryptionKey | None = None
+        self._decryption_key: DecryptionKey | None = None
 
-        self._notifications = set()
+        # Used to keep track of which characteristics we already started
+        # notifications for
+        self._notifications: set[int] = set()
 
         # Only allow one attempt to aquire the connection at a time
         self._connection_lock = asyncio.Lock()
-
         # We don't want to read/write from characteristics in parallel
         # * If 2 coroutines read from the same char at the same time there
         #   would be a race error - a read result could be overwritten by another.
@@ -128,13 +127,10 @@ class BlePairing(AbstractPairing):
         #   a read/write need to be atomic otherwise we end up having
         #   to guess what encryption counter to use for the decrypt
         self._ble_request_lock = asyncio.Lock()
-
         # Only allow a single operation at at time
         self._operation_lock = asyncio.Lock()
-
         # Only allow a single attempt to sync config at a time
         self._config_lock = asyncio.Lock()
-
         # Only subscribe to characteristics one at a time
         self._subscription_lock = asyncio.Lock()
 
@@ -480,9 +476,8 @@ class BlePairing(AbstractPairing):
                     self.description.config_num,
                 )
                 accessories = await self._async_fetch_gatt_database()
-                self._accessories_state = AccessoriesState(
-                    accessories, self.description.config_num
-                )
+                new_config_num = self.description.config_num if self.description else 0
+                self._accessories_state = AccessoriesState(accessories, new_config_num)
                 update_values = True
 
             if not self._encryption_key:
