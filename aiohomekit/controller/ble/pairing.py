@@ -281,6 +281,7 @@ class BlePairing(AbstractPairing):
                         listener(results)
 
         def _callback(id, data) -> None:
+            logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
             if max_callback_enforcer.locked():
                 # Already one being read now, and one pending
                 return
