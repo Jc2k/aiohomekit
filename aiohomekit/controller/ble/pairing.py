@@ -193,7 +193,12 @@ class BlePairing(AbstractPairing):
             return result_data
 
     def _async_disconnected(self, client: BleakClient) -> None:
-        logger.debug("%s: Session closed", self.name)
+        """Called when bleak disconnects from the accessory closed the connection."""
+        logger.debug("%s: Session closed callback", self.name)
+        self._async_reset_connection_state()
+
+    def _async_reset_connection_state(self) -> None:
+        """Reset the connection state after a disconnect."""
         self._encryption_key = None
         self._decryption_key = None
         self._notifications = set()
@@ -376,7 +381,8 @@ class BlePairing(AbstractPairing):
                     self.name,
                 )
             self.client = None
-            self._async_disconnected(self.client)
+            self._async_reset_connection_state()
+            logger.debug("%s: Connection closed from close call", self.name)
 
     async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         await self._populate_accessories_and_characteristics()
