@@ -454,10 +454,15 @@ class BlePairing(AbstractPairing):
             if config_changed:
                 self._callback_and_save_config_changed(self._config_num)
 
-            if not self._notifications and self.subscriptions:
-                for _, iid in list(self.subscriptions):
-                    if iid not in self._notifications:
-                        await self._async_start_notify(iid)
+            await self._async_start_notify_subscriptions(list(self.subscriptions))
+
+    async def _async_start_notify_subscriptions(
+        self, subscriptions: list[tuple[int, int]]
+    ) -> None:
+        """Start notifications for the given subscriptions."""
+        for _, iid in subscriptions:
+            if iid not in self._notifications:
+                await self._async_start_notify(iid)
 
     async def _process_config_changed(self, config_num: int) -> None:
         """Process a config change.
@@ -600,9 +605,7 @@ class BlePairing(AbstractPairing):
             return
         logger.debug("%s: subscribing to %s", self.name, new_chars)
         await self._populate_accessories_and_characteristics()
-        for (aid, iid) in new_chars:
-            if iid not in self._notifications:
-                await self._async_start_notify(iid)
+        await self._async_start_notify_subscriptions(new_chars)
 
     async def unsubscribe(self, characteristics):
         pass
