@@ -292,23 +292,11 @@ class BlePairing(AbstractPairing):
         self._notifications.add(iid)
 
     async def _async_pair_verify(self):
-        # If resume fails, we are allowed to try again
-        # without the previous derive and session_id but
-        # that is not yet implemented
-        try:
-            session_id, derive = await drive_pairing_state_machine(
-                self.client,
-                CharacteristicsTypes.PAIR_VERIFY,
-                get_session_keys(self.pairing_data, self._session_id, self._derive),
-            )
-        # FIXME: this should not be a broad except handler
-        except Exception:  # pylint: disable=broad-except
-            logger.debug("%s: Failed to resume, doing full", self.name)
-            session_id, derive = await drive_pairing_state_machine(
-                self.client,
-                CharacteristicsTypes.PAIR_VERIFY,
-                get_session_keys(self.pairing_data),
-            )
+        session_id, derive = await drive_pairing_state_machine(
+            self.client,
+            CharacteristicsTypes.PAIR_VERIFY,
+            get_session_keys(self.pairing_data, self._session_id, self._derive),
+        )
         self._encryption_key = EncryptionKey(
             derive(b"Control-Salt", b"Control-Write-Encryption-Key")
         )
