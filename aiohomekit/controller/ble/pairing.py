@@ -276,7 +276,7 @@ class BlePairing(AbstractPairing):
                     # Client disconnected
                     return
                 logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
-                results = await self.get_characteristics([(1, iid)])
+                results = await self._get_characteristics_without_retry([(1, iid)])
                 for listener in self.listeners:
                     listener(results)
 
@@ -549,9 +549,15 @@ class BlePairing(AbstractPairing):
                 r["controllerType"] = controller_type
         return tmp
 
-    @operation_lock
     @retry_bluetooth_connection_error
     async def get_characteristics(
+        self,
+        characteristics: list[tuple[int, int]],
+    ) -> dict[tuple[int, int], dict[str, Any]]:
+        await self._get_characteristics_without_retry(characteristics)
+
+    @operation_lock
+    async def _get_characteristics_without_retry(
         self,
         characteristics: list[tuple[int, int]],
     ) -> dict[tuple[int, int], dict[str, Any]]:
