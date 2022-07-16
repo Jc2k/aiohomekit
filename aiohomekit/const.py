@@ -15,17 +15,22 @@
 #
 
 import os
+import sys
 
 BLE_TRANSPORT_SUPPORTED = False
 COAP_TRANSPORT_SUPPORTED = False
 IP_TRANSPORT_SUPPORTED = False
 
-try:
-    if "AIOHOMEKIT_TRANSPORT_BLE" in os.environ:
-        __import__("bleak")
-        BLE_TRANSPORT_SUPPORTED = True
-except ModuleNotFoundError:
-    pass
+if "bleak" in sys.modules:
+    BLE_TRANSPORT_SUPPORTED = True
+else:
+    try:
+        if "AIOHOMEKIT_TRANSPORT_BLE" in os.environ:
+            __import__("bleak")
+            BLE_TRANSPORT_SUPPORTED = True
+    except ModuleNotFoundError:
+        pass
+
 
 try:
     if "AIOHOMEKIT_TRANSPORT_COAP" in os.environ:
