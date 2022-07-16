@@ -27,7 +27,7 @@ import uuid
 from bleak import BleakClient
 from bleak.exc import BleakError
 
-from aiohomekit.controller.ble.client import (
+from .client import (
     ble_request,
     drive_pairing_state_machine,
     get_characteristic,
@@ -635,15 +635,8 @@ class BlePairing(AbstractPairing):
                 payload = (len(payload_inner)).to_bytes(
                     length=2, byteorder="little"
                 ) + payload_inner
-                logger.debug("%s: Timed write payload: %s", self.name, payload)
-                response = await self._async_request(
-                    OpCode.CHAR_TIMED_WRITE, iid, payload
-                )
-                decoded = dict(TLV.decode_bytes(response))
-                logger.debug("%s: Timed write response: %s", self.name, decoded)
-                response = await self._async_request(OpCode.CHAR_EXEC_WRITE, iid)
-                decoded = dict(TLV.decode_bytes(response))
-                logger.debug("%s: Timed write execute response: %s", self.name, decoded)
+                await self._async_request(OpCode.CHAR_TIMED_WRITE, iid, payload)
+                await self._async_request(OpCode.CHAR_EXEC_WRITE, iid)
 
             elif CharacteristicPermissions.paired_write in char.perms:
                 payload = TLV.encode_list(
