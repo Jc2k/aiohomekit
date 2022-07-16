@@ -38,7 +38,7 @@ from aiohomekit.pdu import (
 )
 from aiohomekit.protocol.tlv import TLV
 
-from .const import HAP_MIN_REQUIRED_MTU, AdditionalParameterTypes
+from .const import HAP_MIN_REQUIRED_MTU, HAP_MIN_SHOULD_MTU, AdditionalParameterTypes
 from .structs import BleRequest
 
 logger = logging.getLogger(__name__)
@@ -227,7 +227,11 @@ class AIOHomeKitBleakClient(BleakClient):
     @property
     def mtu_size(self) -> int:
         """Return the mtu size of the client."""
-        return max(self._discovered_mtu, super().mtu_size, HAP_MIN_REQUIRED_MTU)
+        # Nanoleaf light strips fail if we use an mtu > HAP_MIN_SHOULD_MTU
+        return min(
+            HAP_MIN_SHOULD_MTU,
+            max(self._discovered_mtu, super().mtu_size, HAP_MIN_REQUIRED_MTU),
+        )
 
     async def read_gatt_char(
         self,
