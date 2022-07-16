@@ -15,10 +15,11 @@
 #
 
 from __future__ import annotations
+from ctypes import cast
 
 import logging
 import random
-from typing import Any
+from typing import Any, Callable, TypeVar
 import uuid
 
 from bleak import BleakClient
@@ -35,11 +36,35 @@ from aiohomekit.pdu import (
     encode_pdu,
 )
 from aiohomekit.protocol.tlv import TLV
+from bleak.exc import BleakError
 
 from .const import HAP_MIN_REQUIRED_MTU, AdditionalParameterTypes
 from .structs import BleRequest
 
 logger = logging.getLogger(__name__)
+
+WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
+
+
+def retry_bleak_error(func: WrapFuncType) -> WrapFuncType:
+    """Define a wrapper to retry on bleak error.
+    
+    The accessory is allowed to disconnect us any time so
+    we need to retry the operation.
+    """
+
+    async def _async_wrap(*args: Any, **kwargs: Any) -> None:
+        for attempt in range(2):
+            try:
+                await func(*args, **kwargs)
+            except BleakError:
+                if attempt == 1:
+                    raise
+                logger.debug("Bleak error calling %s, retrying...", func, exc_info=True)
+
+    return cast(WrapFuncType, _async_wrap)
+
+
 
 
 def get_characteristic(

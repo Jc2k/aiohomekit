@@ -30,6 +30,7 @@ from aiohomekit.controller.ble.client import (
     ble_request,
     drive_pairing_state_machine,
     get_characteristic,
+    retry_bleak_error,
 )
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -509,13 +510,13 @@ class BlePairing(AbstractPairing):
                 r["controllerType"] = controller_type
         return tmp
 
+    @retry_bleak_error
     async def get_characteristics(
         self,
         characteristics: list[tuple[int, int]],
     ) -> dict[tuple[int, int], dict[str, Any]]:
         await self._populate_accessories_and_characteristics()
-        results = await self._get_characteristics_while_connected(characteristics)
-        return results
+        return await self._get_characteristics_while_connected(characteristics)
 
     async def _get_characteristics_while_connected(
         self,
@@ -551,6 +552,7 @@ class BlePairing(AbstractPairing):
 
         return results
 
+    @retry_bleak_error
     async def put_characteristics(
         self, characteristics: list[tuple[int, int, Any]]
     ) -> dict[tuple[int, int], Any]:
@@ -608,6 +610,7 @@ class BlePairing(AbstractPairing):
     async def unsubscribe(self, characteristics):
         pass
 
+    @retry_bleak_error
     async def identify(self):
         await self._populate_accessories_and_characteristics()
 
@@ -622,6 +625,7 @@ class BlePairing(AbstractPairing):
             ]
         )
 
+    @retry_bleak_error
     async def add_pairing(
         self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
     ):
@@ -676,6 +680,7 @@ class BlePairing(AbstractPairing):
                 )
             raise UnknownError(f"{self.name}: Add pairing failed: unknown error")
 
+    @retry_bleak_error
     async def remove_pairing(self, pairingId: str):
         await self._populate_accessories_and_characteristics()
 
