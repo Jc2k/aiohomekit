@@ -427,7 +427,7 @@ class BlePairing(AbstractPairing):
                     char.value = result["value"]
 
     async def async_populate_accessories_state(
-        self, force_update: bool = False
+        self, force_update_values: bool = False
     ) -> None:
         """Populate the state of all accessories.
 
@@ -438,27 +438,27 @@ class BlePairing(AbstractPairing):
         AccessoryDisconnectedError.
         """
         try:
-            await self._async_populate_accessories_state(force_update)
+            await self._async_populate_accessories_state(force_update_values)
         except BleakError as ex:
             raise AccessoryDisconnectedError(f"{self.name} connection failed: {ex}")
 
     @operation_lock
     @retry_bluetooth_connection_error
     async def _async_populate_accessories_state(
-        self, force_update: bool = False
+        self, force_update_values: bool = False
     ) -> None:
         """Populate the state of all accessories under the lock."""
-        await self._populate_accessories_and_characteristics(force_update)
+        await self._populate_accessories_and_characteristics(force_update_values)
 
     async def _populate_accessories_and_characteristics(
-        self, force_update: bool = False
+        self, force_update_values: bool = False
     ) -> None:
         was_locked = False
         if self._config_lock.locked():
             was_locked = True
         async with self._config_lock:
             await self._ensure_connected()
-            if was_locked and not force_update:
+            if was_locked and not force_update_values:
                 # No need to do it twice if we already have the data
                 # and we are not forcing an update
                 return
@@ -466,10 +466,9 @@ class BlePairing(AbstractPairing):
             if not self._accessories:
                 self._load_accessories_from_cache()
 
-            update_values = force_update or not self._accessories
+            update_values = force_update_values or not self._accessories
             config_changed = False
-
-            if not config_changed and self.description:
+            if self.description:
                 config_changed = self._config_num != self.description.config_num
 
             if not self._accessories or config_changed:
