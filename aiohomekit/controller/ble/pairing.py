@@ -541,19 +541,14 @@ class BlePairing(AbstractPairing):
             char = self._accessories.aid(1).characteristics.iid(iid)
 
             if CharacteristicPermissions.timed_write in char.perms:
-                value_payload = TLV.encode_list(
-                    [(HAP_TLV.kTLVHAPParamValue, to_bytes(char, value))]
+                payload_inner = TLV.encode_list(
+                    [(HAP_TLV.kTLVHAPParamValue, to_bytes(char, value))][
+                        (HAP_TLV.kTLVHAPParamTTL, b"\x0f")
+                    ]  # 1.5s
                 )
-                ttl_payload = TLV.encode_list(
-                    [(HAP_TLV.kTLVHAPParamTTL, b"\x0f")]
-                )  # 1.5s
-                payload = (
-                    (len(value_payload) + len(ttl_payload)).to_bytes(
-                        length=2, byteorder="little"
-                    )
-                    + ttl_payload
-                    + value_payload
-                )
+                payload = (len(payload_inner)).to_bytes(
+                    length=2, byteorder="little"
+                ) + payload_inner
                 logger.debug("%s: Timed write payload: %s", self.address, payload)
                 response = await self._async_request(
                     OpCode.CHAR_TIMED_WRITE, iid, payload
