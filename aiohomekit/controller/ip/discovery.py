@@ -14,12 +14,10 @@
 # limitations under the License.
 #
 
-from typing import Any
 import uuid
 
 from aiohomekit.controller.abstract import FinishPairing
 from aiohomekit.exceptions import AlreadyPairedError
-from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.utils import check_pin_format, pair_with_auth
