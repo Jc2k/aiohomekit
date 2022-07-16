@@ -48,7 +48,7 @@ async def establish_connection(
         logger.debug("%s: Connecting", address)
         try:
             await client.connect()
-        except (asyncio.TimeoutError, BleakError) as e:
+        except (asyncio.TimeoutError, BleakError, AttributeError) as e:
             logger.debug("Failed to connect to %s: %s", address, str(e))
         else:
             logger.debug("%s: Connected", address)
