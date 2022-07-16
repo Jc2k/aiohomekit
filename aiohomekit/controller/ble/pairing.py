@@ -463,11 +463,11 @@ class BlePairing(AbstractPairing):
                 # and we are not forcing an update
                 return
 
-            update_values = force_update or not self._accessories
-            config_changed = False
-
             if not self._accessories:
                 self._load_accessories_from_cache()
+
+            update_values = force_update or not self._accessories
+            config_changed = False
 
             if not config_changed and self.description:
                 config_changed = self._config_num != self.description.config_num
