@@ -62,14 +62,14 @@ class AbstractPairing(metaclass=ABCMeta):
         return self._accessories_state
 
     @property
-    def _accessories(self) -> Accessories | None:
+    def accessories(self) -> Accessories | None:
         """Wrapper around the accessories state to make it easier to use."""
         if not self._accessories_state:
             return None
         return self._accessories_state.accessories
 
     @property
-    def _config_num(self) -> int:
+    def config_num(self) -> int:
         """Wrapper around the accessories state to make it easier to use."""
         if not self._accessories_state:
             return 0
@@ -105,17 +105,17 @@ class AbstractPairing(metaclass=ABCMeta):
         """Update the cache with the current state of the accessories."""
         self.controller._char_cache.async_create_or_update_map(
             self.id,
-            self._config_num,
-            self._accessories.serialize(),
+            self.config_num,
+            self.accessories.serialize(),
         )
 
     async def get_primary_name(self) -> str:
         """Return the primary name of the device."""
-        if not self._accessories:
+        if not self.accessories:
             accessories = await self.list_accessories_and_characteristics()
             parsed = Accessories.from_list(accessories)
         else:
-            parsed = self._accessories
+            parsed = self.accessories
 
         accessory_info = parsed.aid(1).services.first(
             service_type=ServicesTypes.ACCESSORY_INFORMATION
@@ -177,12 +177,12 @@ class AbstractPairing(metaclass=ABCMeta):
     def _callback_and_save_config_changed(self, _config_num: int) -> None:
         """Notify config changed listeners and save the config."""
         for callback in self.config_changed_listeners:
-            callback(self._config_num)
+            callback(self.config_num)
         self._update_accessories_state_cache()
 
     def notify_config_changed(self, config_num: int) -> None:
         """Notify the pairing that the config number has changed."""
-        if config_num != self._config_num:
+        if config_num != self.config_num:
             async_create_task(self._process_config_changed(config_num))
 
     async def subscribe(self, characteristics):

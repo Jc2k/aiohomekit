@@ -195,7 +195,7 @@ class BlePairing(AbstractPairing):
     async def _async_request(
         self, opcode: OpCode, iid: int, data: bytes | None = None
     ) -> bytes:
-        char = self._accessories.aid(1).characteristics.iid(iid)
+        char = self.accessories.aid(1).characteristics.iid(iid)
         endpoint = get_characteristic(self.client, char.service.type, char.type)
         async with self._ble_request_lock:
             if not self.client or not self.client.is_connected:
@@ -258,10 +258,10 @@ class BlePairing(AbstractPairing):
             #        logger.debug("%s: Failed to acquire MTU: %s", ex, address)
 
     async def _async_start_notify(self, iid: int) -> None:
-        if not self._accessories:
+        if not self.accessories:
             return
 
-        char = self._accessories.aid(1).characteristics.iid(iid)
+        char = self.accessories.aid(1).characteristics.iid(iid)
 
         # Find the GATT Characteristic object for this iid
         service = self.client.services.get_service(char.service.type)
@@ -405,11 +405,11 @@ class BlePairing(AbstractPairing):
     @retry_bluetooth_connection_error()
     async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         await self._populate_accessories_and_characteristics()
-        return self._accessories.serialize()
+        return self.accessories.serialize()
 
     async def _populate_char_values(self, config_changed: bool) -> None:
         """Populate the values of all characteristics."""
-        for service in self._accessories.aid(1).services:
+        for service in self.accessories.aid(1).services:
             if service.type in SKIP_SYNC_SERVICES:
                 continue
             if (
@@ -461,19 +461,19 @@ class BlePairing(AbstractPairing):
                 # and we are not forcing an update
                 return
 
-            if not self._accessories:
+            if not self.accessories:
                 self._load_accessories_from_cache()
 
             update_values = force_update
             config_changed = False
             if self.description:
-                config_changed = self._config_num != self.description.config_num
+                config_changed = self.config_num != self.description.config_num
 
-            if not self._accessories or config_changed:
+            if not self.accessories or config_changed:
                 logger.debug(
                     "%s: Fetching gatt database because, cached_config_num: %s, adv config_num: %s",
                     self.name,
-                    self._config_num,
+                    self.config_num,
                     self.description.config_num,
                 )
                 accessories = await self._async_fetch_gatt_database()
@@ -490,7 +490,7 @@ class BlePairing(AbstractPairing):
                 self._update_accessories_state_cache()
 
             if config_changed:
-                self._callback_and_save_config_changed(self._config_num)
+                self._callback_and_save_config_changed(self.config_num)
 
             # Only start active subscriptions if we stay connected for more
             # than subscription delay seconds.
@@ -535,7 +535,7 @@ class BlePairing(AbstractPairing):
             ]
         )
 
-        info = self._accessories.aid(1).services.first(
+        info = self.accessories.aid(1).services.first(
             service_type=ServicesTypes.PAIRING
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
@@ -591,7 +591,7 @@ class BlePairing(AbstractPairing):
             data = await self._async_request(OpCode.CHAR_READ, iid)
             decoded = dict(TLV.decode_bytes(data))[1]
 
-            char = self._accessories.aid(1).characteristics.iid(iid)
+            char = self.accessories.aid(1).characteristics.iid(iid)
             logger.debug(
                 "%s: Read characteristic got data, expected format is %s: data=%s decoded=%s",
                 self.name,
@@ -623,7 +623,7 @@ class BlePairing(AbstractPairing):
         results: dict[tuple[int, int], Any] = {}
 
         for aid, iid, value in characteristics:
-            char = self._accessories.aid(1).characteristics.iid(iid)
+            char = self.accessories.aid(1).characteristics.iid(iid)
 
             if CharacteristicPermissions.timed_write in char.perms:
                 payload_inner = TLV.encode_list(
@@ -670,7 +670,7 @@ class BlePairing(AbstractPairing):
     async def identify(self):
         await self._populate_accessories_and_characteristics()
 
-        info = self._accessories.aid(1).services.first(
+        info = self.accessories.aid(1).services.first(
             service_type=ServicesTypes.ACCESSORY_INFORMATION
         )
         char = info[CharacteristicsTypes.IDENTIFY]
@@ -714,7 +714,7 @@ class BlePairing(AbstractPairing):
             ]
         )
 
-        info = self._accessories.aid(1).services.first(
+        info = self.accessories.aid(1).services.first(
             service_type=ServicesTypes.PAIRING
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
@@ -757,7 +757,7 @@ class BlePairing(AbstractPairing):
             ]
         )
 
-        info = self._accessories.aid(1).services.first(
+        info = self.accessories.aid(1).services.first(
             service_type=ServicesTypes.PAIRING
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
