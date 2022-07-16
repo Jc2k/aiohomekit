@@ -135,6 +135,9 @@ class BlePairing(AbstractPairing):
         # Only allow a single attempt to sync config at a time
         self._config_lock = asyncio.Lock()
 
+        # Only subscribe to characteristics one at a time
+        self._subscription_lock = asyncio.Lock()
+
         self._restore_subscriptions_timer: asyncio.TimerHandle | None = None
 
     def get_address(self) -> str:
@@ -245,11 +248,13 @@ class BlePairing(AbstractPairing):
                 self.name,
                 self.subscriptions,
             )
+            # Only start active subscriptions if we stay connected for more
+            # than subscription delay seconds.
+            self._restore_subscriptions_timer = asyncio.get_event_loop().call_later(
+                SUBSCRIPTION_RESTORE_DELAY, self._restore_subscriptions
+            )
 
     async def _async_start_notify(self, iid: int) -> None:
-        if not self.accessories:
-            return
-
         char = self.accessories.aid(1).characteristics.iid(iid)
 
         # Find the GATT Characteristic object for this iid
@@ -276,13 +281,18 @@ class BlePairing(AbstractPairing):
                         listener(results)
 
         def _callback(id, data) -> None:
+            logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
             if max_callback_enforcer.locked():
                 # Already one being read now, and one pending
                 return
             async_create_task(_async_callback())
 
         logger.debug("%s: Subscribing to iid: %s", self.name, iid)
-        await self.client.start_notify(endpoint, _callback)
+        try:
+            await self.client.start_notify(endpoint, _callback)
+        except ValueError:
+            await self.client.stop_notify(endpoint)
+            await self.client.start_notify(endpoint, _callback)
         self._notifications.add(iid)
 
     async def _async_pair_verify(self):
@@ -485,12 +495,6 @@ class BlePairing(AbstractPairing):
             if config_changed:
                 self._callback_and_save_config_changed(self.config_num)
 
-            # Only start active subscriptions if we stay connected for more
-            # than subscription delay seconds.
-            self._restore_subscriptions_timer = asyncio.get_event_loop().call_later(
-                SUBSCRIPTION_RESTORE_DELAY, self._restore_subscriptions
-            )
-
     def _restore_subscriptions(self):
         """Restore subscriptions after after connecting."""
         if self.client and self.client.is_connected:
@@ -502,9 +506,17 @@ class BlePairing(AbstractPairing):
         self, subscriptions: list[tuple[int, int]]
     ) -> None:
         """Start notifications for the given subscriptions."""
+        if not self.accessories or not self.client.is_connected:
+            return
+
         for _, iid in subscriptions:
-            if iid not in self._notifications:
-                await self._async_start_notify(iid)
+            if iid in self._notifications:
+                continue
+            # The iid will not be in in self._notifications until
+            # the _async_start_notify call returns.
+            async with self._subscription_lock:
+                if iid not in self._notifications and self.client.is_connected:
+                    await self._async_start_notify(iid)
 
     @operation_lock
     @retry_bluetooth_connection_error()
