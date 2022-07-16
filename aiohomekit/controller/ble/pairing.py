@@ -188,7 +188,7 @@ class BlePairing(AbstractPairing):
             )
             if pdu_status != PDUStatus.SUCCESS:
                 raise ValueError(
-                    f"{self.client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
+                    f"{self.name}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
                 )
             return result_data
 
@@ -434,7 +434,8 @@ class BlePairing(AbstractPairing):
 
             if not self._accessories or config_changed:
                 logger.debug(
-                    "Fetching gatt database because, cached_config_num: %s, adv config_num: %s",
+                    "%s: Fetching gatt database because, cached_config_num: %s, adv config_num: %s",
+                    self.name,
                     self._config_num,
                     self.description.config_num,
                 )
@@ -623,7 +624,7 @@ class BlePairing(AbstractPairing):
         elif permissions == "Admin":
             permissions = TLV.kTLVType_Permission_AdminUser
         else:
-            raise RuntimeError(f"Unknown permission: {permissions}")
+            raise RuntimeError(f"{self.name} Unknown permission: {permissions}")
 
         request_tlv = TLV.encode_list(
             [
@@ -657,12 +658,16 @@ class BlePairing(AbstractPairing):
         data = dict(TLV.decode_bytes(response[1]))
 
         if data.get(TLV.kTLVType_State, TLV.M2) != TLV.M2:
-            raise InvalidError("Unexpected state after removing pairing request")
+            raise InvalidError(
+                f"{self.name}: Unexpected state after removing pairing request"
+            )
 
         if TLV.kTLVType_Error in data:
             if data[TLV.kTLVType_Error] == TLV.kTLVError_Authentication:
-                raise AuthenticationError("Add pairing failed: insufficient access")
-            raise UnknownError("Add pairing failed: unknown error")
+                raise AuthenticationError(
+                    f"{self.name}: Add pairing failed: insufficient access"
+                )
+            raise UnknownError(f"{self.name}: Add pairing failed: unknown error")
 
     async def remove_pairing(self, pairingId: str):
         await self._populate_accessories_and_characteristics()
@@ -694,12 +699,16 @@ class BlePairing(AbstractPairing):
         data = dict(TLV.decode_bytes(response[1]))
 
         if data.get(TLV.kTLVType_State, TLV.M2) != TLV.M2:
-            raise InvalidError("Unexpected state after removing pairing request")
+            raise InvalidError(
+                f"{self.name}: Unexpected state after removing pairing request"
+            )
 
         if TLV.kTLVType_Error in data:
             if data[TLV.kTLVType_Error] == TLV.kTLVError_Authentication:
-                raise AuthenticationError("Remove pairing failed: insufficient access")
-            raise UnknownError("Remove pairing failed: unknown error")
+                raise AuthenticationError(
+                    f"{self.name}: Remove pairing failed: insufficient access"
+                )
+            raise UnknownError(f"{self.name}: Remove pairing failed: unknown error")
 
     async def image(self, accessory: int, width: int, height: int) -> None:
         """Bluetooth devices don't return images."""
