@@ -599,7 +599,7 @@ class BlePairing(AbstractPairing):
         if not new_chars:
             return
         logger.debug("%s: subscribing to %s", self.name, new_chars)
-        await self._ensure_connected()
+        await self._populate_accessories_and_characteristics()
         for (aid, iid) in new_chars:
             if iid not in self._notifications:
                 await self._async_start_notify(iid)
