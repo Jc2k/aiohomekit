@@ -232,15 +232,6 @@ class BlePairing(AbstractPairing):
             #    except (RuntimeError, StopIteration) as ex:
             #        logger.debug("%s: Failed to acquire MTU: %s", ex, address)
 
-        # Release the lock to allow whatever operation is currently in progress
-        # that created the connection to continue
-        if not self.client or self.client.is_connected:
-            logger.debug("%s: Client not connected", self.name)
-            return
-        for _, iid in list(self.subscriptions):
-            if iid not in self._notifications:
-                await self._async_start_notify(iid)
-
     async def _async_start_notify(self, iid: int) -> None:
         if not self._accessories:
             return
@@ -463,6 +454,11 @@ class BlePairing(AbstractPairing):
             if config_changed:
                 self._callback_and_save_config_changed(self._config_num)
 
+            if not self._notifications and self.subscriptions:
+                for _, iid in list(self.subscriptions):
+                    if iid not in self._notifications:
+                        await self._async_start_notify(iid)
+
     async def _process_config_changed(self, config_num: int) -> None:
         """Process a config change.
 
@@ -510,7 +506,7 @@ class BlePairing(AbstractPairing):
                 r["permissions"] = int.from_bytes(d[1], byteorder="little")
                 r["controllerType"] = controller_type
         return tmp
-     
+
     @retry_bleak_error
     async def get_characteristics(
         self,
