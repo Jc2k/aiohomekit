@@ -554,6 +554,7 @@ class BlePairing(AbstractPairing):
                     + ttl_payload
                     + value_payload
                 )
+                logger.debug("%s: Timed write payload: %s", self.address, payload)
                 response = await self._async_request(
                     OpCode.CHAR_TIMED_WRITE, iid, payload
                 )
