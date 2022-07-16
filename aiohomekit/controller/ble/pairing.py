@@ -458,8 +458,9 @@ class BlePairing(AbstractPairing):
             was_locked = True
         async with self._config_lock:
             await self._ensure_connected()
-            if was_locked:
-                # No need to do it twice
+            if was_locked and not force_update:
+                # No need to do it twice if we already have the data
+                # and we are not forcing an update
                 return
 
             update_values = force_update or not self._accessories
