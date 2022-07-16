@@ -745,7 +745,7 @@ class BlePairing(AbstractPairing):
             raise UnknownError(f"{self.name}: Add pairing failed: unknown error")
 
     @operation_lock
-    @retry_bluetooth_connection_error
+    @retry_bluetooth_connection_error(attempts=10)
     async def remove_pairing(self, pairingId: str):
         await self._populate_accessories_and_characteristics()
 

@@ -44,8 +44,12 @@ logger = logging.getLogger(__name__)
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
+DEFAULT_ATTEMPTS = 2
 
-def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
+
+def retry_bluetooth_connection_error(
+    func: WrapFuncType, attempts: int = DEFAULT_ATTEMPTS
+) -> WrapFuncType:
     """Define a wrapper to retry on bleak error.
 
     The accessory is allowed to disconnect us any time so
@@ -53,7 +57,7 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
     """
 
     async def _async_wrap(*args: Any, **kwargs: Any) -> Any:
-        for attempt in range(2):
+        for attempt in range(attempts):
             try:
                 return await func(*args, **kwargs)
             except (AccessoryDisconnectedError, BleakError):
