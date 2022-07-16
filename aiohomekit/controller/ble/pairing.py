@@ -395,8 +395,8 @@ class BlePairing(AbstractPairing):
             self._async_reset_connection_state()
             logger.debug("%s: Connection closed from close call", self.name)
 
-    @retry_bluetooth_connection_error
     @operation_lock
+    @retry_bluetooth_connection_error
     async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         await self._populate_accessories_and_characteristics()
         return self._accessories.serialize()
@@ -491,8 +491,8 @@ class BlePairing(AbstractPairing):
         """
         await self._populate_accessories_and_characteristics()
 
-    @retry_bluetooth_connection_error
     @operation_lock
+    @retry_bluetooth_connection_error
     async def list_pairings(self):
         request_tlv = TLV.encode_list(
             [(TLV.kTLVType_State, TLV.M1), (TLV.kTLVType_Method, TLV.ListPairings)]
@@ -533,8 +533,8 @@ class BlePairing(AbstractPairing):
                 r["controllerType"] = controller_type
         return tmp
 
-    @retry_bluetooth_connection_error
     @operation_lock
+    @retry_bluetooth_connection_error
     async def get_characteristics(
         self,
         characteristics: list[tuple[int, int]],
@@ -576,8 +576,8 @@ class BlePairing(AbstractPairing):
 
         return results
 
-    @retry_bluetooth_connection_error
     @operation_lock
+    @retry_bluetooth_connection_error
     async def put_characteristics(
         self, characteristics: list[tuple[int, int, Any]]
     ) -> dict[tuple[int, int], Any]:
@@ -635,8 +635,8 @@ class BlePairing(AbstractPairing):
     async def unsubscribe(self, characteristics):
         pass
 
-    @retry_bluetooth_connection_error
     @operation_lock
+    @retry_bluetooth_connection_error
     async def identify(self):
         await self._populate_accessories_and_characteristics()
 
@@ -651,8 +651,8 @@ class BlePairing(AbstractPairing):
             ]
         )
 
-    @retry_bluetooth_connection_error
     @operation_lock
+    @retry_bluetooth_connection_error
     async def add_pairing(
         self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
     ):
@@ -707,8 +707,8 @@ class BlePairing(AbstractPairing):
                 )
             raise UnknownError(f"{self.name}: Add pairing failed: unknown error")
 
-    @retry_bluetooth_connection_error
     @operation_lock
+    @retry_bluetooth_connection_error
     async def remove_pairing(self, pairingId: str):
         await self._populate_accessories_and_characteristics()
 
