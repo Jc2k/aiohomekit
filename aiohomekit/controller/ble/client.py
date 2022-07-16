@@ -48,7 +48,7 @@ DEFAULT_ATTEMPTS = 2
 
 
 def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFuncType:
-    """Define a wrapper to retry on bluetooth connetion error."""
+    """Define a wrapper to retry on bluetooth connection error."""
 
     def _decorator_retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
         """Define a wrapper to retry on bleak error.
