@@ -75,7 +75,7 @@ def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFu
 
 
 def get_characteristic(
-    client: BleakClientWrapper, service_type: str, characteristic_type: str
+    client: AIOHomeKitBleakClient, service_type: str, characteristic_type: str
 ) -> BleakGATTCharacteristic:
     service = client.services.get_service(service_type)
     char = service.get_characteristic(characteristic_type)
@@ -83,7 +83,7 @@ def get_characteristic(
 
 
 async def get_characteristic_iid(
-    client: BleakClientWrapper, char: BleakGATTCharacteristic
+    client: AIOHomeKitBleakClient, char: BleakGATTCharacteristic
 ) -> int:
     iid_handle = char.get_descriptor(uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A"))
     value = bytes(await client.read_gatt_descriptor(iid_handle.handle))
@@ -91,7 +91,7 @@ async def get_characteristic_iid(
 
 
 async def ble_request(
-    client: BleakClientWrapper,
+    client: AIOHomeKitBleakClient,
     encryption_key: EncryptionKey | None,
     decryption_key: DecryptionKey | None,
     opcode: OpCode,
@@ -216,7 +216,7 @@ async def drive_pairing_state_machine(
             return result.value
 
 
-class BleakClientWrapper(BleakClient):
+class AIOHomeKitBleakClient(BleakClient):
     """Wrapper for bleak.BleakClient that auto discovers the max mtu."""
 
     def __init__(self, address_or_ble_device: BLEDevice | str) -> None:

@@ -30,7 +30,7 @@ from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_par
 from aiohomekit.utils import check_pin_format, pair_with_auth
 
 from .client import (
-    BleakClientWrapper,
+    AIOHomeKitBleakClient,
     char_read,
     char_write,
     drive_pairing_state_machine,
@@ -67,7 +67,7 @@ class BleDiscovery(AbstractDiscovery):
         self.controller = controller
         self.device = device
 
-        self.client: BleakClientWrapper | None = None
+        self.client: AIOHomeKitBleakClient | None = None
         self._connection_lock = asyncio.Lock()
 
     def get_address(self) -> str:
@@ -87,7 +87,7 @@ class BleDiscovery(AbstractDiscovery):
                 self.client, self.name, self.get_address, self._async_disconnected
             )
 
-    def _async_disconnected(self, client: BleakClientWrapper) -> None:
+    def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
         logger.debug("%s: Session closed", self.name)
 
     async def _close(self):

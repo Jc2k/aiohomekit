@@ -49,7 +49,7 @@ from aiohomekit.uuid import normalize_uuid
 
 from ..abstract import AbstractPairing
 from .client import (
-    BleakClientWrapper,
+    AIOHomeKitBleakClient,
     ble_request,
     drive_pairing_state_machine,
     get_characteristic,
@@ -100,7 +100,7 @@ class BlePairing(AbstractPairing):
     _encryption_key: EncryptionKey | None = None
     _decryption_key: DecryptionKey | None = None
 
-    client: BleakClientWrapper | None = None
+    client: AIOHomeKitBleakClient | None = None
 
     # Used to keep track of which characteristics we already started
     # notifications for
@@ -216,7 +216,7 @@ class BlePairing(AbstractPairing):
                 )
             return result_data
 
-    def _async_disconnected(self, client: BleakClientWrapper) -> None:
+    def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
         """Called when bleak disconnects from the accessory closed the connection."""
         logger.debug("%s: Session closed callback", self.name)
         self._async_reset_connection_state()

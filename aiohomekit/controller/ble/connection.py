@@ -24,7 +24,7 @@ from bleak.exc import BleakError
 
 from aiohomekit.exceptions import AccessoryDisconnectedError
 
-from .client import BleakClientWrapper
+from .client import AIOHomeKitBleakClient
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +33,11 @@ MAX_CONNECT_ATTEMPTS = 4
 
 async def establish_connection(
     name: str,
-    client: BleakClientWrapper | None,
+    client: AIOHomeKitBleakClient | None,
     address_callback: Callable[[None], str],
-    disconnected_callback: Callable[[BleakClientWrapper], None],
+    disconnected_callback: Callable[[AIOHomeKitBleakClient], None],
     max_attempts: int = MAX_CONNECT_ATTEMPTS,
-) -> BleakClientWrapper:
+) -> AIOHomeKitBleakClient:
     """Establish a connection to the accessory."""
     attempts = 0
     while True:
@@ -45,7 +45,7 @@ async def establish_connection(
         address = address_callback()
         if not client or client.address != address:
             # Only replace the client if the address has changed
-            client = BleakClientWrapper(address)
+            client = AIOHomeKitBleakClient(address)
             client.set_disconnected_callback(disconnected_callback)
 
         logger.debug("%s: Connecting", name)
