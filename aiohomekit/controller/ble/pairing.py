@@ -49,7 +49,6 @@ from aiohomekit.pdu import OpCode, PDUStatus, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.protocol.tlv import TLV
-from aiohomekit.tlv8 import T
 from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
