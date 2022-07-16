@@ -98,13 +98,14 @@ class BlePairing(AbstractPairing):
         controller: BleController,
         pairing_data: dict[str, Any],
         client: AIOHomeKitBleakClient | None = None,
+        description: HomeKitAdvertisement | None = None,
     ) -> None:
         super().__init__(controller)
 
         self.id = pairing_data["AccessoryPairingID"]
         self.client = client
         self.pairing_data = pairing_data
-        self.description: HomeKitAdvertisement | None = None
+        self.description = description
         self.controller = controller
 
         # Encryption
@@ -475,9 +476,8 @@ class BlePairing(AbstractPairing):
                     self.description.config_num,
                 )
                 accessories = await self._async_fetch_gatt_database()
-                self._accessories_state = AccessoriesState(
-                    accessories, self.description.config_num
-                )
+                new_config_num = self.description.config_num if self.description else 0
+                self._accessories_state = AccessoriesState(accessories, new_config_num)
                 update_values = True
 
             if not self._encryption_key:
