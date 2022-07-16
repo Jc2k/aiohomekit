@@ -287,7 +287,11 @@ class BlePairing(AbstractPairing):
             async_create_task(_async_callback())
 
         logger.debug("%s: Subscribing to iid: %s", self.name, iid)
-        await self.client.start_notify(endpoint, _callback)
+        try:
+            await self.client.start_notify(endpoint, _callback)
+        except ValueError:
+            await self.client.stop_notify(endpoint)
+            await self.client.start_notify(endpoint, _callback)
         self._notifications.add(iid)
 
     async def _async_pair_verify(self):
