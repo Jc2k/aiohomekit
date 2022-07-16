@@ -569,7 +569,7 @@ class BlePairing(AbstractPairing):
         self,
         characteristics: list[tuple[int, int]],
     ) -> dict[tuple[int, int], dict[str, Any]]:
-        await self._get_characteristics_without_retry(characteristics)
+        return await self._get_characteristics_without_retry(characteristics)
 
     @operation_lock
     async def _get_characteristics_without_retry(
