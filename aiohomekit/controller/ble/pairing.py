@@ -176,9 +176,6 @@ class BlePairing(AbstractPairing):
         char = self._accessories.aid(1).characteristics.iid(iid)
         endpoint = get_characteristic(self.client, char.service.type, char.type)
         async with self._ble_request_lock:
-            if not self.client or not self.client.is_connected:
-                logger.debug("%s: Client not connected", self.name)
-                raise AccessoryDisconnectedError(f"{self.name} is not connected")
             pdu_status, result_data = await ble_request(
                 self.client,
                 self._encryption_key,
