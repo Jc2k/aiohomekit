@@ -534,6 +534,7 @@ class BlePairing(AbstractPairing):
         return tmp
 
     @retry_bluetooth_connection_error
+    @operation_lock
     async def get_characteristics(
         self,
         characteristics: list[tuple[int, int]],
@@ -621,6 +622,7 @@ class BlePairing(AbstractPairing):
 
         return results
 
+    # No retry since disconnected events are ok as well
     @operation_lock
     async def subscribe(self, characteristics):
         new_chars = await super().subscribe(characteristics)
