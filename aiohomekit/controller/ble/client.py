@@ -16,10 +16,9 @@
 
 from __future__ import annotations
 
-from ctypes import cast
 import logging
 import random
-from typing import Any, Callable, TypeVar
+from typing import cast, Any, Callable, TypeVar
 import uuid
 
 from bleak import BleakClient
