@@ -68,6 +68,7 @@ logger = logging.getLogger(__name__)
 
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
 MAX_CONNECT_ATTEMPTS = 3
+SUBSCRIPTION_RESTORE_DELAY = 3
 SKIP_SYNC_SERVICES = {
     ServicesTypes.THREAD_TRANSPORT,
     ServicesTypes.PAIRING,
@@ -133,6 +134,8 @@ class BlePairing(AbstractPairing):
 
         # Only allow a single attempt to sync config at a time
         self._config_lock = asyncio.Lock()
+
+        self._restore_subscriptions_timer: asyncio.TimeoutError | None = None
 
     def get_address(self) -> str:
         """Return the most current address for the device."""
@@ -223,6 +226,9 @@ class BlePairing(AbstractPairing):
         self._encryption_key = None
         self._decryption_key = None
         self._notifications = set()
+        if self._restore_subscriptions_task:
+            self._restore_subscriptions_task.cancel()
+            self._restore_subscriptions_task = None
 
     async def _ensure_connected(self):
         if self.client and self.client.is_connected:
@@ -488,7 +494,18 @@ class BlePairing(AbstractPairing):
             if config_changed:
                 self._callback_and_save_config_changed(self._config_num)
 
-            await self._async_start_notify_subscriptions(list(self.subscriptions))
+            # Only start active subscriptions if we stay connected for more
+            # than subscription delay seconds.
+            self._restore_subscriptions_timer = asyncio.get_event_loop().call_later(
+                SUBSCRIPTION_RESTORE_DELAY, self._restore_subscriptions
+            )
+
+    def _restore_subscriptions(self):
+        """Restore subscriptions after after connecting."""
+        if self.client and self.client.is_connected:
+            async_create_task(
+                self._async_start_notify_subscriptions(list(self.subscriptions))
+            )
 
     async def _async_start_notify_subscriptions(
         self, subscriptions: list[tuple[int, int]]
