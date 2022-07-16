@@ -125,6 +125,7 @@ class BleDiscovery(AbstractDiscovery):
             ),
         )
 
+        @retry_bleak_error
         async def finish_pairing(pin: str) -> BlePairing:
             check_pin_format(pin)
 

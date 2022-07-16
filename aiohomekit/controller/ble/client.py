@@ -53,10 +53,10 @@ def retry_bleak_error(func: WrapFuncType) -> WrapFuncType:
     we need to retry the operation.
     """
 
-    async def _async_wrap(*args: Any, **kwargs: Any) -> None:
+    async def _async_wrap(*args: Any, **kwargs: Any) -> Any:
         for attempt in range(2):
             try:
-                await func(*args, **kwargs)
+                return await func(*args, **kwargs)
             except BleakError:
                 if attempt == 1:
                     raise
