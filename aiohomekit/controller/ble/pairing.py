@@ -27,12 +27,6 @@ import uuid
 from bleak import BleakClient
 from bleak.exc import BleakError
 
-from .client import (
-    ble_request,
-    drive_pairing_state_machine,
-    get_characteristic,
-    retry_bluetooth_connection_error,
-)
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
@@ -55,6 +49,12 @@ from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from ..abstract import AbstractPairing
+from .client import (
+    ble_request,
+    drive_pairing_state_machine,
+    get_characteristic,
+    retry_bluetooth_connection_error,
+)
 from .connection import establish_connection
 from .key import DecryptionKey, EncryptionKey
 from .manufacturer_data import HomeKitAdvertisement
