@@ -66,6 +66,11 @@ logger = logging.getLogger(__name__)
 
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
 MAX_CONNECT_ATTEMPTS = 3
+SKIP_SYNC_SERVICES = {
+    ServicesTypes.THREAD_TRANSPORT,
+    ServicesTypes.PAIRING,
+    ServicesTypes.TRANSFER_TRANSPORT_MANAGEMENT,
+}
 
 
 class BlePairing(AbstractPairing):
@@ -372,7 +377,7 @@ class BlePairing(AbstractPairing):
     async def _populate_char_values(self):
         """Populate the values of all characteristics."""
         for service in self._accessories.aid(1).services:
-            if service.type == ServicesTypes.PAIRING:
+            if service.type in SKIP_SYNC_SERVICES:
                 continue
             for char in service.characteristics:
                 if CharacteristicPermissions.paired_read not in char.perms:
