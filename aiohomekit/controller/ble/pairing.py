@@ -234,13 +234,12 @@ class BlePairing(AbstractPairing):
 
         # Release the lock to allow whatever operation is currently in progress
         # that created the connection to continue
-        async with self._connection_lock:
-            if not self.client or self.client.is_connected:
-                logger.debug("%s: Client not connected", self.name)
-                return
-            for _, iid in list(self.subscriptions):
-                if iid not in self._notifications:
-                    await self._async_start_notify(iid)
+        if not self.client or self.client.is_connected:
+            logger.debug("%s: Client not connected", self.name)
+            return
+        for _, iid in list(self.subscriptions):
+            if iid not in self._notifications:
+                await self._async_start_notify(iid)
 
     async def _async_start_notify(self, iid: int) -> None:
         if not self._accessories:
@@ -386,6 +385,7 @@ class BlePairing(AbstractPairing):
             self._async_reset_connection_state()
             logger.debug("%s: Connection closed from close call", self.name)
 
+    @retry_bleak_error
     async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         await self._populate_accessories_and_characteristics()
         return self._accessories.serialize()
@@ -470,6 +470,7 @@ class BlePairing(AbstractPairing):
         """
         await self._populate_accessories_and_characteristics()
 
+    @retry_bleak_error
     async def list_pairings(self):
         request_tlv = TLV.encode_list(
             [(TLV.kTLVType_State, TLV.M1), (TLV.kTLVType_Method, TLV.ListPairings)]
@@ -509,7 +510,7 @@ class BlePairing(AbstractPairing):
                 r["permissions"] = int.from_bytes(d[1], byteorder="little")
                 r["controllerType"] = controller_type
         return tmp
-
+     
     @retry_bleak_error
     async def get_characteristics(
         self,
