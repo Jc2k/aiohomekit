@@ -32,8 +32,8 @@ MAX_CONNECT_ATTEMPTS = 4
 
 
 async def establish_connection(
-    name: str,
     client: AIOHomeKitBleakClient | None,
+    name: str,
     address_callback: Callable[[None], str],
     disconnected_callback: Callable[[AIOHomeKitBleakClient], None],
     max_attempts: int = MAX_CONNECT_ATTEMPTS,
