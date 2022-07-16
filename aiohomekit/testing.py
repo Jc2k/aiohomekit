@@ -201,7 +201,7 @@ class FakePairing(AbstractPairing):
 
         self.id = pairing_data["AccessoryPairingID"]
 
-        self.accessories = accessories
+        self._accessories_state = AccessoriesState(accessories, 0)
         self.pairing_data: dict[str, str] = {}
         self.available = True
 
@@ -232,7 +232,7 @@ class FakePairing(AbstractPairing):
         This method should try not to fetch all the accessories unless
         we know the config num is out of date or force_update is True
         """
-        if not self._accessories or force_update:
+        if not self.accessories or force_update:
             await self.list_accessories_and_characteristics()
         return True
 

@@ -145,7 +145,7 @@ class IpPairing(AbstractPairing):
                     characteristic["type"] = normalize_uuid(characteristic["type"])
 
         self._accessories_state = AccessoriesState(
-            Accessories.from_list(accessories), self._config_num or 0
+            Accessories.from_list(accessories), self.config_num or 0
         )
         return accessories
 
@@ -219,7 +219,7 @@ class IpPairing(AbstractPairing):
         """
         await self._ensure_connected()
 
-        if not self._accessories:
+        if not self.accessories:
             await self.list_accessories_and_characteristics()
 
         url = "/characteristics?id=" + ",".join(
@@ -244,7 +244,7 @@ class IpPairing(AbstractPairing):
         """
         await self._ensure_connected()
 
-        if not self._accessories:
+        if not self.accessories:
             await self.list_accessories_and_characteristics()
 
         data = []
@@ -344,7 +344,7 @@ class IpPairing(AbstractPairing):
         This method should try not to fetch all the accessories unless
         we know the config num is out of date or force_update is True
         """
-        if not self._accessories or force_update:
+        if not self.accessories or force_update:
             await self.list_accessories_and_characteristics()
 
     async def _process_config_changed(self, config_num: int) -> None:
@@ -356,7 +356,7 @@ class IpPairing(AbstractPairing):
         self._accessories_state = AccessoriesState(
             self._accessories_state.accessories, config_num
         )
-        self._callback_and_save_config_changed(self._config_num)
+        self._callback_and_save_config_changed(self.config_num)
 
     async def identify(self):
         """
@@ -370,15 +370,15 @@ class IpPairing(AbstractPairing):
         """
         await self._ensure_connected()
 
-        if not self._accessories:
+        if not self.accessories:
             await self.list_accessories_and_characteristics()
 
         # we are looking for a characteristic of the identify type
         identify_type = CharacteristicsTypes.IDENTIFY
 
         # search all accessories, all services and all characteristics
-        logger.debug("Searching for identify characteristic in %s", self._accessories)
-        for accessory in self._accessories:
+        logger.debug("Searching for identify characteristic in %s", self.accessories)
+        for accessory in self.accessories:
             aid = accessory.aid
             for service in accessory.services:
                 for characteristic in service.characteristics:

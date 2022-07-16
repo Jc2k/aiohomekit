@@ -125,7 +125,7 @@ class CoAPPairing(AbstractPairing):
                     characteristic["type"] = normalize_uuid(characteristic["type"])
 
         self._accessories_state = AccessoriesState(
-            Accessories.from_list(accessories), self._config_num or 0
+            Accessories.from_list(accessories), self.config_num or 0
         )
         return accessories
 
@@ -148,7 +148,7 @@ class CoAPPairing(AbstractPairing):
         This method should try not to fetch all the accessories unless
         we know the config num is out of date or force_update is True
         """
-        if not self._accessories or force_update:
+        if not self.accessories or force_update:
             await self.list_accessories_and_characteristics()
 
     async def get_characteristics(
