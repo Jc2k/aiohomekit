@@ -552,8 +552,8 @@ class BlePairing(AbstractPairing):
                     (len(value_payload) + len(ttl_payload)).to_bytes(
                         length=2, byteorder="little"
                     )
-                    + value_payload
                     + ttl_payload
+                    + value_payload
                 )
                 response = await self._async_request(
                     OpCode.CHAR_TIMED_WRITE, iid, payload
