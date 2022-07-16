@@ -21,7 +21,7 @@ import logging
 from typing import TYPE_CHECKING
 import uuid
 
-from bleak import BleakClient
+from .client import BleakClientWrapper
 from bleak.exc import BleakError
 
 from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
@@ -67,7 +67,7 @@ class BleDiscovery(AbstractDiscovery):
         self.controller = controller
         self.device = device
 
-        self.client: BleakClient | None = None
+        self.client: BleakClientWrapper | None = None
         self._connection_lock = asyncio.Lock()
 
     def get_address(self) -> str:
@@ -87,7 +87,7 @@ class BleDiscovery(AbstractDiscovery):
                 self.name, self.get_address, self._async_disconnected
             )
 
-    def _async_disconnected(self, client: BleakClient) -> None:
+    def _async_disconnected(self, client: BleakClientWrapper) -> None:
         logger.debug("%s: Session closed", self.name)
 
     async def _close(self):

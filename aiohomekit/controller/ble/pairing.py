@@ -24,8 +24,8 @@ import struct
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 import uuid
 
-from bleak import BleakClient
 from bleak.exc import BleakError
+from .client import BleakClientWrapper
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -216,7 +216,7 @@ class BlePairing(AbstractPairing):
                 )
             return result_data
 
-    def _async_disconnected(self, client: BleakClient) -> None:
+    def _async_disconnected(self, client: BleakClientWrapper) -> None:
         """Called when bleak disconnects from the accessory closed the connection."""
         logger.debug("%s: Session closed callback", self.name)
         self._async_reset_connection_state()
@@ -243,19 +243,6 @@ class BlePairing(AbstractPairing):
                 self.name,
                 self.subscriptions,
             )
-            # The MTU will always be 23 if we do not fetch it
-            #
-            #  Currently doesn't work, and we need to store it forever since
-            #  it will not change
-            #
-            # if (
-            #    self.client.__class__.__name__ == "BleakClientBlueZDBus"
-            #    and not self.client._mtu_size
-            # ):
-            #    try:
-            #        await self.client._acquire_mtu()
-            #    except (RuntimeError, StopIteration) as ex:
-            #        logger.debug("%s: Failed to acquire MTU: %s", ex, address)
 
     async def _async_start_notify(self, iid: int) -> None:
         if not self.accessories:
