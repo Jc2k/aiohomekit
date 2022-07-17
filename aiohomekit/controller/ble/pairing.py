@@ -668,7 +668,7 @@ class BlePairing(AbstractPairing):
     @operation_lock
     async def subscribe(self, characteristics):
         new_chars = await super().subscribe(characteristics)
-        if not new_chars or not self.client.is_connected:
+        if not new_chars or not self.client or not self.client.is_connected:
             # Don't force a new connection if we are not already
             # connected as we will get disconnected events.
             return
