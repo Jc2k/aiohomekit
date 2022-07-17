@@ -104,7 +104,7 @@ class IpPairing(AbstractPairing):
     @property
     def poll_interval(self) -> timedelta:
         """Returns how often the device should be polled."""
-        return timedelta(minute=1)
+        return timedelta(minutes=1)
 
     def event_received(self, event):
         self._callback_listeners(format_characteristic_list(event))

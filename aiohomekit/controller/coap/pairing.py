@@ -65,7 +65,7 @@ class CoAPPairing(AbstractPairing):
     @property
     def poll_interval(self) -> timedelta:
         """Returns how often the device should be polled."""
-        return timedelta(minute=1)
+        return timedelta(minutes=1)
 
     async def _ensure_connected(self):
         # let in one coroutine at a time
