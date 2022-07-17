@@ -91,7 +91,7 @@ class BleDiscovery(AbstractDiscovery):
             )
 
     def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
-        logger.debug("%s: Session closed", self.name)
+        logger.debug("%s: Session closed callback", self.name)
 
     async def _close(self):
         if not self.client:
