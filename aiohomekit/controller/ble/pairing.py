@@ -151,20 +151,20 @@ class BlePairing(AbstractPairing):
 
     def get_address_or_ble_device(self) -> str | BLEDevice:
         """Return the most current address for the device."""
-        if self.device and self.address == self.device.address:
-            return self.device
-        return self.address
+        return self.device if self.device else self.pairing_data["AccessoryAddress"]
 
     @property
     def address(self) -> str:
+        """Return the address of the device."""
         return (
-            self.description.address
-            if self.description
+            self.device.address
+            if self.device
             else self.pairing_data["AccessoryAddress"]
         )
 
     @property
     def name(self):
+        """Return the name of the pairing."""
         if self.description:
             return f"{self.description.name} ({self.address})"
         return self.address
@@ -197,6 +197,13 @@ class BlePairing(AbstractPairing):
 
     def _async_ble_device_update(self, device: BLEDevice) -> None:
         """Update the BLE device."""
+        if device.address != self.device.address:
+            logger.debug(
+                "BLE address changed from %s to %s; closing connection",
+                self.device.address,
+                device.address,
+            )
+            async_create_task(self.close())
         self.device = device
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
@@ -208,6 +215,7 @@ class BlePairing(AbstractPairing):
             self._callback_availability_changed(True)
         if self.description != description:
             logger.debug("%s: Description updated: %s", self.address, description)
+
         repopulate_accessories = False
         if description and self.description:
             if description.config_num > self.description.config_num:
@@ -225,14 +233,6 @@ class BlePairing(AbstractPairing):
                     self.name,
                 )
                 async_create_task(self._async_process_disconnected_events())
-
-            if description.address != self.description.address:
-                logger.debug(
-                    "BLE address changed from %s to %s; closing connection",
-                    self.description.address,
-                    description.address,
-                )
-                async_create_task(self.close())
 
         super()._async_description_update(description)
         if repopulate_accessories:
