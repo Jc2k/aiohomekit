@@ -23,7 +23,6 @@ import uuid
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
-from bleak.exc import BleakError
 
 from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
 from aiohomekit.exceptions import EncryptionError
