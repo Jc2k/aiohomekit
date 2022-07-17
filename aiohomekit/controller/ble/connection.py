@@ -50,7 +50,7 @@ async def establish_connection(
 
         logger.debug("%s: Connecting", name)
         try:
-            await client.connect(BLEAK_TIMEOUT)
+            await client.connect(timeout=BLEAK_TIMEOUT)
         except asyncio.TimeoutError as e:
             logger.debug("%s: Timed out trying to connect: %s", name, str(e))
             if attempts == max_attempts:
