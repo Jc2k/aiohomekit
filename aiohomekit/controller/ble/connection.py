@@ -26,7 +26,8 @@ from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 
 logger = logging.getLogger(__name__)
 
-MAX_CONNECT_ATTEMPTS = 5
+MAX_CONNECT_ATTEMPTS = 4
+BACKOFF_TIME = 5
 
 
 async def establish_connection(
@@ -67,6 +68,6 @@ async def establish_connection(
             logger.debug("%s: Connected", name)
             return client
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(BACKOFF_TIME)
 
     raise RuntimeError("This should never happen")
