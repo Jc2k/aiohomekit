@@ -211,6 +211,14 @@ class FakePairing(AbstractPairing):
     def is_connected(self):
         return True
 
+    @property
+    def is_available(self):
+        return True
+
+    @property
+    def transport(self):
+        return "fake"
+
     async def close(self):
         """Close the connection."""
 
