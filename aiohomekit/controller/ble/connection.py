@@ -27,7 +27,8 @@ from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 logger = logging.getLogger(__name__)
 
 MAX_CONNECT_ATTEMPTS = 4
-BACKOFF_TIME = 5
+BACKOFF_TIME = 0.5
+BLEAK_TIMEOUT = 10
 
 
 async def establish_connection(
@@ -49,7 +50,7 @@ async def establish_connection(
 
         logger.debug("%s: Connecting", name)
         try:
-            await client.connect()
+            await client.connect(BLEAK_TIMEOUT)
         except asyncio.TimeoutError as e:
             logger.debug("%s: Timed out trying to connect: %s", name, str(e))
             if attempts == max_attempts:
