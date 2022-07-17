@@ -15,13 +15,18 @@
 #
 
 import asyncio
+from datetime import timedelta
 from itertools import groupby
 import json
 import logging
 from operator import itemgetter
 from typing import Any
 
-from aiohomekit.controller.abstract import AbstractPairing
+from aiohomekit.controller.abstract import (
+    AbstractController,
+    AbstractPairing,
+    AbstractPairingData,
+)
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
@@ -32,7 +37,7 @@ from aiohomekit.exceptions import (
     UnpairedError,
 )
 from aiohomekit.http import HttpContentTypes
-from aiohomekit.model import Accessories, AccessoriesState
+from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.protocol import error_handler
 from aiohomekit.protocol.statuscodes import to_status_code
@@ -67,7 +72,9 @@ class IpPairing(AbstractPairing):
     This represents a paired HomeKit IP accessory.
     """
 
-    def __init__(self, controller, pairing_data):
+    def __init__(
+        self, controller: AbstractController, pairing_data: AbstractPairingData
+    ) -> None:
         """
         Initialize a Pairing by using the data either loaded from file or obtained after calling
         Controller.perform_pairing().
@@ -83,6 +90,21 @@ class IpPairing(AbstractPairing):
     @property
     def is_connected(self) -> bool:
         return self.connection.is_connected
+
+    @property
+    def is_available(self) -> bool:
+        """Returns true if the device is currently available."""
+        return self.connection.is_connected
+
+    @property
+    def transport(self) -> Transport:
+        """The transport used for the connection."""
+        return Transport.IP
+
+    @property
+    def poll_interval(self) -> timedelta:
+        """Returns how often the device should be polled."""
+        return timedelta(minutes=1)
 
     def event_received(self, event):
         self._callback_listeners(format_characteristic_list(event))
@@ -116,6 +138,9 @@ class IpPairing(AbstractPairing):
             raise AccessoryDisconnectedError(
                 f"Ensure connection returned but still not connected: {self.connection.host}:{self.connection.port}"
             )
+
+        else:
+            self._callback_availability_changed(True)
 
     async def close(self) -> None:
         """

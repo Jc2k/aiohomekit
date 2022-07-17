@@ -18,9 +18,11 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from datetime import timedelta
 import logging
 import random
 import struct
+import time
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 import uuid
 
@@ -28,6 +30,7 @@ from bleak.exc import BleakError
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
+    AccessoryNotFoundError,
     AuthenticationError,
     InvalidError,
     UnknownError,
@@ -37,6 +40,7 @@ from aiohomekit.model import (
     AccessoriesState,
     Accessory,
     CharacteristicsTypes,
+    Transport,
 )
 from aiohomekit.model.characteristics import CharacteristicPermissions
 from aiohomekit.model.services import ServicesTypes
@@ -47,9 +51,9 @@ from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
-from ..abstract import AbstractPairing
+from ..abstract import AbstractPairing, AbstractPairingData
+from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 from .client import (
-    AIOHomeKitBleakClient,
     ble_request,
     drive_pairing_state_machine,
     get_characteristic,
@@ -66,9 +70,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+AVAILABILITY_INTERVAL = 1800  # 30 minutes
+NEVER_TIME = -AVAILABILITY_INTERVAL
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
 MAX_CONNECT_ATTEMPTS = 3
-SUBSCRIPTION_RESTORE_DELAY = 3
+SUBSCRIPTION_RESTORE_DELAY = 1
 SKIP_SYNC_SERVICES = {
     ServicesTypes.THREAD_TRANSPORT,
     ServicesTypes.PAIRING,
@@ -96,7 +102,7 @@ class BlePairing(AbstractPairing):
     def __init__(
         self,
         controller: BleController,
-        pairing_data: dict[str, Any],
+        pairing_data: AbstractPairingData,
         client: AIOHomeKitBleakClient | None = None,
         description: HomeKitAdvertisement | None = None,
     ) -> None:
@@ -107,6 +113,7 @@ class BlePairing(AbstractPairing):
         self.pairing_data = pairing_data
         self.description = description
         self.controller = controller
+        self._last_seen = time.monotonic() if description else NEVER_TIME
 
         # Encryption
         self._derive = None
@@ -156,9 +163,37 @@ class BlePairing(AbstractPairing):
 
     @property
     def is_connected(self) -> bool:
-        return self.client and self.client.is_connected and self._encryption_key
+        return bool(self.client and self.client.is_connected and self._encryption_key)
+
+    @property
+    def is_available(self) -> bool:
+        """Returns true if the device is currently available."""
+        return self._is_available_at_time(time.monotonic())
+
+    @property
+    def poll_interval(self) -> timedelta:
+        """Returns how often the device should be polled."""
+        if any(a.needs_polling for a in self.accessories):
+            # Currently only used for devices that have energy data
+            return timedelta(minutes=5)
+        return timedelta(hours=24)
+
+    def _is_available_at_time(self, monotonic: float) -> bool:
+        """Check if we are considered available at the given time."""
+        return self.is_connected or monotonic - self._last_seen < AVAILABILITY_INTERVAL
+
+    @property
+    def transport(self) -> Transport:
+        """The transport used for the connection."""
+        return Transport.BLE
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
+        """Update the description of the accessory."""
+        now = time.monotonic()
+        was_available = self._is_available_at_time(now)
+        self._last_seen = now
+        if not was_available:
+            self._callback_availability_changed(True)
         if self.description != description:
             logger.debug("%s: Description updated: %s", self.address, description)
         repopulate_accessories = False
@@ -189,7 +224,7 @@ class BlePairing(AbstractPairing):
 
         super()._async_description_update(description)
         if repopulate_accessories:
-            async_create_task(self._populate_accessories_and_characteristics())
+            async_create_task(self._async_process_config_changed())
 
     async def _async_request(
         self, opcode: OpCode, iid: int, data: bytes | None = None
@@ -312,11 +347,33 @@ class BlePairing(AbstractPairing):
         self._session_id = session_id
         self._derive = derive
 
+    async def _async_process_config_changed(self) -> None:
+        """Handle config changed seen from the advertisement."""
+        try:
+            await self._populate_accessories_and_characteristics()
+        except (
+            AccessoryDisconnectedError,
+            *BLEAK_EXCEPTIONS,
+            AccessoryNotFoundError,
+        ) as exc:
+            logger.warning("%s: Failed to process config change: %s", self.name, exc)
+
     async def _async_process_disconnected_events(self) -> None:
+        """Handle disconnected events seen from the advertisement."""
         logger.debug(
             "%s: Polling subscriptions for changes during disconnection", self.name
         )
-        results = await self.get_characteristics(list(self.subscriptions))
+        try:
+            results = await self.get_characteristics(list(self.subscriptions))
+        except (
+            AccessoryDisconnectedError,
+            *BLEAK_EXCEPTIONS,
+            AccessoryNotFoundError,
+        ) as exc:
+            logger.warning(
+                "%s: Failed to fetch disconnected events: %s", self.name, exc
+            )
+
         for listener in self.listeners:
             listener(results)
 
@@ -648,7 +705,9 @@ class BlePairing(AbstractPairing):
     @operation_lock
     async def subscribe(self, characteristics):
         new_chars = await super().subscribe(characteristics)
-        if not new_chars:
+        if not new_chars or not self.client or not self.client.is_connected:
+            # Don't force a new connection if we are not already
+            # connected as we will get disconnected events.
             return
         logger.debug("%s: subscribing to %s", self.name, new_chars)
         await self._populate_accessories_and_characteristics()

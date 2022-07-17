@@ -15,12 +15,17 @@
 #
 
 import asyncio
+from datetime import timedelta
 import logging
 from typing import Any
 
-from aiohomekit.controller.abstract import AbstractPairing
+from aiohomekit.controller.abstract import (
+    AbstractController,
+    AbstractPairing,
+    AbstractPairingData,
+)
 from aiohomekit.exceptions import AccessoryDisconnectedError
-from aiohomekit.model import Accessories, AccessoriesState
+from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.uuid import normalize_uuid
 
 from .connection import CoAPHomeKitConnection
@@ -29,7 +34,9 @@ logger = logging.getLogger(__name__)
 
 
 class CoAPPairing(AbstractPairing):
-    def __init__(self, controller, pairing_data):
+    def __init__(
+        self, controller: AbstractController, pairing_data: AbstractPairingData
+    ) -> None:
         super().__init__(controller)
 
         self.id = pairing_data["AccessoryPairingID"]
@@ -44,6 +51,21 @@ class CoAPPairing(AbstractPairing):
     @property
     def is_connected(self):
         return self.connection.is_connected
+
+    @property
+    def is_available(self) -> bool:
+        """Returns true if the device is currently available."""
+        return self.connection.is_connected
+
+    @property
+    def transport(self) -> Transport:
+        """The transport used for the connection."""
+        return Transport.COAP
+
+    @property
+    def poll_interval(self) -> timedelta:
+        """Returns how often the device should be polled."""
+        return timedelta(minutes=1)
 
     async def _ensure_connected(self):
         # let in one coroutine at a time
@@ -81,6 +103,7 @@ class CoAPPairing(AbstractPairing):
                     % (len(self.subscriptions), self.subscriptions)
                 )
                 await self.connection.subscribe_to(list(self.subscriptions))
+            self._callback_availability_changed(True)
         finally:
             # until we re-acquire the lock & clear connection_future,
             # other coroutines that show up will all hit the .wait() path.

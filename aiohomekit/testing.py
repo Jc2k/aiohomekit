@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass
+from datetime import timedelta
 import logging
 from typing import AsyncIterable
 
@@ -26,10 +27,11 @@ from aiohomekit.controller.abstract import (
     AbstractController,
     AbstractDiscovery,
     AbstractPairing,
+    AbstractPairingData,
     FinishPairing,
 )
 from aiohomekit.exceptions import AccessoryNotFoundError
-from aiohomekit.model import Accessories, AccessoriesState
+from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.status_flags import StatusFlags
@@ -195,7 +197,12 @@ class FakePairing(AbstractPairing):
     class.
     """
 
-    def __init__(self, controller, pairing_data, accessories: Accessories):
+    def __init__(
+        self,
+        controller: AbstractController,
+        pairing_data: AbstractPairingData,
+        accessories: Accessories,
+    ) -> None:
         """Create a fake pairing from an accessory model."""
         super().__init__(controller)
 
@@ -208,8 +215,21 @@ class FakePairing(AbstractPairing):
         self.testing = PairingTester(self)
 
     @property
-    def is_connected(self):
+    def is_connected(self) -> bool:
         return True
+
+    @property
+    def is_available(self) -> bool:
+        return True
+
+    @property
+    def transport(self) -> Transport:
+        return Transport.IP
+
+    @property
+    def poll_interval(self) -> timedelta:
+        """Returns how often the device should be polled."""
+        return timedelta(minutes=1)
 
     async def close(self):
         """Close the connection."""

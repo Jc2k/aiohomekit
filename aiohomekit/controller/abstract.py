@@ -17,10 +17,13 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, AsyncIterable, Awaitable, Callable, Protocol, final
+from collections.abc import Iterable
+from dataclasses import dataclass
+from datetime import timedelta
+from typing import Any, AsyncIterable, Awaitable, Callable, TypedDict, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
-from aiohomekit.model import Accessories, AccessoriesState
+from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.characteristics.characteristic_types import CharacteristicsTypes
 from aiohomekit.model.services.service_types import ServicesTypes
@@ -28,14 +31,24 @@ from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.utils import async_create_task
 
 
-class AbstractDescription(Protocol):
+class AbstractPairingData(TypedDict, total=False):
+
+    AccessoryPairingID: str
+    AccessoryLTPK: str
+    iOSPairingId: str
+    iOSDeviceLTSK: str
+    iOSDeviceLTPK: str
+    AccessoryAddress: str
+    Connection: str
+
+
+@dataclass
+class AbstractDescription:
 
     name: str
     id: str
-    model: str
     status_flags: StatusFlags
     config_num: int
-    state_num: int
     category: Categories
 
 
@@ -51,8 +64,9 @@ class AbstractPairing(metaclass=ABCMeta):
 
     def __init__(self, controller: AbstractController) -> None:
         self.controller = controller
-        self.listeners = set()
-        self.subscriptions = set()
+        self.listeners: set[Callable[[dict], None]] = set()
+        self.subscriptions: set[tuple[int, int]] = set()
+        self.availability_listeners: set[Callable[[bool], None]] = set()
         self.config_changed_listeners: set[Callable[[int], None]] = set()
         self._accessories_state: AccessoriesState | None = None
 
@@ -78,10 +92,22 @@ class AbstractPairing(metaclass=ABCMeta):
     @property
     @abstractmethod
     def is_connected(self) -> bool:
-        """
-        Returns true if the device is currently connected.
-        """
-        pass
+        """Returns true if the device is currently connected."""
+
+    @property
+    @abstractmethod
+    def is_available(self) -> bool:
+        """Returns true if the device is currently available."""
+
+    @property
+    @abstractmethod
+    def transport(self) -> Transport:
+        """The transport used for the connection."""
+
+    @property
+    @abstractmethod
+    def poll_interval(self) -> timedelta:
+        """Returns how often the device should be polled."""
 
     def _async_description_update(self, description: AbstractDescription | None):
         self.description = description
@@ -174,6 +200,11 @@ class AbstractPairing(metaclass=ABCMeta):
         This method is called when the config num changes.
         """
 
+    def _callback_availability_changed(self, available: bool) -> None:
+        """Notify availability changed listeners."""
+        for callback in self.availability_listeners:
+            callback(available)
+
     def _callback_and_save_config_changed(self, _config_num: int) -> None:
         """Notify config changed listeners and save the config."""
         for callback in self.config_changed_listeners:
@@ -185,12 +216,14 @@ class AbstractPairing(metaclass=ABCMeta):
         if config_num != self.config_num:
             async_create_task(self._process_config_changed(config_num))
 
-    async def subscribe(self, characteristics):
+    async def subscribe(
+        self, characteristics: Iterable[tuple[int, int]]
+    ) -> set[tuple[int, int]]:
         new_characteristics = set(characteristics) - self.subscriptions
         self.subscriptions.update(characteristics)
         return new_characteristics
 
-    async def unsubscribe(self, characteristics):
+    async def unsubscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
         self.subscriptions.difference_update(characteristics)
 
     async def reconnect_soon(self):
@@ -200,9 +233,24 @@ class AbstractPairing(metaclass=ABCMeta):
         This will be removed in a future release.
         """
 
+    def dispatcher_availability_changed(
+        self, callback: Callable[[bool], None]
+    ) -> Callable[[], None]:
+        """Notify subscribers when availablity changes.
+
+        Currently this only notifies when a device is seen as available and
+        not when it is seen as unavailable.
+        """
+        self.availability_listeners.add(callback)
+
+        def stop_listening():
+            self.availability_listeners.discard(callback)
+
+        return stop_listening
+
     def dispatcher_connect_config_changed(
         self, callback: Callable[[int], None]
-    ) -> None:
+    ) -> Callable[[], None]:
         """Notify subscribers of a new accessories state."""
         self.config_changed_listeners.add(callback)
 
@@ -211,7 +259,9 @@ class AbstractPairing(metaclass=ABCMeta):
 
         return stop_listening
 
-    def dispatcher_connect(self, callback):
+    def dispatcher_connect(
+        self, callback: Callable[[dict], None]
+    ) -> Callable[[], None]:
         """
         Register an event handler to be called when a characteristic (or multiple characteristics) change.
 
@@ -219,7 +269,6 @@ class AbstractPairing(metaclass=ABCMeta):
 
         The callback is called in the event loop, but should not be a coroutine.
         """
-
         self.listeners.add(callback)
 
         def stop_listening():

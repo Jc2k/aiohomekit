@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 import json
 from typing import Any, Iterable, Iterator
 
@@ -39,7 +40,20 @@ __all__ = [
     "CharacteristicFormats",
     "FeatureFlags",
     "Accessory",
+    "Transport",
 ]
+
+NEEDS_POLLINGS_CHARS = {
+    CharacteristicsTypes.VENDOR_EVE_ENERGY_WATT,
+    CharacteristicsTypes.VENDOR_CONNECTSENSE_ENERGY_WATT,
+}
+
+
+class Transport(Enum):
+
+    BLE = "ble"
+    COAP = "coap"
+    IP = "ip"
 
 
 class Services:
@@ -191,6 +205,19 @@ class Accessory:
     @property
     def available(self) -> bool:
         return all(s.available for s in self.services)
+
+    @property
+    def needs_polling(self) -> bool:
+        """Check if there are any chars that need polling.
+
+        Currently this is only used for BLE devices that have
+        energy consumption characteristics.
+        """
+        for s in self.services:
+            for c in s.characteristics:
+                if c.type in NEEDS_POLLINGS_CHARS:
+                    return True
+        return False
 
     @classmethod
     def create_from_dict(cls, data: dict[str, Any]) -> Accessory:
