@@ -25,11 +25,12 @@ import struct
 import time
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 import uuid
-
+from .bleak import BLEAK_EXCEPTIONS
 from bleak.exc import BleakError
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
+    AccessoryNotFoundError,
     AuthenticationError,
     InvalidError,
     UnknownError,
@@ -350,7 +351,14 @@ class BlePairing(AbstractPairing):
         logger.debug(
             "%s: Polling subscriptions for changes during disconnection", self.name
         )
-        results = await self.get_characteristics(list(self.subscriptions))
+        try:
+            results = await self.get_characteristics(list(self.subscriptions))
+        except (
+            AccessoryDisconnectedError,
+            *BLEAK_EXCEPTIONS,
+            AccessoryNotFoundError,
+        ) as exc:
+            logger.warning("Failed to fetch disconnected events: %s", exc)
         for listener in self.listeners:
             listener(results)
 
