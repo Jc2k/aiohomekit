@@ -2,6 +2,7 @@ import asyncio
 from unittest import mock
 
 import pytest
+from aiohomekit.controller.ip.pairing import IpPairing
 
 from aiohomekit.model import Transport
 from aiohomekit.protocol.statuscodes import HapStatusCode
@@ -32,7 +33,7 @@ async def test_duplicate_get_characteristics(pairing):
     assert characteristics[(1, 9)] == {"value": False}
 
 
-async def test_get_characteristics_after_failure(pairing):
+async def test_get_characteristics_after_failure(pairing: IpPairing):
     characteristics = await pairing.get_characteristics([(1, 9)])
 
     assert characteristics[(1, 9)] == {"value": False}
@@ -40,22 +41,25 @@ async def test_get_characteristics_after_failure(pairing):
     pairing.connection.transport.close()
     await asyncio.sleep(0)
     assert not pairing.connection.is_connected
+    assert not pairing.is_available
 
     characteristics = await pairing.get_characteristics([(1, 9)])
 
     assert characteristics[(1, 9)] == {"value": False}
 
 
-async def test_reconnect_soon_after_disconnected(pairing):
+async def test_reconnect_soon_after_disconnected(pairing: IpPairing):
     characteristics = await pairing.get_characteristics([(1, 9)])
 
     assert characteristics[(1, 9)] == {"value": False}
 
     assert pairing.connection.is_connected
+    assert pairing.is_available
 
     pairing.connection.transport.close()
     await asyncio.sleep(0)
     assert not pairing.connection.is_connected
+    assert not pairing.is_available
 
     # Ensure we can safely call multiple times
     await pairing.reconnect_soon()
@@ -70,12 +74,13 @@ async def test_reconnect_soon_after_disconnected(pairing):
     assert characteristics[(1, 9)] == {"value": False}
 
 
-async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing):
+async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing: IpPairing):
     characteristics = await pairing.get_characteristics([(1, 9)])
 
     assert characteristics[(1, 9)] == {"value": False}
 
     assert pairing.connection.is_connected
+    assert pairing.is_available
 
     with mock.patch(
         "aiohomekit.controller.ip.connection.HomeKitConnection._connect_once",
@@ -84,6 +89,7 @@ async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing):
         pairing.connection.transport.close()
         await asyncio.sleep(0)
         assert not pairing.connection.is_connected
+        assert not pairing.is_available
 
         for _ in range(3):
             await pairing.reconnect_soon()
@@ -96,6 +102,7 @@ async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing):
     await pairing.reconnect_soon()
     await asyncio.wait_for(pairing.connection._connector, timeout=0.5)
     assert pairing.connection.is_connected
+    assert pairing.is_available
 
     characteristics = await pairing.get_characteristics([(1, 9)])
 
