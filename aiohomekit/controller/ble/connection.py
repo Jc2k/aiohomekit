@@ -20,7 +20,7 @@ import asyncio
 from collections.abc import Callable
 import logging
 
-from aiohomekit.exceptions import AccessoryDisconnectedError
+from aiohomekit.exceptions import AccessoryDisconnectedError, AccessoryNotFoundError
 
 from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 
@@ -50,15 +50,23 @@ async def establish_connection(
         try:
             await client.connect()
         except asyncio.TimeoutError as e:
-            logger.debug("Timed out trying to connect to %s: %s", name, str(e))
+            logger.debug("%s: Timed out trying to connect: %s", name, str(e))
+            if attempts == max_attempts:
+                raise AccessoryDisconnectedError(
+                    f"{name}: Timed out trying to connect: {e}"
+                ) from e
         except BLEAK_EXCEPTIONS as e:
-            logger.debug("Failed to connect to %s: %s", name, str(e))
+            logger.debug("%s: Failed to connect: %s", name, str(e))
+            if attempts == max_attempts:
+                msg = f"{name}: Failed to connect: {e}"
+                # Sure would be nice if bleak gave us typed exceptions
+                if "not found" in str(e):
+                    raise AccessoryNotFoundError(msg) from e
+                raise AccessoryDisconnectedError(msg) from e
         else:
             logger.debug("%s: Connected", name)
             return client
 
-        if attempts == max_attempts:
-            break
         await asyncio.sleep(5)
 
-    raise AccessoryDisconnectedError(f"Failed to connect to {name}")
+    raise RuntimeError("This should never happen")
