@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import Any, AsyncIterable, Awaitable, Callable, Protocol, TypedDict, final
+from typing import Any, AsyncIterable, Awaitable, Callable, TypedDict, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.model import Accessories, AccessoriesState
