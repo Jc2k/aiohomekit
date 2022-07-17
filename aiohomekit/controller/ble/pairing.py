@@ -358,7 +358,9 @@ class BlePairing(AbstractPairing):
             *BLEAK_EXCEPTIONS,
             AccessoryNotFoundError,
         ) as exc:
-            logger.warning("Failed to fetch disconnected events: %s", exc)
+            logger.warning(
+                "%s: Failed to fetch disconnected events: %s", self.name, exc
+            )
         for listener in self.listeners:
             listener(results)
 
