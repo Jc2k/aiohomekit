@@ -19,10 +19,12 @@ from itertools import groupby
 import json
 import logging
 from operator import itemgetter
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aiohomekit.controller.abstract import AbstractPairing, AbstractPairingData
-from aiohomekit.controller.ip.controller import IpController
+
+if TYPE_CHECKING:
+    from aiohomekit.controller.ip.controller import IpController
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
