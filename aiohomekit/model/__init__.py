@@ -16,9 +16,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 import json
 from typing import Any, Iterable, Iterator
-from enum import Enum
+
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.uuid import normalize_uuid
 
