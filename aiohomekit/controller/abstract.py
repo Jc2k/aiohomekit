@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, AsyncIterable, Awaitable, Callable, Protocol, final
+from typing import Any, AsyncIterable, Awaitable, Callable, Protocol, TypedDict, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.model import Accessories, AccessoriesState
@@ -26,6 +26,17 @@ from aiohomekit.model.characteristics.characteristic_types import Characteristic
 from aiohomekit.model.services.service_types import ServicesTypes
 from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.utils import async_create_task
+
+
+class AbstractPairingData(TypedDict, total=False):
+
+    AccessoryPairingID: str
+    AccessoryLTPK: str
+    iOSPairingId: str
+    iOSDeviceLTSK: str
+    iOSDeviceLTPK: str
+    AccessoryAddress: str
+    Connection: str
 
 
 class AbstractDescription(Protocol):
@@ -78,10 +89,17 @@ class AbstractPairing(metaclass=ABCMeta):
     @property
     @abstractmethod
     def is_connected(self) -> bool:
-        """
-        Returns true if the device is currently connected.
-        """
-        pass
+        """Returns true if the device is currently connected."""
+
+    @property
+    @abstractmethod
+    def is_available(self) -> bool:
+        """Returns true if the device is currently available."""
+
+    @property
+    @abstractmethod
+    def transport(self):
+        """The transport used for the connection."""
 
     def _async_description_update(self, description: AbstractDescription | None):
         self.description = description

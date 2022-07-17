@@ -21,7 +21,8 @@ import logging
 from operator import itemgetter
 from typing import Any
 
-from aiohomekit.controller.abstract import AbstractPairing
+from aiohomekit.controller.abstract import AbstractPairing, AbstractPairingData
+from aiohomekit.controller.ip.controller import IpController
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
@@ -67,7 +68,9 @@ class IpPairing(AbstractPairing):
     This represents a paired HomeKit IP accessory.
     """
 
-    def __init__(self, controller, pairing_data):
+    def __init__(
+        self, controller: IpController, pairing_data: AbstractPairingData
+    ) -> None:
         """
         Initialize a Pairing by using the data either loaded from file or obtained after calling
         Controller.perform_pairing().
@@ -83,6 +86,16 @@ class IpPairing(AbstractPairing):
     @property
     def is_connected(self) -> bool:
         return self.connection.is_connected
+
+    @property
+    def is_available(self) -> bool:
+        """Returns true if the device is currently available."""
+        return self.connection.is_connected
+
+    @property
+    def transport(self):
+        """The transport used for the connection."""
+        return "ip"
 
     def event_received(self, event):
         self._callback_listeners(format_characteristic_list(event))

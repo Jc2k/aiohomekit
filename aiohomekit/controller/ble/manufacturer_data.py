@@ -3,21 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 import struct
 
+from aiohomekit.controller.abstract import AbstractDescription
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.status_flags import StatusFlags
 
 
 @dataclass
-class HomeKitAdvertisement:
+class HomeKitAdvertisement(AbstractDescription):
 
-    name: str
-    id: str
-    category: Categories
-    status_flags: StatusFlags
-    config_num: int
-    state_num: int
     setup_hash: bytes
-
     address: str
 
     @classmethod

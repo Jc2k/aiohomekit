@@ -18,7 +18,8 @@ import asyncio
 import logging
 from typing import Any
 
-from aiohomekit.controller.abstract import AbstractPairing
+from aiohomekit.controller.abstract import AbstractPairing, AbstractPairingData
+from aiohomekit.controller.coap.controller import CoAPController
 from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.uuid import normalize_uuid
@@ -29,7 +30,9 @@ logger = logging.getLogger(__name__)
 
 
 class CoAPPairing(AbstractPairing):
-    def __init__(self, controller, pairing_data):
+    def __init__(
+        self, controller: CoAPController, pairing_data: AbstractPairingData
+    ) -> None:
         super().__init__(controller)
 
         self.id = pairing_data["AccessoryPairingID"]
@@ -44,6 +47,16 @@ class CoAPPairing(AbstractPairing):
     @property
     def is_connected(self):
         return self.connection.is_connected
+
+    @property
+    def is_available(self) -> bool:
+        """Returns true if the device is currently available."""
+        return self.connection.is_connected
+
+    @property
+    def transport(self):
+        """The transport used for the connection."""
+        return "coap"
 
     async def _ensure_connected(self):
         # let in one coroutine at a time

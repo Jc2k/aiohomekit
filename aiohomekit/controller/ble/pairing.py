@@ -21,6 +21,7 @@ from collections.abc import Callable
 import logging
 import random
 import struct
+import time
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 import uuid
 
@@ -47,9 +48,9 @@ from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
-from ..abstract import AbstractPairing
+from ..abstract import AbstractPairing, AbstractPairingData
+from .bleak import AIOHomeKitBleakClient
 from .client import (
-    AIOHomeKitBleakClient,
     ble_request,
     drive_pairing_state_machine,
     get_characteristic,
@@ -66,6 +67,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+AVAILABILITY_INTERVAL = 1800  # 30 minutes
+NEVER_TIME = -AVAILABILITY_INTERVAL
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
 MAX_CONNECT_ATTEMPTS = 3
 SUBSCRIPTION_RESTORE_DELAY = 3
@@ -96,7 +99,7 @@ class BlePairing(AbstractPairing):
     def __init__(
         self,
         controller: BleController,
-        pairing_data: dict[str, Any],
+        pairing_data: AbstractPairingData,
         client: AIOHomeKitBleakClient | None = None,
         description: HomeKitAdvertisement | None = None,
     ) -> None:
@@ -107,6 +110,7 @@ class BlePairing(AbstractPairing):
         self.pairing_data = pairing_data
         self.description = description
         self.controller = controller
+        self._last_seen = time.monotonic() if description else NEVER_TIME
 
         # Encryption
         self._derive = None
@@ -158,7 +162,22 @@ class BlePairing(AbstractPairing):
     def is_connected(self) -> bool:
         return self.client and self.client.is_connected and self._encryption_key
 
+    @property
+    def is_available(self) -> bool:
+        """Returns true if the device is currently available."""
+        return (
+            self.is_connected
+            or time.monotonic() - self._last_seen < AVAILABILITY_INTERVAL
+        )
+
+    @property
+    def transport(self):
+        """The transport used for the connection."""
+        return "ble"
+
     def _async_description_update(self, description: HomeKitAdvertisement | None):
+        """Update the description of the accessory."""
+        self._last_seen = time.monotonic()
         if self.description != description:
             logger.debug("%s: Description updated: %s", self.address, description)
         repopulate_accessories = False

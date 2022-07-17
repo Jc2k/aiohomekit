@@ -29,8 +29,8 @@ from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
 from aiohomekit.utils import check_pin_format, pair_with_auth
 
+from .bleak import AIOHomeKitBleakClient
 from .client import (
-    AIOHomeKitBleakClient,
     char_read,
     char_write,
     drive_pairing_state_machine,
