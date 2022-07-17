@@ -9,7 +9,7 @@ from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakDBusError, BleakError
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
-from aiohomekit.controller.abstract import AbstractController
+from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.controller.ble.manufacturer_data import HomeKitAdvertisement
 from aiohomekit.controller.ble.pairing import BlePairing
 from aiohomekit.exceptions import AccessoryNotFoundError
@@ -74,7 +74,7 @@ class BleController(AbstractController):
             yield device
 
     def load_pairing(
-        self, alias: str, pairing_data: dict[str, Any]
+        self, alias: str, pairing_data: AbstractPairingData
     ) -> BlePairing | None:
         if pairing_data["Connection"] != "BLE":
             return None
@@ -82,7 +82,11 @@ class BleController(AbstractController):
         if not (hkid := pairing_data.get("AccessoryPairingID")):
             return None
 
-        pairing = self.pairings[hkid.lower()] = BlePairing(self, pairing_data)
+        id_ = hkid.lower()
+        device: BLEDevice | None = None
+        if discovery := self.discoveries.get(id_):
+            device = discovery.device
+        pairing = self.pairings[id_] = BlePairing(self, pairing_data, device=device)
         self.aliases[alias] = pairing
 
         return pairing

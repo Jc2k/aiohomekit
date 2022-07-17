@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 import uuid
 
 from bleak.exc import BleakError
+from bleak.backends.device import BLEDevice
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -106,12 +107,14 @@ class BlePairing(AbstractPairing):
         self,
         controller: BleController,
         pairing_data: AbstractPairingData,
+        device: BLEDevice | None = None,
         client: AIOHomeKitBleakClient | None = None,
         description: HomeKitAdvertisement | None = None,
     ) -> None:
         super().__init__(controller)
 
         self.id = pairing_data["AccessoryPairingID"]
+        self.device = device
         self.client = client
         self.pairing_data = pairing_data
         self.description = description
@@ -146,8 +149,10 @@ class BlePairing(AbstractPairing):
 
         self._restore_subscriptions_timer: asyncio.TimerHandle | None = None
 
-    def get_address(self) -> str:
+    def get_address_or_ble_device(self) -> str | BLEDevice:
         """Return the most current address for the device."""
+        if self.address == self.device.address:
+            return self.device
         return self.address
 
     @property
@@ -275,7 +280,10 @@ class BlePairing(AbstractPairing):
             if self.client and self.client.is_connected:
                 return
             self.client = await establish_connection(
-                self.client, self.name, self.get_address, self._async_disconnected
+                self.client,
+                self.name,
+                self.get_address_or_ble_device,
+                self._async_disconnected,
             )
             logger.debug(
                 "%s: Connected, processing subscriptions: %s",
