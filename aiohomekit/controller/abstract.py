@@ -193,7 +193,7 @@ class AbstractPairing(metaclass=ABCMeta):
         This method is called when the config num changes.
         """
 
-    def _callback_availability_changed(self, _config_num: int) -> None:
+    def _callback_availability_changed(self, available: bool) -> None:
         """Notify availability changed listeners."""
         for callback in self.availability_listeners:
             callback(self.is_available)
