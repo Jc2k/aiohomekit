@@ -28,10 +28,16 @@ from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 
 logger = logging.getLogger(__name__)
 
-MAX_CONNECT_ATTEMPTS = 3
 MAX_TRANSIENT_ERRORS = 8
-BLEAK_TIMEOUT = 12
-OVERALL_TIMEOUT = 13
+
+# Shorter time outs and more attempts
+# seems to be better for dbus, and corebluetooth
+# is happy either way. Ideally we want everything
+# to finish in ~35s or declare we cannot connect
+
+MAX_CONNECT_ATTEMPTS = 5
+BLEAK_TIMEOUT = 6.75
+OVERALL_TIMEOUT = 7
 
 TRANSIENT_ERRORS = {"le-connection-abort-by-local", "br-connection-canceled"}
 
