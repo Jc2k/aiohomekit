@@ -76,8 +76,8 @@ async def establish_connection(
             address = address_or_ble_device.address
             logger.debug("%s: Using existing BLE device with address %s", name, address)
         else:
-            logger.debug("%s: Resolving BLE device  with address %s", name, address)
             address = address_or_ble_device
+            logger.debug("%s: Resolving BLE device  with address %s", name, address)
         if not client or client.address != address:
             # Only replace the client if the address has changed
             logger.debug(
