@@ -64,7 +64,7 @@ class AbstractPairing(metaclass=ABCMeta):
         self.controller = controller
         self.listeners = set()
         self.subscriptions = set()
-        self.availability_listeners = set[Callable[[bool], None]] = set()
+        self.availability_listeners: set[Callable[[bool], None]] = set()
         self.config_changed_listeners: set[Callable[[int], None]] = set()
         self._accessories_state: AccessoriesState | None = None
 
