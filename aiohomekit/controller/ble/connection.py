@@ -28,10 +28,15 @@ from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 
 logger = logging.getLogger(__name__)
 
-MAX_CONNECT_ATTEMPTS = 4
+MAX_CONNECT_ATTEMPTS = 3
+MAX_TRANSIENT_ERRORS = 8
 BLEAK_TIMEOUT = 9
 OVERALL_TIMEOUT = 10
 
+TRANSIENT_ERRORS = {
+    "le-connection-abort-by-local",
+    "br-connection-canceled"
+}
 
 async def establish_connection(
     client: AIOHomeKitBleakClient | None,
@@ -41,37 +46,50 @@ async def establish_connection(
     max_attempts: int = MAX_CONNECT_ATTEMPTS,
 ) -> AIOHomeKitBleakClient:
     """Establish a connection to the accessory."""
-    attempts = 0
+    timeouts = 0
+    connect_errors = 0
+    transient_errors = 0
+    attempt = 0
+
+    def _raise_if_needed(name: str, exc: Exception) -> None:
+        """Raise if we reach the max attempts."""
+        if timeouts + connect_errors < max_attempts and transient_errors < MAX_TRANSIENT_ERRORS:
+            return
+        msg = f"{name}: Failed to connect: {exc}"
+        # Sure would be nice if bleak gave us typed exceptions
+        if "not found" in str(e):
+            raise AccessoryNotFoundError(msg) from exc
+        raise AccessoryDisconnectedError(msg) from exc
+
+
     while True:
-        attempts += 1
+        attempt += 1
         address = address_callback()
         if not client or client.address != address:
             # Only replace the client if the address has changed
             client = AIOHomeKitBleakClient(address)
             client.set_disconnected_callback(disconnected_callback)
 
-        logger.debug("%s: Connecting", name)
+        logger.debug("%s: Connecting (attempt: %s)", name, attempt)
         try:
             async with async_timeout.timeout(OVERALL_TIMEOUT):
                 # Sometimes the timeout does not actually happen so we wrap
                 # it will yet another timeout
                 await client.connect(timeout=BLEAK_TIMEOUT)
         except asyncio.TimeoutError as e:
-            logger.debug("%s: Timed out trying to connect: %s", name, str(e))
-            if attempts == max_attempts:
-                raise AccessoryDisconnectedError(
-                    f"{name}: Timed out trying to connect: {e}"
-                ) from e
+            timeouts += 1
+            logger.debug("%s: Timed out trying to connect (attempt: %s: %s", name, str(e), attempt)
+            _raise_if_needed(name, e)
         except BLEAK_EXCEPTIONS as e:
-            logger.debug("%s: Failed to connect: %s", name, str(e))
-            if attempts == max_attempts:
-                msg = f"{name}: Failed to connect: {e}"
-                # Sure would be nice if bleak gave us typed exceptions
-                if "not found" in str(e):
-                    raise AccessoryNotFoundError(msg) from e
-                raise AccessoryDisconnectedError(msg) from e
+            bleak_error = str(e)
+            if any(error in bleak_error for error in TRANSIENT_ERRORS):
+                transient_errors += 1
+            else:
+                connect_errors += 1
+            logger.debug("%s: Failed to connect: %s (attempt: %s)", name, str(e), attempt)
+            _raise_if_needed(name, e)
         else:
-            logger.debug("%s: Connected", name)
+            logger.debug("%s: Connected (attempt: %s)", name, attempt)
             return client
 
     raise RuntimeError("This should never happen")
