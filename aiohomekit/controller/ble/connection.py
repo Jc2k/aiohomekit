@@ -71,6 +71,7 @@ async def establish_connection(
 
     while True:
         attempt += 1
+
         address_or_ble_device: str | BLEDevice = address_or_ble_device_callback()
         if isinstance(address_or_ble_device, BLEDevice):
             address = address_or_ble_device.address
@@ -78,12 +79,13 @@ async def establish_connection(
         else:
             address = address_or_ble_device
             logger.debug("%s: Resolving BLE device  with address %s", name, address)
+
         if not client or client.address != address:
             # Only replace the client if the address has changed
             logger.debug(
                 "%s: Creating new client because address changed from %s to %s",
                 name,
-                client.address,
+                client.address if client else None,
                 address,
             )
             client = AIOHomeKitBleakClient(address)
