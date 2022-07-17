@@ -2,8 +2,8 @@ import asyncio
 from unittest import mock
 
 import pytest
-from aiohomekit.controller.ip.pairing import IpPairing
 
+from aiohomekit.controller.ip.pairing import IpPairing
 from aiohomekit.model import Transport
 from aiohomekit.protocol.statuscodes import HapStatusCode
 
