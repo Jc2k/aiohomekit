@@ -462,3 +462,11 @@ def test_enum_encode():
     status = accessories.aid(1).characteristics.iid(117)
     status.value = ThreadStatus.DISABLED
     assert status.to_accessory_and_service_list()["value"] == 1
+
+
+def test_needs_polling():
+    accessories = Accessories.from_file("tests/fixtures/eve_energy.json")
+    assert any(a.needs_polling for a in accessories) is True
+
+    accessories = Accessories.from_file("tests/fixtures/nanoleaf_bulb.json")
+    assert any(a.needs_polling for a in accessories) is False
