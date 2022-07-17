@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass
+from datetime import timedelta
 import logging
 from typing import AsyncIterable
 
@@ -224,6 +225,11 @@ class FakePairing(AbstractPairing):
     @property
     def transport(self) -> Transport:
         return Transport.IP
+
+    @property
+    def poll_interval(self) -> timedelta:
+        """Returns how often the device should be polled."""
+        return timedelta(minutes=1)
 
     async def close(self):
         """Close the connection."""
