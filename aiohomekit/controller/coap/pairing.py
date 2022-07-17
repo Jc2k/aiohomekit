@@ -18,8 +18,11 @@ import asyncio
 import logging
 from typing import Any
 
-from aiohomekit.controller.abstract import AbstractPairing, AbstractPairingData
-from aiohomekit.controller.coap.controller import CoAPController
+from aiohomekit.controller.abstract import (
+    AbstractController,
+    AbstractPairing,
+    AbstractPairingData,
+)
 from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Accessories, AccessoriesState
 from aiohomekit.uuid import normalize_uuid
@@ -31,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class CoAPPairing(AbstractPairing):
     def __init__(
-        self, controller: CoAPController, pairing_data: AbstractPairingData
+        self, controller: AbstractController, pairing_data: AbstractPairingData
     ) -> None:
         super().__init__(controller)
 
