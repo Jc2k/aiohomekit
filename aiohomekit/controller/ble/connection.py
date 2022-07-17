@@ -28,7 +28,7 @@ from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 
 logger = logging.getLogger(__name__)
 
-MAX_TRANSIENT_ERRORS = 8
+MAX_TRANSIENT_ERRORS = 9
 
 # Shorter time outs and more attempts
 # seems to be better for dbus, and corebluetooth
