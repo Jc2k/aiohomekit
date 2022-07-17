@@ -64,6 +64,7 @@ class AbstractPairing(metaclass=ABCMeta):
         self.controller = controller
         self.listeners = set()
         self.subscriptions = set()
+        self.availability_listeners = set[Callable[[bool], None]] = set()
         self.config_changed_listeners: set[Callable[[int], None]] = set()
         self._accessories_state: AccessoriesState | None = None
 
@@ -192,6 +193,11 @@ class AbstractPairing(metaclass=ABCMeta):
         This method is called when the config num changes.
         """
 
+    def _callback_availability_changed(self, _config_num: int) -> None:
+        """Notify availability changed listeners."""
+        for callback in self.availability_listeners:
+            callback(self.is_available)
+
     def _callback_and_save_config_changed(self, _config_num: int) -> None:
         """Notify config changed listeners and save the config."""
         for callback in self.config_changed_listeners:
@@ -218,6 +224,19 @@ class AbstractPairing(metaclass=ABCMeta):
         This will be removed in a future release.
         """
 
+    def dispatcher_availability_changed(self, callback: Callable[[bool], None]) -> None:
+        """Notify subscribers when availablity changes.
+
+        Currently this only notifies when a device is seen as available and
+        not when it is seen as unavailable.
+        """
+        self.availability_listeners.add(callback)
+
+        def stop_listening():
+            self.availability_listeners.discard(callback)
+
+        return stop_listening
+
     def dispatcher_connect_config_changed(
         self, callback: Callable[[int], None]
     ) -> None:
@@ -237,7 +256,6 @@ class AbstractPairing(metaclass=ABCMeta):
 
         The callback is called in the event loop, but should not be a coroutine.
         """
-
         self.listeners.add(callback)
 
         def stop_listening():

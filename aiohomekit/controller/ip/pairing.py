@@ -133,6 +133,9 @@ class IpPairing(AbstractPairing):
                 f"Ensure connection returned but still not connected: {self.connection.host}:{self.connection.port}"
             )
 
+        else:
+            self._callback_availability_changed(True)
+
     async def close(self) -> None:
         """
         Close the pairing's communications. This closes the session.

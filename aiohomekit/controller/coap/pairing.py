@@ -97,6 +97,7 @@ class CoAPPairing(AbstractPairing):
                     % (len(self.subscriptions), self.subscriptions)
                 )
                 await self.connection.subscribe_to(list(self.subscriptions))
+            self._callback_availability_changed(True)
         finally:
             # until we re-acquire the lock & clear connection_future,
             # other coroutines that show up will all hit the .wait() path.

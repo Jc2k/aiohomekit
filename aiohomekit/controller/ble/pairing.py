@@ -166,10 +166,11 @@ class BlePairing(AbstractPairing):
     @property
     def is_available(self) -> bool:
         """Returns true if the device is currently available."""
-        return (
-            self.is_connected
-            or time.monotonic() - self._last_seen < AVAILABILITY_INTERVAL
-        )
+        return self._is_available_at_time(time.monotonic())
+
+    def _is_available_at_time(self, monotonic: float) -> bool:
+        """Check if we are considered available at the given time."""
+        return self.is_connected or monotonic - self._last_seen < AVAILABILITY_INTERVAL
 
     @property
     def transport(self) -> Transport:
@@ -178,7 +179,11 @@ class BlePairing(AbstractPairing):
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         """Update the description of the accessory."""
-        self._last_seen = time.monotonic()
+        now = time.monotonic()
+        was_available = self._is_available_at_time(now)
+        self._last_seen = now
+        if not was_available:
+            self._callback_availability_changed(True)
         if self.description != description:
             logger.debug("%s: Description updated: %s", self.address, description)
         repopulate_accessories = False
