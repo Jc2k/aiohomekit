@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 
+from aiohomekit.model import Transport
 from aiohomekit.protocol.statuscodes import HapStatusCode
 
 
@@ -278,3 +279,7 @@ async def test_add_and_remove_pairings(pairing):
 async def test_identify(pairing):
     identified = await pairing.identify()
     assert identified is True
+
+
+async def test_transport_property(pairing):
+    assert pairing.transport == Transport.IP
