@@ -151,7 +151,7 @@ class BlePairing(AbstractPairing):
 
     def get_address_or_ble_device(self) -> str | BLEDevice:
         """Return the most current address for the device."""
-        if self.address == self.device.address:
+        if self.device and self.address == self.device.address:
             return self.device
         return self.address
 
@@ -194,6 +194,10 @@ class BlePairing(AbstractPairing):
     def transport(self) -> Transport:
         """The transport used for the connection."""
         return Transport.BLE
+
+    def _async_device_update(self, device: BLEDevice) -> None:
+        """Update the BLE device."""
+        self.device = device
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         """Update the description of the accessory."""
