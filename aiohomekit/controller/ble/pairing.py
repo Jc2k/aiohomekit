@@ -278,6 +278,10 @@ class BlePairing(AbstractPairing):
 
         def _callback(id, data) -> None:
             logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
+            if data != b"":
+                # We should only poll on empty messages, otherwise we may poll
+                # the device every second on DBUS systems.
+                return
             if max_callback_enforcer.locked():
                 # Already one being read now, and one pending
                 return
