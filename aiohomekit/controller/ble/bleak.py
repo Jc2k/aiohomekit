@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-from bleak import BleakClient
+from typing import Any
+import uuid
+
+from bleak import BleakClient, BleakError
 from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.backends.device import BLEDevice
 
 from .const import HAP_MIN_REQUIRED_MTU, HAP_MIN_SHOULD_MTU
+
+BLEAK_EXCEPTIONS = (AttributeError, BleakError)
 
 
 class AIOHomeKitBleakClient(BleakClient):
