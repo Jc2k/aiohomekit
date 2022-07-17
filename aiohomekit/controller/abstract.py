@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
+from dataclasses import dataclass
 from typing import Any, AsyncIterable, Awaitable, Callable, Protocol, TypedDict, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
@@ -39,14 +40,13 @@ class AbstractPairingData(TypedDict, total=False):
     Connection: str
 
 
-class AbstractDescription(Protocol):
+@dataclass
+class AbstractDescription:
 
     name: str
     id: str
-    model: str
     status_flags: StatusFlags
     config_num: int
-    state_num: int
     category: Categories
 
 

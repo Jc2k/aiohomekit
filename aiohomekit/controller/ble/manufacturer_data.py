@@ -13,6 +13,7 @@ class HomeKitAdvertisement(AbstractDescription):
 
     setup_hash: bytes
     address: str
+    state_num: int
 
     @classmethod
     def from_manufacturer_data(
