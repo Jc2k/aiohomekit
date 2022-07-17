@@ -58,7 +58,7 @@ async def establish_connection(
             return
         msg = f"{name}: Failed to connect: {exc}"
         # Sure would be nice if bleak gave us typed exceptions
-        if "not found" in str(e):
+        if "not found" in str(exc):
             raise AccessoryNotFoundError(msg) from exc
         raise AccessoryDisconnectedError(msg) from exc
 
@@ -76,20 +76,20 @@ async def establish_connection(
                 # Sometimes the timeout does not actually happen so we wrap
                 # it will yet another timeout
                 await client.connect(timeout=BLEAK_TIMEOUT)
-        except asyncio.TimeoutError as e:
+        except asyncio.TimeoutError as exc:
             timeouts += 1
             logger.debug("%s: Timed out trying to connect (attempt: %s)", name, attempt)
-            _raise_if_needed(name, e)
-        except BLEAK_EXCEPTIONS as e:
-            bleak_error = str(e)
+            _raise_if_needed(name, exc)
+        except BLEAK_EXCEPTIONS as exc:
+            bleak_error = str(exc)
             if any(error in bleak_error for error in TRANSIENT_ERRORS):
                 transient_errors += 1
             else:
                 connect_errors += 1
             logger.debug(
-                "%s: Failed to connect: %s (attempt: %s)", name, str(e), attempt
+                "%s: Failed to connect: %s (attempt: %s)", name, str(exc), attempt
             )
-            _raise_if_needed(name, e)
+            _raise_if_needed(name, exc)
         else:
             logger.debug("%s: Connected (attempt: %s)", name, attempt)
             return client
