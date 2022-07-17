@@ -36,7 +36,7 @@ from aiohomekit.exceptions import (
     UnpairedError,
 )
 from aiohomekit.http import HttpContentTypes
-from aiohomekit.model import Accessories, AccessoriesState
+from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.protocol import error_handler
 from aiohomekit.protocol.statuscodes import to_status_code
@@ -96,9 +96,9 @@ class IpPairing(AbstractPairing):
         return self.connection.is_connected
 
     @property
-    def transport(self):
+    def transport(self) -> Transport:
         """The transport used for the connection."""
-        return "ip"
+        return Transport.IP
 
     def event_received(self, event):
         self._callback_listeners(format_characteristic_list(event))

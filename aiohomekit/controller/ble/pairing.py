@@ -38,6 +38,7 @@ from aiohomekit.model import (
     AccessoriesState,
     Accessory,
     CharacteristicsTypes,
+    Transport,
 )
 from aiohomekit.model.characteristics import CharacteristicPermissions
 from aiohomekit.model.services import ServicesTypes
@@ -171,9 +172,9 @@ class BlePairing(AbstractPairing):
         )
 
     @property
-    def transport(self):
+    def transport(self) -> Transport:
         """The transport used for the connection."""
-        return "ble"
+        return Transport.BLE
 
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         """Update the description of the accessory."""

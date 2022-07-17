@@ -24,7 +24,7 @@ from aiohomekit.controller.abstract import (
     AbstractPairingData,
 )
 from aiohomekit.exceptions import AccessoryDisconnectedError
-from aiohomekit.model import Accessories, AccessoriesState
+from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.uuid import normalize_uuid
 
 from .connection import CoAPHomeKitConnection
@@ -57,9 +57,9 @@ class CoAPPairing(AbstractPairing):
         return self.connection.is_connected
 
     @property
-    def transport(self):
+    def transport(self) -> Transport:
         """The transport used for the connection."""
-        return "coap"
+        return Transport.COAP
 
     async def _ensure_connected(self):
         # let in one coroutine at a time
