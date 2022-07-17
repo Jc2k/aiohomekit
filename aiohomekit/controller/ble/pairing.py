@@ -162,7 +162,7 @@ class BlePairing(AbstractPairing):
 
     @property
     def is_connected(self) -> bool:
-        return self.client and self.client.is_connected and self._encryption_key
+        return bool(self.client and self.client.is_connected and self._encryption_key)
 
     @property
     def is_available(self) -> bool:

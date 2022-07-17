@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 MAX_CONNECT_ATTEMPTS = 3
 MAX_TRANSIENT_ERRORS = 8
-BLEAK_TIMEOUT = 9
-OVERALL_TIMEOUT = 10
+BLEAK_TIMEOUT = 12
+OVERALL_TIMEOUT = 13
 
 TRANSIENT_ERRORS = {"le-connection-abort-by-local", "br-connection-canceled"}
 
