@@ -27,6 +27,7 @@ from aiohomekit.exceptions import AccessoryDisconnectedError, AccessoryNotFoundE
 from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 
 logger = logging.getLogger(__name__)
+from bleak.backends.device import BLEDevice
 
 MAX_TRANSIENT_ERRORS = 9
 
@@ -45,7 +46,7 @@ TRANSIENT_ERRORS = {"le-connection-abort-by-local", "br-connection-canceled"}
 async def establish_connection(
     client: AIOHomeKitBleakClient | None,
     name: str,
-    address_callback: Callable[[None], str],
+    address_or_ble_device_callback: Callable[[None], str | BLEDevice],
     disconnected_callback: Callable[[AIOHomeKitBleakClient], None],
     max_attempts: int = MAX_CONNECT_ATTEMPTS,
 ) -> AIOHomeKitBleakClient:
@@ -70,9 +71,19 @@ async def establish_connection(
 
     while True:
         attempt += 1
-        address = address_callback()
+        address_or_ble_device: str | BLEDevice = address_or_ble_device_callback()
+        if isinstance(address_or_ble_device, BLEDevice):
+            address = address_or_ble_device.address
+        else:
+            address = address_or_ble_device
         if not client or client.address != address:
             # Only replace the client if the address has changed
+            logger.debug(
+                "%s: Creating new client because address changed from %s to %s",
+                name,
+                client.address,
+                address,
+            )
             client = AIOHomeKitBleakClient(address)
             client.set_disconnected_callback(disconnected_callback)
 

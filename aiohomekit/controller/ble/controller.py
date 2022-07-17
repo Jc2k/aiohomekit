@@ -5,12 +5,13 @@ from typing import Any, AsyncIterable
 
 from bleak import BleakScanner
 from bleak.exc import BleakDBusError, BleakError
-
+from bleak.backends.scanner import AdvertisementData
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController
 from aiohomekit.controller.ble.manufacturer_data import HomeKitAdvertisement
 from aiohomekit.controller.ble.pairing import BlePairing
 from aiohomekit.exceptions import AccessoryNotFoundError
+from bleak.backends.device import BLEDevice
 
 from .discovery import BleDiscovery
 
@@ -27,7 +28,9 @@ class BleController(AbstractController):
     def __init__(self, char_cache: CharacteristicCacheType):
         super().__init__(char_cache=char_cache)
 
-    def _device_detected(self, device, advertisement_data):
+    def _device_detected(
+        self, device: BLEDevice, advertisement_data: AdvertisementData
+    ) -> None:
         try:
             data = HomeKitAdvertisement.from_advertisement(device, advertisement_data)
         except ValueError:
