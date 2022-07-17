@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from datetime import timedelta
 import logging
 import random
 import struct
@@ -167,6 +168,13 @@ class BlePairing(AbstractPairing):
     def is_available(self) -> bool:
         """Returns true if the device is currently available."""
         return self._is_available_at_time(time.monotonic())
+
+    @property
+    def poll_interval(self) -> timedelta:
+        """Returns how often the device should be polled."""
+        if any(a.needs_polling for a in self.accessories):
+            return timedelta(minute=1)
+        return timedelta(hours=24)
 
     def _is_available_at_time(self, monotonic: float) -> bool:
         """Check if we are considered available at the given time."""

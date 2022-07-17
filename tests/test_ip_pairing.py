@@ -1,4 +1,5 @@
 import asyncio
+from datetime import timedelta
 from unittest import mock
 
 import pytest
@@ -288,5 +289,9 @@ async def test_identify(pairing):
     assert identified is True
 
 
-async def test_transport_property(pairing):
+async def test_transport_property(pairing: IpPairing):
     assert pairing.transport == Transport.IP
+
+
+async def test_polling_property(pairing: IpPairing):
+    assert pairing.poll_interval == timedelta(seconds=60)

@@ -43,6 +43,11 @@ __all__ = [
     "Transport",
 ]
 
+NEEDS_POLLINGS_CHARS = {
+    CharacteristicsTypes.VENDOR_EVE_ENERGY_WATT,
+    CharacteristicsTypes.VENDOR_CONNECTSENSE_ENERGY_WATT,
+}
+
 
 class Transport(Enum):
 
@@ -200,6 +205,19 @@ class Accessory:
     @property
     def available(self) -> bool:
         return all(s.available for s in self.services)
+
+    @property
+    def needs_polling(self) -> bool:
+        """Check if there are any chars that need polling.
+
+        Currently this is only used for BLE devices that have
+        energy consumption characteristics.
+        """
+        for s in self.services:
+            for c in s.characteristics:
+                if c.type in NEEDS_POLLINGS_CHARS:
+                    return True
+        return False
 
     @classmethod
     def create_from_dict(cls, data: dict[str, Any]) -> Accessory:

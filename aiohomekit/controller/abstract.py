@@ -19,6 +19,7 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any, AsyncIterable, Awaitable, Callable, TypedDict, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
@@ -102,6 +103,11 @@ class AbstractPairing(metaclass=ABCMeta):
     @abstractmethod
     def transport(self) -> Transport:
         """The transport used for the connection."""
+
+    @property
+    @abstractmethod
+    def poll_interval(self) -> timedelta:
+        """Returns how often the device should be polled."""
 
     def _async_description_update(self, description: AbstractDescription | None):
         self.description = description

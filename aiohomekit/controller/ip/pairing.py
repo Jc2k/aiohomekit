@@ -15,6 +15,7 @@
 #
 
 import asyncio
+from datetime import timedelta
 from itertools import groupby
 import json
 import logging
@@ -99,6 +100,11 @@ class IpPairing(AbstractPairing):
     def transport(self) -> Transport:
         """The transport used for the connection."""
         return Transport.IP
+
+    @property
+    def poll_interval(self) -> timedelta:
+        """Returns how often the device should be polled."""
+        return timedelta(minute=1)
 
     def event_received(self, event):
         self._callback_listeners(format_characteristic_list(event))

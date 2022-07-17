@@ -15,6 +15,7 @@
 #
 
 import asyncio
+from datetime import timedelta
 import logging
 from typing import Any
 
@@ -60,6 +61,11 @@ class CoAPPairing(AbstractPairing):
     def transport(self) -> Transport:
         """The transport used for the connection."""
         return Transport.COAP
+
+    @property
+    def poll_interval(self) -> timedelta:
+        """Returns how often the device should be polled."""
+        return timedelta(minute=1)
 
     async def _ensure_connected(self):
         # let in one coroutine at a time
