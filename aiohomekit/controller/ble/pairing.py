@@ -25,7 +25,7 @@ import struct
 import time
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 import uuid
-from .bleak import BLEAK_EXCEPTIONS
+
 from bleak.exc import BleakError
 
 from aiohomekit.exceptions import (
@@ -52,7 +52,7 @@ from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from ..abstract import AbstractPairing, AbstractPairingData
-from .bleak import AIOHomeKitBleakClient
+from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 from .client import (
     ble_request,
     drive_pairing_state_machine,
