@@ -39,6 +39,7 @@ class BleController(AbstractController):
 
         if pairing := self.pairings.get(data.id):
             pairing._async_description_update(data)
+            pairing._async_ble_device_update(device)
 
         if data.id in self.discoveries:
             self.discoveries[data.id]._async_process_advertisement(data)
