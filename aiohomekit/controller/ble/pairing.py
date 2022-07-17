@@ -224,7 +224,7 @@ class BlePairing(AbstractPairing):
 
         super()._async_description_update(description)
         if repopulate_accessories:
-            async_create_task(self._populate_accessories_and_characteristics())
+            async_create_task(self._async_process_config_changed())
 
     async def _async_request(
         self, opcode: OpCode, iid: int, data: bytes | None = None
@@ -347,7 +347,19 @@ class BlePairing(AbstractPairing):
         self._session_id = session_id
         self._derive = derive
 
+    async def _async_process_config_changed(self) -> None:
+        """Handle config changed seen from the advertisement."""
+        try:
+            await self._populate_accessories_and_characteristics()
+        except (
+            AccessoryDisconnectedError,
+            *BLEAK_EXCEPTIONS,
+            AccessoryNotFoundError,
+        ) as exc:
+            logger.warning("%s: Failed to process config change: %s", self.name, exc)
+
     async def _async_process_disconnected_events(self) -> None:
+        """Handle disconnected events seen from the advertisement."""
         logger.debug(
             "%s: Polling subscriptions for changes during disconnection", self.name
         )
@@ -361,6 +373,7 @@ class BlePairing(AbstractPairing):
             logger.warning(
                 "%s: Failed to fetch disconnected events: %s", self.name, exc
             )
+
         for listener in self.listeners:
             listener(results)
 
