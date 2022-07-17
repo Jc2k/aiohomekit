@@ -17,9 +17,10 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any, AsyncIterable, Awaitable, Callable, TypedDict, final
-from collections.abc import Iterable
+
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.categories import Categories
