@@ -197,7 +197,7 @@ class BlePairing(AbstractPairing):
 
     def _async_ble_device_update(self, device: BLEDevice) -> None:
         """Update the BLE device."""
-        if device.address != self.device.address:
+        if self.device and device.address != self.device.address:
             logger.debug(
                 "BLE address changed from %s to %s; closing connection",
                 self.device.address,
