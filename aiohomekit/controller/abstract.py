@@ -196,7 +196,7 @@ class AbstractPairing(metaclass=ABCMeta):
     def _callback_availability_changed(self, available: bool) -> None:
         """Notify availability changed listeners."""
         for callback in self.availability_listeners:
-            callback(self.is_available)
+            callback(available)
 
     def _callback_and_save_config_changed(self, _config_num: int) -> None:
         """Notify config changed listeners and save the config."""
