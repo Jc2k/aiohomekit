@@ -156,7 +156,7 @@ class BlePairing(AbstractPairing):
         return self.address
 
     @property
-    def address(self):
+    def address(self) -> str:
         return (
             self.description.address
             if self.description
@@ -195,7 +195,7 @@ class BlePairing(AbstractPairing):
         """The transport used for the connection."""
         return Transport.BLE
 
-    def _async_device_update(self, device: BLEDevice) -> None:
+    def _async_ble_device_update(self, device: BLEDevice) -> None:
         """Update the BLE device."""
         self.device = device
 
