@@ -20,6 +20,8 @@ import asyncio
 from collections.abc import Callable
 import logging
 
+import async_timeout
+
 from aiohomekit.exceptions import AccessoryDisconnectedError, AccessoryNotFoundError
 
 from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
@@ -27,7 +29,8 @@ from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 logger = logging.getLogger(__name__)
 
 MAX_CONNECT_ATTEMPTS = 5
-BLEAK_TIMEOUT = 10
+BLEAK_TIMEOUT = 9
+OVERALL_TIMEOUT = 10
 
 
 async def establish_connection(
@@ -49,7 +52,10 @@ async def establish_connection(
 
         logger.debug("%s: Connecting", name)
         try:
-            await client.connect(timeout=BLEAK_TIMEOUT)
+            async with async_timeout.timeout(OVERALL_TIMEOUT):
+                # Sometimes the timeout does not actually happen so we wrap
+                # it will yet another timeout
+                await client.connect(timeout=BLEAK_TIMEOUT)
         except asyncio.TimeoutError as e:
             logger.debug("%s: Timed out trying to connect: %s", name, str(e))
             if attempts == max_attempts:
