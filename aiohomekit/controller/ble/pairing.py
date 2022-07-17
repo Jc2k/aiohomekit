@@ -99,6 +99,9 @@ class BlePairing(AbstractPairing):
     This represents a paired HomeKit IP accessory.
     """
 
+    description: HomeKitAdvertisement
+    controller: BleController
+
     def __init__(
         self,
         controller: BleController,
