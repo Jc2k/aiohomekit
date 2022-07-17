@@ -19,12 +19,11 @@ from itertools import groupby
 import json
 import logging
 from operator import itemgetter
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from aiohomekit.controller.abstract import AbstractPairing, AbstractPairingData
+from aiohomekit.controller.abstract import AbstractController, AbstractPairing, AbstractPairingData
 
-if TYPE_CHECKING:
-    from aiohomekit.controller.ip.controller import IpController
+
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
@@ -71,7 +70,7 @@ class IpPairing(AbstractPairing):
     """
 
     def __init__(
-        self, controller: IpController, pairing_data: AbstractPairingData
+        self, controller: AbstractController, pairing_data: AbstractPairingData
     ) -> None:
         """
         Initialize a Pairing by using the data either loaded from file or obtained after calling
