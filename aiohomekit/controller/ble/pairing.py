@@ -173,7 +173,8 @@ class BlePairing(AbstractPairing):
     def poll_interval(self) -> timedelta:
         """Returns how often the device should be polled."""
         if any(a.needs_polling for a in self.accessories):
-            return timedelta(minutes=1)
+            # Currently only used for devices that have energy data
+            return timedelta(minutes=5)
         return timedelta(hours=24)
 
     def _is_available_at_time(self, monotonic: float) -> bool:
