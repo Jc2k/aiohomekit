@@ -4,14 +4,15 @@ import logging
 from typing import Any, AsyncIterable
 
 from bleak import BleakScanner
-from bleak.exc import BleakDBusError, BleakError
+from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
+from bleak.exc import BleakDBusError, BleakError
+
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController
 from aiohomekit.controller.ble.manufacturer_data import HomeKitAdvertisement
 from aiohomekit.controller.ble.pairing import BlePairing
 from aiohomekit.exceptions import AccessoryNotFoundError
-from bleak.backends.device import BLEDevice
 
 from .discovery import BleDiscovery
 
