@@ -21,9 +21,11 @@ import logging
 from operator import itemgetter
 from typing import Any
 
-from aiohomekit.controller.abstract import AbstractController, AbstractPairing, AbstractPairingData
-
-
+from aiohomekit.controller.abstract import (
+    AbstractController,
+    AbstractPairing,
+    AbstractPairingData,
+)
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,

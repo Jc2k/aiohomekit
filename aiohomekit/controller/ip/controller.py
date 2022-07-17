@@ -3,9 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from aiohomekit.controller.ip.discovery import IpDiscovery
-from aiohomekit.zeroconf import HAP_TYPE_TCP, ZeroconfController
-
 from aiohomekit.controller.ip.pairing import IpPairing
+from aiohomekit.zeroconf import HAP_TYPE_TCP, ZeroconfController
 
 
 class IpController(ZeroconfController):
