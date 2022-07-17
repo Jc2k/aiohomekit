@@ -26,7 +26,7 @@ from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 
 logger = logging.getLogger(__name__)
 
-MAX_CONNECT_ATTEMPTS = 4
+MAX_CONNECT_ATTEMPTS = 5
 BACKOFF_TIME = 0.5
 BLEAK_TIMEOUT = 10
 
