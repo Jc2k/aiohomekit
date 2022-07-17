@@ -21,6 +21,7 @@ import logging
 from typing import TYPE_CHECKING
 import uuid
 
+from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
 
 from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
@@ -41,7 +42,6 @@ from .client import (
 from .connection import establish_connection
 from .manufacturer_data import HomeKitAdvertisement
 from .pairing import BlePairing
-from bleak.backends.device import BLEDevice
 
 if TYPE_CHECKING:
     from aiohomekit.controller.ble.controller import BleController
