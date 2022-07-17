@@ -33,10 +33,8 @@ MAX_TRANSIENT_ERRORS = 8
 BLEAK_TIMEOUT = 9
 OVERALL_TIMEOUT = 10
 
-TRANSIENT_ERRORS = {
-    "le-connection-abort-by-local",
-    "br-connection-canceled"
-}
+TRANSIENT_ERRORS = {"le-connection-abort-by-local", "br-connection-canceled"}
+
 
 async def establish_connection(
     client: AIOHomeKitBleakClient | None,
@@ -53,14 +51,16 @@ async def establish_connection(
 
     def _raise_if_needed(name: str, exc: Exception) -> None:
         """Raise if we reach the max attempts."""
-        if timeouts + connect_errors < max_attempts and transient_errors < MAX_TRANSIENT_ERRORS:
+        if (
+            timeouts + connect_errors < max_attempts
+            and transient_errors < MAX_TRANSIENT_ERRORS
+        ):
             return
         msg = f"{name}: Failed to connect: {exc}"
         # Sure would be nice if bleak gave us typed exceptions
         if "not found" in str(e):
             raise AccessoryNotFoundError(msg) from exc
         raise AccessoryDisconnectedError(msg) from exc
-
 
     while True:
         attempt += 1
@@ -86,7 +86,9 @@ async def establish_connection(
                 transient_errors += 1
             else:
                 connect_errors += 1
-            logger.debug("%s: Failed to connect: %s (attempt: %s)", name, str(e), attempt)
+            logger.debug(
+                "%s: Failed to connect: %s (attempt: %s)", name, str(e), attempt
+            )
             _raise_if_needed(name, e)
         else:
             logger.debug("%s: Connected (attempt: %s)", name, attempt)
