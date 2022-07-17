@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from aiohomekit.controller.ip.discovery import IpDiscovery
 from aiohomekit.zeroconf import HAP_TYPE_TCP, ZeroconfController
 
-if TYPE_CHECKING:
-    from aiohomekit.controller.ip.pairing import IpPairing
+from aiohomekit.controller.ip.pairing import IpPairing
 
 
 class IpController(ZeroconfController):
