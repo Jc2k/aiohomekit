@@ -19,7 +19,7 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from typing import Any, AsyncIterable, Awaitable, Callable, TypedDict, final
-
+from collections.abc import Iterable
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.categories import Categories
@@ -62,8 +62,8 @@ class AbstractPairing(metaclass=ABCMeta):
 
     def __init__(self, controller: AbstractController) -> None:
         self.controller = controller
-        self.listeners = set()
-        self.subscriptions = set()
+        self.listeners: set[Callable[[dict], None]] = set()
+        self.subscriptions: set[tuple[int, int]] = set()
         self.availability_listeners: set[Callable[[bool], None]] = set()
         self.config_changed_listeners: set[Callable[[int], None]] = set()
         self._accessories_state: AccessoriesState | None = None
@@ -209,12 +209,14 @@ class AbstractPairing(metaclass=ABCMeta):
         if config_num != self.config_num:
             async_create_task(self._process_config_changed(config_num))
 
-    async def subscribe(self, characteristics):
+    async def subscribe(
+        self, characteristics: Iterable[tuple[int, int]]
+    ) -> set[tuple[int, int]]:
         new_characteristics = set(characteristics) - self.subscriptions
         self.subscriptions.update(characteristics)
         return new_characteristics
 
-    async def unsubscribe(self, characteristics):
+    async def unsubscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
         self.subscriptions.difference_update(characteristics)
 
     async def reconnect_soon(self):
@@ -224,7 +226,9 @@ class AbstractPairing(metaclass=ABCMeta):
         This will be removed in a future release.
         """
 
-    def dispatcher_availability_changed(self, callback: Callable[[bool], None]) -> None:
+    def dispatcher_availability_changed(
+        self, callback: Callable[[bool], None]
+    ) -> Callable[[], None]:
         """Notify subscribers when availablity changes.
 
         Currently this only notifies when a device is seen as available and
@@ -239,7 +243,7 @@ class AbstractPairing(metaclass=ABCMeta):
 
     def dispatcher_connect_config_changed(
         self, callback: Callable[[int], None]
-    ) -> None:
+    ) -> Callable[[], None]:
         """Notify subscribers of a new accessories state."""
         self.config_changed_listeners.add(callback)
 
@@ -248,7 +252,9 @@ class AbstractPairing(metaclass=ABCMeta):
 
         return stop_listening
 
-    def dispatcher_connect(self, callback):
+    def dispatcher_connect(
+        self, callback: Callable[[dict], None]
+    ) -> Callable[[], None]:
         """
         Register an event handler to be called when a characteristic (or multiple characteristics) change.
 
