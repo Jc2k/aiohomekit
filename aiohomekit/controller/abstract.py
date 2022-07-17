@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import Any, AsyncIterable, Awaitable, Callable, TypedDict, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
-from aiohomekit.model import Accessories, AccessoriesState
+from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.characteristics.characteristic_types import CharacteristicsTypes
 from aiohomekit.model.services.service_types import ServicesTypes
@@ -98,7 +98,7 @@ class AbstractPairing(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def transport(self):
+    def transport(self) -> Transport:
         """The transport used for the connection."""
 
     def _async_description_update(self, description: AbstractDescription | None):
