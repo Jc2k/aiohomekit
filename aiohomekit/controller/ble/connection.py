@@ -58,7 +58,7 @@ async def establish_connection(
             return
         msg = f"{name}: Failed to connect: {exc}"
         # Sure would be nice if bleak gave us typed exceptions
-        if "not found" in str(exc):
+        if isinstance(exc, asyncio.TimeoutError) or "not found" in str(exc):
             raise AccessoryNotFoundError(msg) from exc
         raise AccessoryDisconnectedError(msg) from exc
 
