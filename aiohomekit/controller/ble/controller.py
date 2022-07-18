@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 import logging
 from typing import AsyncIterable
 
@@ -44,9 +45,10 @@ class BleController(AbstractController):
             pairing._async_ble_device_update(device)
 
         if futures := self._ble_futures.get(data.address):
+            discovery = BleDiscovery(self, device, data)
             logger.debug("BLE device for %s found, fulfilling futures", data.address)
             for future in futures:
-                future.set_result(device)
+                future.set_result(discovery)
             futures.clear()
 
         if data.id in self.discoveries:
@@ -82,13 +84,13 @@ class BleController(AbstractController):
         for device in self.discoveries.values():
             yield device
 
-    async def async_get_ble_device(
+    async def async_get_discovery(
         self, address: str, timeout: int
-    ) -> BLEDevice | None:
+    ) -> BleDiscovery | None:
         """Get a BLE device by address."""
         if discovery := self.discoveries.get(address):
             logger.debug("BLE device for %s already found", address)
-            return discovery.device
+            return discovery
 
         logger.debug(
             "BLE device for address %s not found, waiting for advertisement with timeout: %s",
@@ -125,11 +127,14 @@ class BleController(AbstractController):
 
         id_ = hkid.lower()
         device: BLEDevice | None = None
+        description: HomeKitAdvertisement | None = None
+
         if discovery := self.discoveries.get(id_):
             device = discovery.device
+            description = discovery.description
 
         pairing = self.pairings[id_] = BlePairing(
-            self, pairing_data, device=device, description=discovery.description
+            self, pairing_data, device=device, description=description
         )
         self.aliases[alias] = pairing
 

@@ -305,10 +305,13 @@ class BlePairing(AbstractPairing):
             # Check again while holding the lock
             if self.client and self.client.is_connected:
                 return
-            if not self.device:
-                self.device = await self.controller.async_get_ble_device(
+            if not self.device and (
+                discovery := await self.controller.async_get_discovery(
                     self.address, DISCOVER_TIMEOUT
                 )
+            ):
+                self.device = discovery.device
+                self.description = discovery.description
             if not self.device:
                 raise AccessoryNotFoundError(
                     f"{self.name}: Could not find {self.address}"
