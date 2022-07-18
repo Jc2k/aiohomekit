@@ -228,9 +228,10 @@ class BlePairing(AbstractPairing):
                 # Only process disconnected events if the config number has
                 # not also changed since we will do a full repopulation
                 # of the accessories anyway when the config number changes.
-
-                # State number has changed, so we need to repopulate the
-                # characteristics. The number will eventually roll over
+                #
+                # Otherwise, if only the state number we trigger a poll.
+                #
+                # The number will eventually roll over
                 # so we don't want to use a > comparison here. Also, its
                 # safer to poll the device again to get the latest state
                 # as we don't want to miss events.
