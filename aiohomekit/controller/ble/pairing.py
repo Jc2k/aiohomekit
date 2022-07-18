@@ -388,6 +388,7 @@ class BlePairing(AbstractPairing):
             logger.warning(
                 "%s: Failed to fetch disconnected events: %s", self.name, exc
             )
+            return
 
         for listener in self.listeners:
             listener(results)
