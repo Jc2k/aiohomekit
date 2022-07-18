@@ -70,12 +70,6 @@ class BleDiscovery(AbstractDiscovery):
         self.client: AIOHomeKitBleakClient | None = None
         self._connection_lock = asyncio.Lock()
 
-    def get_address_or_ble_device(self) -> str | BLEDevice:
-        """Return the most current address for the device."""
-        if self.description.address == self.device.address:
-            return self.device
-        return self.description.address
-
     @property
     def name(self):
         return f"{self.description.name} ({self.description.address})"
