@@ -63,7 +63,7 @@ async def establish_connection(
         logger.debug(
             "%s: Creating new client because address changed from %s to %s",
             name,
-            client.address,
+            client.address if client else None,
             device.address,
         )
         client = AIOHomeKitBleakClient(device)
