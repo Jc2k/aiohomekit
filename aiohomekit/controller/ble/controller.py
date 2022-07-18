@@ -80,7 +80,9 @@ class BleController(AbstractController):
         for device in self.discoveries.values():
             yield device
 
-    async def async_get_ble_device(self, address: str, timeout: int) -> BLEDevice:
+    async def async_get_ble_device(
+        self, address: str, timeout: int
+    ) -> BLEDevice | None:
         """Get a BLE device by address."""
         if discovery := self.discoveries.get(address):
             return discovery.device
