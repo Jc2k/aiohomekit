@@ -40,7 +40,6 @@ MAX_TRANSIENT_ERRORS = 9
 MAX_CONNECT_ATTEMPTS = 5
 BLEAK_TIMEOUT = 6.75
 OVERALL_TIMEOUT = 7
-DISCOVER_TIMEOUT = 30
 
 TRANSIENT_ERRORS = {"le-connection-abort-by-local", "br-connection-canceled"}
 
