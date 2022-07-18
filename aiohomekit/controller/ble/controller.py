@@ -87,6 +87,11 @@ class BleController(AbstractController):
         if discovery := self.discoveries.get(address):
             return discovery.device
 
+        logger.debug(
+            "BLE device %s not found, waiting for advertisement with timeout: %s",
+            address,
+            timeout,
+        )
         future = asyncio.Future()
         self._ble_futures.setdefault(address, []).append(future)
         try:
