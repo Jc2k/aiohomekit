@@ -224,7 +224,7 @@ class BlePairing(AbstractPairing):
                 )
                 repopulate_accessories = True
 
-            if description.state_num > self.description.state_num:
+            if description.state_num != self.description.state_num:
                 logger.debug(
                     "%s: Disconnected event notification received; Triggering catch-up poll",
                     self.name,
