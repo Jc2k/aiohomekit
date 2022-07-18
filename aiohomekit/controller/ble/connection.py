@@ -21,13 +21,13 @@ from collections.abc import Callable
 import logging
 
 import async_timeout
+from bleak.backends.device import BLEDevice
 
 from aiohomekit.exceptions import AccessoryDisconnectedError, AccessoryNotFoundError
 
 from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 
 logger = logging.getLogger(__name__)
-from bleak.backends.device import BLEDevice
 
 MAX_TRANSIENT_ERRORS = 9
 
