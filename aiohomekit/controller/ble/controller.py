@@ -87,13 +87,13 @@ class BleController(AbstractController):
     async def async_get_discovery(
         self, address: str, timeout: int
     ) -> BleDiscovery | None:
-        """Get a BLE device by address."""
+        """Get a discovery by address."""
         if discovery := self.discoveries.get(address):
-            logger.debug("BLE device for %s already found", address)
+            logger.debug("Discovery for %s already found", address)
             return discovery
 
         logger.debug(
-            "BLE device for address %s not found, waiting for advertisement with timeout: %s",
+            "Discovery for address %s not found, waiting for advertisement with timeout: %s",
             address,
             timeout,
         )
@@ -103,7 +103,7 @@ class BleController(AbstractController):
             return await asyncio.wait_for(future, timeout=timeout)
         except asyncio.TimeoutError:
             logger.debug(
-                "Timed out after %s waiting for discovery of BLE device with address %s",
+                "Timed out after %s waiting for discovery with address %s",
                 timeout,
                 address,
             )
