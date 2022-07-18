@@ -224,7 +224,11 @@ class BlePairing(AbstractPairing):
                 )
                 repopulate_accessories = True
 
-            if description.state_num != self.description.state_num:
+            elif description.state_num != self.description.state_num:
+                # Only process disconnected events if the config number has
+                # not also changed since we will do a full repopulation
+                # of the accessories anyway when the config number changes.
+
                 # State number has changed, so we need to repopulate the
                 # characteristics. The number will eventually roll over
                 # so we don't want to use a > comparison here. Also, its
