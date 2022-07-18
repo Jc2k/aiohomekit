@@ -43,9 +43,7 @@ class BleController(AbstractController):
             pairing._async_ble_device_update(device)
 
         if futures := self._ble_futures.get(data.address):
-            logger.debug(
-                "BLE device for %s found, filling futures: %s", data.address, futures
-            )
+            logger.debug("BLE device for %s found, fulfilling futures", data.address)
             for future in futures:
                 future.set_result(device)
             futures.clear()
@@ -101,6 +99,11 @@ class BleController(AbstractController):
         try:
             return await asyncio.wait_for(future, timeout=timeout)
         except asyncio.TimeoutError:
+            logger.debug(
+                "Timed out after %s waiting for discovery of BLE device with address %s",
+                timeout,
+                address,
+            )
             return None
         finally:
             if address not in self._ble_futures:
