@@ -289,7 +289,6 @@ class BlePairing(AbstractPairing):
                     f"{self.name}: Could not find {self.address}"
                 )
             self.client = await establish_connection(
-                self.client,
                 self.device,
                 self.name,
                 self._async_disconnected,

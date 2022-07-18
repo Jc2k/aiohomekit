@@ -44,7 +44,6 @@ TRANSIENT_ERRORS = {"le-connection-abort-by-local", "br-connection-canceled"}
 
 
 async def establish_connection(
-    client: AIOHomeKitBleakClient | None,
     device: BLEDevice,
     name: str,
     disconnected_callback: Callable[[AIOHomeKitBleakClient], None],
@@ -56,16 +55,8 @@ async def establish_connection(
     transient_errors = 0
     attempt = 0
 
-    if not client or client.address != device.address:
-        # Only replace the client if the address has changed
-        logger.debug(
-            "%s: Creating new client because address changed from %s to %s",
-            name,
-            client.address if client else None,
-            device.address,
-        )
-        client = AIOHomeKitBleakClient(device)
-        client.set_disconnected_callback(disconnected_callback)
+    client = AIOHomeKitBleakClient(device)
+    client.set_disconnected_callback(disconnected_callback)
 
     def _raise_if_needed(name: str, exc: Exception) -> None:
         """Raise if we reach the max attempts."""
@@ -85,8 +76,9 @@ async def establish_connection(
         logger.debug("%s: Connecting (attempt: %s)", name, attempt)
         try:
             async with async_timeout.timeout(OVERALL_TIMEOUT):
-                # Sometimes the timeout does not actually happen so we wrap
-                # it will yet another timeout
+                # Sometimes the timeout does not actually happen in time
+                # because a discovery is called as well which has its own
+                # timeout so we have yet another timeout
                 await client.connect(timeout=BLEAK_TIMEOUT)
         except asyncio.TimeoutError as exc:
             timeouts += 1
