@@ -217,7 +217,7 @@ class BlePairing(AbstractPairing):
         if self.description != description:
             logger.debug(
                 "%s: Description updated: old=%s new=%s",
-                self.address,
+                self.name,
                 self.description,
                 description,
             )
@@ -507,7 +507,7 @@ class BlePairing(AbstractPairing):
                     continue
                 aid_iid = (1, char.iid)
                 results = await self._get_characteristics_while_connected([aid_iid])
-                logger.debug("%s: Read %s", self.address, results)
+                logger.debug("%s: Read %s", self.name, results)
                 if (result := results.get(aid_iid)) and "value" in result:
                     char.value = result["value"]
 
