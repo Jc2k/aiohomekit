@@ -71,6 +71,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+DISCOVER_TIMEOUT = 30
 AVAILABILITY_INTERVAL = 1800  # 30 minutes
 NEVER_TIME = -AVAILABILITY_INTERVAL
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
@@ -148,10 +149,6 @@ class BlePairing(AbstractPairing):
         self._subscription_lock = asyncio.Lock()
 
         self._restore_subscriptions_timer: asyncio.TimerHandle | None = None
-
-    def get_address_or_ble_device(self) -> str | BLEDevice:
-        """Return the most current address for the device."""
-        return self.device if self.device else self.pairing_data["AccessoryAddress"]
 
     @property
     def address(self) -> str:
@@ -283,10 +280,18 @@ class BlePairing(AbstractPairing):
             # Check again while holding the lock
             if self.client and self.client.is_connected:
                 return
+            if not self.device:
+                self.device = await self.controller.async_get_ble_device(
+                    self.address, DISCOVER_TIMEOUT
+                )
+            if not self.device:
+                raise AccessoryNotFoundError(
+                    f"{self.name}: Could not find {self.address}"
+                )
             self.client = await establish_connection(
                 self.client,
+                self.device,
                 self.name,
-                self.get_address_or_ble_device,
                 self._async_disconnected,
             )
             logger.debug(

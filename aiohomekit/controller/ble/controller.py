@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import AsyncIterable
-
+import asyncio
 from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -28,6 +28,7 @@ class BleController(AbstractController):
 
     def __init__(self, char_cache: CharacteristicCacheType):
         super().__init__(char_cache=char_cache)
+        self._ble_futures: dict[str, list[asyncio.Future[BLEDevice]]] = {}
 
     def _device_detected(
         self, device: BLEDevice, advertisement_data: AdvertisementData
@@ -40,6 +41,11 @@ class BleController(AbstractController):
         if pairing := self.pairings.get(data.id):
             pairing._async_description_update(data)
             pairing._async_ble_device_update(device)
+
+        if futures := self._ble_futures.get(data.id):
+            for future in futures:
+                future.set_result(device)
+            self._ble_futures.clear()
 
         if data.id in self.discoveries:
             self.discoveries[data.id]._async_process_advertisement(data)
@@ -73,6 +79,21 @@ class BleController(AbstractController):
     async def async_discover(self) -> AsyncIterable[BleDiscovery]:
         for device in self.discoveries.values():
             yield device
+
+    async def async_get_ble_device(self, address: str, timeout: int) -> BLEDevice:
+        """Get a BLE device by address."""
+        if discovery := self.discoveries.get(address):
+            return discovery.device
+
+        future = asyncio.Future()
+        self._ble_futures.setdefault(address, []).append(future)
+        try:
+            return await asyncio.wait_for(future, timeout=timeout)
+        except asyncio.TimeoutError:
+            return None
+        finally:
+            if address in self._ble_futures and not self._ble_futures[address]:
+                del self._ble_futures[address]
 
     def load_pairing(
         self, alias: str, pairing_data: AbstractPairingData

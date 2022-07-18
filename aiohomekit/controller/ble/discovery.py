@@ -90,8 +90,8 @@ class BleDiscovery(AbstractDiscovery):
                 return
             self.client = await establish_connection(
                 self.client,
+                self.device,
                 self.name,
-                self.get_address_or_ble_device,
                 self._async_disconnected,
             )
 
