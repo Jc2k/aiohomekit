@@ -72,7 +72,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DISCOVER_TIMEOUT = 30
-AVAILABILITY_INTERVAL = 1800  # 30 minutes
+
+# Battery powered devices may not broadcast once paired until
+# there is an event so we use a long availablity interval.
+AVAILABILITY_INTERVAL = 86400 * 7  # 7 days
+
 NEVER_TIME = -AVAILABILITY_INTERVAL
 
 
