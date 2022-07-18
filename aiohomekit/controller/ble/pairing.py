@@ -215,7 +215,12 @@ class BlePairing(AbstractPairing):
         if not was_available:
             self._callback_availability_changed(True)
         if self.description != description:
-            logger.debug("%s: Description updated: %s", self.address, description)
+            logger.debug(
+                "%s: Description updated: old=%s new=%s",
+                self.address,
+                self.description,
+                description,
+            )
 
         repopulate_accessories = False
         if description and self.description:
