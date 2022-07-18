@@ -127,7 +127,10 @@ class BleController(AbstractController):
         device: BLEDevice | None = None
         if discovery := self.discoveries.get(id_):
             device = discovery.device
-        pairing = self.pairings[id_] = BlePairing(self, pairing_data, device=device)
+
+        pairing = self.pairings[id_] = BlePairing(
+            self, pairing_data, device=device, description=discovery.description
+        )
         self.aliases[alias] = pairing
 
         return pairing

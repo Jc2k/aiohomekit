@@ -211,7 +211,9 @@ class BlePairing(AbstractPairing):
             async_create_task(self.close())
         self.device = device
 
-    def _async_description_update(self, description: HomeKitAdvertisement | None):
+    def _async_description_update(
+        self, description: HomeKitAdvertisement | None
+    ) -> None:
         """Update the description of the accessory."""
         now = time.monotonic()
         was_available = self._is_available_at_time(now)
