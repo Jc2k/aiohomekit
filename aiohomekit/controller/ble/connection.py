@@ -19,7 +19,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 import logging
-from typing import TYPE_CHECKING
 
 import async_timeout
 from bleak.backends.device import BLEDevice
