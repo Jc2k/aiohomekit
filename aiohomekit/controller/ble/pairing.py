@@ -225,6 +225,11 @@ class BlePairing(AbstractPairing):
                 repopulate_accessories = True
 
             if description.state_num != self.description.state_num:
+                # State number has changed, so we need to repopulate the
+                # characteristics. The number will eventually roll over
+                # so we don't want to use a > comparison here. Also, its
+                # safer to poll the device again to get the latest state
+                # as we don't want to miss events.
                 logger.debug(
                     "%s: Disconnected event notification received; Triggering catch-up poll",
                     self.name,
