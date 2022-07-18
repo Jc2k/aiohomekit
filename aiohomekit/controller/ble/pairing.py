@@ -72,11 +72,19 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DISCOVER_TIMEOUT = 30
-AVAILABILITY_INTERVAL = 1800  # 30 minutes
+
+# Battery powered devices may not broadcast once paired until
+# there is an event so we use a long availablity interval.
+AVAILABILITY_INTERVAL = 86400 * 7  # 7 days
+
 NEVER_TIME = -AVAILABILITY_INTERVAL
+
+
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
-MAX_CONNECT_ATTEMPTS = 3
-SUBSCRIPTION_RESTORE_DELAY = 1
+CHAR_DESCRIPTOR_ID = "DC46F0FE-81D2-4616-B5D9-6ABDD796939A"
+CHAR_DESCRIPTOR_UUID = uuid.UUID(CHAR_DESCRIPTOR_ID)
+
+SUBSCRIPTION_RESTORE_DELAY = 0.5
 SKIP_SYNC_SERVICES = {
     ServicesTypes.THREAD_TRANSPORT,
     ServicesTypes.PAIRING,
@@ -203,7 +211,9 @@ class BlePairing(AbstractPairing):
             async_create_task(self.close())
         self.device = device
 
-    def _async_description_update(self, description: HomeKitAdvertisement | None):
+    def _async_description_update(
+        self, description: HomeKitAdvertisement | None
+    ) -> None:
         """Update the description of the accessory."""
         now = time.monotonic()
         was_available = self._is_available_at_time(now)
@@ -211,7 +221,12 @@ class BlePairing(AbstractPairing):
         if not was_available:
             self._callback_availability_changed(True)
         if self.description != description:
-            logger.debug("%s: Description updated: %s", self.address, description)
+            logger.debug(
+                "%s: Description updated: old=%s new=%s",
+                self.name,
+                self.description,
+                description,
+            )
 
         repopulate_accessories = False
         if description and self.description:
@@ -224,7 +239,17 @@ class BlePairing(AbstractPairing):
                 )
                 repopulate_accessories = True
 
-            if description.state_num > self.description.state_num:
+            elif description.state_num != self.description.state_num:
+                # Only process disconnected events if the config number has
+                # not also changed since we will do a full repopulation
+                # of the accessories anyway when the config number changes.
+                #
+                # Otherwise, if only the state number we trigger a poll.
+                #
+                # The number will eventually roll over
+                # so we don't want to use a > comparison here. Also, its
+                # safer to poll the device again to get the latest state
+                # as we don't want to miss events.
                 logger.debug(
                     "%s: Disconnected event notification received; Triggering catch-up poll",
                     self.name,
@@ -280,16 +305,18 @@ class BlePairing(AbstractPairing):
             # Check again while holding the lock
             if self.client and self.client.is_connected:
                 return
-            if not self.device:
-                self.device = await self.controller.async_get_ble_device(
+            if not self.device and (
+                discovery := await self.controller.async_get_discovery(
                     self.address, DISCOVER_TIMEOUT
                 )
-            if not self.device:
+            ):
+                self.device = discovery.device
+                self.description = discovery.description
+            elif not self.device:
                 raise AccessoryNotFoundError(
                     f"{self.name}: Could not find {self.address}"
                 )
             self.client = await establish_connection(
-                self.client,
                 self.device,
                 self.name,
                 self._async_disconnected,
@@ -408,9 +435,7 @@ class BlePairing(AbstractPairing):
                 if normalize_uuid(char.uuid) == SERVICE_INSTANCE_ID:
                     continue
 
-                iid_handle = char.get_descriptor(
-                    uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A")
-                )
+                iid_handle = char.get_descriptor(CHAR_DESCRIPTOR_UUID)
                 if not iid_handle:
                     continue
 
@@ -491,7 +516,7 @@ class BlePairing(AbstractPairing):
                     continue
                 aid_iid = (1, char.iid)
                 results = await self._get_characteristics_while_connected([aid_iid])
-                logger.debug("%s: Read %s", self.address, results)
+                logger.debug("%s: Read %s", self.name, results)
                 if (result := results.get(aid_iid)) and "value" in result:
                     char.value = result["value"]
 

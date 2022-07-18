@@ -109,7 +109,9 @@ class AbstractPairing(metaclass=ABCMeta):
     def poll_interval(self) -> timedelta:
         """Returns how often the device should be polled."""
 
-    def _async_description_update(self, description: AbstractDescription | None):
+    def _async_description_update(
+        self, description: AbstractDescription | None
+    ) -> None:
         self.description = description
 
     def _load_accessories_from_cache(self) -> None:
