@@ -20,7 +20,6 @@ import asyncio
 from collections.abc import Callable
 import logging
 
-import async_timeout
 from bleak.backends.device import BLEDevice
 
 from aiohomekit.exceptions import AccessoryDisconnectedError, AccessoryNotFoundError
@@ -34,11 +33,10 @@ MAX_TRANSIENT_ERRORS = 9
 # Shorter time outs and more attempts
 # seems to be better for dbus, and corebluetooth
 # is happy either way. Ideally we want everything
-# to finish in ~35s or declare we cannot connect
+# to finish in < 60s or declare we cannot connect
 
 MAX_CONNECT_ATTEMPTS = 5
-BLEAK_TIMEOUT = 6.75
-OVERALL_TIMEOUT = 7
+BLEAK_TIMEOUT = 10
 
 TRANSIENT_ERRORS = {"le-connection-abort-by-local", "br-connection-canceled"}
 
@@ -75,11 +73,7 @@ async def establish_connection(
         attempt += 1
         logger.debug("%s: Connecting (attempt: %s)", name, attempt)
         try:
-            async with async_timeout.timeout(OVERALL_TIMEOUT):
-                # Sometimes the timeout does not actually happen in time
-                # because a discovery is called as well which has its own
-                # timeout so we have yet another timeout
-                await client.connect(timeout=BLEAK_TIMEOUT)
+            await client.connect(timeout=BLEAK_TIMEOUT)
         except asyncio.TimeoutError as exc:
             timeouts += 1
             logger.debug("%s: Timed out trying to connect (attempt: %s)", name, attempt)
