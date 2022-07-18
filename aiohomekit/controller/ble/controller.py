@@ -42,10 +42,13 @@ class BleController(AbstractController):
             pairing._async_description_update(data)
             pairing._async_ble_device_update(device)
 
-        if futures := self._ble_futures.get(data.id):
+        if futures := self._ble_futures.get(data.address):
+            logger.debug(
+                "BLE device for %s found, filling futures: %s", data.address, futures
+            )
             for future in futures:
                 future.set_result(device)
-            self._ble_futures.clear()
+            futures.clear()
 
         if data.id in self.discoveries:
             self.discoveries[data.id]._async_process_advertisement(data)
@@ -85,10 +88,11 @@ class BleController(AbstractController):
     ) -> BLEDevice | None:
         """Get a BLE device by address."""
         if discovery := self.discoveries.get(address):
+            logger.debug("BLE device for %s already found", address)
             return discovery.device
 
         logger.debug(
-            "BLE device %s not found, waiting for advertisement with timeout: %s",
+            "BLE device for address %s not found, waiting for advertisement with timeout: %s",
             address,
             timeout,
         )
@@ -99,7 +103,11 @@ class BleController(AbstractController):
         except asyncio.TimeoutError:
             return None
         finally:
-            if address in self._ble_futures and not self._ble_futures[address]:
+            if address not in self._ble_futures:
+                return
+            if future in self._ble_futures[address]:
+                self._ble_futures[address].remove(future)
+            if not self._ble_futures[address]:
                 del self._ble_futures[address]
 
     def load_pairing(
