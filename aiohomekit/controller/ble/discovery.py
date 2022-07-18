@@ -21,6 +21,7 @@ import logging
 from typing import TYPE_CHECKING
 import uuid
 
+from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
 
 from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
@@ -60,19 +61,14 @@ class BleDiscovery(AbstractDiscovery):
     def __init__(
         self,
         controller: BleController,
-        device,
+        device: BLEDevice,
         description: HomeKitAdvertisement,
     ) -> None:
         self.description = description
         self.controller = controller
         self.device = device
-
         self.client: AIOHomeKitBleakClient | None = None
         self._connection_lock = asyncio.Lock()
-
-    def get_address(self) -> str:
-        """Return the most current address for the device."""
-        return self.description.address
 
     @property
     def name(self):
@@ -87,7 +83,10 @@ class BleDiscovery(AbstractDiscovery):
             if self.client and self.client.is_connected:
                 return
             self.client = await establish_connection(
-                self.client, self.name, self.get_address, self._async_disconnected
+                self.client,
+                self.device,
+                self.name,
+                self._async_disconnected,
             )
 
     def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
@@ -146,7 +145,10 @@ class BleDiscovery(AbstractDiscovery):
             pairing["Connection"] = "BLE"
 
             obj = self.controller.pairings[alias] = BlePairing(
-                self.controller, pairing, self.client, self.description
+                self.controller,
+                pairing,
+                client=self.client,
+                description=self.description,
             )
             return obj
 

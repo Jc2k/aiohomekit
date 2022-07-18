@@ -26,6 +26,7 @@ import time
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 import uuid
 
+from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
 
 from aiohomekit.exceptions import (
@@ -70,6 +71,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+DISCOVER_TIMEOUT = 30
 AVAILABILITY_INTERVAL = 1800  # 30 minutes
 NEVER_TIME = -AVAILABILITY_INTERVAL
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
@@ -99,16 +101,21 @@ class BlePairing(AbstractPairing):
     This represents a paired HomeKit IP accessory.
     """
 
+    description: HomeKitAdvertisement
+    controller: BleController
+
     def __init__(
         self,
         controller: BleController,
         pairing_data: AbstractPairingData,
+        device: BLEDevice | None = None,
         client: AIOHomeKitBleakClient | None = None,
         description: HomeKitAdvertisement | None = None,
     ) -> None:
         super().__init__(controller)
 
         self.id = pairing_data["AccessoryPairingID"]
+        self.device = device
         self.client = client
         self.pairing_data = pairing_data
         self.description = description
@@ -143,20 +150,18 @@ class BlePairing(AbstractPairing):
 
         self._restore_subscriptions_timer: asyncio.TimerHandle | None = None
 
-    def get_address(self) -> str:
-        """Return the most current address for the device."""
-        return self.address
-
     @property
-    def address(self):
+    def address(self) -> str:
+        """Return the address of the device."""
         return (
-            self.description.address
-            if self.description
+            self.device.address
+            if self.device
             else self.pairing_data["AccessoryAddress"]
         )
 
     @property
     def name(self):
+        """Return the name of the pairing."""
         if self.description:
             return f"{self.description.name} ({self.address})"
         return self.address
@@ -187,6 +192,17 @@ class BlePairing(AbstractPairing):
         """The transport used for the connection."""
         return Transport.BLE
 
+    def _async_ble_device_update(self, device: BLEDevice) -> None:
+        """Update the BLE device."""
+        if self.device and device.address != self.device.address:
+            logger.debug(
+                "BLE address changed from %s to %s; closing connection",
+                self.device.address,
+                device.address,
+            )
+            async_create_task(self.close())
+        self.device = device
+
     def _async_description_update(self, description: HomeKitAdvertisement | None):
         """Update the description of the accessory."""
         now = time.monotonic()
@@ -196,6 +212,7 @@ class BlePairing(AbstractPairing):
             self._callback_availability_changed(True)
         if self.description != description:
             logger.debug("%s: Description updated: %s", self.address, description)
+
         repopulate_accessories = False
         if description and self.description:
             if description.config_num > self.description.config_num:
@@ -213,14 +230,6 @@ class BlePairing(AbstractPairing):
                     self.name,
                 )
                 async_create_task(self._async_process_disconnected_events())
-
-            if description.address != self.description.address:
-                logger.debug(
-                    "BLE address changed from %s to %s; closing connection",
-                    self.description.address,
-                    description.address,
-                )
-                async_create_task(self.close())
 
         super()._async_description_update(description)
         if repopulate_accessories:
@@ -271,8 +280,19 @@ class BlePairing(AbstractPairing):
             # Check again while holding the lock
             if self.client and self.client.is_connected:
                 return
+            if not self.device:
+                self.device = await self.controller.async_get_ble_device(
+                    self.address, DISCOVER_TIMEOUT
+                )
+            if not self.device:
+                raise AccessoryNotFoundError(
+                    f"{self.name}: Could not find {self.address}"
+                )
             self.client = await establish_connection(
-                self.client, self.name, self.get_address, self._async_disconnected
+                self.client,
+                self.device,
+                self.name,
+                self._async_disconnected,
             )
             logger.debug(
                 "%s: Connected, processing subscriptions: %s",
@@ -373,6 +393,7 @@ class BlePairing(AbstractPairing):
             logger.warning(
                 "%s: Failed to fetch disconnected events: %s", self.name, exc
             )
+            return
 
         for listener in self.listeners:
             listener(results)
@@ -559,8 +580,16 @@ class BlePairing(AbstractPairing):
             # The iid will not be in in self._notifications until
             # the _async_start_notify call returns.
             async with self._subscription_lock:
-                if iid not in self._notifications and self.client.is_connected:
+                if iid in self._notifications or not self.client.is_connected:
+                    continue
+                try:
                     await self._async_start_notify(iid)
+                except BLEAK_EXCEPTIONS as ex:
+                    # Likely disconnected before we could start notifications
+                    # we will get disconnected events instead.
+                    logger.debug(
+                        "%s: Could not start notify for %s: %s", self.name, iid, ex
+                    )
 
     @operation_lock
     @retry_bluetooth_connection_error()
