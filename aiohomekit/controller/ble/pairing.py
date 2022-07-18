@@ -581,7 +581,14 @@ class BlePairing(AbstractPairing):
             # the _async_start_notify call returns.
             async with self._subscription_lock:
                 if iid not in self._notifications and self.client.is_connected:
-                    await self._async_start_notify(iid)
+                    try:
+                        await self._async_start_notify(iid)
+                    except BLEAK_EXCEPTIONS as ex:
+                        # Likely disconnected before we could start notifications
+                        # we will get disconnected events instead.
+                        logger.debug(
+                            "%s: Could not start notify for %s: %s", self.name, iid, ex
+                        )
 
     @operation_lock
     @retry_bluetooth_connection_error()
