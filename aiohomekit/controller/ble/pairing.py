@@ -312,7 +312,7 @@ class BlePairing(AbstractPairing):
             ):
                 self.device = discovery.device
                 self.description = discovery.description
-            if not self.device:
+            elif not self.device:
                 raise AccessoryNotFoundError(
                     f"{self.name}: Could not find {self.address}"
                 )
