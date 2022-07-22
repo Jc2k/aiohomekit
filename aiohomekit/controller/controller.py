@@ -21,8 +21,8 @@ import json
 from json.decoder import JSONDecodeError
 import pathlib
 from typing import AsyncIterable
-from bleak import BleakScanner
 
+from bleak import BleakScanner
 from zeroconf.asyncio import AsyncZeroconf
 
 from aiohomekit.characteristic_cache import (
@@ -76,7 +76,10 @@ class Controller(AbstractController):
 
     async def async_start(self) -> None:
         if IP_TRANSPORT_SUPPORTED or self._async_zeroconf_instance:
-            from .ip.controller import IpController # pylint: disable=import-outside-toplevel
+            from .ip.controller import (
+                IpController,  # pylint: disable=import-outside-toplevel
+            )
+
             await self._async_register_backend(
                 IpController(
                     char_cache=self._char_cache,
@@ -85,7 +88,10 @@ class Controller(AbstractController):
             )
 
         if COAP_TRANSPORT_SUPPORTED:
-            from .coap.controller import CoAPController # pylint: disable=import-outside-toplevel
+            from .coap.controller import (
+                CoAPController,  # pylint: disable=import-outside-toplevel
+            )
+
             await self._async_register_backend(
                 CoAPController(
                     char_cache=self._char_cache,
@@ -94,7 +100,10 @@ class Controller(AbstractController):
             )
 
         if BLE_TRANSPORT_SUPPORTED or self._bleak_scanner_instance:
-            from .ble.controller import BleController # pylint: disable=import-outside-toplevel
+            from .ble.controller import (
+                BleController,  # pylint: disable=import-outside-toplevel
+            )
+
             await self._async_register_backend(
                 BleController(
                     char_cache=self._char_cache,
