@@ -22,6 +22,7 @@ from json.decoder import JSONDecodeError
 import pathlib
 from typing import AsyncIterable
 
+from bleak import BleakScanner
 from zeroconf.asyncio import AsyncZeroconf
 
 from aiohomekit.characteristic_cache import (
@@ -43,15 +44,6 @@ from ..exceptions import (
 )
 from .abstract import AbstractController, AbstractPairing
 
-if COAP_TRANSPORT_SUPPORTED:
-    from aiohomekit.controller.coap.controller import CoAPController
-
-if IP_TRANSPORT_SUPPORTED:
-    from .ip import IpController
-
-if BLE_TRANSPORT_SUPPORTED:
-    from aiohomekit.controller.ble.controller import BleController
-
 
 class Controller(AbstractController):
     """
@@ -64,6 +56,7 @@ class Controller(AbstractController):
         self,
         async_zeroconf_instance: AsyncZeroconf | None = None,
         char_cache: CharacteristicCacheType | None = None,
+        bleak_scanner_instance: BleakScanner | None = None,
     ) -> None:
         """
         Initialize an empty controller. Use 'load_data()' to load the pairing data.
@@ -73,6 +66,7 @@ class Controller(AbstractController):
         super().__init__(char_cache=char_cache or CharacteristicCacheMemory())
 
         self._async_zeroconf_instance = async_zeroconf_instance
+        self._bleak_scanner_instance = bleak_scanner_instance
 
         self._transports: list[AbstractController] = []
         self._tasks = AsyncExitStack()
@@ -81,7 +75,11 @@ class Controller(AbstractController):
         self._transports.append(await self._tasks.enter_async_context(controller))
 
     async def async_start(self) -> None:
-        if IP_TRANSPORT_SUPPORTED:
+        if IP_TRANSPORT_SUPPORTED or self._async_zeroconf_instance:
+            from .ip.controller import (
+                IpController,  # pylint: disable=import-outside-toplevel
+            )
+
             await self._async_register_backend(
                 IpController(
                     char_cache=self._char_cache,
@@ -90,6 +88,10 @@ class Controller(AbstractController):
             )
 
         if COAP_TRANSPORT_SUPPORTED:
+            from .coap.controller import (
+                CoAPController,  # pylint: disable=import-outside-toplevel
+            )
+
             await self._async_register_backend(
                 CoAPController(
                     char_cache=self._char_cache,
@@ -97,9 +99,16 @@ class Controller(AbstractController):
                 )
             )
 
-        if BLE_TRANSPORT_SUPPORTED:
+        if BLE_TRANSPORT_SUPPORTED or self._bleak_scanner_instance:
+            from .ble.controller import (
+                BleController,  # pylint: disable=import-outside-toplevel
+            )
+
             await self._async_register_backend(
-                BleController(char_cache=self._char_cache)
+                BleController(
+                    char_cache=self._char_cache,
+                    bleak_scanner_instance=self._bleak_scanner_instance,
+                )
             )
 
     async def async_stop(self) -> None:
