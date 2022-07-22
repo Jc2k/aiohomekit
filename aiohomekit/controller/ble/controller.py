@@ -62,15 +62,22 @@ class BleController(AbstractController):
         self.discoveries[data.id] = BleDiscovery(self, device, data)
 
     async def async_start(self) -> None:
-        try:
-            if not self._scanner:
+        logger.debug("Starting BLE controller with instance: %s", self._scanner)
+        if not self._scanner:
+            try:
                 self._scanner = BleakScanner()
+            except (FileNotFoundError, BleakDBusError, BleakError) as e:
+                logger.debug(
+                    "Failed to init scanner, HAP-BLE not available: %s", str(e)
+                )
+                self._scanner = None
+                return
+
+        try:
             self._scanner.register_detection_callback(self._device_detected)
             await self._scanner.start()
         except (FileNotFoundError, BleakDBusError, BleakError) as e:
-            logger.debug(
-                "Failed to connect to start scanner, HAP-BLE not available: %s", str(e)
-            )
+            logger.debug("Failed to start scanner, HAP-BLE not available: %s", str(e))
             self._scanner = None
 
     async def async_stop(self, *args):
