@@ -27,8 +27,13 @@ class BleController(AbstractController):
 
     _scanner: BleakScanner | None
 
-    def __init__(self, char_cache: CharacteristicCacheType):
+    def __init__(
+        self,
+        char_cache: CharacteristicCacheType,
+        bleak_scanner_instance: BleakScanner | None = None,
+    ) -> None:
         super().__init__(char_cache=char_cache)
+        self._scanner = bleak_scanner_instance
         self._ble_futures: dict[str, list[asyncio.Future[BLEDevice]]] = {}
 
     def _device_detected(
@@ -58,7 +63,8 @@ class BleController(AbstractController):
 
     async def async_start(self) -> None:
         try:
-            self._scanner = BleakScanner()
+            if not self._scanner:
+                self._scanner = BleakScanner()
             self._scanner.register_detection_callback(self._device_detected)
             await self._scanner.start()
         except (FileNotFoundError, BleakDBusError, BleakError) as e:
