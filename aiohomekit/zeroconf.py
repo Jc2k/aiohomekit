@@ -93,6 +93,8 @@ class HomeKitService:
 
 
 class ZeroconfServiceListener(ServiceListener):
+    """An empty service listener."""
+
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         pass
 
