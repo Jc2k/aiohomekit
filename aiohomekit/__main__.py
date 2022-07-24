@@ -59,13 +59,14 @@ async def get_controller(args: argparse.Namespace) -> AsyncIterator[Controller]:
         raise SystemExit
 
     async with zeroconf:
+        listener = ZeroconfServiceListener()
         browser = AsyncServiceBrowser(
             zeroconf.zeroconf,
             [
                 "_hap._tcp.local.",
                 "_hap._udp.local.",
             ],
-            handlers=[ZeroconfServiceListener()],
+            listener=listener,
         )
 
         async with controller:
