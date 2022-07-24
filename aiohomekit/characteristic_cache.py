@@ -25,10 +25,11 @@ dumb implementation for development and CLI usage.
 
 from __future__ import annotations
 
-import json
 import logging
 import pathlib
 from typing import Any, Protocol, TypedDict
+
+import aiohomekit.hkjson as hkjson
 
 logger = logging.getLogger(__name__)
 
@@ -91,10 +92,10 @@ class CharacteristicCacheFile(CharacteristicCacheMemory):
 
         self.location = location
         if location.exists():
-            with open(location) as fp:
+            with open(location, encoding="utf-8") as fp:
                 try:
-                    self.storage_data = json.load(fp)["pairings"]
-                except json.decoder.JSONDecodeError:
+                    self.storage_data = hkjson.loads(fp.read())["pairings"]
+                except hkjson.JSON_DECODE_EXCEPTIONS:
                     logger.debug(
                         "Characteristic cache was corrupted, proceeding with cold cache"
                     )
@@ -114,8 +115,8 @@ class CharacteristicCacheFile(CharacteristicCacheMemory):
 
     def _do_save(self) -> None:
         """Schedule saving the entity map cache."""
-        with open(self.location, "w") as fp:
-            fp.write(json.dumps(self._data_to_save()))
+        with open(self.location, mode="w", encoding="utf-8") as fp:
+            fp.write(hkjson.dumps(self._data_to_save()))
 
     def _data_to_save(self) -> dict[str, Any]:
         """Return data of entity map to store in a file."""

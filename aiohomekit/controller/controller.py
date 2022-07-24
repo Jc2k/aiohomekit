@@ -17,8 +17,6 @@ from __future__ import annotations
 
 from asyncio.log import logger
 from contextlib import AsyncExitStack
-import json
-from json.decoder import JSONDecodeError
 import pathlib
 from typing import AsyncIterable
 
@@ -30,6 +28,7 @@ from aiohomekit.characteristic_cache import (
     CharacteristicCacheType,
 )
 from aiohomekit.controller.abstract import AbstractDiscovery
+import aiohomekit.hkjson as hkjson
 
 from ..const import (
     BLE_TRANSPORT_SUPPORTED,
@@ -151,8 +150,8 @@ class Controller(AbstractController):
         :raises ConfigLoadingError: if the config could not be loaded. The reason is given in the message.
         """
         try:
-            with open(filename) as input_fp:
-                data = json.load(input_fp)
+            with open(filename, encoding="utf-8") as input_fp:
+                data = hkjson.loads(input_fp.read())
                 for pairing_id in data:
                     try:
                         self.load_pairing(pairing_id, data[pairing_id])
@@ -162,8 +161,8 @@ class Controller(AbstractController):
             raise ConfigLoadingError(
                 f'Could not open "{filename}" due to missing permissions'
             )
-        except JSONDecodeError:
-            raise ConfigLoadingError(f'Cannot parse "{filename}" as JSON file')
+        except hkjson.JSON_DECODE_EXCEPTIONS as e:
+            raise ConfigLoadingError(f'Cannot parse "{filename}" as JSON file') from e
         except FileNotFoundError:
             pass
 
@@ -184,8 +183,8 @@ class Controller(AbstractController):
             path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            with open(filename, "w") as output_fp:
-                json.dump(data, output_fp, indent="  ")
+            with open(filename, mode="w", encoding="utf-8") as output_fp:
+                output_fp.write(hkjson.dumps_indented(data))
         except PermissionError:
             raise ConfigSavingError(
                 f'Could not write "{filename}" due to missing permissions'

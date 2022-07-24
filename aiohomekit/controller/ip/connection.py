@@ -15,7 +15,6 @@
 #
 
 import asyncio
-import json
 import logging
 
 from aiohomekit.crypto.chacha20poly1305 import (
@@ -38,17 +37,6 @@ from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task
 
 logger = logging.getLogger(__name__)
-
-
-def serialize_json(obj) -> bytes:
-    """
-    An iPhone sends JSON like this:
-
-    {"characteristics":[{"iid":15,"aid":2,"ev":true}]}
-
-    Some devices (Tado Internet Bridge) depend on this some of the time.
-    """
-    return json.dumps(obj, separators=(",", ":")).encode("utf-8")
 
 
 class InsecureHomeKitProtocol(asyncio.Protocol):
@@ -311,8 +299,7 @@ class HomeKitConnection:
 
     async def get_json(self, target):
         response = await self.get(target)
-        body = response.body.decode("utf-8")
-        return hkjson.loads(body)
+        return hkjson.loads(response.body)
 
     async def put(self, target, body, content_type=HttpContentTypes.JSON):
         """
@@ -329,7 +316,7 @@ class HomeKitConnection:
     async def put_json(self, target, body):
         response = await self.put(
             target,
-            serialize_json(body),
+            hkjson.dump_bytes(body),
             content_type=HttpContentTypes.JSON,
         )
 
@@ -346,7 +333,7 @@ class HomeKitConnection:
 
         try:
             parsed = hkjson.loads(decoded)
-        except json.JSONDecodeError:
+        except hkjson.JSON_DECODE_EXCEPTIONS:
             self.transport.close()
             raise AccessoryDisconnectedError(
                 "Session closed after receiving malformed response from device"
@@ -369,7 +356,7 @@ class HomeKitConnection:
     async def post_json(self, target, body):
         response = await self.post(
             target,
-            serialize_json(body),
+            hkjson.dump_bytes(body),
             content_type=HttpContentTypes.JSON,
         )
 
@@ -385,7 +372,7 @@ class HomeKitConnection:
 
         try:
             parsed = hkjson.loads(decoded)
-        except json.JSONDecodeError:
+        except hkjson.JSON_DECODE_EXCEPTIONS:
             self.transport.close()
             raise AccessoryDisconnectedError(
                 "Session closed after receiving malformed response from device"
@@ -582,7 +569,7 @@ class HomeKitConnection:
 
         try:
             parsed = hkjson.loads(decoded)
-        except json.JSONDecodeError:
+        except hkjson.JSON_DECODE_EXCEPTIONS:
             return
 
         self.owner.event_received(parsed)
