@@ -17,7 +17,6 @@
 import asyncio
 from datetime import timedelta
 from itertools import groupby
-import json
 import logging
 from operator import itemgetter
 from typing import Any
@@ -36,6 +35,7 @@ from aiohomekit.exceptions import (
     UnknownError,
     UnpairedError,
 )
+import aiohomekit.hkjson as hkjson
 from aiohomekit.http import HttpContentTypes
 from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.characteristics import CharacteristicsTypes
@@ -489,14 +489,14 @@ class IpPairing(AbstractPairing):
             resp = await self.connection.post(
                 "/resource",
                 content_type=HttpContentTypes.JSON,
-                body=json.dumps(
+                body=hkjson.dump_bytes(
                     {
                         "aid": accessory,
                         "resource-type": "image",
                         "image-width": width,
                         "image-height": height,
                     }
-                ).encode("utf-8"),
+                ),
             )
 
         except HttpException:

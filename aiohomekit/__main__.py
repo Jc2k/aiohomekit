@@ -19,7 +19,6 @@ import argparse
 from argparse import ArgumentParser, Namespace
 import asyncio
 import contextlib
-import json
 import locale
 import logging
 import pathlib
@@ -30,6 +29,7 @@ from typing import AsyncIterator
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheFile
+import aiohomekit.hkjson as hkjson
 
 from .controller import Controller
 from .exceptions import HomeKitException
@@ -189,7 +189,7 @@ async def get_accessories(args: Namespace) -> bool:
 
         # prepare output
         if args.output == "json":
-            print(json.dumps(data, indent=4))
+            print(hkjson.dumps_indented(data))
         elif args.output == "compact":
             for accessory in data:
                 aid = accessory["aid"]
@@ -237,7 +237,7 @@ async def get_characteristics(args: Namespace) -> bool:
             nk = str(k[0]) + "." + str(k[1])
             tmp[nk] = data[k]
 
-        print(json.dumps(tmp, indent=4))
+        print(hkjson.dumps_indented(tmp))
 
     return True
 
@@ -258,7 +258,7 @@ async def put_characteristics(args: Namespace) -> bool:
                 (
                     int(c[0].split(".")[0]),  # the first part is the aid, must be int
                     int(c[0].split(".")[1]),  # the second part is the iid, must be int
-                    json.loads(c[1]),
+                    hkjson.loads(c[1]),
                 )
                 for c in args.characteristics
             ]
@@ -370,7 +370,7 @@ async def get_events(args):
                 nk = str(k[0]) + "." + str(k[1])
                 tmp[nk] = data[k]
 
-            print(json.dumps(tmp, indent=4))
+            print(hkjson.dumps_indented(tmp))
 
         pairing.dispatcher_connect(handler)
 

@@ -17,9 +17,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-import json
 from typing import Any, Iterable, Iterator
 
+import aiohomekit.hkjson as hkjson
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.uuid import normalize_uuid
 
@@ -297,8 +297,8 @@ class Accessories:
 
     @classmethod
     def from_file(cls, path) -> Accessories:
-        with open(path) as fp:
-            return cls.from_list(json.load(fp))
+        with open(path, encoding="utf-8") as fp:
+            return cls.from_list(hkjson.loads(fp.read()))
 
     @classmethod
     def from_list(cls, accessories: list[dict[str, Any]]) -> Accessories:
@@ -318,7 +318,7 @@ class Accessories:
 
     def to_accessory_and_service_list(self):
         d = {"accessories": self.serialize()}
-        return json.dumps(d)
+        return hkjson.dumps(d)
 
     def aid(self, aid) -> Accessory:
         return next(filter(lambda accessory: accessory.aid == aid, self.accessories))
