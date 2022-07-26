@@ -370,11 +370,7 @@ class BlePairing(AbstractPairing):
             async_create_task(_async_callback())
 
         logger.debug("%s: Subscribing to iid: %s", self.name, iid)
-        try:
-            await self.client.start_notify(endpoint, _callback)
-        except ValueError:
-            await self.client.stop_notify(endpoint)
-            await self.client.start_notify(endpoint, _callback)
+        await self.client.start_notify(endpoint, _callback)
         self._notifications.add(iid)
 
     async def _async_pair_verify(self):
@@ -470,6 +466,12 @@ class BlePairing(AbstractPairing):
                 hap_char.iid = iid
                 hap_char.perms = decoded["perms"]
                 hap_char.format = decoded["format"]
+                if "minStep" in decoded:
+                    hap_char.minStep = decoded["minStep"]
+                if "minValue" in decoded:
+                    hap_char.minValue = decoded["minValue"]
+                if "maxValue" in decoded:
+                    hap_char.maxValue = decoded["maxValue"]
 
         accessories = Accessories()
         accessories.add_accessory(accessory)
@@ -724,9 +726,13 @@ class BlePairing(AbstractPairing):
         await self._populate_accessories_and_characteristics()
 
         results: dict[tuple[int, int], Any] = {}
+        logger.debug("%s: Writing characteristics: %s", self.name, characteristics)
 
         for aid, iid, value in characteristics:
             char = self.accessories.aid(1).characteristics.iid(iid)
+            logger.debug(
+                "%s: Writing characteristics: iid=%s value=%s", self.name, iid, value
+            )
 
             if CharacteristicPermissions.timed_write in char.perms:
                 payload_inner = TLV.encode_list(

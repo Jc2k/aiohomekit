@@ -13,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 import enum
 import struct
+from typing import Any
 
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16, u128
 
@@ -186,57 +188,85 @@ class Characteristic(TLVStruct):
 
     @property
     def value(self):
+        return self._unpack_value(self._value)
+
+    def _unpack_value(self, value: bytes) -> Any:
         if not self.pf_format:
-            return self._value
-        elif self.pf_format == 0x01:
-            val = struct.unpack("<B", self._value)[0]
+            return value
+        if self.pf_format == 0x01:
+            val = struct.unpack("<B", value)[0]
             return bool(val)
-        elif self.pf_format == 0x04:
-            return struct.unpack("<B", self._value)[0]
-        elif self.pf_format == 0x06:
-            return struct.unpack("<H", self._value)[0]
-        elif self.pf_format == 0x08:
-            return struct.unpack("<L", self._value)[0]
-        elif self.pf_format == 0x0A:
-            return struct.unpack("<Q", self._value)[0]
-        elif self.pf_format == 0x10:
-            return struct.unpack("<l", self._value)[0]
-        elif self.pf_format == 0x14:
-            return struct.unpack("<f", self._value)[0]
-        elif self.pf_format == 0x19:
-            return bytes.decode(self._value)
-        elif self.pf_format == 0x1B:
+        if self.pf_format == 0x04:
+            return struct.unpack("<B", value)[0]
+        if self.pf_format == 0x06:
+            return struct.unpack("<H", value)[0]
+        if self.pf_format == 0x08:
+            return struct.unpack("<L", value)[0]
+        if self.pf_format == 0x0A:
+            return struct.unpack("<Q", value)[0]
+        if self.pf_format == 0x10:
+            return struct.unpack("<l", value)[0]
+        if self.pf_format == 0x14:
+            return struct.unpack("<f", value)[0]
+        if self.pf_format == 0x19:
+            return bytes.decode(value)
+        if self.pf_format == 0x1B:
             # ???
-            return self._value.hex()
-        else:
-            return self._value
+            return value.hex()
+        return value
 
     @value.setter
     def value(self, value):
+        self._value = self._pack_value(value)
+
+    def _pack_value(self, value: Any) -> bytes:
         # if data type is unknown, copy value without modification
         if not self.pf_format:
-            self._value = value
-        elif self.pf_format == 0x01:
-            self._value = b"\x01" if value else b"\x00"
-        elif self.pf_format == 0x04:
-            self._value = struct.pack("<B", value)
-        elif self.pf_format == 0x06:
-            self._value = struct.pack("<H", value)
-        elif self.pf_format == 0x08:
-            self._value = struct.pack("<L", value)
-        elif self.pf_format == 0x0A:
-            self._value = struct.pack("<Q", value)
-        elif self.pf_format == 0x10:
-            self._value = struct.pack("<l", value)
-        elif self.pf_format == 0x14:
-            self._value = struct.pack("<f", value)
-        elif self.pf_format == 0x19:
-            self._value = value.encode()
-        elif self.pf_format == 0x1B:
+            return value
+        if self.pf_format == 0x01:
+            return b"\x01" if value else b"\x00"
+        if self.pf_format == 0x04:
+            return struct.pack("<B", value)
+        if self.pf_format == 0x06:
+            return struct.pack("<H", value)
+        if self.pf_format == 0x08:
+            return struct.pack("<L", value)
+        if self.pf_format == 0x0A:
+            return struct.pack("<Q", value)
+        if self.pf_format == 0x10:
+            return struct.pack("<l", value)
+        if self.pf_format == 0x14:
+            return struct.pack("<f", value)
+        if self.pf_format == 0x19:
+            return value.encode()
+        if self.pf_format == 0x1B:
             # ???
-            self._value = bytes.fromhex(value)
-        else:
-            self._value = value
+            return bytes.fromhex(value)
+        return value
+
+    @property
+    def min_step(self) -> Any:
+        if not self.step_value:
+            return None
+        return self._unpack_value(self.step_value)
+
+    @property
+    def min_max_value(self) -> tuple[int | float, int | float] | None:
+        if not self.valid_range:
+            return None
+        if self.pf_format == 0x04:
+            return struct.unpack("<BB", self.valid_range)
+        if self.pf_format == 0x06:
+            return struct.unpack("<HH", self.valid_range)
+        if self.pf_format == 0x08:
+            return struct.unpack("<LL", self.valid_range)
+        if self.pf_format == 0x0A:
+            return struct.unpack("<QQ", self.valid_range)
+        if self.pf_format == 0x10:
+            return struct.unpack("<ll", self.valid_range)
+        if self.pf_format == 0x14:
+            return struct.unpack("<ff", self.valid_range)
+        return None
 
     def to_dict(self):
         perms = list()
@@ -267,5 +297,13 @@ class Characteristic(TLVStruct):
 
         if self._value is not None:
             result["value"] = self.value
+
+        if self.min_step:
+            result["minStep"] = self.min_step
+
+        if self.min_max_value:
+            min_max_value = self.min_max_value
+            result["minValue"] = min_max_value[0]
+            result["maxValue"] = min_max_value[1]
 
         return result
