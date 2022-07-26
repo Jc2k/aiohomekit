@@ -13,12 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 import enum
 import struct
-from typing import Any
+from typing import Any, Optional, Tuple, Union
 
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16, u128
 
@@ -251,7 +249,7 @@ class Characteristic(TLVStruct):
         return self._unpack_value(self.step_value)
 
     @property
-    def min_max_value(self) -> tuple[int | float, int | float] | None:
+    def min_max_value(self) -> Optional[Tuple[Union[int, float], Union[int, float]]]:
         if not self.valid_range:
             return None
         if self.pf_format == 0x04:
