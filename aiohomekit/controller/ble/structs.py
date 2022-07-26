@@ -13,11 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from ctypes import Union
 from dataclasses import dataclass, field
 import enum
 import struct
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Union
 
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16, u128
 
