@@ -14,9 +14,10 @@
 # limitations under the License.
 #
 
-import async_timeout
 import asyncio
 import logging
+
+import async_timeout
 
 from aiohomekit.crypto.chacha20poly1305 import (
     ChaCha20Poly1305Decryptor,
