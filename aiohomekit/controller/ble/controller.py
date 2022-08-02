@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from typing import AsyncIterable
+import async_timeout
 
 from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
@@ -112,7 +113,8 @@ class BleController(AbstractController):
         future = asyncio.Future()
         self._ble_futures.setdefault(address, []).append(future)
         try:
-            return await asyncio.wait_for(future, timeout=timeout)
+            async with async_timeout.timeout(timeout):
+                return await future
         except asyncio.TimeoutError:
             logger.debug(
                 "Timed out after %s waiting for discovery with address %s",

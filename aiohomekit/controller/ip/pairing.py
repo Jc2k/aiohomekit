@@ -21,6 +21,8 @@ import logging
 from operator import itemgetter
 from typing import Any
 
+import async_timeout
+
 from aiohomekit.controller.abstract import (
     AbstractController,
     AbstractPairing,
@@ -128,7 +130,8 @@ class IpPairing(AbstractPairing):
 
     async def _ensure_connected(self):
         try:
-            await asyncio.wait_for(self.connection.ensure_connection(), 10)
+            async with async_timeout.timeout(10):
+                await self.connection.ensure_connection()
         except asyncio.TimeoutError:
             raise AccessoryDisconnectedError(
                 f"Timeout while waiting for connection to device {self.connection.host}:{self.connection.port}"
