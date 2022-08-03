@@ -63,7 +63,7 @@ wrapt = ">=1.11,<2"
 name = "async-timeout"
 version = "4.0.2"
 description = "Timeout context manager for asyncio programs"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -136,13 +136,14 @@ pyobjc-framework-libdispatch = {version = "*", markers = "platform_system == \"D
 
 [[package]]
 name = "bleak-retry-connector"
-version = "1.0.2"
+version = "1.1.1"
 description = "A connector for Bleak Clients that handles transient connection failures"
 category = "main"
 optional = false
 python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
+async-timeout = ">=4.0.1"
 bleak = ">=0.14.3"
 
 [package.extras]
@@ -748,7 +749,7 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "adaeb8a2b43bc30528d9da7dfc2af566f56a9602b912852dcf1b808852dfe5aa"
+content-hash = "3c5d209c3853da4a5b2da0af42b7bb3814584aeff50f4eb69c2423ef1118ec07"
 
 [metadata.files]
 aiocoap = [
@@ -882,8 +883,8 @@ bleak = [
     {file = "bleak-0.14.3.tar.gz", hash = "sha256:760e5bb1e804087f762576b9b9563d63b47d521b1652988e28c3cb5e64b61990"},
 ]
 bleak-retry-connector = [
-    {file = "bleak-retry-connector-1.0.2.tar.gz", hash = "sha256:1c79846e82f794298c69d9f32605b556b620acce922816c8c535fd6fe2a997ab"},
-    {file = "bleak_retry_connector-1.0.2-py3-none-any.whl", hash = "sha256:d28af24fabfa8d51122edbaa964d8e86cab97306a2d7322c0f86638bd3f8bfe3"},
+    {file = "bleak-retry-connector-1.1.1.tar.gz", hash = "sha256:6db154ea5365c183b5befd18a69070a360b289c3ac5c021b32398ee8a2106d38"},
+    {file = "bleak_retry_connector-1.1.1-py3-none-any.whl", hash = "sha256:7b7c0800081176db3a0ce275e1cc632c42c25eb4363dcf14d6af8dcaeb6e674a"},
 ]
 bleak-winrt = [
     {file = "bleak-winrt-1.1.1.tar.gz", hash = "sha256:3e7765f98d71b5229d95bd3b197931994dead40f3144e7186de7b8f664e26df0"},
