@@ -19,6 +19,34 @@ class AIOHomeKitBleakClient(BleakClient):
         """Wrap bleak."""
         super().__init__(address_or_ble_device)
         self._discovered_mtu = 0
+        self._char_cache: dict[tuple[str, str], BleakGATTCharacteristic] = {}
+        self._iid_cache: dict[BleakGATTCharacteristic, int] = {}
+
+    def get_characteristic(
+        self, service_type: str, characteristic_type: str
+    ) -> BleakGATTCharacteristic:
+        """Get a characteristic from the cache or the BleakGATTServiceCollection."""
+        if char := self._char_cache.get((service_type, characteristic_type)):
+            return char
+        char = self.services.get_service(service_type).get_characteristic(
+            characteristic_type
+        )
+        self._char_cache[(service_type, characteristic_type)] = char
+        return char
+
+    async def get_characteristic_iid(
+        self: AIOHomeKitBleakClient, char: BleakGATTCharacteristic
+    ) -> int:
+        """Get the iid of a characteristic."""
+        if iid := self._iid_cache.get(char):
+            return iid
+        iid_handle = char.get_descriptor(
+            uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A")
+        )
+        value = bytes(await self.read_gatt_descriptor(iid_handle.handle))
+        iid = int.from_bytes(value, byteorder="little")
+        self._iid_cache[char] = iid
+        return iid
 
     @property
     def mtu_size(self) -> int:

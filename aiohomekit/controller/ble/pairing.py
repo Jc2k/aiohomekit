@@ -20,6 +20,7 @@ import asyncio
 from collections.abc import Callable
 from datetime import timedelta
 import logging
+from os import F_ULOCK
 import random
 import struct
 import time
@@ -43,7 +44,7 @@ from aiohomekit.model import (
     CharacteristicsTypes,
     Transport,
 )
-from aiohomekit.model.characteristics import CharacteristicPermissions
+from aiohomekit.model.characteristics import Characteristic, CharacteristicPermissions
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import OpCode, PDUStatus, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
@@ -57,7 +58,6 @@ from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 from .client import (
     ble_request,
     drive_pairing_state_machine,
-    get_characteristic,
     retry_bluetooth_connection_error,
 )
 from .connection import establish_connection
@@ -90,6 +90,7 @@ SKIP_SYNC_SERVICES = {
     ServicesTypes.PAIRING,
     ServicesTypes.TRANSFER_TRANSPORT_MANAGEMENT,
 }
+BLE_AID = 1  # The aid for BLE devices is always 1
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
@@ -261,28 +262,32 @@ class BlePairing(AbstractPairing):
             async_create_task(self._async_process_config_changed())
 
     async def _async_request(
-        self, opcode: OpCode, iid: int, data: bytes | None = None
+        self, opcode: OpCode, char: Characteristic, data: bytes | None = None
     ) -> bytes:
-        char = self.accessories.aid(1).characteristics.iid(iid)
-        endpoint = get_characteristic(self.client, char.service.type, char.type)
         async with self._ble_request_lock:
-            if not self.client or not self.client.is_connected:
-                logger.debug("%s: Client not connected", self.name)
-                raise AccessoryDisconnectedError(f"{self.name} is not connected")
-            pdu_status, result_data = await ble_request(
-                self.client,
-                self._encryption_key,
-                self._decryption_key,
-                opcode,
-                endpoint.handle,
-                iid,
-                data,
+            return await self._async_request_under_lock(opcode, char, data)
+
+    async def _async_request_under_lock(
+        self, opcode: OpCode, char: Characteristic, data: bytes | None = None
+    ) -> bytes:
+        endpoint = self.client.get_characteristic(char.service.type, char.type)
+        if not self.client or not self.client.is_connected:
+            logger.debug("%s: Client not connected", self.name)
+            raise AccessoryDisconnectedError(f"{self.name} is not connected")
+        pdu_status, result_data = await ble_request(
+            self.client,
+            self._encryption_key,
+            self._decryption_key,
+            opcode,
+            endpoint.handle,
+            char.iid,
+            data,
+        )
+        if pdu_status != PDUStatus.SUCCESS:
+            raise ValueError(
+                f"{self.name}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
             )
-            if pdu_status != PDUStatus.SUCCESS:
-                raise ValueError(
-                    f"{self.name}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
-                )
-            return result_data
+        return result_data
 
     def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
         """Called when bleak disconnects from the accessory closed the connection."""
@@ -336,8 +341,7 @@ class BlePairing(AbstractPairing):
         char = self.accessories.aid(1).characteristics.iid(iid)
 
         # Find the GATT Characteristic object for this iid
-        service = self.client.services.get_service(char.service.type)
-        endpoint = service.get_characteristic(char.type)
+        endpoint = self.client.get_characteristic(char.service.type, char.type)
 
         # We only want to allow one in flight read
         # and one pending read at a time since there
@@ -354,11 +358,13 @@ class BlePairing(AbstractPairing):
                     # Client disconnected
                     return
                 logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
-                if results := await self._get_characteristics_without_retry([(1, iid)]):
+                if results := await self._get_characteristics_without_retry(
+                    [(BLE_AID, iid)]
+                ):
                     for listener in self.listeners:
                         listener(results)
 
-        def _callback(id, data) -> None:
+        def _callback(id: int, data: bytes) -> None:
             logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
             if data != b"":
                 # We should only poll on empty messages, otherwise we may poll
@@ -373,22 +379,23 @@ class BlePairing(AbstractPairing):
         await self.client.start_notify(endpoint, _callback)
         self._notifications.add(iid)
 
-    async def _async_pair_verify(self):
-        session_id, derive = await drive_pairing_state_machine(
-            self.client,
-            CharacteristicsTypes.PAIR_VERIFY,
-            get_session_keys(self.pairing_data, self._session_id, self._derive),
-        )
-        self._encryption_key = EncryptionKey(
-            derive(b"Control-Salt", b"Control-Write-Encryption-Key")
-        )
-        self._decryption_key = DecryptionKey(
-            derive(b"Control-Salt", b"Control-Read-Encryption-Key")
-        )
+    async def _async_pair_verify(self) -> None:
+        async with self._ble_request_lock:
+            session_id, derive = await drive_pairing_state_machine(
+                self.client,
+                CharacteristicsTypes.PAIR_VERIFY,
+                get_session_keys(self.pairing_data, self._session_id, self._derive),
+            )
+            self._encryption_key = EncryptionKey(
+                derive(b"Control-Salt", b"Control-Write-Encryption-Key")
+            )
+            self._decryption_key = DecryptionKey(
+                derive(b"Control-Salt", b"Control-Read-Encryption-Key")
+            )
 
-        # Used for session resume
-        self._session_id = session_id
-        self._derive = derive
+            # Used for session resume
+            self._session_id = session_id
+            self._derive = derive
 
     async def _async_process_config_changed(self) -> None:
         """Handle config changed seen from the advertisement."""
@@ -485,19 +492,18 @@ class BlePairing(AbstractPairing):
             await self._close_while_locked()
 
     async def _close_while_locked(self):
-        if self.client:
-            if not self.client.is_connected:
-                return
-            try:
-                await self.client.disconnect()
-            except BleakError:
-                logger.debug(
-                    "%s: Failed to close connection, client may have already closed it",
-                    self.name,
-                )
-            self.client = None
-            self._async_reset_connection_state()
-            logger.debug("%s: Connection closed from close call", self.name)
+        if not self.client or not self.client.is_connected:
+            return
+        try:
+            await self.client.disconnect()
+        except BleakError:
+            logger.debug(
+                "%s: Failed to close connection, client may have already closed it",
+                self.name,
+            )
+        self.client = None
+        self._async_reset_connection_state()
+        logger.debug("%s: Connection closed from close call", self.name)
 
     @operation_lock
     @retry_bluetooth_connection_error()
@@ -507,6 +513,7 @@ class BlePairing(AbstractPairing):
 
     async def _populate_char_values(self, config_changed: bool) -> None:
         """Populate the values of all characteristics."""
+        chars: list[Characteristic] = []
         for service in self.accessories.aid(1).services:
             if service.type in SKIP_SYNC_SERVICES:
                 continue
@@ -518,11 +525,19 @@ class BlePairing(AbstractPairing):
             for char in service.characteristics:
                 if CharacteristicPermissions.paired_read not in char.perms:
                     continue
-                aid_iid = (1, char.iid)
-                results = await self._get_characteristics_while_connected([aid_iid])
-                logger.debug("%s: Read %s", self.name, results)
-                if (result := results.get(aid_iid)) and "value" in result:
-                    char.value = result["value"]
+                chars.append(char)
+
+        if not chars:
+            return
+
+        results = await self._get_characteristics_while_connected(chars)
+        logger.debug("%s: Read %s", self.name, results)
+        for char in chars:
+            result = results.get((BLE_AID, char.iid))
+            if not result or "value" not in result:
+                logger.debug("%s: No value for %s", self.name, char)
+                continue
+            char.value = result["value"]
 
     async def async_populate_accessories_state(
         self, force_update: bool = False
@@ -648,7 +663,7 @@ class BlePairing(AbstractPairing):
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
 
         await self._populate_accessories_and_characteristics()
-        resp = await self._async_request(OpCode.CHAR_WRITE, char.iid, request_tlv)
+        resp = await self._async_request(OpCode.CHAR_WRITE, char, request_tlv)
 
         response = dict(TLV.decode_bytes(resp))
 
@@ -684,39 +699,42 @@ class BlePairing(AbstractPairing):
         characteristics: list[tuple[int, int]],
     ) -> dict[tuple[int, int], dict[str, Any]]:
         await self._populate_accessories_and_characteristics()
-        return await self._get_characteristics_while_connected(characteristics)
+        accessory_chars = self.accessories.aid(1).characteristics
+        return await self._get_characteristics_while_connected(
+            [accessory_chars.iid(iid) for _, iid in characteristics]
+        )
 
     async def _get_characteristics_while_connected(
         self,
-        characteristics: list[tuple[int, int]],
+        characteristics: list[Characteristic],
     ) -> dict[tuple[int, int], dict[str, Any]]:
         logger.debug("%s: Reading characteristics: %s", self.name, characteristics)
 
         results = {}
 
-        for aid, iid in characteristics:
-            data = await self._async_request(OpCode.CHAR_READ, iid)
-            decoded = dict(TLV.decode_bytes(data))[1]
+        async with self._ble_request_lock:
+            for char in characteristics:
+                data = await self._async_request_under_lock(OpCode.CHAR_READ, char)
+                decoded = dict(TLV.decode_bytes(data))[1]
 
-            char = self.accessories.aid(1).characteristics.iid(iid)
-            logger.debug(
-                "%s: Read characteristic got data, expected format is %s: data=%s decoded=%s",
-                self.name,
-                char.format,
-                data,
-                decoded,
-            )
-
-            try:
-                results[(aid, iid)] = {"value": from_bytes(char, decoded)}
-            except struct.error as ex:
                 logger.debug(
-                    "%s: Failed to decode characteristic for %s from %s: %s",
+                    "%s: Read characteristic got data, expected format is %s: data=%s decoded=%s",
                     self.name,
-                    char,
+                    char.format,
+                    data,
                     decoded,
-                    ex,
                 )
+
+                try:
+                    results[(BLE_AID, char.iid)] = {"value": from_bytes(char, decoded)}
+                except struct.error as ex:
+                    logger.debug(
+                        "%s: Failed to decode characteristic for %s from %s: %s",
+                        self.name,
+                        char,
+                        decoded,
+                        ex,
+                    )
 
         return results
 
@@ -729,37 +747,46 @@ class BlePairing(AbstractPairing):
 
         results: dict[tuple[int, int], Any] = {}
         logger.debug("%s: Writing characteristics: %s", self.name, characteristics)
+        accessory_chars = self.accessories.aid(1).characteristics
+        async with self._ble_request_lock:
 
-        for aid, iid, value in characteristics:
-            char = self.accessories.aid(1).characteristics.iid(iid)
-            logger.debug(
-                "%s: Writing characteristics: iid=%s value=%s", self.name, iid, value
-            )
-
-            if CharacteristicPermissions.timed_write in char.perms:
-                payload_inner = TLV.encode_list(
-                    [
-                        (HAP_TLV.kTLVHAPParamValue, to_bytes(char, value)),
-                        (HAP_TLV.kTLVHAPParamTTL, b"\x1e"),  # 3.0s
-                    ]
+            for aid, iid, value in characteristics:
+                char = accessory_chars.iid(iid)
+                logger.debug(
+                    "%s: Writing characteristics: iid=%s value=%s",
+                    self.name,
+                    iid,
+                    value,
                 )
-                payload = (len(payload_inner)).to_bytes(
-                    length=2, byteorder="little"
-                ) + payload_inner
-                await self._async_request(OpCode.CHAR_TIMED_WRITE, iid, payload)
-                await self._async_request(OpCode.CHAR_EXEC_WRITE, iid)
 
-            elif CharacteristicPermissions.paired_write in char.perms:
-                payload = TLV.encode_list(
-                    [(HAP_TLV.kTLVHAPParamValue, to_bytes(char, value))]
-                )
-                await self._async_request(OpCode.CHAR_WRITE, iid, payload)
+                if CharacteristicPermissions.timed_write in char.perms:
+                    payload_inner = TLV.encode_list(
+                        [
+                            (HAP_TLV.kTLVHAPParamValue, to_bytes(char, value)),
+                            (HAP_TLV.kTLVHAPParamTTL, b"\x1e"),  # 3.0s
+                        ]
+                    )
+                    payload = (len(payload_inner)).to_bytes(
+                        length=2, byteorder="little"
+                    ) + payload_inner
+                    await self._async_request_under_lock(
+                        OpCode.CHAR_TIMED_WRITE, char, payload
+                    )
+                    await self._async_request_under_lock(OpCode.CHAR_EXEC_WRITE, char)
 
-            else:
-                results[(aid, iid)] = {
-                    "status": HapStatusCode.CANT_WRITE_READ_ONLY,
-                    "description": HapStatusCode.CANT_WRITE_READ_ONLY.description,
-                }
+                elif CharacteristicPermissions.paired_write in char.perms:
+                    payload = TLV.encode_list(
+                        [(HAP_TLV.kTLVHAPParamValue, to_bytes(char, value))]
+                    )
+                    await self._async_request_under_lock(
+                        OpCode.CHAR_WRITE, char, payload
+                    )
+
+                else:
+                    results[(aid, iid)] = {
+                        "status": HapStatusCode.CANT_WRITE_READ_ONLY,
+                        "description": HapStatusCode.CANT_WRITE_READ_ONLY.description,
+                    }
 
         return results
 
@@ -790,7 +817,7 @@ class BlePairing(AbstractPairing):
 
         await self.put_characteristics(
             [
-                (1, char.iid, True),
+                (BLE_AID, char.iid, True),
             ]
         )
 
@@ -832,7 +859,7 @@ class BlePairing(AbstractPairing):
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
 
-        resp = await self._async_request(OpCode.CHAR_WRITE, char.iid, request_tlv)
+        resp = await self._async_request(OpCode.CHAR_WRITE, char, request_tlv)
 
         response = dict(TLV.decode_bytes(resp))
 
@@ -875,7 +902,7 @@ class BlePairing(AbstractPairing):
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
 
-        resp = await self._async_request(OpCode.CHAR_WRITE, char.iid, request_tlv)
+        resp = await self._async_request(OpCode.CHAR_WRITE, char, request_tlv)
 
         response = dict(TLV.decode_bytes(resp))
 

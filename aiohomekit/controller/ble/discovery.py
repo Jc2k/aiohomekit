@@ -35,8 +35,6 @@ from .client import (
     char_read,
     char_write,
     drive_pairing_state_machine,
-    get_characteristic,
-    get_characteristic_iid,
     retry_bluetooth_connection_error,
 )
 from .connection import establish_connection
@@ -109,12 +107,11 @@ class BleDiscovery(AbstractDiscovery):
     async def async_start_pairing(self, alias: str) -> FinishPairing:
         await self._ensure_connected()
 
-        ff_char = get_characteristic(
-            self.client,
+        ff_char = self.client.get_characteristic(
             ServicesTypes.PAIRING,
             CharacteristicsTypes.PAIRING_FEATURES,
         )
-        ff_iid = await get_characteristic_iid(self.client, ff_char)
+        ff_iid = await self.client.get_characteristic_iid(ff_char)
         ff_raw = await char_read(self.client, None, None, ff_char.handle, ff_iid)
         ff = FeatureFlags(ff_raw[0])
 
@@ -161,12 +158,11 @@ class BleDiscovery(AbstractDiscovery):
 
         await self._ensure_connected()
 
-        char = get_characteristic(
-            self.client,
+        char = self.client.get_characteristic(
             ServicesTypes.ACCESSORY_INFORMATION,
             CharacteristicsTypes.IDENTIFY,
         )
-        iid = await get_characteristic_iid(self.client, char)
+        iid = await self.client.get_characteristic_iid(char)
 
         await char_write(self.client, None, None, char.handle, iid, b"\x01")
 

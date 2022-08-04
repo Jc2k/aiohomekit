@@ -130,7 +130,7 @@ class Services:
 
 
 class Characteristics:
-    def __init__(self, services):
+    def __init__(self, services: Services) -> None:
         self._services = services
 
     def iid(self, iid: int) -> Characteristic | None:
