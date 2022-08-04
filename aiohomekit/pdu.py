@@ -26,6 +26,12 @@ from aiohomekit.enum import EnumWithDescription
 logger = logging.getLogger(__name__)
 
 
+STRUCT_BBBH = struct.Struct("<BBBH")
+STRUCT_BBB = struct.Struct("<BBB")
+STRUCT_H = struct.Struct("<H")
+STRUCT_BB = struct.Struct("<BB")
+
+
 class OpCode(Enum):
 
     CHAR_SIG_READ = 0x01
@@ -63,7 +69,7 @@ def encode_pdu(
     In a secure session this drops to 496 (16 bytes for the encryption). Some devices
     drop this quite a bit.
     """
-    retval = struct.pack("<BBBH", 0, opcode.value, tid, iid)
+    retval = STRUCT_BBBH.pack(0, opcode.value, tid, iid)
     if not data:
         yield retval
         return
@@ -71,17 +77,17 @@ def encode_pdu(
     # Full header + body size + data
     next_size = fragment_size - 7
 
-    yield bytes(retval + struct.pack("<H", len(data)) + data[:next_size])
+    yield bytes(retval + STRUCT_H.pack(len(data)) + data[:next_size])
     data = data[next_size:]
 
     # Control + tid + data
     next_size = fragment_size - 2
     for i in range(0, len(data), next_size):
-        yield struct.pack("<BB", 0x80, tid) + data[i : i + next_size]
+        yield STRUCT_BB.pack(0x80, tid) + data[i : i + next_size]
 
 
 def decode_pdu(expected_tid: int, data: bytes) -> tuple[PDUStatus, bool, bytes]:
-    control, tid, status = struct.unpack("<BBB", data[:3])
+    control, tid, status = STRUCT_BBB.unpack(data[:3])
     status = PDUStatus(status)
 
     logger.debug(
@@ -108,14 +114,14 @@ def decode_pdu(expected_tid: int, data: bytes) -> tuple[PDUStatus, bool, bytes]:
     if len(data) < 5:
         return status, 0, b""
 
-    expected_length = struct.unpack("<H", data[3:5])[0]
+    expected_length = STRUCT_H.unpack(data[3:5])[0]
     data = data[5:]
 
     return status, expected_length, data
 
 
 def decode_pdu_continuation(expected_tid, data):
-    control, tid = struct.unpack("<BB", data[:2])
+    control, tid = STRUCT_BB.unpack(data[:2])
 
     logger.debug(
         "Got PDU %x: TID %02x (Expected: %02x) Len:%d",
