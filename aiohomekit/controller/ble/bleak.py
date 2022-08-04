@@ -13,6 +13,7 @@ BLEAK_EXCEPTIONS = (AttributeError, BleakError)
 CHAR_DESCRIPTOR_ID = "DC46F0FE-81D2-4616-B5D9-6ABDD796939A"
 CHAR_DESCRIPTOR_UUID = uuid.UUID(CHAR_DESCRIPTOR_ID)
 
+
 class AIOHomeKitBleakClient(BleakClient):
     """Wrapper for bleak.BleakClient that auto discovers the max mtu."""
 
