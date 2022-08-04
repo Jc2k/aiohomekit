@@ -10,7 +10,8 @@ from bleak.backends.device import BLEDevice
 from .const import HAP_MIN_REQUIRED_MTU, HAP_MIN_SHOULD_MTU
 
 BLEAK_EXCEPTIONS = (AttributeError, BleakError)
-
+CHAR_DESCRIPTOR_ID = "DC46F0FE-81D2-4616-B5D9-6ABDD796939A"
+CHAR_DESCRIPTOR_UUID = uuid.UUID(CHAR_DESCRIPTOR_ID)
 
 class AIOHomeKitBleakClient(BleakClient):
     """Wrapper for bleak.BleakClient that auto discovers the max mtu."""
@@ -40,9 +41,7 @@ class AIOHomeKitBleakClient(BleakClient):
         """Get the iid of a characteristic."""
         if iid := self._iid_cache.get(char):
             return iid
-        iid_handle = char.get_descriptor(
-            uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A")
-        )
+        iid_handle = char.get_descriptor(CHAR_DESCRIPTOR_UUID)
         value = bytes(await self.read_gatt_descriptor(iid_handle.handle))
         iid = int.from_bytes(value, byteorder="little")
         self._iid_cache[char] = iid

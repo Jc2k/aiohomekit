@@ -81,8 +81,7 @@ NEVER_TIME = -AVAILABILITY_INTERVAL
 
 
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
-CHAR_DESCRIPTOR_ID = "DC46F0FE-81D2-4616-B5D9-6ABDD796939A"
-CHAR_DESCRIPTOR_UUID = uuid.UUID(CHAR_DESCRIPTOR_ID)
+
 
 SUBSCRIPTION_RESTORE_DELAY = 0.5
 SKIP_SYNC_SERVICES = {
@@ -439,15 +438,7 @@ class BlePairing(AbstractPairing):
                 if normalize_uuid(char.uuid) == SERVICE_INSTANCE_ID:
                     continue
 
-                iid_handle = char.get_descriptor(CHAR_DESCRIPTOR_UUID)
-                if not iid_handle:
-                    continue
-
-                iid = int.from_bytes(
-                    await self.client.read_gatt_descriptor(iid_handle.handle),
-                    byteorder="little",
-                )
-
+                iid = await self.client.get_characteristic_iid(char)
                 tid = random.randint(1, 254)
                 for data in encode_pdu(
                     OpCode.CHAR_SIG_READ,
