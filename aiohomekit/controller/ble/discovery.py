@@ -184,5 +184,9 @@ class BleDiscovery(AbstractDiscovery):
 
         await char_write(self.client, None, None, char.handle, iid, b"\x01")
 
-    def _async_process_advertisement(self, description: HomeKitAdvertisement):
+    def _async_process_advertisement(
+        self, device: BLEDevice, description: HomeKitAdvertisement
+    ):
+        """Update the device and description so we connect to the right place."""
+        self.device = device
         self.description = description
