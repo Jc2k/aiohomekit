@@ -701,7 +701,12 @@ class BlePairing(AbstractPairing):
         self,
         characteristics: list[Characteristic],
     ) -> dict[tuple[int, int], dict[str, Any]]:
-        logger.debug("%s: Reading characteristics: %s", self.name, characteristics)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "%s: Reading characteristics: %s",
+                self.name,
+                [char.iid for char in characteristics],
+            )
 
         results = {}
 
