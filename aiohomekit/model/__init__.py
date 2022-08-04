@@ -23,6 +23,7 @@ import aiohomekit.hkjson as hkjson
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.uuid import normalize_uuid
 
+from . import entity_map
 from .categories import Categories
 from .characteristics import (
     Characteristic,
@@ -33,7 +34,6 @@ from .characteristics import (
 from .feature_flags import FeatureFlags
 from .mixin import get_id
 from .services import Service, ServicesTypes
-from . import entity_map
 
 __all__ = [
     "Categories",
