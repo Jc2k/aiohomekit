@@ -38,11 +38,13 @@ class AIOHomeKitBleakClient(BleakClient):
 
     async def get_characteristic_iid(
         self: AIOHomeKitBleakClient, char: BleakGATTCharacteristic
-    ) -> int:
+    ) -> int | None:
         """Get the iid of a characteristic."""
         if iid := self._iid_cache.get(char):
             return iid
         iid_handle = char.get_descriptor(CHAR_DESCRIPTOR_UUID)
+        if iid_handle is None:
+            return None
         value = bytes(await self.read_gatt_descriptor(iid_handle.handle))
         iid = int.from_bytes(value, byteorder="little")
         self._iid_cache[char] = iid

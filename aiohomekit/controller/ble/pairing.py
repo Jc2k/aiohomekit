@@ -437,6 +437,10 @@ class BlePairing(AbstractPairing):
                     continue
 
                 iid = await self.client.get_characteristic_iid(char)
+                if iid is None:
+                    logger.debug("%s: No iid for %s", self.name, char.uuid)
+                    continue
+
                 tid = random.randint(1, 254)
                 for data in encode_pdu(
                     OpCode.CHAR_SIG_READ,
