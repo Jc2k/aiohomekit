@@ -16,12 +16,9 @@
 
 from __future__ import annotations
 
-from email.generator import Generator
-from functools import lru_cache
 import logging
 import random
 from typing import Any, Callable, TypeVar, cast
-import uuid
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
