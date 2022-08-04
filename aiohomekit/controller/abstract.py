@@ -306,7 +306,7 @@ class AbstractController(metaclass=ABCMeta):
     pairings: dict[str, AbstractPairing]
     aliases: dict[str, AbstractPairing]
 
-    def __init__(self, char_cache: CharacteristicCacheType):
+    def __init__(self, char_cache: CharacteristicCacheType) -> None:
         self.pairings = {}
         self.aliases = {}
         self.discoveries = {}

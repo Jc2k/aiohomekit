@@ -35,8 +35,6 @@ from .client import (
     char_read,
     char_write,
     drive_pairing_state_machine,
-    get_characteristic,
-    get_characteristic_iid,
     retry_bluetooth_connection_error,
 )
 from .connection import establish_connection
@@ -105,20 +103,17 @@ class BleDiscovery(AbstractDiscovery):
                     "Failed to close connection, client may have already closed it"
                 )
 
-    @retry_bluetooth_connection_error()
-    async def async_start_pairing(self, alias: str) -> FinishPairing:
+    async def _async_start_pairing(self, alias: str) -> tuple[bytearray, bytearray]:
         await self._ensure_connected()
 
-        ff_char = get_characteristic(
-            self.client,
+        ff_char = self.client.get_characteristic(
             ServicesTypes.PAIRING,
             CharacteristicsTypes.PAIRING_FEATURES,
         )
-        ff_iid = await get_characteristic_iid(self.client, ff_char)
+        ff_iid = await self.client.get_characteristic_iid(ff_char)
         ff_raw = await char_read(self.client, None, None, ff_char.handle, ff_iid)
         ff = FeatureFlags(ff_raw[0])
-
-        salt, pub_key = await drive_pairing_state_machine(
+        return await drive_pairing_state_machine(
             self.client,
             CharacteristicsTypes.PAIR_SETUP,
             perform_pair_setup_part1(
@@ -126,8 +121,28 @@ class BleDiscovery(AbstractDiscovery):
             ),
         )
 
+    @retry_bluetooth_connection_error()
+    async def async_start_pairing(self, alias: str) -> FinishPairing:
+        salt, pub_key = await self._async_start_pairing(alias)
+        attempt = 0
+
+        @retry_bluetooth_connection_error()
         async def finish_pairing(pin: str) -> BlePairing:
+            nonlocal attempt
+            nonlocal salt
+            nonlocal pub_key
+
             check_pin_format(pin)
+
+            attempt += 1
+
+            if attempt > 1:
+                # We've already tried to pair, if
+                # the retry gets us here again, we
+                # need to disconnect and restart
+                # the pairing process.
+                await self._close()
+                salt, pub_key = await self._async_start_pairing(alias)
 
             pairing = await drive_pairing_state_machine(
                 self.client,
@@ -161,14 +176,17 @@ class BleDiscovery(AbstractDiscovery):
 
         await self._ensure_connected()
 
-        char = get_characteristic(
-            self.client,
+        char = self.client.get_characteristic(
             ServicesTypes.ACCESSORY_INFORMATION,
             CharacteristicsTypes.IDENTIFY,
         )
-        iid = await get_characteristic_iid(self.client, char)
+        iid = await self.client.get_characteristic_iid(char)
 
         await char_write(self.client, None, None, char.handle, iid, b"\x01")
 
-    def _async_process_advertisement(self, description: HomeKitAdvertisement):
+    def _async_process_advertisement(
+        self, device: BLEDevice, description: HomeKitAdvertisement
+    ):
+        """Update the device and description so we connect to the right place."""
+        self.device = device
         self.description = description

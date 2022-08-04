@@ -14,11 +14,13 @@
 # limitations under the License.
 #
 
+from functools import lru_cache
 from uuid import UUID
 
 BASE_UUID = "-0000-1000-8000-0026BB765291"
 
 
+@lru_cache(maxsize=1024)
 def shorten_uuid(value: str) -> str:
     """
     Returns the shortned version of a UUID.
@@ -34,6 +36,7 @@ def shorten_uuid(value: str) -> str:
     return normalize_uuid(value)
 
 
+@lru_cache(maxsize=1024)
 def normalize_uuid(value: str) -> str:
     """
     Returns a normalized UUID.

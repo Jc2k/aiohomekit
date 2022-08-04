@@ -19,10 +19,8 @@ from __future__ import annotations
 import logging
 import random
 from typing import Any, Callable, TypeVar, cast
-import uuid
 
 from bleak import BleakClient
-from bleak.backends.characteristic import BleakGATTCharacteristic
 
 from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
 from aiohomekit.exceptions import EncryptionError
@@ -71,22 +69,6 @@ def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFu
         return cast(WrapFuncType, _async_wrap)
 
     return cast(WrapFuncType, _decorator_retry_bluetooth_connection_error)
-
-
-def get_characteristic(
-    client: AIOHomeKitBleakClient, service_type: str, characteristic_type: str
-) -> BleakGATTCharacteristic:
-    service = client.services.get_service(service_type)
-    char = service.get_characteristic(characteristic_type)
-    return char
-
-
-async def get_characteristic_iid(
-    client: AIOHomeKitBleakClient, char: BleakGATTCharacteristic
-) -> int:
-    iid_handle = char.get_descriptor(uuid.UUID("DC46F0FE-81D2-4616-B5D9-6ABDD796939A"))
-    value = bytes(await client.read_gatt_descriptor(iid_handle.handle))
-    return int.from_bytes(value, byteorder="little")
 
 
 async def ble_request(
@@ -195,8 +177,8 @@ async def drive_pairing_state_machine(
     characteristic: str,
     state_machine: Any,
 ) -> Any:
-    char = get_characteristic(client, ServicesTypes.PAIRING, characteristic)
-    iid = await get_characteristic_iid(client, char)
+    char = client.get_characteristic(ServicesTypes.PAIRING, characteristic)
+    iid = await client.get_characteristic_iid(char)
 
     request, expected = state_machine.send(None)
     while True:
