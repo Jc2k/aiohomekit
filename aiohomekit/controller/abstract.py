@@ -350,4 +350,4 @@ class AbstractController(metaclass=ABCMeta):
 
     def async_delete_cached_map(self, homekit_id: str) -> None:
         """Delete a pairing from cache."""
-        del self._char_cache.async_delete_map(homekit_id)
+        self._char_cache.async_delete_map(homekit_id)
