@@ -219,3 +219,12 @@ class CoAPPairing(AbstractPairing):
     async def remove_pairing(self, pairingId):
         await self._ensure_connected()
         return await self.connection.remove_pairing(pairingId)
+
+    async def reconnect_soon(self) -> None:
+        # Conventiently Home Assistant mutates self.pairing_data for us
+        # So we can just re-read from pairing data.
+        # This is kinda gross but there is a longer term plan to refactor
+        # this API away, so will do for now
+        address = self.pairing_data["AccessoryAddress"]
+        port = self.pairing_data["AccessoryPort"]
+        await self.connection.reconnect_soon(f"{address}:{port}")

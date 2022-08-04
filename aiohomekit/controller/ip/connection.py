@@ -236,7 +236,7 @@ class HomeKitConnection:
         self._connector = async_create_task(self._reconnect())
         self._connector.add_done_callback(done_callback)
 
-    async def reconnect_soon(self, updated_ip_port=None):
+    async def reconnect_soon(self) -> None:
         """Reconnect to the device if disconnected.
 
         If a reconnect is in progress, the reconnection wait is canceled

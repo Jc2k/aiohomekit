@@ -510,5 +510,5 @@ class IpPairing(AbstractPairing):
 
         return resp.body
 
-    async def reconnect_soon(self):
+    async def reconnect_soon(self) -> None:
         return await self.connection.reconnect_soon()
