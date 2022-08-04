@@ -306,7 +306,7 @@ class AbstractController(metaclass=ABCMeta):
     pairings: dict[str, AbstractPairing]
     aliases: dict[str, AbstractPairing]
 
-    def __init__(self, char_cache: CharacteristicCacheType):
+    def __init__(self, char_cache: CharacteristicCacheType) -> None:
         self.pairings = {}
         self.aliases = {}
         self.discoveries = {}
@@ -347,3 +347,7 @@ class AbstractController(metaclass=ABCMeta):
     @abstractmethod
     def load_pairing(self, alias: str, pairing_data: dict[str, str]) -> AbstractPairing:
         """Load a pairing from data."""
+
+    def async_delete_cached_map(self, homekit_id: str) -> None:
+        """Delete a pairing from cache."""
+        del self._char_cache.async_delete_map(homekit_id)
