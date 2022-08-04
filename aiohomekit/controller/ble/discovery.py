@@ -103,8 +103,7 @@ class BleDiscovery(AbstractDiscovery):
                     "Failed to close connection, client may have already closed it"
                 )
 
-    @retry_bluetooth_connection_error()
-    async def async_start_pairing(self, alias: str) -> FinishPairing:
+    async def _async_start_pairing(self, alias: str) -> tuple[bytearray, bytearray]:
         await self._ensure_connected()
 
         ff_char = self.client.get_characteristic(
@@ -114,8 +113,7 @@ class BleDiscovery(AbstractDiscovery):
         ff_iid = await self.client.get_characteristic_iid(ff_char)
         ff_raw = await char_read(self.client, None, None, ff_char.handle, ff_iid)
         ff = FeatureFlags(ff_raw[0])
-
-        salt, pub_key = await drive_pairing_state_machine(
+        return await drive_pairing_state_machine(
             self.client,
             CharacteristicsTypes.PAIR_SETUP,
             perform_pair_setup_part1(
@@ -123,8 +121,28 @@ class BleDiscovery(AbstractDiscovery):
             ),
         )
 
+    @retry_bluetooth_connection_error()
+    async def async_start_pairing(self, alias: str) -> FinishPairing:
+        salt, pub_key = await self._async_start_pairing(alias)
+        attempt = 0
+
+        @retry_bluetooth_connection_error()
         async def finish_pairing(pin: str) -> BlePairing:
+            nonlocal attempt
+            nonlocal salt
+            nonlocal pub_key
+
             check_pin_format(pin)
+
+            attempt += 1
+
+            if attempt > 1:
+                # We've already tried to pair, if
+                # the retry gets us here again, we
+                # need to disconnect and restart
+                # the pairing process.
+                await self._close()
+                salt, pub_key = await self._async_start_pairing(alias)
 
             pairing = await drive_pairing_state_machine(
                 self.client,
