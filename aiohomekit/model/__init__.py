@@ -33,6 +33,7 @@ from .characteristics import (
 from .feature_flags import FeatureFlags
 from .mixin import get_id
 from .services import Service, ServicesTypes
+from . import entity_map
 
 __all__ = [
     "Categories",
@@ -303,7 +304,7 @@ class Accessories:
             return cls.from_list(hkjson.loads(fp.read()))
 
     @classmethod
-    def from_list(cls, accessories: list[dict[str, Any]]) -> Accessories:
+    def from_list(cls, accessories: entity_map.Accesories) -> Accessories:
         self = cls()
         for accessory in accessories:
             self.add_accessory(Accessory.create_from_dict(accessory))
@@ -312,13 +313,13 @@ class Accessories:
     def add_accessory(self, accessory: Accessory) -> None:
         self.accessories.append(accessory)
 
-    def serialize(self):
+    def serialize(self) -> entity_map.Accesories:
         accessories_list = []
         for a in self.accessories:
             accessories_list.append(a.to_accessory_and_service_list())
         return accessories_list
 
-    def to_accessory_and_service_list(self):
+    def to_accessory_and_service_list(self) -> dict[str, entity_map.Accesories]:
         d = {"accessories": self.serialize()}
         return hkjson.dumps(d)
 
