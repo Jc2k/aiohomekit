@@ -228,7 +228,7 @@ class AbstractPairing(metaclass=ABCMeta):
     async def unsubscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
         self.subscriptions.difference_update(characteristics)
 
-    async def reconnect_soon(self):
+    async def reconnect_soon(self) -> None:
         """
         Notify the pairing that we have noticed a network change that means its connection maybe stale.
 
