@@ -428,8 +428,8 @@ class BlePairing(AbstractPairing):
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database", self.name)
         accessory = Accessory()
-        accessory.aid = 1
-        for service in self.client.services:
+        accessory.aid = BLE_AID
+        for service in self.client.services.services.values():
             s = accessory.add_service(normalize_uuid(service.uuid))
 
             for char in service.characteristics:

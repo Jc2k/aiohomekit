@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 import uuid
 
@@ -12,6 +13,8 @@ from .const import HAP_MIN_REQUIRED_MTU, HAP_MIN_SHOULD_MTU
 BLEAK_EXCEPTIONS = (AttributeError, BleakError)
 CHAR_DESCRIPTOR_ID = "DC46F0FE-81D2-4616-B5D9-6ABDD796939A"
 CHAR_DESCRIPTOR_UUID = uuid.UUID(CHAR_DESCRIPTOR_ID)
+
+logger = logging.getLogger(__name__)
 
 
 class AIOHomeKitBleakClient(BleakClient):
@@ -44,6 +47,13 @@ class AIOHomeKitBleakClient(BleakClient):
             return iid
         iid_handle = char.get_descriptor(CHAR_DESCRIPTOR_UUID)
         if iid_handle is None:
+            logger.log(
+                "%s: No iid handle for %s (want: %s, have: %s)",
+                self.address,
+                char,
+                CHAR_DESCRIPTOR_UUID,
+                char.descriptors,
+            )
             return None
         value = bytes(await self.read_gatt_descriptor(iid_handle.handle))
         iid = int.from_bytes(value, byteorder="little")
