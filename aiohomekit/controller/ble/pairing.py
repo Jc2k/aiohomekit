@@ -422,6 +422,7 @@ class BlePairing(AbstractPairing):
             listener(results)
 
     async def _async_fetch_gatt_database(self) -> Accessories:
+        logger.debug("%s: Fetching GATT database", self.name)
         accessory = Accessory()
         accessory.aid = 1
         for service in self.client.services:
@@ -475,6 +476,7 @@ class BlePairing(AbstractPairing):
 
         accessories = Accessories()
         accessories.add_accessory(accessory)
+        logger.debug("%s: Completed fetching GATT database", self.name)
 
         return accessories
 

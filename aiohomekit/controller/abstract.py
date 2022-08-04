@@ -86,7 +86,7 @@ class AbstractPairing(metaclass=ABCMeta):
     def config_num(self) -> int:
         """Wrapper around the accessories state to make it easier to use."""
         if not self._accessories_state:
-            return 0
+            return -1
         return self._accessories_state.config_num
 
     @property
