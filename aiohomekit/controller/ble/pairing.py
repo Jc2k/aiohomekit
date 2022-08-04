@@ -20,12 +20,10 @@ import asyncio
 from collections.abc import Callable
 from datetime import timedelta
 import logging
-from os import F_ULOCK
 import random
 import struct
 import time
 from typing import TYPE_CHECKING, Any, TypeVar, cast
-import uuid
 
 from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
