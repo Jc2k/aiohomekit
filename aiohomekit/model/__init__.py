@@ -40,6 +40,8 @@ __all__ = [
     "CharacteristicFormats",
     "FeatureFlags",
     "Accessory",
+    "Service",
+    "ServiceTypes",
     "Transport",
 ]
 

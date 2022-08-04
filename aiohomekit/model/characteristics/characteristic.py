@@ -32,7 +32,7 @@ from .data import characteristics
 from .permissions import CharacteristicPermissions
 
 if TYPE_CHECKING:
-    from aiohomekit.model.service import Service
+    from aiohomekit.model import Service
 
 
 DEFAULT_FOR_TYPE = {
