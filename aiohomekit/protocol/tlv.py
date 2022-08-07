@@ -53,6 +53,28 @@ class HAP_TLV(enum.IntEnum):
     kTLVHAPParamUnknown_1A_AccessoryInstanceId = 0x1A
 
 
+K_TLV_TYPE_NAMES = {
+    0: "Method",
+    1: "Identifer",
+    2: "Salt",
+    3: "PublicKey",
+    4: "Proof",
+    5: "EncryptedData",
+    6: "State",
+    7: "Error",
+    8: "RetryDelay",
+    9: "Certificate",
+    10: "Signature",
+    11: "Permissions",
+    12: "FragmentData",
+    13: "FragmentLast",
+    14: "SessionID",
+    255: "Separator",
+}
+
+UNKNOWN_TLV_TYPE_NAME = "Unknown"
+
+
 class TLV:
     """
     as described in Appendix 12 (page 251)
@@ -187,15 +209,21 @@ class TLV:
     @staticmethod
     def to_string(d: Any) -> str:
         def entry_to_string(entry_key, entry_value) -> str:
+            name = K_TLV_TYPE_NAMES.get(k[0], UNKNOWN_TLV_TYPE_NAME)
             if isinstance(entry_value, bytearray):
-                return "  {k}: ({len} bytes/{t}) 0x{v}\n".format(
+                return "  {k} ({key_name}): ({len} bytes/{t}) 0x{v}\n".format(
                     k=entry_key,
+                    key_name=name,
                     v=entry_value.hex(),
                     len=len(entry_value),
                     t=type(entry_value),
                 )
-            return "  {k}: ({len} bytes/{t}) {v}\n".format(
-                k=entry_key, v=entry_value, len=len(entry_value), t=type(entry_value)
+            return "  {k} ({key_name}): ({len} bytes/{t}) {v}\n".format(
+                k=entry_key,
+                key_name=name,
+                v=entry_value,
+                len=len(entry_value),
+                t=type(entry_value),
             )
 
         if isinstance(d, dict):
