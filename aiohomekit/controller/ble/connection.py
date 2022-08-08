@@ -20,10 +20,10 @@ from collections.abc import Callable
 
 from bleak.backends.device import BLEDevice
 from bleak_retry_connector import (
-    BleakConnectionError,
-    BleakNotFoundError,
     BleakAbortedError,
+    BleakConnectionError,
     BleakError,
+    BleakNotFoundError,
     establish_connection as retry_establish_connection,
 )
 
