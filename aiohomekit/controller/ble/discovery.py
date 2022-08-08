@@ -113,11 +113,14 @@ class BleDiscovery(AbstractDiscovery):
         ff_iid = await self.client.get_characteristic_iid(ff_char)
         ff_raw = await char_read(self.client, None, None, ff_char.handle, ff_iid)
         ff = FeatureFlags(ff_raw[0])
+        with_auth = pair_with_auth(ff)
+        if with_auth:
+            logger.debug("%s: Pairing with auth since flags are: %s", self.name, ff)
         return await drive_pairing_state_machine(
             self.client,
             CharacteristicsTypes.PAIR_SETUP,
             perform_pair_setup_part1(
-                with_auth=pair_with_auth(ff),
+                with_auth=with_auth,
             ),
         )
 

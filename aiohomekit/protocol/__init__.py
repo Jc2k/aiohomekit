@@ -107,7 +107,7 @@ def perform_pair_setup_part1(
     #
     # Step #1 ios --> accessory (send SRP start Request) (see page 39)
     #
-    logging.debug("#1 ios -> accessory: send SRP start request")
+    logger.debug("#1 ios -> accessory: send SRP start request")
     request_tlv = [
         (TLV.kTLVType_State, TLV.M1),
         (TLV.kTLVType_Method, TLV.PairSetupWithAuth if with_auth else TLV.PairSetup),
@@ -124,7 +124,7 @@ def perform_pair_setup_part1(
     #
     # Step #3 ios --> accessory (send SRP verify request) (see page 41)
     #
-    logging.debug("#3 ios -> accessory: send SRP verify request")
+    logger.debug("#3 ios -> accessory: send SRP verify request")
     response_tlv = dict(response_tlv)
     handle_state_step(response_tlv, TLV.M2)
 
@@ -215,7 +215,7 @@ def perform_pair_setup_part2(
     #
     # Step #5 ios --> accessory (Exchange Request) (see page 43)
     #
-    logging.debug("#5 ios -> accessory: send SRP exchange request")
+    logger.debug("#5 ios -> accessory: send SRP exchange request")
 
     # M4 Verification (page 43)
     response_tlv = dict(response_tlv)
