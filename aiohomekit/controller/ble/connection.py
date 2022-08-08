@@ -20,7 +20,9 @@ from collections.abc import Callable
 
 from bleak.backends.device import BLEDevice
 from bleak_retry_connector import (
+    BleakAbortedError,
     BleakConnectionError,
+    BleakError,
     BleakNotFoundError,
     establish_connection as retry_establish_connection,
 )
@@ -47,7 +49,9 @@ async def establish_connection(
             disconnected_callback,
             max_attempts=max_attempts,
         )
-    except BleakConnectionError as ex:
+    except (BleakAbortedError, BleakConnectionError) as ex:
         raise AccessoryDisconnectedError(ex) from ex
     except BleakNotFoundError as ex:
         raise AccessoryNotFoundError(ex) from ex
+    except BleakError as ex:
+        raise AccessoryDisconnectedError(ex) from ex
