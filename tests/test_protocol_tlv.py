@@ -155,12 +155,16 @@ class TestTLV(unittest.TestCase):
     def test_to_string_for_dict_bytearray(self):
         example = {1: bytearray([0x42, 0x23])}
         res = TLV.to_string(example)
-        self.assertEqual(res, "{\n  1 (Identifier): (2 bytes/<class 'bytearray'>) 0x4223\n}\n")
+        self.assertEqual(
+            res, "{\n  1 (Identifier): (2 bytes/<class 'bytearray'>) 0x4223\n}\n"
+        )
 
     def test_to_string_for_list_bytearray(self):
         example = [[1, bytearray([0x42, 0x23])]]
         res = TLV.to_string(example)
-        self.assertEqual(res, "[\n  1 (Identifier): (2 bytes/<class 'bytearray'>) 0x4223\n]\n")
+        self.assertEqual(
+            res, "[\n  1 (Identifier): (2 bytes/<class 'bytearray'>) 0x4223\n]\n"
+        )
 
     def test_separator_list(self):
         val = [

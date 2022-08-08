@@ -240,13 +240,15 @@ class TLV:
                     t=type(entry_value),
                     value_description=value_description,
                 )
-            return "  {k} ({key_name}): ({len} bytes/{t}) {v}{value_description}\n".format(
-                k=entry_key,
-                key_name=name,
-                v=entry_value,
-                len=len(entry_value),
-                t=type(entry_value),
-                value_description=value_description,
+            return (
+                "  {k} ({key_name}): ({len} bytes/{t}) {v}{value_description}\n".format(
+                    k=entry_key,
+                    key_name=name,
+                    v=entry_value,
+                    len=len(entry_value),
+                    t=type(entry_value),
+                    value_description=value_description,
+                )
             )
 
         if isinstance(d, dict):
