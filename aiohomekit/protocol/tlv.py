@@ -53,6 +53,41 @@ class HAP_TLV(enum.IntEnum):
     kTLVHAPParamUnknown_1A_AccessoryInstanceId = 0x1A
 
 
+K_TLV_TYPE_NAMES = {
+    0: "Method",
+    1: "Identifier",
+    2: "Salt",
+    3: "PublicKey",
+    4: "Proof",
+    5: "EncryptedData",
+    6: "State",
+    7: "Error",
+    8: "RetryDelay",
+    9: "Certificate",
+    10: "Signature",
+    11: "Permissions",
+    12: "FragmentData",
+    13: "FragmentLast",
+    14: "SessionID",
+    255: "Separator",
+}
+
+UNKNOWN_TLV_TYPE_NAME = "Unknown"
+
+
+K_TLV_ERROR_NAMES = {
+    1: "Unknown",
+    2: "Authentication",
+    3: "Backoff",
+    4: "MaxPeers",
+    5: "MaxTries",
+    6: "Unavailable",
+    7: "Busy",
+}
+
+UNKNOWN_TLV_ERROR_NAME = "Unknown"
+
+
 class TLV:
     """
     as described in Appendix 12 (page 251)
@@ -187,15 +222,33 @@ class TLV:
     @staticmethod
     def to_string(d: Any) -> str:
         def entry_to_string(entry_key, entry_value) -> str:
+            tlv_key = entry_key if isinstance(entry_key, int) else entry_key[0]
+            name = K_TLV_TYPE_NAMES.get(tlv_key, UNKNOWN_TLV_TYPE_NAME)
+            value_description = ""
+            if tlv_key == TLV.kTLVType_Error:
+                value_description = K_TLV_ERROR_NAMES.get(
+                    entry_value[0], UNKNOWN_TLV_ERROR_NAME
+                )
+            if value_description:
+                value_description = f" [{value_description}]"
             if isinstance(entry_value, bytearray):
-                return "  {k}: ({len} bytes/{t}) 0x{v}\n".format(
+                return "  {k} ({key_name}): ({len} bytes/{t}) 0x{v}{value_description}\n".format(
                     k=entry_key,
+                    key_name=name,
                     v=entry_value.hex(),
                     len=len(entry_value),
                     t=type(entry_value),
+                    value_description=value_description,
                 )
-            return "  {k}: ({len} bytes/{t}) {v}\n".format(
-                k=entry_key, v=entry_value, len=len(entry_value), t=type(entry_value)
+            return (
+                "  {k} ({key_name}): ({len} bytes/{t}) {v}{value_description}\n".format(
+                    k=entry_key,
+                    key_name=name,
+                    v=entry_value,
+                    len=len(entry_value),
+                    t=type(entry_value),
+                    value_description=value_description,
+                )
             )
 
         if isinstance(d, dict):
