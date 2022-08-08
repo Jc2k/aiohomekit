@@ -17,7 +17,6 @@
 from enum import IntEnum
 
 HAP_MIN_REQUIRED_MTU = 100
-HAP_MIN_SHOULD_MTU = 150
 
 
 class AdditionalParameterTypes(IntEnum):
