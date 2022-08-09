@@ -28,9 +28,20 @@ class AIOHomeKitBleakClient(BleakClient):
         """Get a characteristic from the cache or the BleakGATTServiceCollection."""
         if char := self._char_cache.get((service_type, characteristic_type)):
             return char
-        char = self.services.get_service(service_type).get_characteristic(
-            characteristic_type
-        )
+        service = self.services.get_service(service_type)
+        if service is None:
+            available_services = [
+                service.uuid for service in self.services.services.values()
+            ]
+            raise ValueError(
+                f"Service {service_type} not found, available services: {available_services}"
+            )
+        char = service.get_characteristic(characteristic_type)
+        if char is None:
+            available_chars = [char.uuid for char in service.characteristics]
+            raise ValueError(
+                f"Characteristic {characteristic_type} not found, available characteristics: {available_chars}"
+            )
         self._char_cache[(service_type, characteristic_type)] = char
         return char
 
