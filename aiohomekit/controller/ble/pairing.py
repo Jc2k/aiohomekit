@@ -466,7 +466,10 @@ class BlePairing(AbstractPairing):
 
                 hap_char.iid = iid
                 hap_char.perms = decoded["perms"]
-                hap_char.format = decoded["format"]
+                # Some vendor characteristics have no format
+                # See https://github.com/home-assistant/core/issues/76104
+                if "format" in decoded:
+                    hap_char.format = decoded["format"]
                 if "minStep" in decoded:
                     hap_char.minStep = decoded["minStep"]
                 if "minValue" in decoded:
