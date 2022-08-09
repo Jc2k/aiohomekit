@@ -15,7 +15,7 @@
 #
 
 from __future__ import annotations
-
+from bleak.backends.characteristic import BleakGATTCharacteristic
 import logging
 import random
 from typing import Any, Callable, TypeVar, cast
@@ -76,7 +76,7 @@ async def ble_request(
     encryption_key: EncryptionKey | None,
     decryption_key: DecryptionKey | None,
     opcode: OpCode,
-    handle: int,
+    handle: BleakGATTCharacteristic,
     iid: int,
     data: bytes | None = None,
 ) -> tuple[PDUStatus, bytes]:
@@ -85,8 +85,22 @@ async def ble_request(
     # We think there is a 3 byte overhead for ATT
     # https://github.com/jlusiardi/homekit_python/issues/211#issuecomment-996751939
     # But we haven't confirmed that this isn't already taken into account
+    if max_write_without_response_size := getattr(
+        handle, "max_write_without_response_size", None
+    ):
+        logger.debug(
+            "max_write_without_response_size: %s, mtu_size-3: %s",
+            max_write_without_response_size,
+            client.mtu_size - 3,
+        )
+        fragment_size = max(max_write_without_response_size, client.mtu_size - 3)
+    else:
+        logger.debug(
+            "no max_write_without_response_size, using mtu_size-3: %s",
+            client.mtu_size - 3,
+        )
+        fragment_size = client.mtu_size - 3
 
-    fragment_size = client.mtu_size - 3
     if encryption_key:
         # Secure session means an extra 16 bytes of overhead
         fragment_size -= 16
@@ -138,7 +152,7 @@ async def char_write(
     client: BleakClient,
     encryption_key: EncryptionKey | None,
     decryption_key: DecryptionKey | None,
-    handle: int,
+    handle: BleakGATTCharacteristic,
     iid: int,
     body: bytes,
 ):
@@ -158,7 +172,7 @@ async def char_read(
     client: BleakClient,
     encryption_key: EncryptionKey | None,
     decryption_key: DecryptionKey | None,
-    handle: int,
+    handle: BleakGATTCharacteristic,
     iid: int,
 ):
     pdu_status, data = await ble_request(
@@ -188,7 +202,7 @@ async def drive_pairing_state_machine(
                 client,
                 None,
                 None,
-                char.handle,
+                char,
                 iid,
                 body,
             )

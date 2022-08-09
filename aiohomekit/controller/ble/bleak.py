@@ -43,7 +43,7 @@ class AIOHomeKitBleakClient(BleakClient):
         iid_handle = char.get_descriptor(CHAR_DESCRIPTOR_UUID)
         if iid_handle is None:
             return None
-        value = bytes(await self.read_gatt_descriptor(iid_handle.handle))
+        value = bytes(await self.read_gatt_descriptor(iid_handle))
         iid = int.from_bytes(value, byteorder="little")
         self._iid_cache[char] = iid
         return iid

@@ -111,7 +111,7 @@ class BleDiscovery(AbstractDiscovery):
             CharacteristicsTypes.PAIRING_FEATURES,
         )
         ff_iid = await self.client.get_characteristic_iid(ff_char)
-        ff_raw = await char_read(self.client, None, None, ff_char.handle, ff_iid)
+        ff_raw = await char_read(self.client, None, None, ff_char, ff_iid)
         ff = FeatureFlags(ff_raw[0])
         return await drive_pairing_state_machine(
             self.client,
@@ -182,7 +182,7 @@ class BleDiscovery(AbstractDiscovery):
         )
         iid = await self.client.get_characteristic_iid(char)
 
-        await char_write(self.client, None, None, char.handle, iid, b"\x01")
+        await char_write(self.client, None, None, char, iid, b"\x01")
 
     def _async_process_advertisement(
         self, device: BLEDevice, description: HomeKitAdvertisement

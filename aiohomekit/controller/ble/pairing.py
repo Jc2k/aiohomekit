@@ -276,7 +276,7 @@ class BlePairing(AbstractPairing):
             self._encryption_key,
             self._decryption_key,
             opcode,
-            endpoint.handle,
+            endpoint,
             char.iid,
             data,
         )
@@ -448,12 +448,12 @@ class BlePairing(AbstractPairing):
                     iid,
                 ):
                     await self.client.write_gatt_char(
-                        char.handle,
+                        char,
                         data,
                         "write-without-response" not in char.properties,
                     )
 
-                payload = await self.client.read_gatt_char(char.handle)
+                payload = await self.client.read_gatt_char(char)
 
                 status, _, signature = decode_pdu(tid, payload)
                 if status != PDUStatus.SUCCESS:
