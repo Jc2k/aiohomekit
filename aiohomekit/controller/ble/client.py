@@ -21,6 +21,7 @@ import random
 from typing import Any, Callable, TypeVar, cast
 
 from bleak import BleakClient
+from bleak.backends.characteristic import BleakGATTCharacteristic
 
 from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
 from aiohomekit.exceptions import EncryptionError
@@ -76,7 +77,7 @@ async def ble_request(
     encryption_key: EncryptionKey | None,
     decryption_key: DecryptionKey | None,
     opcode: OpCode,
-    handle: int,
+    handle: BleakGATTCharacteristic,
     iid: int,
     data: bytes | None = None,
 ) -> tuple[PDUStatus, bytes]:
@@ -85,19 +86,53 @@ async def ble_request(
     # We think there is a 3 byte overhead for ATT
     # https://github.com/jlusiardi/homekit_python/issues/211#issuecomment-996751939
     # But we haven't confirmed that this isn't already taken into account
+    debug_enabled = logger.isEnabledFor(logging.DEBUG)
 
-    fragment_size = client.mtu_size - 3
+    # Newer bleak, not currently released
+    if max_write_without_response_size := getattr(
+        handle, "max_write_without_response_size", None
+    ):
+        if debug_enabled:
+            logger.debug(
+                "max_write_without_response_size: %s, mtu_size-3: %s",
+                max_write_without_response_size,
+                client.mtu_size - 3,
+            )
+        fragment_size = max(max_write_without_response_size, client.mtu_size - 3)
+    # Bleak 0.15.1 and below
+    elif (
+        (char_obj := getattr(handle, "obj", None))
+        and isinstance(char_obj, dict)
+        and (char_mtu := char_obj.get("MTU"))
+    ):
+        if debug_enabled:
+            logger.debug(
+                "bleak obj MTU: %s, mtu_size-3: %s",
+                char_mtu,
+                client.mtu_size - 3,
+            )
+        fragment_size = max(char_mtu - 3, client.mtu_size - 3)
+    else:
+        if debug_enabled:
+            logger.debug(
+                "no bleak obj MTU or max_write_without_response_size, using mtu_size-3: %s",
+                client.mtu_size - 3,
+            )
+        fragment_size = client.mtu_size - 3
+
     if encryption_key:
         # Secure session means an extra 16 bytes of overhead
         fragment_size -= 16
 
-    logger.debug("Using fragment size: %s", fragment_size)
+    if debug_enabled:
+        logger.debug("Using fragment size: %s", fragment_size)
 
     # Wrap data in one or more PDU's split at fragment_size
     # And write each one to the target characterstic handle
     writes = []
     for data in encode_pdu(opcode, tid, iid, data, fragment_size):
-        logger.debug("Queuing fragment for write: %s", data)
+        if debug_enabled:
+            logger.debug("Queuing fragment for write: %s", data)
         if encryption_key:
             data = encryption_key.encrypt(data)
         writes.append(data)
@@ -110,7 +145,9 @@ async def ble_request(
         data = decryption_key.decrypt(data)
         if data is False:
             raise EncryptionError("Decryption failed")
-    logger.debug("Read fragment: %s", data)
+
+    if debug_enabled:
+        logger.debug("Read fragment: %s", data)
 
     # Validate the PDU header
     status, expected_length, data = decode_pdu(tid, data)
@@ -127,7 +164,8 @@ async def ble_request(
             next = decryption_key.decrypt(next)
             if next is False:
                 raise EncryptionError("Decryption failed")
-        logger.debug("Read fragment: %s", next)
+        if debug_enabled:
+            logger.debug("Read fragment: %s", next)
 
         data += decode_pdu_continuation(tid, next)
 
@@ -138,7 +176,7 @@ async def char_write(
     client: BleakClient,
     encryption_key: EncryptionKey | None,
     decryption_key: DecryptionKey | None,
-    handle: int,
+    handle: BleakGATTCharacteristic,
     iid: int,
     body: bytes,
 ):
@@ -158,7 +196,7 @@ async def char_read(
     client: BleakClient,
     encryption_key: EncryptionKey | None,
     decryption_key: DecryptionKey | None,
-    handle: int,
+    handle: BleakGATTCharacteristic,
     iid: int,
 ):
     pdu_status, data = await ble_request(
@@ -188,7 +226,7 @@ async def drive_pairing_state_machine(
                 client,
                 None,
                 None,
-                char.handle,
+                char,
                 iid,
                 body,
             )
