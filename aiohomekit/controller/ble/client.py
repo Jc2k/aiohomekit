@@ -86,6 +86,8 @@ async def ble_request(
     # We think there is a 3 byte overhead for ATT
     # https://github.com/jlusiardi/homekit_python/issues/211#issuecomment-996751939
     # But we haven't confirmed that this isn't already taken into account
+
+    # Newer bleak, not currently released
     if max_write_without_response_size := getattr(
         handle, "max_write_without_response_size", None
     ):
@@ -95,6 +97,13 @@ async def ble_request(
             client.mtu_size - 3,
         )
         fragment_size = max(max_write_without_response_size, client.mtu_size - 3)
+    # Bleak 0.15.1 and below
+    elif (
+        (char_obj := getattr(handle, "obj", None))
+        and isinstance(char_obj, dict)
+        and (char_mtu := char_obj.get("MTU"))
+    ):
+        fragment_size = max(char_mtu - 3, client.mtu_size - 3)
     else:
         logger.debug(
             "no max_write_without_response_size, using mtu_size-3: %s",
