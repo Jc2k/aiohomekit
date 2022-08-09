@@ -103,6 +103,11 @@ async def ble_request(
         and isinstance(char_obj, dict)
         and (char_mtu := char_obj.get("MTU"))
     ):
+        logger.debug(
+            "bleak obj MTU: %s, mtu_size-3: %s",
+            char_mtu,
+            client.mtu_size - 3,
+        )
         fragment_size = max(char_mtu - 3, client.mtu_size - 3)
     else:
         logger.debug(
