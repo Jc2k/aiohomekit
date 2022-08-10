@@ -16,7 +16,7 @@
 
 import asyncio
 import logging
-from aiohomekit.controller.ip.controller import IpController
+from typing import TYPE_CHECKING
 
 from aiohomekit.crypto.chacha20poly1305 import (
     ChaCha20Poly1305Decryptor,
@@ -39,6 +39,9 @@ from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from aiohomekit.controller.ip.controller import IpController
 
 
 class InsecureHomeKitProtocol(asyncio.Protocol):
@@ -600,13 +603,23 @@ class SecureHomeKitConnection(HomeKitConnection):
         if self.owner:
             controller: IpController = self.owner.controller
             try:
-                discovery = await controller.async_find(self.pairing_data["AccessoryPairingID"])
+                discovery = await controller.async_find(
+                    self.pairing_data["AccessoryPairingID"]
+                )
                 if self.host != discovery.description.address:
-                    logger.debug("Host changed from %s to %s", self.host, self.discovery.description.address)
+                    logger.debug(
+                        "Host changed from %s to %s",
+                        self.host,
+                        self.discovery.description.address,
+                    )
                     self.host = discovery.description.address
 
                 if self.port != discovery.description.port:
-                    logger.debug("Port changed from %s to %s", self.port, self.discovery.description.port)
+                    logger.debug(
+                        "Port changed from %s to %s",
+                        self.port,
+                        self.discovery.description.port,
+                    )
                     self.port = discovery.description.port
             except AccessoryNotFoundError:
                 pass
