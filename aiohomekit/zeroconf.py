@@ -146,7 +146,7 @@ class ZeroconfController(AbstractController):
         # FIXME: Detach from zeroconf instance
         pass
 
-    async def async_find(self, device_id: str) -> AbstractDiscovery:
+    async def async_find(self, device_id: str) -> ZeroconfDiscovery:
         device_id = device_id.lower()
 
         async for device in self.async_discover():
@@ -155,7 +155,7 @@ class ZeroconfController(AbstractController):
 
         raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
 
-    async def async_discover(self) -> AsyncIterable[AbstractDiscovery]:
+    async def async_discover(self) -> AsyncIterable[ZeroconfDiscovery]:
         zc = self._async_zeroconf_instance.zeroconf
         infos = [
             AsyncServiceInfo(self.hap_type, record.alias)
