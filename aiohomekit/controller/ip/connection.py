@@ -610,7 +610,7 @@ class SecureHomeKitConnection(HomeKitConnection):
                     logger.debug(
                         "Host changed from %s to %s",
                         self.host,
-                        self.discovery.description.address,
+                        discovery.description.address,
                     )
                     self.host = discovery.description.address
 
@@ -618,7 +618,7 @@ class SecureHomeKitConnection(HomeKitConnection):
                     logger.debug(
                         "Port changed from %s to %s",
                         self.port,
-                        self.discovery.description.port,
+                        discovery.description.port,
                     )
                     self.port = discovery.description.port
             except AccessoryNotFoundError:
