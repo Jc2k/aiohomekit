@@ -121,7 +121,7 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "bleak"
-version = "0.14.3"
+version = "0.15.1"
 description = "Bluetooth Low Energy platform Agnostic Klient"
 category = "main"
 optional = false
@@ -133,10 +133,11 @@ dbus-next = {version = "*", markers = "platform_system == \"Linux\""}
 pyobjc-core = {version = "*", markers = "platform_system == \"Darwin\""}
 pyobjc-framework-CoreBluetooth = {version = "*", markers = "platform_system == \"Darwin\""}
 pyobjc-framework-libdispatch = {version = "*", markers = "platform_system == \"Darwin\""}
+typing-extensions = ">=4.2.0"
 
 [[package]]
 name = "bleak-retry-connector"
-version = "1.5.0"
+version = "1.7.0"
 description = "A connector for Bleak Clients that handles transient connection failures"
 category = "main"
 optional = false
@@ -144,7 +145,7 @@ python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
 async-timeout = ">=4.0.1"
-bleak = ">=0.14.3"
+bleak = ">=0.15.1"
 
 [package.extras]
 docs = ["sphinx-rtd-theme (>=1.0,<2.0)", "myst-parser (>=0.18,<0.19)", "Sphinx (>=5.0,<6.0)"]
@@ -698,7 +699,7 @@ python-versions = ">=3.6,<4.0"
 name = "typing-extensions"
 version = "4.3.0"
 description = "Backported and Experimental Type Hints for Python 3.7+"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
@@ -749,7 +750,7 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "02d4e3f16b140ea6476f0ab44562a76534582960ec67fe3d551106844a4d3b33"
+content-hash = "12be644545d6f7b626fbe121721d455d203d53c4a8755041c77f381174a51310"
 
 [metadata.files]
 aiocoap = [
@@ -879,12 +880,12 @@ black = [
     {file = "black-22.6.0.tar.gz", hash = "sha256:6c6d39e28aed379aec40da1c65434c77d75e65bb59a1e1c283de545fb4e7c6c9"},
 ]
 bleak = [
-    {file = "bleak-0.14.3-py2.py3-none-any.whl", hash = "sha256:1740c09039e58a65023a3c7141609bff1300dff2b5f7ab103a3218063803e965"},
-    {file = "bleak-0.14.3.tar.gz", hash = "sha256:760e5bb1e804087f762576b9b9563d63b47d521b1652988e28c3cb5e64b61990"},
+    {file = "bleak-0.15.1-py2.py3-none-any.whl", hash = "sha256:af90ac301a723433460cb56215dd00f687281fa397395c2faadd9e59741ba3b4"},
+    {file = "bleak-0.15.1.tar.gz", hash = "sha256:d8c8d88de0f22a15bd135ba056c4e5b2fb9f15119283def21b1ed7d43c00d590"},
 ]
 bleak-retry-connector = [
-    {file = "bleak-retry-connector-1.5.0.tar.gz", hash = "sha256:e12773df9b663149843d5ebf40cd808ccaa804939fdf5dfdc1c76d495849e5bb"},
-    {file = "bleak_retry_connector-1.5.0-py3-none-any.whl", hash = "sha256:a66a5beb2a9b52592d5f9b3df90f073ba449699fda5271d44ad428f53edbe925"},
+    {file = "bleak-retry-connector-1.7.0.tar.gz", hash = "sha256:8d2448ae8db42bab01d7ba510430dee60a2c63a3fb21df60d5e935d00f9da489"},
+    {file = "bleak_retry_connector-1.7.0-py3-none-any.whl", hash = "sha256:b77ac37e62cab42ac299ce9d286de981547ca4dfb666b097a520356fa9a0e9ba"},
 ]
 bleak-winrt = [
     {file = "bleak-winrt-1.1.1.tar.gz", hash = "sha256:3e7765f98d71b5229d95bd3b197931994dead40f3144e7186de7b8f664e26df0"},
