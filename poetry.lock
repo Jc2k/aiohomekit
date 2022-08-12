@@ -137,7 +137,7 @@ typing-extensions = ">=4.2.0"
 
 [[package]]
 name = "bleak-retry-connector"
-version = "1.7.1"
+version = "1.7.2"
 description = "A connector for Bleak Clients that handles transient connection failures"
 category = "main"
 optional = false
@@ -347,10 +347,10 @@ optional = false
 python-versions = ">=3.6.1,<4.0"
 
 [package.extras]
-pipfile_deprecated_finder = ["pipreqs", "requirementslib"]
-requirements_deprecated_finder = ["pipreqs", "pip-api"]
-colors = ["colorama (>=0.4.3,<0.5.0)"]
 plugins = ["setuptools"]
+colors = ["colorama (>=0.4.3,<0.5.0)"]
+requirements_deprecated_finder = ["pip-api", "pipreqs"]
+pipfile_deprecated_finder = ["requirementslib", "pipreqs"]
 
 [[package]]
 name = "lark-parser"
@@ -750,7 +750,7 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "6c6b76a4c8c92ba492c850f7626a300bca4f1d39fac25668d50e3658b4ed3e2e"
+content-hash = "0d9c3e585817831643c0cdc02f6cd256bca64acc3f9e95c589b56a0486e8bd7f"
 
 [metadata.files]
 aiocoap = [
@@ -884,8 +884,8 @@ bleak = [
     {file = "bleak-0.15.1.tar.gz", hash = "sha256:d8c8d88de0f22a15bd135ba056c4e5b2fb9f15119283def21b1ed7d43c00d590"},
 ]
 bleak-retry-connector = [
-    {file = "bleak-retry-connector-1.7.1.tar.gz", hash = "sha256:04daaf202e78293993b9d2d52d7c0eb956714fe28f0e0f6c51c9c293bcc98f46"},
-    {file = "bleak_retry_connector-1.7.1-py3-none-any.whl", hash = "sha256:0e25c4a21fcf07b0d2225d995fd46d7ddefcf05333dfb20b2e4e175359638aed"},
+    {file = "bleak-retry-connector-1.7.2.tar.gz", hash = "sha256:7d77669cff91eafa5f905b3db57da186a0ce569a59b94a3f25bdfcdcc323be26"},
+    {file = "bleak_retry_connector-1.7.2-py3-none-any.whl", hash = "sha256:aebf7b788e7f09368deebd07ad23912c248a1c2717f2a682b7c712d813fffdee"},
 ]
 bleak-winrt = [
     {file = "bleak-winrt-1.1.1.tar.gz", hash = "sha256:3e7765f98d71b5229d95bd3b197931994dead40f3144e7186de7b8f664e26df0"},
