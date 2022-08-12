@@ -26,7 +26,9 @@ import time
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from bleak.backends.device import BLEDevice
+from bleak.backends.service import BleakGATTServiceCollection
 from bleak.exc import BleakError
+from bleak_retry_connector import ble_device_has_changed
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -123,6 +125,10 @@ class BlePairing(AbstractPairing):
         self.id = pairing_data["AccessoryPairingID"]
         self.device = device
         self.client = client
+        self._cached_services: BleakGATTServiceCollection | None = (
+            client.services if client else None
+        )
+
         self.pairing_data = pairing_data
         self.description = description
         self.controller = controller
@@ -200,7 +206,8 @@ class BlePairing(AbstractPairing):
 
     def _async_ble_device_update(self, device: BLEDevice) -> None:
         """Update the BLE device."""
-        if self.device and device.address != self.device.address:
+        if self.device and ble_device_has_changed(self.device, device):
+            self._cached_services = None
             logger.debug(
                 "BLE address changed from %s to %s; closing connection",
                 self.device.address,
@@ -322,7 +329,9 @@ class BlePairing(AbstractPairing):
                 self.device,
                 self.name,
                 self._async_disconnected,
+                cached_services=self._cached_services,
             )
+            self._cached_services = self.client.services
             logger.debug(
                 "%s: Connected, processing subscriptions: %s",
                 self.name,
@@ -429,7 +438,9 @@ class BlePairing(AbstractPairing):
         logger.debug("%s: Fetching GATT database", self.name)
         accessory = Accessory()
         accessory.aid = 1
-        for service in self.client.services:
+        # Never use the cache when fetching the GATT database
+        services = await self.client.get_services()
+        for service in services:
             s = accessory.add_service(normalize_uuid(service.uuid))
 
             for char in service.characteristics:

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import uuid
 
-from bleak import BleakClient, BleakError
+from bleak import BleakError
 from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.backends.device import BLEDevice
+from bleak_retry_connector import BleakClientWithServiceCache
 
 from .const import HAP_MIN_REQUIRED_MTU
 
@@ -13,7 +14,7 @@ CHAR_DESCRIPTOR_ID = "DC46F0FE-81D2-4616-B5D9-6ABDD796939A"
 CHAR_DESCRIPTOR_UUID = uuid.UUID(CHAR_DESCRIPTOR_ID)
 
 
-class AIOHomeKitBleakClient(BleakClient):
+class AIOHomeKitBleakClient(BleakClientWithServiceCache):
     """Wrapper for bleak.BleakClient that auto discovers the max mtu."""
 
     def __init__(self, address_or_ble_device: BLEDevice | str) -> None:
