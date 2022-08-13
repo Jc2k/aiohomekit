@@ -189,8 +189,9 @@ async def char_write(
     body: bytes,
 ):
     """Write a characteristic value."""
+    ble_request = BleRequest(expect_response=1, value=body).encode()
     return await _char_read_write(
-        client, encryption_key, decryption_key, handle, iid, OpCode.CHAR_WRITE, body
+        client, encryption_key, decryption_key, handle, iid, OpCode.CHAR_WRITE, ble_request
     )
 
 
