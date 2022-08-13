@@ -81,7 +81,7 @@ H_GROUP = bytes(
 class Srp:
     """HomeKit SRP implementation."""
 
-    def __init__(self) -> None:
+    def __init__(self, username: str, password: str) -> None:
         self.g = GENERATOR_VALUE  # generator
         self.n = MODULUS_VALUE  # modulus
         self.hN = DIGEST_MODULUS  # digest of modulus
@@ -93,11 +93,18 @@ class Srp:
         self.B: int | None = None  # server's public key
         self.salt: int | None = None  # salt as defined by RFC 5054
         self.salt_b: bytearray | None = None  # salt as bytes
-        self.username: str | None = None
-        self.password: str | None = None
+        self.username = username
+        self.password = password
+        self.hu = self.digest(username.encode())
         self.A_b: bytearray | None = None  # client's public key as bytes
         self.B_b: bytearray | None = None  # server's public key as bytes
         self.k = CLIENT_K_VALUE
+
+    def _assert_public_keys(self):
+        if self.A_b is None:
+            raise RuntimeError("Client's public key is missing")
+        if self.B_b is None:
+            raise RuntimeError("Server's public key is missing")
 
     @staticmethod
     def generate_private_key() -> int:
@@ -113,10 +120,7 @@ class Srp:
 
     def _calculate_u(self) -> int:
         """Returns the U value."""
-        if self.A_b is None:
-            raise RuntimeError("Client's public key is missing")
-        if self.B_b is None:
-            raise RuntimeError("Server's public key is missing")
+        self._assert_public_keys()
         return int.from_bytes(self.digest(self.A_b, self.B_b), "big")
 
     def get_session_key_bytes(self) -> bytes:
@@ -143,9 +147,7 @@ class SrpClient(Srp):
     """
 
     def __init__(self, username: str, password: str) -> None:
-        super().__init__()
-        self.username = username
-        self.password = password
+        super().__init__(username, password)
         self.a = self.generate_private_key()  # client's private key
         self.A = pow(self.g, self.a, self.n)  # public key
         self.A_b = pad_left(to_byte_array(self.A), HK_KEY_LENGTH)  # public key as bytes
@@ -165,8 +167,7 @@ class SrpClient(Srp):
         self.B = int.from_bytes(B_b, "big")
 
     def get_shared_secret(self) -> int:
-        if self.B is None:
-            raise RuntimeError("Server's public key is missing")
+        self._assert_public_keys()
         u = self._calculate_u()
         v = pow(self.g, self.x, self.n)
         tmp1 = self.B - (self.k * v)
@@ -176,14 +177,11 @@ class SrpClient(Srp):
 
     def get_proof_bytes(self) -> bytes:
         """Get the proof/M value."""
-        if self.B is None:
-            raise RuntimeError("Server's public key is missing")
-
-        hu = self.digest(self.username.encode())
+        self._assert_public_keys()
         K = self.get_session_key_bytes()  # Session Key
         return self.digest(
             self.hGroup,
-            hu,
+            self.hu,
             self.salt_b,
             self.A_b,
             self.B_b,
@@ -205,11 +203,9 @@ class SrpServer(Srp):
     """
 
     def __init__(self, username: str, password: str) -> None:
-        super().__init__()
-        self.username = username
+        super().__init__(username, password)
         self.salt = SrpServer._create_salt()
         self.salt_b = pad_left(to_byte_array(self.salt), 16)
-        self.password = password
         self.verifier = self._get_verifier()
         self.b = self.generate_private_key()
         g_b = pow(self.g, self.b, self.n)
@@ -239,26 +235,17 @@ class SrpServer(Srp):
         return self.B_b
 
     def get_shared_secret(self) -> int:
-        if self.A_b is None:
-            raise RuntimeError("Client's public key is missing")
-        if self.B_b is None:
-            raise RuntimeError("Servers's public key is missing")
+        self._assert_public_keys()
         tmp1 = self.A * pow(self.verifier, self._calculate_u(), self.n)
         return pow(tmp1, self.b, self.n)
 
     def verify_clients_proof(self, m: bytearray) -> bool:
         assert isinstance(m, (bytes, bytearray))
-        if self.A_b is None:
-            raise RuntimeError("Client's public key is missing")
-        if self.B_b is None:
-            raise RuntimeError("Servers's public key is missing")
-
-        hu = self.digest(self.username.encode())
+        self._assert_public_keys()
         K = self.get_session_key_bytes()
-
         return m == self.digest(
             self.hGroup,
-            hu,
+            self.hu,
             self.salt_b,
             self.A_b,
             self.B_b,
