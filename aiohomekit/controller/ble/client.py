@@ -191,7 +191,13 @@ async def char_write(
     """Write a characteristic value."""
     ble_request = BleRequest(expect_response=1, value=body).encode()
     return await _char_read_write(
-        client, encryption_key, decryption_key, handle, iid, OpCode.CHAR_WRITE, ble_request
+        client,
+        encryption_key,
+        decryption_key,
+        handle,
+        iid,
+        OpCode.CHAR_WRITE,
+        ble_request,
     )
 
 
@@ -224,7 +230,7 @@ async def _char_read_write(
             client, encryption_key, decryption_key, opcode, handle, iid, body
         )
         raise_for_pdu_status(client, pdu_status)
-        
+
         # Decode the first TLV
         decoded = dict(TLV.decode_bytes(data))
         logger.debug("%s: Decoded top level TLV: %s", decoded)
