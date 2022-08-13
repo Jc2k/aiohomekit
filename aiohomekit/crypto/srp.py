@@ -183,8 +183,8 @@ class SrpClient(Srp):
         """Get the proof/M value."""
         if self.B is None:
             raise RuntimeError("Server's public key is missing")
-        hN = bytearray(self.digest(to_byte_array(self.n)))  # H(modulus)
-        hg = bytearray(self.digest(to_byte_array(self.g)))  # H(generator)
+        hN = self.digest(to_byte_array(self.n))  # H(modulus)
+        hg = self.digest(to_byte_array(self.g))  # H(generator)
         hGroup = bytes(
             hN[i] ^ hg[i] for i in range(0, len(hN))
         )  # H(modulus) xor H(generator)
