@@ -195,13 +195,13 @@ def perform_pair_setup_part2(
     srp_client = SrpClient("Pair-Setup", pin)
     srp_client.set_salt(salt)
     srp_client.set_server_public_key(server_public_key)
-    client_pub_key = srp_client.get_public_key()
-    client_proof = srp_client.get_proof()
+    client_pub_key = srp_client.get_public_key_bytes()
+    client_proof = srp_client.get_proof_bytes()
 
     response_tlv = [
         (TLV.kTLVType_State, TLV.M3),
-        (TLV.kTLVType_PublicKey, SrpClient.to_byte_array(client_pub_key)),
-        (TLV.kTLVType_Proof, SrpClient.to_byte_array(client_proof)),
+        (TLV.kTLVType_PublicKey, client_pub_key),
+        (TLV.kTLVType_Proof, client_proof),
     ]
 
     step4_expectations = [

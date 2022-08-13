@@ -190,10 +190,14 @@ class SrpClient(Srp):
 
     def get_proof(self) -> int:
         """Get the proof/M value."""
+        return int.from_bytes(self.get_proof_bytes(), "big")
+
+    def get_proof_bytes(self) -> bytes:
+        """Get the proof/M value."""
         self._assert_public_keys()
         hu = self.digest(self.username.encode())
         K = to_byte_array(self.get_session_key())  # Session Key
-        proof = self.digest(
+        return self.digest(
             self.hGroup,
             hu,
             self.salt_b,
@@ -201,7 +205,6 @@ class SrpClient(Srp):
             self.B_b,
             K,
         )
-        return int.from_bytes(proof, "big")
 
     def verify_servers_proof(self, M: int | bytearray) -> bool:
         if isinstance(M, bytearray):
