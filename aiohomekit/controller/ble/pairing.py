@@ -58,6 +58,7 @@ from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 from .client import (
     ble_request,
     drive_pairing_state_machine,
+    raise_for_pdu_status,
     retry_bluetooth_connection_error,
 )
 from .connection import establish_connection
@@ -287,10 +288,7 @@ class BlePairing(AbstractPairing):
             char.iid,
             data,
         )
-        if pdu_status != PDUStatus.SUCCESS:
-            raise ValueError(
-                f"{self.name}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
-            )
+        raise_for_pdu_status(self.client, pdu_status)
         return result_data
 
     def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
