@@ -17,6 +17,12 @@ import pytest
 
 from aiohomekit.crypto.srp import SrpClient, SrpServer
 
+# To find short keys
+# for _ in range(500000):
+#    srp = SrpClient("Pair-Setup", "123-45-789")
+#    pub_key_bytes = SrpClient.to_byte_array(srp.A)
+#    if len(pub_key_bytes) < 384:
+#        pprint.pprint(["found key", srp.a])
 
 class ZeroSaltSrpServer(SrpServer):
     def _create_salt(self):
