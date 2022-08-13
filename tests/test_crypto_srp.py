@@ -15,7 +15,7 @@
 #
 import pytest
 
-from aiohomekit.crypto.srp import SrpClient, SrpServer, pad_left, to_byte_array
+from aiohomekit.crypto.srp import SrpClient, SrpServer
 
 
 class ZeroSaltSrpServer(SrpServer):
