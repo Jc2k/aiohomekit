@@ -219,7 +219,7 @@ class SrpClient(Srp):
             tmp = M
         return tmp == int.from_bytes(
             self.digest(
-                to_byte_array(self.A),
+                self.A_b,
                 to_byte_array(self.get_proof()),
                 self.get_session_key_bytes(),
             ),
@@ -295,7 +295,7 @@ class SrpServer(Srp):
     def get_proof(self, m: int) -> int:
         return int.from_bytes(
             self.digest(
-                to_byte_array(self.A),
+                self.A_b,
                 to_byte_array(m),
                 self.get_session_key_bytes(),
             ),
