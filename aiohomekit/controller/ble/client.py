@@ -231,12 +231,10 @@ async def char_write(
     body: bytes,
 ) -> bytes:
     body = BleRequest(expect_response=1, value=body).encode()
-    return decode_pdu_tlv_value(
-        client,
-        *await ble_request(
-            client, encryption_key, decryption_key, OpCode.CHAR_WRITE, handle, iid, body
-        ),
+    status, data = await ble_request(
+        client, encryption_key, decryption_key, OpCode.CHAR_WRITE, handle, iid, body
     )
+    return decode_pdu_tlv_value(client, status, data)
 
 
 async def pairing_char_write(
@@ -249,9 +247,10 @@ async def pairing_char_write(
     complete_data = bytearray()
 
     for _ in range(MAX_REASSEMBLY):
-        data = await ble_request(
+        status, data = await ble_request(
             client, None, None, OpCode.CHAR_WRITE, handle, iid, next_write
         )
+        data = decode_pdu_tlv_value(client, status, data)
         decoded = dict(TLV.decode_bytearray(data))
         if TLV.kTLVType_FragmentLast in decoded:
             logger.debug("%s: Reassembling final fragment", client.address)
@@ -278,12 +277,10 @@ async def char_read(
     iid: int,
 ) -> bytes:
     """Read a characteristic value."""
-    return decode_pdu_tlv_value(
-        client,
-        *await ble_request(
-            client, encryption_key, decryption_key, OpCode.CHAR_READ, handle, iid
-        ),
+    status, data = await ble_request(
+        client, encryption_key, decryption_key, OpCode.CHAR_READ, handle, iid
     )
+    return decode_pdu_tlv_value(client, status, data)
 
 
 async def drive_pairing_state_machine(
