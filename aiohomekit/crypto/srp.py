@@ -78,7 +78,9 @@ H_GROUP = bytes(
 class Srp:
     """HomeKit SRP implementation."""
 
-    def __init__(self) -> None:
+    def __init__(self, username: str, password: str) -> None:
+        self.username = username
+        self.password = password
         self.g = GENERATOR_VALUE  # generator
         self.n = MODULUS_VALUE  # modulus
         self.hGroup = H_GROUP
@@ -150,9 +152,7 @@ class SrpClient(Srp):
     """
 
     def __init__(self, username: str, password: str) -> None:
-        super().__init__()
-        self.username = username
-        self.password = password
+        super().__init__(username, password)
         self.a = self.generate_private_key()  # client's private key
         self.A = pow(self.g, self.a, self.n)  # public key
         self.A_b = pad_left(to_byte_array(self.A), HK_KEY_LENGTH)  # public key as bytes
@@ -227,11 +227,9 @@ class SrpServer(Srp):
     """
 
     def __init__(self, username: str, password: str) -> None:
-        super().__init__()
-        self.username = username
+        super().__init__(username, password)
         self.salt = SrpServer._create_salt()
         self.salt_b = pad_left(to_byte_array(self.salt), 16)
-        self.password = password
         self.verifier = self._get_verifier()
         self.b = self.generate_private_key()
         k = self._calculate_k()
