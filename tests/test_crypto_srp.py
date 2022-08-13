@@ -24,6 +24,7 @@ from aiohomekit.crypto.srp import SrpClient, SrpServer
 #    if len(pub_key_bytes) < 384:
 #        pprint.pprint(["found key", srp.a])
 
+
 class ZeroSaltSrpServer(SrpServer):
     def _create_salt(self):
         return b"\x00" * 16
