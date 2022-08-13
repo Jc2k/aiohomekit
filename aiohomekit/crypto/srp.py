@@ -116,9 +116,13 @@ class Srp:
         u = int.from_bytes(self.digest(self.A_b, self.B_b), "big")
         return u
 
+    def get_session_key_bytes(self) -> bytes:
+        """Returns the session key as bytes."""
+        return pad_left(Srp.to_byte_array(self.get_shared_secret()), HK_KEY_LENGTH)
+
     def get_session_key(self) -> int:
         """Return the K value for the session key."""
-        S_b = Srp.to_byte_array(self.get_shared_secret())
+        S_b = self.get_session_key_bytes()
         return int.from_bytes(self.digest(S_b), "big")
 
     @staticmethod
@@ -195,7 +199,7 @@ class SrpClient(Srp):
         """Get the proof/M value."""
         self._assert_public_keys()
         assert self.username is not None
-        K = to_byte_array(self.get_session_key())  # Session Key
+        K = self.get_session_key_bytes()  # Session Key
         return self.digest(
             self.hGroup,
             self.hu,
@@ -212,9 +216,9 @@ class SrpClient(Srp):
             tmp = M
         return tmp == int.from_bytes(
             self.digest(
-                to_byte_array(self.A),
-                to_byte_array(self.get_proof()),
-                to_byte_array(self.get_session_key()),
+                self.A_b,
+                self.get_proof_bytes(),
+                self.get_session_key_bytes(),
             ),
             "big",
         )
@@ -272,7 +276,7 @@ class SrpServer(Srp):
 
     def verify_clients_proof(self, m: int) -> bool:
         self._assert_public_keys()
-        K = to_byte_array(self.get_session_key())
+        K = self.get_session_key_bytes()
         return m == int.from_bytes(
             self.digest(
                 self.hGroup,
@@ -288,9 +292,9 @@ class SrpServer(Srp):
     def get_proof(self, m: int) -> int:
         return int.from_bytes(
             self.digest(
-                to_byte_array(self.A),
+                self.A_b,
                 to_byte_array(m),
-                to_byte_array(self.get_session_key()),
+                self.get_session_key_bytes(),
             ),
             "big",
         )
