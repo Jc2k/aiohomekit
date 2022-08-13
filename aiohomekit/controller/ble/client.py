@@ -45,6 +45,8 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 2
 MAX_REASSEMBLY = 50
+ATT_HEADER_SIZE = 3
+KEY_OVERHEAD_SIZE = 16
 
 
 def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFuncType:
@@ -73,20 +75,12 @@ def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFu
     return cast(WrapFuncType, _decorator_retry_bluetooth_connection_error)
 
 
-async def ble_request(
+def determine_fragment_size(
     client: AIOHomeKitBleakClient,
     encryption_key: EncryptionKey | None,
-    decryption_key: DecryptionKey | None,
-    opcode: OpCode,
     handle: BleakGATTCharacteristic,
-    iid: int,
-    data: bytes | None = None,
-) -> tuple[PDUStatus, bytes]:
-    tid = random.randrange(1, 254)
-
-    # We think there is a 3 byte overhead for ATT
-    # https://github.com/jlusiardi/homekit_python/issues/211#issuecomment-996751939
-    # But we haven't confirmed that this isn't already taken into account
+) -> int:
+    """Determine the fragment size for a characteristic."""
     debug_enabled = logger.isEnabledFor(logging.DEBUG)
 
     # Newer bleak, not currently released
@@ -97,9 +91,11 @@ async def ble_request(
             logger.debug(
                 "max_write_without_response_size: %s, mtu_size-3: %s",
                 max_write_without_response_size,
-                client.mtu_size - 3,
+                client.mtu_size - ATT_HEADER_SIZE,
             )
-        fragment_size = max(max_write_without_response_size, client.mtu_size - 3)
+        fragment_size = max(
+            max_write_without_response_size, client.mtu_size - ATT_HEADER_SIZE
+        )
     # Bleak 0.15.1 and below
     elif (
         (char_obj := getattr(handle, "obj", None))
@@ -110,30 +106,46 @@ async def ble_request(
             logger.debug(
                 "bleak obj MTU: %s, mtu_size-3: %s",
                 char_mtu,
-                client.mtu_size - 3,
+                client.mtu_size - ATT_HEADER_SIZE,
             )
-        fragment_size = max(char_mtu - 3, client.mtu_size - 3)
+        fragment_size = max(
+            char_mtu - ATT_HEADER_SIZE, client.mtu_size - ATT_HEADER_SIZE
+        )
     else:
         if debug_enabled:
             logger.debug(
                 "no bleak obj MTU or max_write_without_response_size, using mtu_size-3: %s",
-                client.mtu_size - 3,
+                client.mtu_size - ATT_HEADER_SIZE,
             )
-        fragment_size = client.mtu_size - 3
+        fragment_size = client.mtu_size - ATT_HEADER_SIZE
 
     if encryption_key:
         # Secure session means an extra 16 bytes of overhead
-        fragment_size -= 16
+        fragment_size -= KEY_OVERHEAD_SIZE
 
     if debug_enabled:
         logger.debug("Using fragment size: %s", fragment_size)
+
+    return fragment_size
+
+
+async def ble_request(
+    client: AIOHomeKitBleakClient,
+    encryption_key: EncryptionKey | None,
+    decryption_key: DecryptionKey | None,
+    opcode: OpCode,
+    handle: BleakGATTCharacteristic,
+    iid: int,
+    data: bytes | None = None,
+) -> tuple[PDUStatus, bytes]:
+    tid = random.randrange(1, 254)
+    fragment_size = determine_fragment_size(client, encryption_key, handle)
 
     # Wrap data in one or more PDU's split at fragment_size
     # And write each one to the target characterstic handle
     writes = []
     for data in encode_pdu(opcode, tid, iid, data, fragment_size):
-        if debug_enabled:
-            logger.debug("Queuing fragment for write: %s", data)
+        logger.debug("Queuing fragment for write: %s", data)
         if encryption_key:
             data = encryption_key.encrypt(data)
         writes.append(data)
@@ -147,8 +159,7 @@ async def ble_request(
         if data is False:
             raise EncryptionError("Decryption failed")
 
-    if debug_enabled:
-        logger.debug("Read fragment: %s", data)
+    logger.debug("Read fragment: %s", data)
 
     # Validate the PDU header
     status, expected_length, data = decode_pdu(tid, data)
@@ -165,8 +176,7 @@ async def ble_request(
             next = decryption_key.decrypt(next)
             if next is False:
                 raise EncryptionError("Decryption failed")
-        if debug_enabled:
-            logger.debug("Read fragment: %s", next)
+        logger.debug("Read fragment: %s", next)
 
         data += decode_pdu_continuation(tid, next)
 
