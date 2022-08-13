@@ -82,6 +82,8 @@ class Srp:
         self.salt_b: bytearray | None = None  # salt as bytes
         self.username: str | None = None
         self.password: str | None = None
+        self.A_b: bytearray | None = None  # client's public key as bytes
+        self.B_b: bytearray | None = None  # server's public key as bytes
 
     @staticmethod
     def generate_private_key() -> int:
@@ -101,15 +103,11 @@ class Srp:
 
     def _calculate_u(self) -> int:
         """Returns the U value."""
-        if self.A is None:
+        if self.A_b is None:
             raise RuntimeError("Client's public key is missing")
-        if self.B is None:
+        if self.B_b is None:
             raise RuntimeError("Server's public key is missing")
-        A_b = Srp.to_byte_array(self.A)  # client's public key as bytes
-        B_b = Srp.to_byte_array(self.B)  # server's public key as bytes
-        assert len(A_b) == HK_KEY_LENGTH
-        assert len(B_b) == HK_KEY_LENGTH
-        u = int.from_bytes(self.digest(A_b, B_b), "big")
+        u = int.from_bytes(self.digest(self.A_b, self.B_b), "big")
         return u
 
     def get_session_key(self) -> int:
@@ -149,8 +147,6 @@ class SrpClient(Srp):
         self.A = pow(self.g, self.a, self.n)  # public key
         self.A_b = pad_left(to_byte_array(self.A), HK_KEY_LENGTH)  # public key as bytes
         self.k = self._calculate_k()  # static k value
-        self.B = None  # server's public key
-        self.B_b: bytearray | None = None  # server's public key as bytes
 
     def set_salt(self, salt: int | bytearray) -> None:
         if isinstance(salt, bytearray):
@@ -163,6 +159,9 @@ class SrpClient(Srp):
 
     def get_public_key(self) -> int:
         return self.A
+
+    def get_public_key_bytes(self) -> bytes:
+        return self.A_b
 
     def set_server_public_key(self, B_b: bytearray | bytes) -> None:
         assert isinstance(B_b, (bytes, bytearray)), "The public key must be a bytes"
@@ -231,6 +230,7 @@ class SrpServer(Srp):
         k = self._calculate_k()
         g_b = pow(self.g, self.b, self.n)
         self.B = (k * self.verifier + g_b) % self.n
+        self.B_b = pad_left(to_byte_array(self.b), HK_KEY_LENGTH)  # public key as bytes
         self.A = None
 
     @staticmethod
@@ -243,8 +243,10 @@ class SrpServer(Srp):
         v = pow(self.g, hash_value, self.n)
         return v
 
-    def set_client_public_key(self, A: int) -> None:
-        self.A = A
+    def set_client_public_key(self, A_b: bytes | bytearray) -> None:
+        assert isinstance(A_b, (bytes, bytearray)), "The public key must be a bytes"
+        self.A_b = A_b
+        self.A = int.from_bytes(A_b, "big")
 
     def get_salt(self) -> int:
         return self.salt
@@ -253,17 +255,22 @@ class SrpServer(Srp):
         k = self._calculate_k()
         return (k * self.verifier + pow(self.g, self.b, self.n)) % self.n
 
-    def get_shared_secret(self) -> int:
-        if self.A is None:
-            raise RuntimeError("Client's public key is missing")
+    def get_public_key_bytes(self) -> bytes:
+        return pad_left(to_byte_array(self.get_public_key()), HK_KEY_LENGTH)
 
+    def get_shared_secret(self) -> int:
+        if self.A_b is None:
+            raise RuntimeError("Client's public key is missing")
+        if self.B_b is None:
+            raise RuntimeError("Servers's public key is missing")
         tmp1 = self.A * pow(self.verifier, self._calculate_u(), self.n)
         return pow(tmp1, self.b, self.n)
 
     def verify_clients_proof(self, m: int) -> bool:
-        if self.B is None:
-            raise RuntimeError("Server's public key is missing")
-
+        if self.A_b is None:
+            raise RuntimeError("Client's public key is missing")
+        if self.B_b is None:
+            raise RuntimeError("Servers's public key is missing")
         hN = self.digest(to_byte_array(self.n))
         hg = self.digest(to_byte_array(self.g))
 
@@ -274,18 +281,13 @@ class SrpServer(Srp):
         hu = self.digest(self.username.encode())
         K = to_byte_array(self.get_session_key())
 
-        A_b = to_byte_array(self.A)
-        assert len(A_b) == HK_KEY_LENGTH
-        B_b = to_byte_array(self.B)
-        assert len(B_b) == HK_KEY_LENGTH
-
         return m == int.from_bytes(
             self.digest(
                 hGroup,
                 hu,
                 self.salt_b,
-                A_b,
-                B_b,
+                self.A_b,
+                self.B_b,
                 K,
             ),
             "big",

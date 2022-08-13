@@ -30,7 +30,7 @@ def test_1(cls):
     # step M2
     setup_code = "123-45-678"  # transmitted on second channel
     server = cls("Pair-Setup", setup_code)
-    server_pub_key = server.get_public_key()
+    server_pub_key = server.get_public_key_bytes()
     server_salt = server.get_salt()
 
     # step M3
@@ -38,7 +38,7 @@ def test_1(cls):
     client.set_salt(server_salt)
     client.set_server_public_key(server_pub_key)
 
-    client_pub_key = client.get_public_key()
+    client_pub_key = client.get_public_key_bytes()
     clients_proof = client.get_proof()
 
     # step M4
