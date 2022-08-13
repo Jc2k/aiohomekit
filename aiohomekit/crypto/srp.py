@@ -229,7 +229,7 @@ class SrpServer(Srp):
         super().__init__()
         self.username = username
         self.salt = SrpServer._create_salt()
-        self.salt_b = to_byte_array(self.salt)
+        self.salt_b = pad_left(to_byte_array(self.salt), 16)
         self.password = password
         self.verifier = self._get_verifier()
         self.b = self.generate_private_key()
@@ -270,10 +270,11 @@ class SrpServer(Srp):
             raise RuntimeError("Server's public key is missing")
 
         hN = self.digest(to_byte_array(self.n))
-        hg = bytearray(self.digest(to_byte_array(self.g)))
+        hg = self.digest(to_byte_array(self.g))
 
-        for index in range(0, len(hN)):
-            hN[index] ^= hg[index]
+        hGroup = bytes(
+            hN[i] ^ hg[i] for i in range(0, len(hN))
+        )  # H(modulus) xor H(generator)
 
         hu = self.digest(self.username.encode())
         K = to_byte_array(self.get_session_key())
@@ -285,9 +286,9 @@ class SrpServer(Srp):
 
         return m == int.from_bytes(
             self.digest(
-                hN,
+                hGroup,
                 hu,
-                to_byte_array(self.salt),
+                self.salt_b,
                 A_b,
                 B_b,
                 K,
