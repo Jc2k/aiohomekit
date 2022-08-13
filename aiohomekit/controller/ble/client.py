@@ -270,7 +270,7 @@ async def pairing_char_write(
                 handle, TLV.encode_list([(TLV.kTLVType_FragmentData, b"")]), True
             )
         else:
-            logger.debug("%s: Data is not fragemented", client.address)
+            logger.debug("%s: Data is not fragmented", client.address)
             return decoded
 
 
