@@ -154,7 +154,7 @@ class SrpClient(Srp):
         self.B = None  # server's public key
         self.B_b: bytearray | None = None  # server's public key as bytes
 
-    def set_salt(self, salt: Union[int, bytearray]) -> None:
+    def set_salt(self, salt: int | bytearray) -> None:
         if isinstance(salt, bytearray):
             self.salt = int.from_bytes(salt, "big")
         else:
@@ -166,7 +166,7 @@ class SrpClient(Srp):
     def get_public_key(self) -> int:
         return self.A
 
-    def set_server_public_key(self, B: Union[int, bytearray]) -> None:
+    def set_server_public_key(self, B: int | bytearray) -> None:
         if isinstance(B, bytearray):
             self.B = int.from_bytes(B, "big")
         else:
@@ -205,7 +205,7 @@ class SrpClient(Srp):
         )
         return int.from_bytes(proof, "big")
 
-    def verify_servers_proof(self, M: Union[int, bytearray]) -> bool:
+    def verify_servers_proof(self, M: int | bytearray) -> bool:
         if isinstance(M, bytearray):
             tmp = int.from_bytes(M, "big")
         else:
