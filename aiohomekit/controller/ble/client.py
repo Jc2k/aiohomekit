@@ -18,11 +18,10 @@ from __future__ import annotations
 
 import logging
 import random
-from typing import Any, Callable, Generator, TypeVar, cast
+from typing import Any, Callable, TypeVar, cast
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
-from aiohomekit.protocol.tlv import TLV
 
 from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
 from aiohomekit.exceptions import EncryptionError
@@ -45,7 +44,6 @@ logger = logging.getLogger(__name__)
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 2
-MAX_ASSEMBLY = 16
 
 
 def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFuncType:
@@ -74,22 +72,6 @@ def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFu
     return cast(WrapFuncType, _decorator_retry_bluetooth_connection_error)
 
 
-def _encode_pdus(
-    opcode: OpCode,
-    tid: int,
-    iid: int,
-    data: bytes,
-    fragment_size: int,
-    encryption_key: EncryptionKey | None,
-) -> Generator[bytes, None, None]:
-    """Encode into multiple PDU's."""
-    for data in encode_pdu(opcode, tid, iid, data, fragment_size):
-        logger.debug("Queuing fragment for write: %s", data)
-        if encryption_key:
-            data = encryption_key.encrypt(data)
-        yield data
-
-
 async def ble_request(
     client: AIOHomeKitBleakClient,
     encryption_key: EncryptionKey | None,
@@ -98,7 +80,7 @@ async def ble_request(
     handle: BleakGATTCharacteristic,
     iid: int,
     data: bytes | None = None,
-) -> dict[int, bytes]:
+) -> tuple[PDUStatus, bytes]:
     tid = random.randrange(1, 254)
 
     # We think there is a 3 byte overhead for ATT
@@ -146,65 +128,48 @@ async def ble_request(
         logger.debug("Using fragment size: %s", fragment_size)
 
     # Wrap data in one or more PDU's split at fragment_size
-    # And write each one to the target characteristic handle
-    for write in _encode_pdus(opcode, tid, iid, data, fragment_size, encryption_key):
+    # And write each one to the target characterstic handle
+    writes = []
+    for data in encode_pdu(opcode, tid, iid, data, fragment_size):
+        if debug_enabled:
+            logger.debug("Queuing fragment for write: %s", data)
+        if encryption_key:
+            data = encryption_key.encrypt(data)
+        writes.append(data)
+
+    for write in writes:
         await client.write_gatt_char(handle, write, True)
 
-    tlv_fragement_data = bytearray()
-    for _ in range(MAX_ASSEMBLY):
-        data = await client.read_gatt_char(handle)
+    data = await client.read_gatt_char(handle)
+    if decryption_key:
+        data = decryption_key.decrypt(data)
+        if data is False:
+            raise EncryptionError("Decryption failed")
 
+    if debug_enabled:
+        logger.debug("Read fragment: %s", data)
+
+    # Validate the PDU header
+    status, expected_length, data = decode_pdu(tid, data)
+
+    # If packet is too short then there may be 1 or more continuation
+    # packets. Keep reading until we have enough data.
+    #
+    # Even if the status is failure, we must read the whole
+    # data set or the encryption will be out of sync.
+    #
+    while len(data) < expected_length:
+        next = await client.read_gatt_char(handle)
         if decryption_key:
-            data = decryption_key.decrypt(data)
-            if data is False:
+            next = decryption_key.decrypt(next)
+            if next is False:
                 raise EncryptionError("Decryption failed")
-
         if debug_enabled:
-            logger.debug("Read fragment: %s", data)
+            logger.debug("Read fragment: %s", next)
 
-        # Validate the PDU header
-        status, expected_length, data = decode_pdu(tid, data)
+        data += decode_pdu_continuation(tid, next)
 
-        # If packet is too short then there may be 1 or more continuation
-        # packets. Keep reading until we have enough data.
-        #
-        # Even if the status is failure, we must read the whole
-        # data set or the encryption will be out of sync.
-        #
-        while len(data) < expected_length:
-            next = await client.read_gatt_char(handle)
-            if decryption_key:
-                next = decryption_key.decrypt(next)
-                if next is False:
-                    raise EncryptionError("Decryption failed")
-            if debug_enabled:
-                logger.debug("Read fragment: %s", next)
-
-            data += decode_pdu_continuation(tid, next)
-
-        if status != PDUStatus.SUCCESS:
-            raise ValueError(
-                f"{client.address}: PDU status was not success: {status.description} ({status.value})"
-            )
-
-        decoded = dict(TLV.decode_bytes(data))
-        if TLV.kTLVType_FragmentData not in decoded:
-
-            if tlv_fragement_data:
-                return dict(TLV.decode_bytes(tlv_fragement_data))
-
-            return decoded
-
-        tlv_fragement_data.extend(decoded[TLV.kTLVType_FragmentData])
-
-        ack_tlv = TLV.encode_list([(TLV.kTLVType_FragmentData, bytearray())])
-
-        for write in _encode_pdus(
-            opcode, tid, iid, ack_tlv, fragment_size, encryption_key
-        ):
-            await client.write_gatt_char(handle, write, True)
-
-    raise ValueError("Did not receive a complete response")
+    return status, data
 
 
 async def char_write(
