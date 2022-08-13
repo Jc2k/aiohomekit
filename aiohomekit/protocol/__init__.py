@@ -195,13 +195,17 @@ def perform_pair_setup_part2(
     srp_client = SrpClient("Pair-Setup", pin)
     srp_client.set_salt(salt)
     srp_client.set_server_public_key(server_public_key)
-    client_pub_key = srp_client.get_public_key()
-    client_proof = srp_client.get_proof()
+    # We avoid getting the values as ints to ensure
+    # we do not have a conversion issue where the values
+    # have a leading zero and the resulting bytes are too
+    # short to be valid.
+    client_pub_key = srp_client.get_public_key_bytes()
+    client_proof = srp_client.get_proof_bytes()
 
     response_tlv = [
         (TLV.kTLVType_State, TLV.M3),
-        (TLV.kTLVType_PublicKey, SrpClient.to_byte_array(client_pub_key)),
-        (TLV.kTLVType_Proof, SrpClient.to_byte_array(client_proof)),
+        (TLV.kTLVType_PublicKey, client_pub_key),
+        (TLV.kTLVType_Proof, client_proof),
     ]
 
     step4_expectations = [
@@ -224,11 +228,11 @@ def perform_pair_setup_part2(
     if TLV.kTLVType_Proof not in response_tlv:
         raise InvalidError("M5: not an error or a proof")
 
-    if not srp_client.verify_servers_proof(response_tlv[TLV.kTLVType_Proof]):
+    if not srp_client.verify_servers_proof_bytes(response_tlv[TLV.kTLVType_Proof]):
         raise AuthenticationError("Step #5: wrong proof!")
 
     # M5 Request generation (page 44)
-    session_key = srp_client.get_session_key()
+    session_key_bytes = srp_client.get_session_key_bytes()
 
     ios_device_ltsk = ed25519.Ed25519PrivateKey.generate()
     ios_device_ltpk = ios_device_ltsk.public_key()
@@ -240,13 +244,13 @@ def perform_pair_setup_part2(
     #   Pair-Setup-Encrypt-Salt instead of Pair-Setup-Controller-Sign-Salt
     #   Pair-Setup-Encrypt-Info instead of Pair-Setup-Controller-Sign-Info
     ios_device_x = hkdf_derive(
-        SrpClient.to_byte_array(session_key),
+        session_key_bytes,
         b"Pair-Setup-Controller-Sign-Salt",
         b"Pair-Setup-Controller-Sign-Info",
     )
 
     session_key = hkdf_derive(
-        SrpClient.to_byte_array(session_key),
+        session_key_bytes,
         b"Pair-Setup-Encrypt-Salt",
         b"Pair-Setup-Encrypt-Info",
     )
@@ -318,9 +322,10 @@ def perform_pair_setup_part2(
     accessory_ltpk = response_tlv[TLV.kTLVType_PublicKey]
     accessory_pairing_id = response_tlv[TLV.kTLVType_Identifier]
     accessory_sig = response_tlv[TLV.kTLVType_Signature]
+    session_key_bytes = srp_client.get_session_key_bytes()
 
     accessory_x = hkdf_derive(
-        SrpClient.to_byte_array(srp_client.get_session_key()),
+        session_key_bytes,
         b"Pair-Setup-Accessory-Sign-Salt",
         b"Pair-Setup-Accessory-Sign-Info",
     )

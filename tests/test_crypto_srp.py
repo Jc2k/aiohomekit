@@ -13,32 +13,82 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pytest
 
 from aiohomekit.crypto.srp import SrpClient, SrpServer
 
+# To find short keys
+# for _ in range(500000):
+#    srp = SrpClient("Pair-Setup", "123-45-789")
+#    pub_key_bytes = SrpClient.to_byte_array(srp.A)
+#    if len(pub_key_bytes) < 384:
+#        pprint.pprint(["found key", srp.a])
 
-def test_1():
+
+class ZeroSaltSrpServer(SrpServer):
+    def _create_salt_bytes(self):
+        return b"\x00" * 16
+
+
+class LeadingZeroPrivateKeySrpClient(SrpClient):
+    def generate_private_key(self):
+        return 292137137271783308929690144371568755687
+
+
+class LeadingZeroPrivateAndPublicKeySrpClient(SrpClient):
+    def generate_private_key(self):
+        return 70997313118674976963008287637113704817
+
+
+class LeadingZeroPrivateKeySrpServer(SrpServer):
+    def generate_private_key(self):
+        return 292137137271783308929690144371568755687
+
+
+class LeadingZeroPrivateAndPublicKeySrpServer(SrpServer):
+    def generate_private_key(self):
+        return 70997313118674976963008287637113704817
+
+
+@pytest.mark.parametrize(
+    "server_cls, client_cls",
+    [
+        (SrpServer, SrpClient),
+        (ZeroSaltSrpServer, SrpClient),
+        (SrpServer, LeadingZeroPrivateKeySrpClient),
+        (SrpServer, LeadingZeroPrivateAndPublicKeySrpClient),
+        (ZeroSaltSrpServer, LeadingZeroPrivateAndPublicKeySrpClient),
+        (
+            LeadingZeroPrivateAndPublicKeySrpServer,
+            LeadingZeroPrivateAndPublicKeySrpClient,
+        ),
+        (LeadingZeroPrivateKeySrpServer, LeadingZeroPrivateAndPublicKeySrpClient),
+    ],
+)
+def test_1(server_cls, client_cls):
     # step M1
 
     # step M2
     setup_code = "123-45-678"  # transmitted on second channel
-    server = SrpServer("Pair-Setup", setup_code)
-    server_pub_key = server.get_public_key()
+    server: SrpServer = server_cls("Pair-Setup", setup_code)
+    server_pub_key = server.get_public_key_bytes()
     server_salt = server.get_salt()
 
     # step M3
-    client = SrpClient("Pair-Setup", setup_code)
+    client: SrpClient = client_cls("Pair-Setup", setup_code)
     client.set_salt(server_salt)
     client.set_server_public_key(server_pub_key)
 
-    client_pub_key = client.get_public_key()
-    clients_proof = client.get_proof()
+    client_pub_key = client.get_public_key_bytes()
+    clients_proof_bytes = client.get_proof_bytes()
 
     # step M4
     server.set_client_public_key(client_pub_key)
     server.get_shared_secret()
-    assert server.verify_clients_proof(clients_proof) is True
-    servers_proof = server.get_proof(clients_proof)
+    assert server.verify_clients_proof_bytes(clients_proof_bytes) is True
+    servers_proof = server.get_proof_bytes(clients_proof_bytes)
 
     # step M5
-    assert client.verify_servers_proof(servers_proof) is True
+    assert (
+        client.verify_servers_proof_bytes(servers_proof) is True
+    ), f"proof mismatch: server_key:{server.b} client_key:{client.a} server_salt:{server.salt}"
