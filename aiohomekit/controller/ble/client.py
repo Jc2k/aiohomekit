@@ -156,7 +156,7 @@ async def write_pdu(
     """Write a PDU to the accessory."""
     fragment_size = determine_fragment_size(client, encryption_key, handle)
     # Wrap data in one or more PDU's split at fragment_size
-    # And write each one to the target characterstic handle
+    # And write each one to the target characteristic handle
     writes = []
     for data in encode_pdu(opcode, tid, iid, data, fragment_size):
         logger.debug("Queuing fragment for write: %s", data)
@@ -244,20 +244,21 @@ async def pairing_char_write(
     request: list[tuple[TLV, bytes]],
 ) -> dict[int, bytes]:
     """Read or write a characteristic value."""
-    complete_data = bytearray()
+    buffer = bytearray()
     next_write = TLV.encode_list(request)
 
     for _ in range(MAX_REASSEMBLY):
-        decoded = await char_write(client, None, None, handle, iid, next_write)
+        data = await char_write(client, None, None, handle, iid, next_write)
+        decoded = dict(TLV.decode_bytearray(data))
         if TLV.kTLVType_FragmentLast in decoded:
             logger.debug("%s: Reassembling final fragment", client.address)
-            complete_data.extend(decoded[TLV.kTLVType_FragmentLast])
-            return dict(TLV.decode_bytes(complete_data))
+            buffer.extend(decoded[TLV.kTLVType_FragmentLast])
+            return dict(TLV.decode_bytes(buffer))
         elif TLV.kTLVType_FragmentData in decoded:
             logger.debug("%s: Reassembling fragment", client.address)
             # There is more data, acknowledge the fragment
             # and keep reading
-            complete_data.extend(decoded[TLV.kTLVType_FragmentData])
+            buffer.extend(decoded[TLV.kTLVType_FragmentData])
             # Acknowledge the fragment
             # We must construct this manually since TLV.encode_bytes
             # current does not know how to encode a 0 length
