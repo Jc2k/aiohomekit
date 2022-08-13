@@ -206,6 +206,7 @@ async def read_pdu(
 
 
 def raise_for_pdu_status(client: BleakClient, pdu_status: PDUStatus) -> None:
+    """Raise on non-success PDU status."""
     if pdu_status != PDUStatus.SUCCESS:
         raise ValueError(
             f"{client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
@@ -253,11 +254,11 @@ async def pairing_char_write(
 
     for _ in range(MAX_REASSEMBLY):
         # The value is actually stored in the value field
-        data = await read_pdu(client, None, handle, tid)
-        decoded = dict(TLV.decode_bytes(data))
-        logger.debug("%s: decoded pairing_char_write: %s", client.address, decoded)
+        decoded = decode_pdu_tlv_value(
+            client, *await read_pdu(client, None, handle, tid)
+        )
         if TLV.kTLVType_FragmentLast in decoded:
-            complete_data.extend(data[TLV.kTLVType_FragmentLast])
+            complete_data.extend(decoded[TLV.kTLVType_FragmentLast])
             return dict(TLV.decode_bytes(complete_data))
         elif TLV.kTLVType_FragmentData in decoded:
             # There is more data, acknowledge the fragment
