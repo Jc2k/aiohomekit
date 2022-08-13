@@ -118,7 +118,6 @@ class Srp:
     def get_session_key(self) -> int:
         """Return the K value for the session key."""
         S_b = Srp.to_byte_array(self.get_shared_secret())
-        assert len(S_b) == HK_KEY_LENGTH
         return int.from_bytes(self.digest(S_b), "big")
 
     @staticmethod
