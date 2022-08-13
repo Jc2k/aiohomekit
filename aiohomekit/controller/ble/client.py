@@ -186,48 +186,13 @@ async def char_write(
     decryption_key: DecryptionKey | None,
     handle: BleakGATTCharacteristic,
     iid: int,
-    body: bytes,
-) -> dict[int, bytes]:
-    """Write a characteristic value."""
-    ble_request = BleRequest(expect_response=1, value=body).encode()
-    return await _char_read_write(
-        client,
-        encryption_key,
-        decryption_key,
-        handle,
-        iid,
-        OpCode.CHAR_WRITE,
-        ble_request,
-    )
-
-
-async def char_read(
-    client: AIOHomeKitBleakClient,
-    encryption_key: EncryptionKey | None,
-    decryption_key: DecryptionKey | None,
-    handle: BleakGATTCharacteristic,
-    iid: int,
-) -> dict[int, bytes]:
-    """Read a characteristic value."""
-    return await _char_read_write(
-        client, encryption_key, decryption_key, handle, iid, OpCode.CHAR_READ, None
-    )
-
-
-async def _char_read_write(
-    client: AIOHomeKitBleakClient,
-    encryption_key: EncryptionKey | None,
-    decryption_key: DecryptionKey | None,
-    handle: BleakGATTCharacteristic,
-    iid: int,
-    opcode: OpCode,
     body: bytes | None,
 ) -> dict[int, bytes]:
     """Read or write a characteristic value."""
     complete_data = bytearray()
     for _ in range(MAX_REASSEMBLY):
         pdu_status, data = await ble_request(
-            client, encryption_key, decryption_key, opcode, handle, iid, body
+            client, encryption_key, decryption_key, OpCode.CHAR_WRITE, handle, iid, body
         )
         raise_for_pdu_status(client, pdu_status)
 
@@ -252,6 +217,25 @@ async def _char_read_write(
             body = BleRequest(expect_response=1, value=ack_tlv).encode()
         else:
             return data
+
+
+async def char_read(
+    client: AIOHomeKitBleakClient,
+    encryption_key: EncryptionKey | None,
+    decryption_key: DecryptionKey | None,
+    handle: BleakGATTCharacteristic,
+    iid: int,
+) -> dict[int, bytes]:
+    """Read a characteristic value."""
+    pdu_status, data = await ble_request(
+        client, encryption_key, decryption_key, OpCode.CHAR_READ, handle, iid
+    )
+    raise_for_pdu_status(client, pdu_status)
+
+    # Decode the first TLV
+    decoded = dict(TLV.decode_bytes(data))
+    logger.debug("%s: Decoded top level TLV: %s", client.address, decoded)
+    return decoded
 
 
 async def drive_pairing_state_machine(
