@@ -13,24 +13,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 """
 Implements the Secure Remote Password (SRP) algorithm. More information can be found on
 https://tools.ietf.org/html/rfc5054. See HomeKit spec page 36 for adjustments imposed by Apple.
 """
+from __future__ import annotations
+
 import hashlib
 import math
 import os
-from typing import Union
+import logging
+from typing import Iterable, Union
 
+# The K value for HK SRP is always the same because G and N are fixed
+CLIENT_K_VALUE = int(
+    b"a9c2e2559bf0ebb53f0cbbf62282906bede7f2182f00678211fbd5bde5b285033a4993503b87397f9be5ec02080fedbc0835587ad039060879b8621e8c3659e0",
+    16,
+)
 
-class Srp:
-    def __init__(self) -> None:
-        # generator as defined by 3072bit group of RFC 5054
-        self.g = int(b"5", 16)
-        # modulus as defined by 3072bit group of RFC 5054
-        self.n = int(
-            b"""\
+# generator as defined by 3072bit group of RFC 5054
+GENERATOR_VALUE = int(b"5", 16)
+
+HK_KEY_LENGTH = 384
+
+# modulus as defined by 3072bit group of RFC 5054
+MODULUS_VALUE = int(
+    b"""\
 FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E08\
 8A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B\
 302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9\
@@ -45,15 +53,36 @@ B3970F85A6E1E4C7ABF5AE8CDB0933D71E8C94E04A25619DCEE3D226\
 1AD2EE6BF12FFA06D98A0864D87602733EC86A64521F2B18177B200C\
 BBE117577A615D6C770988C0BAD946E208E24FA074E5AB3143DB5BFC\
 E0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF""",
-            16,
-        )
+    16,
+)
+
+
+def pad_left(data: bytes, length: int) -> bytes:
+    """Pads the data with 0x00 until it is of length length.
+
+    Some devices use a salt of all 0s (LIFX BEAM)
+    """
+    return bytes(length - len(data)) + data
+
+
+def to_byte_array(num: int) -> bytearray:
+    return bytearray(num.to_bytes(int(math.ceil(num.bit_length() / 8)), "big"))
+
+
+class Srp:
+    """HomeKit SRP implementation."""
+
+    def __init__(self) -> None:
+        self.g = GENERATOR_VALUE  # generator
+        self.n = MODULUS_VALUE  # modulus
         # HomeKit requires SHA-512 (See page 36)
         self.h = hashlib.sha512
-        self.A = None
-        self.B = None
-        self.salt = None
-        self.username = None
-        self.password = None
+        self.A: int | None = None  # client's public key
+        self.B: int | None = None  # server's public key
+        self.salt: int | None = None  # salt as defined by RFC 5054
+        self.salt_b: bytearray | None = None  # salt as bytes
+        self.username: str | None = None
+        self.password: str | None = None
 
     @staticmethod
     def generate_private_key() -> int:
@@ -64,50 +93,45 @@ E0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF""",
         """
         return int.from_bytes(os.urandom(16), byteorder="big")
 
+    def digest(self, *data: Iterable[bytes]) -> bytes:
+        return self.h(b"".join(data)).digest()
+
     def _calculate_k(self) -> int:
-        # calculate k (see https://tools.ietf.org/html/rfc5054#section-2.5.3)
-        hash_instance = self.h()
-        n = Srp.to_byte_array(self.n)
-        g = bytearray.fromhex(383 * "00" + "05")  # 383 * b'0' + '5'.encode()
-        hash_instance.update(n)
-        hash_instance.update(g)
-        k = int.from_bytes(hash_instance.digest(), "big")
-        return k
+        """This value is static and never changes since n and g never change."""
+        return CLIENT_K_VALUE
 
     def _calculate_u(self) -> int:
+        """Returns the U value."""
         if self.A is None:
             raise RuntimeError("Client's public key is missing")
         if self.B is None:
             raise RuntimeError("Server's public key is missing")
-        hash_instance = self.h()
-        A_b = Srp.to_byte_array(self.A)
-        B_b = Srp.to_byte_array(self.B)
-        hash_instance.update(A_b)
-        hash_instance.update(B_b)
-        u = int.from_bytes(hash_instance.digest(), "big")
+        A_b = Srp.to_byte_array(self.A)  # client's public key as bytes
+        B_b = Srp.to_byte_array(self.B)  # server's public key as bytes
+        assert len(A_b) == HK_KEY_LENGTH
+        assert len(B_b) == HK_KEY_LENGTH
+        u = int.from_bytes(self.digest(A_b, B_b), "big")
         return u
 
     def get_session_key(self) -> int:
-        hash_instance = self.h()
-        hash_instance.update(Srp.to_byte_array(self.get_shared_secret()))
-        hash_value = int.from_bytes(hash_instance.digest(), "big")
-        return hash_value
+        """Return the K value for the session key."""
+        S_b = Srp.to_byte_array(self.get_shared_secret())
+        assert len(S_b) == HK_KEY_LENGTH
+        return int.from_bytes(self.digest(S_b), "big")
 
     @staticmethod
     def to_byte_array(num: int) -> bytearray:
-        return bytearray(num.to_bytes(int(math.ceil(num.bit_length() / 8)), "big"))
+        return to_byte_array(num)
 
-    def _calculate_x(self) -> int:
-        i = (self.username + ":" + self.password).encode()
-        hash_instance = self.h()
-        hash_instance.update(i)
-        hash_value = hash_instance.digest()
-
-        hash_instance = self.h()
-        hash_instance.update(Srp.to_byte_array(self.salt))
-        hash_instance.update(hash_value)
-
-        return int.from_bytes(hash_instance.digest(), "big")
+    def _calculate_client_password_x(self) -> int:
+        """Calculate the x value for the client's password."""
+        return int.from_bytes(
+            self.digest(
+                self.salt_b,
+                self.digest(f"{self.username}:{self.password}".encode()),
+            ),
+            "big",
+        )
 
     def get_shared_secret(self):
         raise NotImplementedError()
@@ -119,13 +143,16 @@ class SrpClient(Srp):
     """
 
     def __init__(self, username: str, password: str) -> None:
-        Srp.__init__(self)
+        super().__init__()
         self.username = username
         self.password = password
-        self.salt = None
-        self.a = self.generate_private_key()
-        self.A = pow(self.g, self.a, self.n)
-        self.B = None
+        self.a = self.generate_private_key()  # client's private key
+        self.A = pow(self.g, self.a, self.n)  # public key
+        self.A_b = to_byte_array(self.A)  # public key as bytes
+        assert len(self.A_b) == HK_KEY_LENGTH  # public key must be 384 bits long
+        self.k = self._calculate_k()  # static k value
+        self.B = None  # server's public key
+        self.B_b: bytearray | None = None  # server's public key as bytes
 
     def set_salt(self, salt: Union[int, bytearray]) -> None:
         if isinstance(salt, bytearray):
@@ -133,66 +160,64 @@ class SrpClient(Srp):
         else:
             self.salt = salt
 
+        self.salt_b = pad_left(to_byte_array(self.salt), 16)
+        self.x = self._calculate_client_password_x()
+
     def get_public_key(self) -> int:
-        return pow(self.g, self.a, self.n)
+        return self.A
 
     def set_server_public_key(self, B: Union[int, bytearray]) -> None:
         if isinstance(B, bytearray):
             self.B = int.from_bytes(B, "big")
         else:
             self.B = B
+        self.B_b = to_byte_array(self.B)
+        assert len(self.B_b) == HK_KEY_LENGTH
 
     def get_shared_secret(self) -> int:
         if self.B is None:
             raise RuntimeError("Server's public key is missing")
         u = self._calculate_u()
-        x = self._calculate_x()
-        k = self._calculate_k()
-        tmp1 = self.B - (k * pow(self.g, x, self.n))
-        tmp2 = self.a + (u * x)  # % self.n
+        v = pow(self.g, self.x, self.n)
+        tmp1 = self.B - (self.k * v)
+        tmp2 = self.a + (u * self.x)  # % self.n
         S = pow(tmp1, tmp2, self.n)
         return S
 
     def get_proof(self) -> int:
+        """Get the proof/M value."""
         if self.B is None:
             raise RuntimeError("Server's public key is missing")
-
-        hash_instance = self.h()
-        hash_instance.update(Srp.to_byte_array(self.n))
-        hN = bytearray(hash_instance.digest())
-
-        hash_instance = self.h()
-        hash_instance.update(Srp.to_byte_array(self.g))
-        hg = bytearray(hash_instance.digest())
-
-        for index in range(0, len(hN)):
-            hN[index] ^= hg[index]
-
-        u = self.username.encode()
-        hash_instance = self.h()
-        hash_instance.update(u)
-        hu = hash_instance.digest()
-        K = Srp.to_byte_array(self.get_session_key())
-
-        hash_instance = self.h()
-        hash_instance.update(hN)
-        hash_instance.update(hu)
-        hash_instance.update(Srp.to_byte_array(self.salt))
-        hash_instance.update(Srp.to_byte_array(self.A))
-        hash_instance.update(Srp.to_byte_array(self.B))
-        hash_instance.update(K)
-        return int.from_bytes(hash_instance.digest(), "big")
+        hN = bytearray(self.digest(to_byte_array(self.n)))  # H(modulus)
+        hg = bytearray(self.digest(to_byte_array(self.g)))  # H(generator)
+        hGroup = bytes(
+            hN[i] ^ hg[i] for i in range(0, len(hN))
+        )  # H(modulus) xor H(generator)
+        hu = self.digest(self.username.encode())
+        K = to_byte_array(self.get_session_key())  # Session Key
+        proof = self.digest(
+            hGroup,
+            hu,
+            self.salt_b,
+            self.A_b,
+            self.B_b,
+            K,
+        )
+        return int.from_bytes(proof, "big")
 
     def verify_servers_proof(self, M: Union[int, bytearray]) -> bool:
         if isinstance(M, bytearray):
             tmp = int.from_bytes(M, "big")
         else:
             tmp = M
-        hash_instance = self.h()
-        hash_instance.update(Srp.to_byte_array(self.A))
-        hash_instance.update(Srp.to_byte_array(self.get_proof()))
-        hash_instance.update(Srp.to_byte_array(self.get_session_key()))
-        return tmp == int.from_bytes(hash_instance.digest(), "big")
+        return tmp == int.from_bytes(
+            self.digest(
+                to_byte_array(self.A),
+                to_byte_array(self.get_proof()),
+                to_byte_array(self.get_session_key()),
+            ),
+            "big",
+        )
 
 
 class SrpServer(Srp):
@@ -201,9 +226,10 @@ class SrpServer(Srp):
     """
 
     def __init__(self, username: str, password: str) -> None:
-        Srp.__init__(self)
+        super().__init__()
         self.username = username
         self.salt = SrpServer._create_salt()
+        self.salt_b = to_byte_array(self.salt)
         self.password = password
         self.verifier = self._get_verifier()
         self.b = self.generate_private_key()
@@ -218,7 +244,7 @@ class SrpServer(Srp):
         return int.from_bytes(os.urandom(16), byteorder="big")
 
     def _get_verifier(self) -> int:
-        hash_value = self._calculate_x()
+        hash_value = self._calculate_client_password_x()
         v = pow(self.g, hash_value, self.n)
         return v
 
@@ -243,35 +269,38 @@ class SrpServer(Srp):
         if self.B is None:
             raise RuntimeError("Server's public key is missing")
 
-        hash_instance = self.h()
-        hash_instance.update(Srp.to_byte_array(self.n))
-        hN = bytearray(hash_instance.digest())
-
-        hash_instance = self.h()
-        hash_instance.update(Srp.to_byte_array(self.g))
-        hg = bytearray(hash_instance.digest())
+        hN = self.digest(to_byte_array(self.n))
+        hg = bytearray(self.digest(to_byte_array(self.g)))
 
         for index in range(0, len(hN)):
             hN[index] ^= hg[index]
 
-        u = self.username.encode()
-        hash_instance = self.h()
-        hash_instance.update(u)
-        hu = hash_instance.digest()
-        K = Srp.to_byte_array(self.get_session_key())
+        hu = self.digest(self.username.encode())
+        K = to_byte_array(self.get_session_key())
 
-        hash_instance = self.h()
-        hash_instance.update(hN)
-        hash_instance.update(hu)
-        hash_instance.update(Srp.to_byte_array(self.salt))
-        hash_instance.update(Srp.to_byte_array(self.A))
-        hash_instance.update(Srp.to_byte_array(self.B))
-        hash_instance.update(K)
-        return m == int.from_bytes(hash_instance.digest(), "big")
+        A_b = to_byte_array(self.A)
+        assert len(A_b) == HK_KEY_LENGTH
+        B_b = to_byte_array(self.B)
+        assert len(B_b) == HK_KEY_LENGTH
+
+        return m == int.from_bytes(
+            self.digest(
+                hN,
+                hu,
+                to_byte_array(self.salt),
+                A_b,
+                B_b,
+                K,
+            ),
+            "big",
+        )
 
     def get_proof(self, m: int) -> int:
-        hash_instance = self.h()
-        hash_instance.update(Srp.to_byte_array(self.A))
-        hash_instance.update(Srp.to_byte_array(m))
-        hash_instance.update(Srp.to_byte_array(self.get_session_key()))
-        return int.from_bytes(hash_instance.digest(), "big")
+        return int.from_bytes(
+            self.digest(
+                to_byte_array(self.A),
+                to_byte_array(m),
+                to_byte_array(self.get_session_key()),
+            ),
+            "big",
+        )
