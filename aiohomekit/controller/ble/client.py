@@ -75,24 +75,22 @@ def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFu
     return cast(WrapFuncType, _decorator_retry_bluetooth_connection_error)
 
 
-def determine_fragment_size(
+def _determine_fragment_size(
     client: AIOHomeKitBleakClient,
     encryption_key: EncryptionKey | None,
     handle: BleakGATTCharacteristic,
 ) -> int:
-    """Determine the fragment size for a characteristic."""
-    debug_enabled = logger.isEnabledFor(logging.DEBUG)
-
+    """Determine the fragment size for a characteristic based on the MTU."""
     # Newer bleak, not currently released
     if max_write_without_response_size := getattr(
         handle, "max_write_without_response_size", None
     ):
-        if debug_enabled:
-            logger.debug(
-                "max_write_without_response_size: %s, mtu_size-3: %s",
-                max_write_without_response_size,
-                client.mtu_size - ATT_HEADER_SIZE,
-            )
+        logger.debug(
+            "%s: max_write_without_response_size: %s, mtu_size-3: %s",
+            client.address,
+            max_write_without_response_size,
+            client.mtu_size - ATT_HEADER_SIZE,
+        )
         fragment_size = max(
             max_write_without_response_size, client.mtu_size - ATT_HEADER_SIZE
         )
@@ -102,29 +100,26 @@ def determine_fragment_size(
         and isinstance(char_obj, dict)
         and (char_mtu := char_obj.get("MTU"))
     ):
-        if debug_enabled:
-            logger.debug(
-                "bleak obj MTU: %s, mtu_size-3: %s",
-                char_mtu,
-                client.mtu_size - ATT_HEADER_SIZE,
-            )
-        fragment_size = max(
-            char_mtu - ATT_HEADER_SIZE, client.mtu_size - ATT_HEADER_SIZE
+        logger.debug(
+            "%s: bleak obj MTU: %s, mtu_size-3: %s",
+            client.address,
+            char_mtu,
+            client.mtu_size - ATT_HEADER_SIZE,
         )
+        fragment_size = max(char_mtu, client.mtu_size) - ATT_HEADER_SIZE
     else:
-        if debug_enabled:
-            logger.debug(
-                "no bleak obj MTU or max_write_without_response_size, using mtu_size-3: %s",
-                client.mtu_size - ATT_HEADER_SIZE,
-            )
+        logger.debug(
+            "%s: No bleak obj MTU or max_write_without_response_size, using mtu_size-3: %s",
+            client.address,
+            client.mtu_size - ATT_HEADER_SIZE,
+        )
         fragment_size = client.mtu_size - ATT_HEADER_SIZE
 
     if encryption_key:
         # Secure session means an extra 16 bytes of overhead
         fragment_size -= KEY_OVERHEAD_SIZE
 
-    if debug_enabled:
-        logger.debug("Using fragment size: %s", fragment_size)
+    logger.debug("Using fragment size: %s", fragment_size)
 
     return fragment_size
 
@@ -154,7 +149,7 @@ async def _write_pdu(
     tid: int,
 ) -> None:
     """Write a PDU to the accessory."""
-    fragment_size = determine_fragment_size(client, encryption_key, handle)
+    fragment_size = _determine_fragment_size(client, encryption_key, handle)
     # Wrap data in one or more PDU's split at fragment_size
     # And write each one to the target characteristic handle
     writes = []
