@@ -107,7 +107,11 @@ class Srp:
             raise RuntimeError("Client's public key is missing")
         if self.B_b is None:
             raise RuntimeError("Server's public key is missing")
-        u = int.from_bytes(self.digest(self.A_b, self.B_b), "big")
+        A_b = Srp.to_byte_array(self.A)  # client's public key as bytes
+        B_b = Srp.to_byte_array(self.B)  # server's public key as bytes
+        assert len(A_b) == HK_KEY_LENGTH
+        assert len(B_b) == HK_KEY_LENGTH
+        u = int.from_bytes(self.digest(A_b, B_b), "big")
         return u
 
     def get_session_key(self) -> int:
@@ -280,14 +284,18 @@ class SrpServer(Srp):
 
         hu = self.digest(self.username.encode())
         K = to_byte_array(self.get_session_key())
+        A_b = to_byte_array(self.A)
+        assert len(A_b) == HK_KEY_LENGTH
+        B_b = to_byte_array(self.B)
+        assert len(B_b) == HK_KEY_LENGTH
 
         return m == int.from_bytes(
             self.digest(
                 hGroup,
                 hu,
                 self.salt_b,
-                self.A_b,
-                self.B_b,
+                A_b,
+                B_b,
                 K,
             ),
             "big",
