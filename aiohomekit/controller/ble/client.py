@@ -234,6 +234,7 @@ async def pairing_char_write(
             client, encryption_key, decryption_key, handle, iid, next_write
         )
         decoded = dict(TLV.decode_bytes(data))
+        logger.debug("%s: decoded pairing_char_write: %s", client.address, decoded)
 
         if TLV.kTLVType_FragmentLast in decoded:
             complete_data.extend(data[TLV.kTLVType_FragmentLast])
