@@ -1301,7 +1301,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             server = SrpServer("Pair-Setup", self.server.data.setup_code)
 
             # 6) create salt
-            salt = server.get_salt()
+            salt = server.get_salt_bytes()
 
             # 8) show setup code to user
             sc = self.server.data.setup_code
@@ -1352,7 +1352,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 1) use ios pub key to compute shared secret key
             ios_pub_key = d_req[1][1]
             server = self.server.sessions[self.session_id]["srp"]
-            server.set_client_public_key(ios_pub_key)
+            server.set_client_public_key_bytes(ios_pub_key)
 
             session_key = hkdf_derive(
                 server.get_session_key_bytes(),
