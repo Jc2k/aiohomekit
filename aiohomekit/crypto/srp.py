@@ -247,10 +247,13 @@ class SrpServer(Srp):
         v = pow(self.g, hash_value, self.n)
         return v
 
-    def set_client_public_key(self, A_b: bytes | bytearray) -> None:
-        assert isinstance(A_b, (bytes, bytearray)), "The public key must be a bytes"
-        self.A_b = A_b
-        self.A = int.from_bytes(A_b, "big")
+    def set_client_public_key(self, pub_key: int | bytes | bytearray) -> None:
+        if isinstance(int, pub_key):
+            self.A = pub_key
+            self.A_b = pad_left(to_byte_array(self.A), HK_KEY_LENGTH)
+        else:
+            self.A_b = pub_key
+            self.A = int.from_bytes(pub_key, "big")
 
     def get_salt(self) -> int:
         return self.salt
