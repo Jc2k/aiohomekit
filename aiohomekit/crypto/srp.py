@@ -22,6 +22,7 @@ from __future__ import annotations
 import hashlib
 import math
 import os
+from sys import int_info
 from typing import Iterable
 
 # The K value for HK SRP is always the same because G and N are fixed
@@ -211,12 +212,12 @@ class SrpClient(Srp):
             K,
         )
 
-    def verify_servers_proof(self, M: int | bytearray) -> bool:
-        if isinstance(M, bytearray):
-            tmp = int.from_bytes(M, "big")
-        else:
-            tmp = M
-        return tmp == int.from_bytes(
+    def verify_servers_proof_bytes(self, M_b: bytes) -> bool:
+        """Verify the proof/M value."""
+        return self.verify_servers_proof(int.from_bytes(M_b, "big"))
+
+    def verify_servers_proof(self, M: int) -> bool:
+        return M == int.from_bytes(
             self.digest(
                 self.A_b,
                 self.get_proof_bytes(),
@@ -275,6 +276,9 @@ class SrpServer(Srp):
         tmp1 = self.A * pow(self.verifier, self._calculate_u(), self.n)
         return pow(tmp1, self.b, self.n)
 
+    def verify_clients_proof_bytes(self, m: bytes) -> bool:
+        return self.verify_clients_proof(int.from_bytes(m, "big"))
+
     def verify_clients_proof(self, m: int) -> bool:
         self._assert_public_keys()
         K = self.get_session_key_bytes()
@@ -290,12 +294,13 @@ class SrpServer(Srp):
             "big",
         )
 
-    def get_proof_bytes(self, m: int) -> bytes:
+    def get_proof_bytes(self, m_b: bytes) -> bytes:
         return self.digest(
             self.A_b,
-            to_byte_array(m),
+            m_b,
             self.get_session_key_bytes(),
         )
 
     def get_proof(self, m: int) -> int:
-        return int.from_bytes(self.get_proof_bytes(m), "big")
+        aligned_client_bytes = pad_left(to_byte_array(m), 64)
+        return int.from_bytes(self.get_proof_bytes(aligned_client_bytes), "big")

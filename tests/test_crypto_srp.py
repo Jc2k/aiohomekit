@@ -80,15 +80,15 @@ def test_1(server_cls, client_cls):
     client.set_server_public_key(server_pub_key)
 
     client_pub_key = client.get_public_key_bytes()
-    clients_proof = client.get_proof()
+    clients_proof_bytes = client.get_proof_bytes()
 
     # step M4
     server.set_client_public_key(client_pub_key)
     server.get_shared_secret()
-    assert server.verify_clients_proof(clients_proof) is True
-    servers_proof = server.get_proof(clients_proof)
+    assert server.verify_clients_proof_bytes(clients_proof_bytes) is True
+    servers_proof = server.get_proof_bytes(clients_proof_bytes)
 
     # step M5
     assert (
-        client.verify_servers_proof(servers_proof) is True
+        client.verify_servers_proof_bytes(servers_proof) is True
     ), f"proof mismatch: server_key:{server.b} client_key:{client.a} server_salt:{server.salt}"
