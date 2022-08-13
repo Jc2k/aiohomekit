@@ -116,14 +116,17 @@ class Srp:
         u = int.from_bytes(self.digest(self.A_b, self.B_b), "big")
         return u
 
+    def get_shared_secret_bytes(self) -> bytes:
+        """Returns the shared secret as bytes."""
+        return pad_left(Srp.to_byte_array(self.get_shared_secret()), HK_KEY_LENGTH)
+
     def get_session_key_bytes(self) -> bytes:
         """Returns the session key as bytes."""
-        return pad_left(Srp.to_byte_array(self.get_shared_secret()), HK_KEY_LENGTH)
+        return self.digest(self.get_shared_secret_bytes())
 
     def get_session_key(self) -> int:
         """Return the K value for the session key."""
-        S_b = self.get_session_key_bytes()
-        return int.from_bytes(self.digest(S_b), "big")
+        return int.from_bytes(self.get_session_key_bytes(), "big")
 
     @staticmethod
     def to_byte_array(num: int) -> bytearray:
