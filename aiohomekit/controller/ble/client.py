@@ -216,9 +216,14 @@ async def char_write(
     body: bytes,
 ):
     body = BleRequest(expect_response=1, value=body).encode()
-    decoded = await ble_request(
+    pdu_status, data = await ble_request(
         client, encryption_key, decryption_key, OpCode.CHAR_WRITE, handle, iid, body
     )
+    if pdu_status != PDUStatus.SUCCESS:
+        raise ValueError(
+            f"{client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
+        )
+    decoded = dict(TLV.decode_bytes(data))
     return decoded[AdditionalParameterTypes.Value.value]
 
 
@@ -229,9 +234,14 @@ async def char_read(
     handle: BleakGATTCharacteristic,
     iid: int,
 ):
-    decoded = await ble_request(
+    pdu_status, data = await ble_request(
         client, encryption_key, decryption_key, OpCode.CHAR_READ, handle, iid
     )
+    if pdu_status != PDUStatus.SUCCESS:
+        raise ValueError(
+            f"{client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
+        )
+    decoded = dict(TLV.decode_bytes(data))
     return decoded[AdditionalParameterTypes.Value.value]
 
 
