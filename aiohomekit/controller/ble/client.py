@@ -181,7 +181,7 @@ def raise_for_pdu_status(client: BleakClient, pdu_status: PDUStatus) -> None:
 
 
 async def char_write(
-    client: BleakClient,
+    client: AIOHomeKitBleakClient,
     encryption_key: EncryptionKey | None,
     decryption_key: DecryptionKey | None,
     handle: BleakGATTCharacteristic,
@@ -202,7 +202,7 @@ async def char_write(
 
 
 async def char_read(
-    client: BleakClient,
+    client: AIOHomeKitBleakClient,
     encryption_key: EncryptionKey | None,
     decryption_key: DecryptionKey | None,
     handle: BleakGATTCharacteristic,
@@ -215,7 +215,7 @@ async def char_read(
 
 
 async def _char_read_write(
-    client: BleakClient,
+    client: AIOHomeKitBleakClient,
     encryption_key: EncryptionKey | None,
     decryption_key: DecryptionKey | None,
     handle: BleakGATTCharacteristic,
@@ -233,11 +233,11 @@ async def _char_read_write(
 
         # Decode the first TLV
         decoded = dict(TLV.decode_bytes(data))
-        logger.debug("%s: Decoded top level TLV: %s", decoded)
+        logger.debug("%s: Decoded top level TLV: %s", client.address, decoded)
 
         # The value is actually stored in the value field
         data = TLV.decode_bytes(decoded[AdditionalParameterTypes.Value.value])
-        logger.debug("%s: Decoded value TLV: %s", data)
+        logger.debug("%s: Decoded value TLV: %s", client.address, data)
 
         if TLV.kTLVType_FragmentLast in data:
             complete_data.extend(data[TLV.kTLVType_FragmentLast])
