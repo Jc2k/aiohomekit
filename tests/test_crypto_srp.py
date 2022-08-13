@@ -26,7 +26,7 @@ from aiohomekit.crypto.srp import SrpClient, SrpServer
 
 
 class ZeroSaltSrpServer(SrpServer):
-    def _create_salt(self):
+    def _create_salt_bytes(self):
         return b"\x00" * 16
 
 
@@ -89,4 +89,6 @@ def test_1(server_cls, client_cls):
     servers_proof = server.get_proof(clients_proof)
 
     # step M5
-    assert client.verify_servers_proof(servers_proof) is True
+    assert (
+        client.verify_servers_proof(servers_proof) is True
+    ), f"proof mismatch: server_key:{server.b} client_key:{client.a} server_salt:{server.salt}"

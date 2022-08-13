@@ -233,8 +233,8 @@ class SrpServer(Srp):
 
     def __init__(self, username: str, password: str) -> None:
         super().__init__(username, password)
-        self.salt = SrpServer._create_salt()
-        self.salt_b = pad_left(to_byte_array(self.salt), 16)
+        self.salt_b = self._create_salt_bytes()
+        self.salt = int.from_bytes(self.salt_b, "big")
         self.verifier = self._get_verifier()
         self.b = self.generate_private_key()
         k = self._calculate_k()
@@ -243,10 +243,9 @@ class SrpServer(Srp):
         self.B_b = pad_left(to_byte_array(self.B), HK_KEY_LENGTH)  # public key as bytes
         self.A = None
 
-    @staticmethod
-    def _create_salt() -> int:
+    def _create_salt_bytes(self) -> bytes:
         # generate random salt
-        return int.from_bytes(os.urandom(16), byteorder="big")
+        return os.urandom(16)
 
     def _get_verifier(self) -> int:
         hash_value = self._calculate_client_password_x()
