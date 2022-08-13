@@ -234,7 +234,7 @@ async def pairing_char_write(
             complete_data.extend(decoded[TLV.kTLVType_FragmentData])
 
             # Acknowledge the fragment
-            ack_tlv = TLV.encode_list([(TLV.kTLVType_FragmentData, bytearray())])
+            ack_tlv = TLV.encode_list([(TLV.kTLVType_FragmentData, None)])
             next_write = BleRequest(expect_response=1, value=ack_tlv).encode()
         else:
             return decoded
