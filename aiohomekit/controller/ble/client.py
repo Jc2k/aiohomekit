@@ -46,6 +46,7 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 DEFAULT_ATTEMPTS = 2
 MAX_REASSEMBLY = 50
 
+
 def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFuncType:
     """Define a wrapper to retry on bluetooth connection error."""
 
@@ -178,6 +179,7 @@ def raise_for_pdu_status(client: BleakClient, pdu_status: PDUStatus) -> None:
             f"{client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
         )
 
+
 async def char_write(
     client: BleakClient,
     encryption_key: EncryptionKey | None,
@@ -204,6 +206,7 @@ async def char_read(
         client, encryption_key, decryption_key, handle, iid, OpCode.CHAR_READ, None
     )
 
+
 async def _char_read_write(
     client: BleakClient,
     encryption_key: EncryptionKey | None,
@@ -211,7 +214,7 @@ async def _char_read_write(
     handle: BleakGATTCharacteristic,
     iid: int,
     opcode: OpCode,
-    body: bytes | None,    
+    body: bytes | None,
 ):
     """Read or write a characteristic value."""
     complete_data = bytearray()
@@ -223,10 +226,10 @@ async def _char_read_write(
         decoded = dict(TLV.decode_bytes(data))
         data = decoded[AdditionalParameterTypes.Value.value]
 
-        if TLV.kTLVType_FragmentLast in data:               
+        if TLV.kTLVType_FragmentLast in data:
             complete_data.extend(data[TLV.kTLVType_FragmentLast])
             return dict(TLV.decode_bytes(complete_data))
-        elif TLV.kTLVType_FragmentData in data:               
+        elif TLV.kTLVType_FragmentData in data:
             complete_data.extend(data[TLV.kTLVType_FragmentData])
         else:
             return data
