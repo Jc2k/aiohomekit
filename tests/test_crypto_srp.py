@@ -13,16 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pytest
 
-from aiohomekit.crypto.srp import SrpClient, SrpServer
+from aiohomekit.crypto.srp import SrpClient, SrpServer, pad_left, to_byte_array
 
 
-def test_1():
+class ZeroSaltSrpServer(SrpServer):
+    def _create_salt(self):
+        return b"\x00" * 16
+
+
+@pytest.mark.parametrize("cls", [ZeroSaltSrpServer, SrpServer])
+def test_1(cls):
     # step M1
 
     # step M2
     setup_code = "123-45-678"  # transmitted on second channel
-    server = SrpServer("Pair-Setup", setup_code)
+    server = cls("Pair-Setup", setup_code)
     server_pub_key = server.get_public_key()
     server_salt = server.get_salt()
 
