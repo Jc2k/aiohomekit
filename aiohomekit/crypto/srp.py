@@ -292,12 +292,10 @@ class SrpServer(Srp):
         )
 
     def get_proof_bytes(self, m: int) -> bytes:
-        return (
-            self.digest(
-                self.A_b,
-                to_byte_array(m),
-                self.get_session_key_bytes(),
-            ),
+        return self.digest(
+            self.A_b,
+            to_byte_array(m),
+            self.get_session_key_bytes(),
         )
 
     def get_proof(self, m: int) -> int:
