@@ -195,6 +195,10 @@ def perform_pair_setup_part2(
     srp_client = SrpClient("Pair-Setup", pin)
     srp_client.set_salt(salt)
     srp_client.set_server_public_key(server_public_key)
+    # We avoid getting the values as ints to ensure
+    # we do not have a conversion issue where the values
+    # have a leading zero and the resulting bytes are too
+    # short to be valid.
     client_pub_key = srp_client.get_public_key_bytes()
     client_proof = srp_client.get_proof_bytes()
 
