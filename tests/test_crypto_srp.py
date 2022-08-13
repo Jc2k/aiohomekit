@@ -40,6 +40,16 @@ class LeadingZeroPrivateAndPublicKeySrpClient(SrpClient):
         return 70997313118674976963008287637113704817
 
 
+class LeadingZeroPrivateKeySrpServer(SrpServer):
+    def generate_private_key(self):
+        return 292137137271783308929690144371568755687
+
+
+class LeadingZeroPrivateAndPublicKeySrpServer(SrpServer):
+    def generate_private_key(self):
+        return 70997313118674976963008287637113704817
+
+
 @pytest.mark.parametrize(
     "server_cls, client_cls",
     [
@@ -48,6 +58,11 @@ class LeadingZeroPrivateAndPublicKeySrpClient(SrpClient):
         (SrpServer, LeadingZeroPrivateKeySrpClient),
         (SrpServer, LeadingZeroPrivateAndPublicKeySrpClient),
         (ZeroSaltSrpServer, LeadingZeroPrivateAndPublicKeySrpClient),
+        (
+            LeadingZeroPrivateAndPublicKeySrpServer,
+            LeadingZeroPrivateAndPublicKeySrpClient,
+        ),
+        (LeadingZeroPrivateKeySrpServer, LeadingZeroPrivateAndPublicKeySrpClient),
     ],
 )
 def test_1(server_cls, client_cls):
