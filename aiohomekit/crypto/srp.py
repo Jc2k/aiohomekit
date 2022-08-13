@@ -22,7 +22,6 @@ from __future__ import annotations
 import hashlib
 import math
 import os
-from sys import int_info
 from typing import Iterable
 
 # The K value for HK SRP is always the same because G and N are fixed
