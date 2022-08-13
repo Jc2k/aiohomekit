@@ -107,12 +107,7 @@ class Srp:
             raise RuntimeError("Client's public key is missing")
         if self.B_b is None:
             raise RuntimeError("Server's public key is missing")
-        A_b = Srp.to_byte_array(self.A)  # client's public key as bytes
-        B_b = Srp.to_byte_array(self.B)  # server's public key as bytes
-        assert len(A_b) == HK_KEY_LENGTH
-        assert len(B_b) == HK_KEY_LENGTH
-        u = int.from_bytes(self.digest(A_b, B_b), "big")
-        return u
+        return int.from_bytes(self.digest(self.A_b, self.B_b), "big")
 
     def get_session_key(self) -> int:
         """Return the K value for the session key."""
@@ -234,7 +229,7 @@ class SrpServer(Srp):
         k = self._calculate_k()
         g_b = pow(self.g, self.b, self.n)
         self.B = (k * self.verifier + g_b) % self.n
-        self.B_b = pad_left(to_byte_array(self.b), HK_KEY_LENGTH)  # public key as bytes
+        self.B_b = pad_left(to_byte_array(self.B), HK_KEY_LENGTH)  # public key as bytes
         self.A = None
 
     @staticmethod
@@ -256,11 +251,10 @@ class SrpServer(Srp):
         return self.salt
 
     def get_public_key(self) -> int:
-        k = self._calculate_k()
-        return (k * self.verifier + pow(self.g, self.b, self.n)) % self.n
+        return self.B
 
     def get_public_key_bytes(self) -> bytes:
-        return pad_left(to_byte_array(self.get_public_key()), HK_KEY_LENGTH)
+        return self.B_b
 
     def get_shared_secret(self) -> int:
         if self.A_b is None:
