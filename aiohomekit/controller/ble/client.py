@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import random
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, Callable, Generator, TypeVar, cast
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
@@ -245,7 +245,7 @@ async def pairing_char_write(
 ) -> dict[int, bytes]:
     """Read or write a characteristic value."""
     complete_data = bytearray()
-    next_write = request
+    next_write = TLV.encode_list(request)
 
     for _ in range(MAX_REASSEMBLY):
         decoded = await char_write(client, None, None, handle, iid, next_write)
@@ -283,7 +283,7 @@ async def char_read(
 async def drive_pairing_state_machine(
     client: AIOHomeKitBleakClient,
     characteristic: str,
-    state_machine: Any,
+    state_machine: Generator[tuple[list[tuple[TLV, bytes]], list[TLV]], Any, Any],
 ) -> Any:
     char = client.get_characteristic(ServicesTypes.PAIRING, characteristic)
     iid = await client.get_characteristic_iid(char)
