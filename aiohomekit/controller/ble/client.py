@@ -253,10 +253,9 @@ async def pairing_char_write(
     await write_pdu(client, None, OpCode.CHAR_WRITE, handle, iid, body, tid)
 
     for _ in range(MAX_REASSEMBLY):
-        # The value is actually stored in the value field
-        decoded = decode_pdu_tlv_value(
+        decoded = TLV.decode_bytearray(decode_pdu_tlv_value(
             client, *await read_pdu(client, None, handle, tid)
-        )
+        ))
         if TLV.kTLVType_FragmentLast in decoded:
             complete_data.extend(decoded[TLV.kTLVType_FragmentLast])
             return dict(TLV.decode_bytes(complete_data))
