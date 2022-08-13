@@ -23,15 +23,16 @@ from dataclasses import dataclass
 import logging
 from typing import AsyncIterable
 
-from zeroconf import ServiceListener, Zeroconf
-from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
+from zeroconf import ServiceListener, ServiceStateChange, Zeroconf
+from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController, AbstractDiscovery
-from aiohomekit.exceptions import AccessoryNotFoundError
+from aiohomekit.exceptions import AccessoryNotFoundError, TransportNotSupportedError
 from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
+from aiohomekit.utils import async_create_task
 
 HAP_TYPE_TCP = "_hap._tcp.local."
 HAP_TYPE_UDP = "_hap._udp.local."
@@ -105,6 +106,17 @@ class ZeroconfServiceListener(ServiceListener):
         pass
 
 
+def find_brower_for_hap_type(azc: AsyncZeroconf, hap_type: str) -> AsyncServiceBrowser:
+    for browser in azc.zeroconf.listeners:
+        if not isinstance(browser, AsyncServiceBrowser):
+            continue
+        if hap_type not in browser.types:
+            continue
+        return browser
+
+    raise TransportNotSupportedError(f"There is no zeroconf browser for {hap_type}")
+
+
 class ZeroconfDiscovery(AbstractDiscovery):
 
     description: HomeKitService
@@ -137,26 +149,11 @@ class ZeroconfController(AbstractController):
         if not zc:
             return self
 
-        # FIXME: Ideally we want to attach to the zeroconf instance here and monitor for
-        # 1. Hostname/port changes
-        # 2. C# getting incremented
-        # zc.async_add_listener(self, None)
+        self._browser = find_brower_for_hap_type(
+            self._async_zeroconf_instance, self.hap_type
+        )
+        self._browser.service_state_changed.register_handler(self._handle_service)
 
-    async def async_stop(self):
-        # FIXME: Detach from zeroconf instance
-        pass
-
-    async def async_find(self, device_id: str) -> ZeroconfDiscovery:
-        device_id = device_id.lower()
-
-        async for device in self.async_discover():
-            if device.description.id == device_id:
-                return device
-
-        raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
-
-    async def async_discover(self) -> AsyncIterable[ZeroconfDiscovery]:
-        zc = self._async_zeroconf_instance.zeroconf
         infos = [
             AsyncServiceInfo(self.hap_type, record.alias)
             for record in zc.cache.get_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
@@ -164,6 +161,32 @@ class ZeroconfController(AbstractController):
 
         await asyncio.gather(*(self._async_handle_service(info) for info in infos))
 
+        return self
+
+    def _handle_service(
+        self,
+        zeroconf: Zeroconf,
+        service_type: str,
+        name: str,
+        state_change: ServiceStateChange,
+    ):
+        if service_type != self.hap_type:
+            return
+        info = AsyncServiceInfo(service_type, name)
+        async_create_task(self._async_handle_service(info))
+
+    async def async_stop(self):
+        self._browser.service_state_changed.unregister_handler(self._handle_service)
+
+    async def async_find(self, device_id: str) -> ZeroconfDiscovery:
+        device_id = device_id.lower()
+
+        if device_id in self.discoveries:
+            return self.discoveries[device_id]
+
+        raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
+
+    async def async_discover(self) -> AsyncIterable[ZeroconfDiscovery]:
         for device in self.discoveries.values():
             yield device
 

@@ -41,7 +41,7 @@ async def test_passing_in_bleak_to_controller():
     assert isinstance(controller._transports[0], BleController)
 
 
-async def test_passing_in_async_zeroconf():
+async def test_passing_in_async_zeroconf(mock_asynczeroconf):
     """Test we can pass in a zeroconf ServiceBrowser instance to the controller.
 
     Passing in the instance should enable zeroconf scanning.
@@ -51,7 +51,7 @@ async def test_passing_in_async_zeroconf():
     ), patch.object(controller_module, "COAP_TRANSPORT_SUPPORTED", False), patch.object(
         controller_module, "IP_TRANSPORT_SUPPORTED", False
     ):
-        controller = Controller(async_zeroconf_instance=AsyncMock())
+        controller = Controller(async_zeroconf_instance=mock_asynczeroconf)
         await controller.async_start()
 
     assert len(controller._transports) == 1
