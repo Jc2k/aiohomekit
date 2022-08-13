@@ -187,7 +187,7 @@ async def char_write(
     handle: BleakGATTCharacteristic,
     iid: int,
     body: bytes,
-):
+) -> dict[int, bytes]:
     """Write a characteristic value."""
     ble_request = BleRequest(expect_response=1, value=body).encode()
     return await _char_read_write(
@@ -201,7 +201,7 @@ async def char_read(
     decryption_key: DecryptionKey | None,
     handle: BleakGATTCharacteristic,
     iid: int,
-):
+) -> dict[int, bytes]:
     """Read a characteristic value."""
     return await _char_read_write(
         client, encryption_key, decryption_key, handle, iid, OpCode.CHAR_READ, None
@@ -216,7 +216,7 @@ async def _char_read_write(
     iid: int,
     opcode: OpCode,
     body: bytes | None,
-):
+) -> dict[int, bytes]:
     """Read or write a characteristic value."""
     complete_data = bytearray()
     for _ in range(MAX_REASSEMBLY):
@@ -224,14 +224,26 @@ async def _char_read_write(
             client, encryption_key, decryption_key, opcode, handle, iid, body
         )
         raise_for_pdu_status(client, pdu_status)
+        
+        # Decode the first TLV
         decoded = dict(TLV.decode_bytes(data))
-        data = decoded[AdditionalParameterTypes.Value.value]
+        logger.debug("%s: Decoded top level TLV: %s", decoded)
+
+        # The value is actually stored in the value field
+        data = TLV.decode_bytes(decoded[AdditionalParameterTypes.Value.value])
+        logger.debug("%s: Decoded value TLV: %s", data)
 
         if TLV.kTLVType_FragmentLast in data:
             complete_data.extend(data[TLV.kTLVType_FragmentLast])
             return dict(TLV.decode_bytes(complete_data))
         elif TLV.kTLVType_FragmentData in data:
+            # There is more data, acknowledge the fragment
+            # and keep reading
             complete_data.extend(data[TLV.kTLVType_FragmentData])
+
+            # Acknowledge the fragment
+            ack_tlv = TLV.encode_list([(TLV.kTLVType_FragmentData, bytearray())])
+            body = BleRequest(expect_response=1, value=ack_tlv).encode()
         else:
             return data
 
@@ -248,7 +260,7 @@ async def drive_pairing_state_machine(
     while True:
         try:
             body = TLV.encode_list(request)
-            response = await char_write(
+            decoded = await char_write(
                 client,
                 None,
                 None,
@@ -256,6 +268,6 @@ async def drive_pairing_state_machine(
                 iid,
                 body,
             )
-            request, expected = state_machine.send(TLV.decode_bytes(response))
+            request, expected = state_machine.send(decoded)
         except StopIteration as result:
             return result.value
