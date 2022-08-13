@@ -198,10 +198,12 @@ async def char_write(
     body: bytes,
 ) -> bytes:
     body = BleRequest(expect_response=1, value=body).encode()
-    pdu_status, data = await ble_request(
-        client, encryption_key, decryption_key, OpCode.CHAR_WRITE, handle, iid, body
+    return decode_pdu_tlv_value(
+        client,
+        *await ble_request(
+            client, encryption_key, decryption_key, OpCode.CHAR_WRITE, handle, iid, body
+        ),
     )
-    return decode_pdu_tlv_value(client, pdu_status, data)
 
 
 async def pairing_char_write(
@@ -246,10 +248,12 @@ async def char_read(
     iid: int,
 ) -> bytes:
     """Read a characteristic value."""
-    pdu_status, data = await ble_request(
-        client, encryption_key, decryption_key, OpCode.CHAR_READ, handle, iid
+    return decode_pdu_tlv_value(
+        client,
+        *await ble_request(
+            client, encryption_key, decryption_key, OpCode.CHAR_READ, handle, iid
+        ),
     )
-    return decode_pdu_tlv_value(client, pdu_status, data)
 
 
 async def drive_pairing_state_machine(
@@ -264,7 +268,7 @@ async def drive_pairing_state_machine(
     while True:
         try:
             body = TLV.encode_list(request)
-            decoded = await paring_char_write(
+            decoded = await pairing_char_write(
                 client,
                 None,
                 None,
