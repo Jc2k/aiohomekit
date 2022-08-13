@@ -253,13 +253,15 @@ async def pairing_char_write(
     await write_pdu(client, None, OpCode.CHAR_WRITE, handle, iid, body, tid)
 
     for _ in range(MAX_REASSEMBLY):
-        decoded = TLV.decode_bytearray(decode_pdu_tlv_value(
-            client, *await read_pdu(client, None, handle, tid)
-        ))
+        decoded = TLV.decode_bytearray(
+            decode_pdu_tlv_value(client, *await read_pdu(client, None, handle, tid))
+        )
         if TLV.kTLVType_FragmentLast in decoded:
+            logger.debug("%s: Reassembling final fragment", client.address)
             complete_data.extend(decoded[TLV.kTLVType_FragmentLast])
             return dict(TLV.decode_bytes(complete_data))
         elif TLV.kTLVType_FragmentData in decoded:
+            logger.debug("%s: Reassembling fragment", client.address)
             # There is more data, acknowledge the fragment
             # and keep reading
             complete_data.extend(decoded[TLV.kTLVType_FragmentData])
@@ -268,6 +270,7 @@ async def pairing_char_write(
                 handle, TLV.encode_list([(TLV.kTLVType_FragmentData, b"")]), True
             )
         else:
+            logger.debug("%s: Data is not fragemented", client.address)
             return decoded
 
 
