@@ -148,7 +148,7 @@ class SrpClient(Srp):
         self.a = self.generate_private_key()  # client's private key
         self.A = pow(self.g, self.a, self.n)  # public key
         self.A_b = to_byte_array(self.A)  # public key as bytes
-        assert len(self.A_b) == HK_KEY_LENGTH  # public key must be 384 bits long
+        assert len(self.A_b) == HK_KEY_LENGTH  # public key must be 384 bytes long
         self.k = self._calculate_k()  # static k value
         self.B = None  # server's public key
         self.B_b: bytearray | None = None  # server's public key as bytes
