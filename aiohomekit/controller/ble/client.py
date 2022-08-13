@@ -253,8 +253,10 @@ async def pairing_char_write(
     await write_pdu(client, None, OpCode.CHAR_WRITE, handle, iid, body, tid)
 
     for _ in range(MAX_REASSEMBLY):
-        decoded = TLV.decode_bytearray(
-            decode_pdu_tlv_value(client, *await read_pdu(client, None, handle, tid))
+        decoded = dict(
+            TLV.decode_bytearray(
+                decode_pdu_tlv_value(client, *await read_pdu(client, None, handle, tid))
+            )
         )
         if TLV.kTLVType_FragmentLast in decoded:
             logger.debug("%s: Reassembling final fragment", client.address)
