@@ -180,7 +180,31 @@ def raise_for_pdu_status(client: BleakClient, pdu_status: PDUStatus) -> None:
         )
 
 
+def decode_pdu_tlv_value(
+    client: AIOHomeKitBleakClient, pdu_status: PDUStatus, data: bytes
+) -> bytes:
+    """Decode the TLV value from the PDU."""
+    raise_for_pdu_status(client, pdu_status)
+    decoded = dict(TLV.decode_bytes(data))
+    return decoded[AdditionalParameterTypes.Value.value]
+
+
 async def char_write(
+    client: BleakClient,
+    encryption_key: EncryptionKey | None,
+    decryption_key: DecryptionKey | None,
+    handle: BleakGATTCharacteristic,
+    iid: int,
+    body: bytes,
+) -> bytes:
+    body = BleRequest(expect_response=1, value=body).encode()
+    pdu_status, data = await ble_request(
+        client, encryption_key, decryption_key, OpCode.CHAR_WRITE, handle, iid, body
+    )
+    return decode_pdu_tlv_value(client, pdu_status, data)
+
+
+async def pairing_char_write(
     client: AIOHomeKitBleakClient,
     encryption_key: EncryptionKey | None,
     decryption_key: DecryptionKey | None,
@@ -190,33 +214,28 @@ async def char_write(
 ) -> dict[int, bytes]:
     """Read or write a characteristic value."""
     complete_data = bytearray()
+    next_write = body
+
     for _ in range(MAX_REASSEMBLY):
-        pdu_status, data = await ble_request(
-            client, encryption_key, decryption_key, OpCode.CHAR_WRITE, handle, iid, body
-        )
-        raise_for_pdu_status(client, pdu_status)
-
-        # Decode the first TLV
-        decoded = dict(TLV.decode_bytes(data))
-        logger.debug("%s: Decoded top level TLV: %s", client.address, decoded)
-
         # The value is actually stored in the value field
-        data = TLV.decode_bytes(decoded[AdditionalParameterTypes.Value.value])
-        logger.debug("%s: Decoded value TLV: %s", client.address, data)
+        data = await char_write(
+            client, encryption_key, decryption_key, handle, iid, next_write
+        )
+        decoded = dict(TLV.decode_bytes(data))
 
-        if TLV.kTLVType_FragmentLast in data:
+        if TLV.kTLVType_FragmentLast in decoded:
             complete_data.extend(data[TLV.kTLVType_FragmentLast])
             return dict(TLV.decode_bytes(complete_data))
-        elif TLV.kTLVType_FragmentData in data:
+        elif TLV.kTLVType_FragmentData in decoded:
             # There is more data, acknowledge the fragment
             # and keep reading
-            complete_data.extend(data[TLV.kTLVType_FragmentData])
+            complete_data.extend(decoded[TLV.kTLVType_FragmentData])
 
             # Acknowledge the fragment
             ack_tlv = TLV.encode_list([(TLV.kTLVType_FragmentData, bytearray())])
-            body = BleRequest(expect_response=1, value=ack_tlv).encode()
+            next_write = BleRequest(expect_response=1, value=ack_tlv).encode()
         else:
-            return data
+            return decoded
 
 
 async def char_read(
@@ -225,17 +244,12 @@ async def char_read(
     decryption_key: DecryptionKey | None,
     handle: BleakGATTCharacteristic,
     iid: int,
-) -> dict[int, bytes]:
+) -> bytes:
     """Read a characteristic value."""
     pdu_status, data = await ble_request(
         client, encryption_key, decryption_key, OpCode.CHAR_READ, handle, iid
     )
-    raise_for_pdu_status(client, pdu_status)
-
-    # Decode the first TLV
-    decoded = dict(TLV.decode_bytes(data))
-    logger.debug("%s: Decoded top level TLV: %s", client.address, decoded)
-    return decoded
+    return decode_pdu_tlv_value(client, pdu_status, data)
 
 
 async def drive_pairing_state_machine(
@@ -250,7 +264,7 @@ async def drive_pairing_state_machine(
     while True:
         try:
             body = TLV.encode_list(request)
-            decoded = await char_write(
+            decoded = await paring_char_write(
                 client,
                 None,
                 None,
