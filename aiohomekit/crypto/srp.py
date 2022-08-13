@@ -20,10 +20,9 @@ https://tools.ietf.org/html/rfc5054. See HomeKit spec page 36 for adjustments im
 from __future__ import annotations
 
 import hashlib
-import logging
 import math
 import os
-from typing import Iterable, Union
+from typing import Iterable
 
 # The K value for HK SRP is always the same because G and N are fixed
 CLIENT_K_VALUE = int(
