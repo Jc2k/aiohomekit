@@ -68,12 +68,20 @@ def to_byte_array(num: int) -> bytearray:
     return bytearray(num.to_bytes(int(math.ceil(num.bit_length() / 8)), "big"))
 
 
+HASH_MOD = hashlib.sha512(to_byte_array(MODULUS_VALUE)).digest()  # H(modulus)
+HASH_GEN = hashlib.sha512(to_byte_array(GENERATOR_VALUE)).digest()  # H(generator)
+H_GROUP = bytes(
+    HASH_MOD[i] ^ HASH_GEN[i] for i in range(0, len(HASH_MOD))
+)  # H(modulus) xor H(generator)
+
+
 class Srp:
     """HomeKit SRP implementation."""
 
     def __init__(self) -> None:
         self.g = GENERATOR_VALUE  # generator
         self.n = MODULUS_VALUE  # modulus
+        self.hGroup = H_GROUP
         # HomeKit requires SHA-512 (See page 36)
         self.h = hashlib.sha512
         self.A: int | None = None  # client's public key
@@ -103,15 +111,8 @@ class Srp:
 
     def _calculate_u(self) -> int:
         """Returns the U value."""
-        if self.A_b is None:
-            raise RuntimeError("Client's public key is missing")
-        if self.B_b is None:
-            raise RuntimeError("Server's public key is missing")
-        A_b = Srp.to_byte_array(self.A)  # client's public key as bytes
-        B_b = Srp.to_byte_array(self.B)  # server's public key as bytes
-        assert len(A_b) == HK_KEY_LENGTH
-        assert len(B_b) == HK_KEY_LENGTH
-        u = int.from_bytes(self.digest(A_b, B_b), "big")
+        self._assert_public_keys()
+        u = int.from_bytes(self.digest(self.A_b, self.B_b), "big")
         return u
 
     def get_session_key(self) -> int:
@@ -136,6 +137,12 @@ class Srp:
 
     def get_shared_secret(self):
         raise NotImplementedError()
+
+    def _assert_public_keys(self) -> None:
+        if self.A_b is None:
+            raise RuntimeError("Client's public key is missing")
+        if self.B_b is None:
+            raise RuntimeError("Servers's public key is missing")
 
 
 class SrpClient(Srp):
@@ -184,17 +191,11 @@ class SrpClient(Srp):
 
     def get_proof(self) -> int:
         """Get the proof/M value."""
-        if self.B is None:
-            raise RuntimeError("Server's public key is missing")
-        hN = self.digest(to_byte_array(self.n))  # H(modulus)
-        hg = self.digest(to_byte_array(self.g))  # H(generator)
-        hGroup = bytes(
-            hN[i] ^ hg[i] for i in range(0, len(hN))
-        )  # H(modulus) xor H(generator)
+        self._assert_public_keys()
         hu = self.digest(self.username.encode())
         K = to_byte_array(self.get_session_key())  # Session Key
         proof = self.digest(
-            hGroup,
+            self.hGroup,
             hu,
             self.salt_b,
             self.A_b,
@@ -234,7 +235,7 @@ class SrpServer(Srp):
         k = self._calculate_k()
         g_b = pow(self.g, self.b, self.n)
         self.B = (k * self.verifier + g_b) % self.n
-        self.B_b = pad_left(to_byte_array(self.b), HK_KEY_LENGTH)  # public key as bytes
+        self.B_b = pad_left(to_byte_array(self.B), HK_KEY_LENGTH)  # public key as bytes
         self.A = None
 
     @staticmethod
@@ -263,39 +264,21 @@ class SrpServer(Srp):
         return pad_left(to_byte_array(self.get_public_key()), HK_KEY_LENGTH)
 
     def get_shared_secret(self) -> int:
-        if self.A_b is None:
-            raise RuntimeError("Client's public key is missing")
-        if self.B_b is None:
-            raise RuntimeError("Servers's public key is missing")
+        self._assert_public_keys()
         tmp1 = self.A * pow(self.verifier, self._calculate_u(), self.n)
         return pow(tmp1, self.b, self.n)
 
     def verify_clients_proof(self, m: int) -> bool:
-        if self.A_b is None:
-            raise RuntimeError("Client's public key is missing")
-        if self.B_b is None:
-            raise RuntimeError("Servers's public key is missing")
-        hN = self.digest(to_byte_array(self.n))
-        hg = self.digest(to_byte_array(self.g))
-
-        hGroup = bytes(
-            hN[i] ^ hg[i] for i in range(0, len(hN))
-        )  # H(modulus) xor H(generator)
-
+        self._assert_public_keys()
         hu = self.digest(self.username.encode())
         K = to_byte_array(self.get_session_key())
-        A_b = to_byte_array(self.A)
-        assert len(A_b) == HK_KEY_LENGTH
-        B_b = to_byte_array(self.B)
-        assert len(B_b) == HK_KEY_LENGTH
-
         return m == int.from_bytes(
             self.digest(
-                hGroup,
+                self.hGroup,
                 hu,
                 self.salt_b,
-                A_b,
-                B_b,
+                self.A_b,
+                self.B_b,
                 K,
             ),
             "big",
