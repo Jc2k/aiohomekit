@@ -267,18 +267,18 @@ class BlePairing(AbstractPairing):
 
     async def _async_request(
         self, opcode: OpCode, char: Characteristic, data: bytes | None = None
-    ) -> bytes:
+    ) -> dict[int, bytes]:
         async with self._ble_request_lock:
             return await self._async_request_under_lock(opcode, char, data)
 
     async def _async_request_under_lock(
         self, opcode: OpCode, char: Characteristic, data: bytes | None = None
-    ) -> bytes:
+    ) -> dict[int, bytes]:
         endpoint = self.client.get_characteristic(char.service.type, char.type)
         if not self.client or not self.client.is_connected:
             logger.debug("%s: Client not connected", self.name)
             raise AccessoryDisconnectedError(f"{self.name} is not connected")
-        pdu_status, result_data = await ble_request(
+        return await ble_request(
             self.client,
             self._encryption_key,
             self._decryption_key,
@@ -287,12 +287,7 @@ class BlePairing(AbstractPairing):
             char.iid,
             data,
         )
-        if pdu_status != PDUStatus.SUCCESS:
-            raise ValueError(
-                f"{self.name}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
-            )
-        return result_data
-
+ 
     def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
         """Called when bleak disconnects from the accessory closed the connection."""
         logger.debug("%s: Session closed callback", self.name)
@@ -726,14 +721,14 @@ class BlePairing(AbstractPairing):
 
         async with self._ble_request_lock:
             for char in characteristics:
-                data = await self._async_request_under_lock(OpCode.CHAR_READ, char)
-                decoded = dict(TLV.decode_bytes(data))[1]
+                response_dict = await self._async_request_under_lock(OpCode.CHAR_READ, char)
+                decoded = response_dict[1]
 
                 logger.debug(
-                    "%s: Read characteristic got data, expected format is %s: data=%s decoded=%s",
+                    "%s: Read characteristic got data, expected format is %s: response_dict=%s decoded=%s",
                     self.name,
                     char.format,
-                    data,
+                    response_dict,
                     decoded,
                 )
 
