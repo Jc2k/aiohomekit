@@ -86,7 +86,7 @@ def _determine_fragment_size(
         handle, "max_write_without_response_size", None
     ):
         logger.debug(
-            "%s: max_write_without_response_size: %s, mtu_size-3: %s",
+            "%s: Bleak max_write_without_response_size: %s, mtu_size-3: %s",
             client.address,
             max_write_without_response_size,
             client.mtu_size - ATT_HEADER_SIZE,
@@ -101,15 +101,15 @@ def _determine_fragment_size(
         and (char_mtu := char_obj.get("MTU"))
     ):
         logger.debug(
-            "%s: bleak obj MTU: %s, mtu_size-3: %s",
+            "%s: Bleak obj MTU: %s, client.mtu_size: %s",
             client.address,
             char_mtu,
-            client.mtu_size - ATT_HEADER_SIZE,
+            client.mtu_size,
         )
         fragment_size = max(char_mtu, client.mtu_size) - ATT_HEADER_SIZE
     else:
         logger.debug(
-            "%s: No bleak obj MTU or max_write_without_response_size, using mtu_size-3: %s",
+            "%s: No bleak obj MTU or max_write_without_response_size, using client.mtu_size-3: %s",
             client.address,
             client.mtu_size - ATT_HEADER_SIZE,
         )
@@ -119,7 +119,7 @@ def _determine_fragment_size(
         # Secure session means an extra 16 bytes of overhead
         fragment_size -= KEY_OVERHEAD_SIZE
 
-    logger.debug("Using fragment size: %s", fragment_size)
+    logger.debug("%s: Using fragment size: %s", client.address, fragment_size)
 
     return fragment_size
 
