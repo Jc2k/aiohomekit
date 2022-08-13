@@ -121,11 +121,7 @@ class Srp:
 
     def get_session_key_bytes(self) -> bytes:
         """Return the K value for the session key."""
-        return pad_left(Srp.to_byte_array(self.get_shared_secret()), HK_KEY_LENGTH)
-
-    @staticmethod
-    def to_byte_array(num: int) -> bytearray:
-        return to_byte_array(num)
+        return pad_left(to_byte_array(self.get_shared_secret()), HK_KEY_LENGTH)
 
     def _calculate_client_password_x(self) -> int:
         """Calculate the x value for the client's password."""
@@ -154,7 +150,7 @@ class SrpClient(Srp):
         self.A = pow(self.g, self.a, self.n)  # public key
         self.A_b = pad_left(to_byte_array(self.A), HK_KEY_LENGTH)  # public key as bytes
 
-    def set_salt(self, salt: bytearray) -> None:
+    def set_salt_bytes(self, salt: bytearray) -> None:
         assert isinstance(salt, (bytes, bytearray))
         self.salt_b = salt
         self.salt = int.from_bytes(salt, "big")
@@ -163,7 +159,7 @@ class SrpClient(Srp):
     def get_public_key_bytes(self) -> bytes:
         return self.A_b
 
-    def set_server_public_key(self, B_b: bytearray | bytes) -> None:
+    def set_server_public_key_bytes(self, B_b: bytearray | bytes) -> None:
         assert isinstance(B_b, (bytes, bytearray)), "The public key must be a bytes"
         self.B_b = B_b
         self.B = int.from_bytes(B_b, "big")

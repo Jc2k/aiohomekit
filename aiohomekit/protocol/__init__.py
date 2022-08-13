@@ -193,8 +193,8 @@ def perform_pair_setup_part2(
     """
 
     srp_client = SrpClient("Pair-Setup", pin)
-    srp_client.set_salt(salt)
-    srp_client.set_server_public_key(server_public_key)
+    srp_client.set_salt_bytes(salt)
+    srp_client.set_server_public_key_bytes(server_public_key)
     client_pub_key_bytes = srp_client.get_public_key_bytes()
     client_proof_bytes = srp_client.get_proof_bytes()
 

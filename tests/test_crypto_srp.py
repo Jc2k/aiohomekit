@@ -35,8 +35,8 @@ def test_1(cls):
 
     # step M3
     client = SrpClient("Pair-Setup", setup_code)
-    client.set_salt(server_salt)
-    client.set_server_public_key(server_pub_key)
+    client.set_salt_bytes(server_salt)
+    client.set_server_public_key_bytes(server_pub_key)
 
     client_pub_key = client.get_public_key_bytes()
     clients_proof = client.get_proof_bytes()
