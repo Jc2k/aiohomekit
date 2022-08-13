@@ -23,18 +23,37 @@ class ZeroSaltSrpServer(SrpServer):
         return b"\x00" * 16
 
 
-@pytest.mark.parametrize("cls", [ZeroSaltSrpServer, SrpServer])
-def test_1(cls):
+class LeadingZeroPrivateKeySrpClient(SrpClient):
+    def generate_private_key(self):
+        return 292137137271783308929690144371568755687
+
+
+class LeadingZeroPrivateAndPublicKeySrpClient(SrpClient):
+    def generate_private_key(self):
+        return 70997313118674976963008287637113704817
+
+
+@pytest.mark.parametrize(
+    "server_cls, client_cls",
+    [
+        (SrpServer, SrpClient),
+        (ZeroSaltSrpServer, SrpClient),
+        (SrpServer, LeadingZeroPrivateKeySrpClient),
+        (SrpServer, LeadingZeroPrivateAndPublicKeySrpClient),
+        (ZeroSaltSrpServer, LeadingZeroPrivateAndPublicKeySrpClient),
+    ],
+)
+def test_1(server_cls, client_cls):
     # step M1
 
     # step M2
     setup_code = "123-45-678"  # transmitted on second channel
-    server = cls("Pair-Setup", setup_code)
+    server: SrpServer = server_cls("Pair-Setup", setup_code)
     server_pub_key = server.get_public_key_bytes()
     server_salt = server.get_salt()
 
     # step M3
-    client = SrpClient("Pair-Setup", setup_code)
+    client: SrpClient = client_cls("Pair-Setup", setup_code)
     client.set_salt(server_salt)
     client.set_server_public_key(server_pub_key)
 
