@@ -248,7 +248,7 @@ class SrpServer(Srp):
         return v
 
     def set_client_public_key(self, pub_key: int | bytes | bytearray) -> None:
-        if isinstance(int, pub_key):
+        if isinstance(pub_key, int):
             self.A = pub_key
             self.A_b = pad_left(to_byte_array(self.A), HK_KEY_LENGTH)
         else:
