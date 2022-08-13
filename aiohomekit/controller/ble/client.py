@@ -140,11 +140,11 @@ async def ble_request(
 ) -> tuple[PDUStatus, bytes]:
     """Send a request to the accessory."""
     tid = random.randrange(1, 254)
-    await write_pdu(client, encryption_key, opcode, handle, iid, data, tid)
-    return await read_pdu(client, decryption_key, handle, tid)
+    await _write_pdu(client, encryption_key, opcode, handle, iid, data, tid)
+    return await _read_pdu(client, decryption_key, handle, tid)
 
 
-async def write_pdu(
+async def _write_pdu(
     client: AIOHomeKitBleakClient,
     encryption_key: EncryptionKey,
     opcode: OpCode,
@@ -168,7 +168,7 @@ async def write_pdu(
         await client.write_gatt_char(handle, write, True)
 
 
-async def read_pdu(
+async def _read_pdu(
     client: AIOHomeKitBleakClient,
     decryption_key: DecryptionKey | None,
     handle: BleakGATTCharacteristic,
@@ -213,7 +213,7 @@ def raise_for_pdu_status(client: BleakClient, pdu_status: PDUStatus) -> None:
         )
 
 
-def decode_pdu_tlv_value(
+def _decode_pdu_tlv_value(
     client: AIOHomeKitBleakClient, pdu_status: PDUStatus, data: bytes
 ) -> bytes:
     """Decode the TLV value from the PDU."""
@@ -230,14 +230,15 @@ async def char_write(
     iid: int,
     body: bytes,
 ) -> bytes:
+    """Execute a CHAR_WRITE request."""
     body = BleRequest(expect_response=1, value=body).encode()
     status, data = await ble_request(
         client, encryption_key, decryption_key, OpCode.CHAR_WRITE, handle, iid, body
     )
-    return decode_pdu_tlv_value(client, status, data)
+    return _decode_pdu_tlv_value(client, status, data)
 
 
-async def pairing_char_write(
+async def _pairing_char_write(
     client: AIOHomeKitBleakClient,
     handle: BleakGATTCharacteristic,
     iid: int,
@@ -266,6 +267,8 @@ async def pairing_char_write(
         else:
             return decoded
 
+    raise ValueError(f"Reassembly failed - too many fragments (max: {MAX_REASSEMBLY})")
+
 
 async def char_read(
     client: AIOHomeKitBleakClient,
@@ -274,11 +277,11 @@ async def char_read(
     handle: BleakGATTCharacteristic,
     iid: int,
 ) -> bytes:
-    """Read a characteristic value."""
+    """Execute a CHAR_READ request."""
     status, data = await ble_request(
         client, encryption_key, decryption_key, OpCode.CHAR_READ, handle, iid
     )
-    return decode_pdu_tlv_value(client, status, data)
+    return _decode_pdu_tlv_value(client, status, data)
 
 
 async def drive_pairing_state_machine(
@@ -292,7 +295,7 @@ async def drive_pairing_state_machine(
     request, expected = state_machine.send(None)
     while True:
         try:
-            decoded = await pairing_char_write(client, char, iid, request)
+            decoded = await _pairing_char_write(client, char, iid, request)
             request, expected = state_machine.send(decoded)
         except StopIteration as result:
             return result.value
