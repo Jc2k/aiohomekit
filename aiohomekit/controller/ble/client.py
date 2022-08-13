@@ -138,9 +138,23 @@ async def ble_request(
     iid: int,
     data: bytes | None = None,
 ) -> tuple[PDUStatus, bytes]:
+    """Send a request to the accessory."""
     tid = random.randrange(1, 254)
-    fragment_size = determine_fragment_size(client, encryption_key, handle)
+    await write_pdu(client, encryption_key, opcode, handle, iid, data, tid)
+    return await read_pdu(client, decryption_key, handle, tid)
 
+
+async def write_pdu(
+    client: AIOHomeKitBleakClient,
+    encryption_key: EncryptionKey,
+    opcode: OpCode,
+    handle: BleakGATTCharacteristic,
+    iid: int,
+    data: bytes,
+    tid: int,
+) -> None:
+    """Write a PDU to the accessory."""
+    fragment_size = determine_fragment_size(client, encryption_key, handle)
     # Wrap data in one or more PDU's split at fragment_size
     # And write each one to the target characterstic handle
     writes = []
@@ -153,6 +167,14 @@ async def ble_request(
     for write in writes:
         await client.write_gatt_char(handle, write, True)
 
+
+async def read_pdu(
+    client: AIOHomeKitBleakClient,
+    decryption_key: DecryptionKey | None,
+    handle: BleakGATTCharacteristic,
+    tid: int,
+) -> tuple[PDUStatus, bytes]:
+    """Read a PDU from a characteristic."""
     data = await client.read_gatt_char(handle)
     if decryption_key:
         data = decryption_key.decrypt(data)
@@ -224,15 +246,16 @@ async def pairing_char_write(
 ) -> dict[int, bytes]:
     """Read or write a characteristic value."""
     complete_data = bytearray()
-    state = dict(request)[TLV.kTLVType_State]
     next_write = TLV.encode_list(request)
+    tid = random.randrange(1, 254)
+    body = BleRequest(expect_response=1, value=next_write).encode()
+    await write_pdu(client, None, OpCode.CHAR_WRITE, handle, iid, body, tid)
 
     for _ in range(MAX_REASSEMBLY):
         # The value is actually stored in the value field
-        data = await char_write(client, None, None, handle, iid, next_write)
+        data = await read_pdu(client, None, handle, tid)
         decoded = dict(TLV.decode_bytes(data))
         logger.debug("%s: decoded pairing_char_write: %s", client.address, decoded)
-
         if TLV.kTLVType_FragmentLast in decoded:
             complete_data.extend(data[TLV.kTLVType_FragmentLast])
             return dict(TLV.decode_bytes(complete_data))
@@ -241,8 +264,8 @@ async def pairing_char_write(
             # and keep reading
             complete_data.extend(decoded[TLV.kTLVType_FragmentData])
             # Acknowledge the fragment
-            next_write = TLV.encode_list(
-                [(TLV.kTLVType_State, state), (TLV.kTLVType_FragmentData, b"")]
+            await client.write_gatt_char(
+                handle, TLV.encode_list([(TLV.kTLVType_FragmentData, b"")]), True
             )
         else:
             return decoded
