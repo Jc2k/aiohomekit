@@ -265,8 +265,7 @@ async def pairing_char_write(
             # and keep reading
             complete_data.extend(decoded[TLV.kTLVType_FragmentData])
             # Acknowledge the fragment
-            ack_tlv_bytes = TLV.encode_list([*request, (TLV.kTLVType_FragmentData, b"")])
-            tid = random.randrange(1, 254)
+            ack_tlv_bytes = TLV.encode_list([(TLV.kTLVType_FragmentData, b"")])
             body = BleRequest(expect_response=1, value=ack_tlv_bytes).encode()
             await write_pdu(client, None, OpCode.CHAR_WRITE, handle, iid, body, tid)            
         else:
