@@ -68,14 +68,27 @@ def to_byte_array(num: int) -> bytearray:
     return bytearray(num.to_bytes(int(math.ceil(num.bit_length() / 8)), "big"))
 
 
+HK_HASHLIB = hashlib.sha512
+
+DIGEST_GENERATOR = HK_HASHLIB(to_byte_array(GENERATOR_VALUE)).digest()
+DIGEST_MODULUS = HK_HASHLIB(to_byte_array(MODULUS_VALUE)).digest()
+
+H_GROUP = bytes(
+    DIGEST_MODULUS[i] ^ DIGEST_GENERATOR[i] for i in range(0, len(DIGEST_MODULUS))
+)  # H(modulus) xor H(generator)
+
+
 class Srp:
     """HomeKit SRP implementation."""
 
     def __init__(self) -> None:
         self.g = GENERATOR_VALUE  # generator
         self.n = MODULUS_VALUE  # modulus
+        self.hN = DIGEST_MODULUS  # digest of modulus
+        self.hg = DIGEST_GENERATOR  # digest of generator
+        self.hGroup = H_GROUP
         # HomeKit requires SHA-512 (See page 36)
-        self.h = hashlib.sha512
+        self.h = HK_HASHLIB
         self.A: int | None = None  # client's public key
         self.B: int | None = None  # server's public key
         self.salt: int | None = None  # salt as defined by RFC 5054
@@ -84,6 +97,7 @@ class Srp:
         self.password: str | None = None
         self.A_b: bytearray | None = None  # client's public key as bytes
         self.B_b: bytearray | None = None  # server's public key as bytes
+        self.k = CLIENT_K_VALUE
 
     @staticmethod
     def generate_private_key() -> int:
@@ -96,10 +110,6 @@ class Srp:
 
     def digest(self, *data: Iterable[bytes]) -> bytes:
         return self.h(b"".join(data)).digest()
-
-    def _calculate_k(self) -> int:
-        """This value is static and never changes since n and g never change."""
-        return CLIENT_K_VALUE
 
     def _calculate_u(self) -> int:
         """Returns the U value."""
@@ -144,15 +154,11 @@ class SrpClient(Srp):
         self.a = self.generate_private_key()  # client's private key
         self.A = pow(self.g, self.a, self.n)  # public key
         self.A_b = pad_left(to_byte_array(self.A), HK_KEY_LENGTH)  # public key as bytes
-        self.k = self._calculate_k()  # static k value
 
-    def set_salt(self, salt: int | bytearray) -> None:
-        if isinstance(salt, bytearray):
-            self.salt = int.from_bytes(salt, "big")
-        else:
-            self.salt = salt
-
-        self.salt_b = pad_left(to_byte_array(self.salt), 16)
+    def set_salt(self, salt: bytearray) -> None:
+        assert isinstance(salt, (bytes, bytearray))
+        self.salt_b = salt
+        self.salt = int.from_bytes(salt, "big")
         self.x = self._calculate_client_password_x()
 
     def get_public_key(self) -> int:
@@ -180,15 +186,11 @@ class SrpClient(Srp):
         """Get the proof/M value."""
         if self.B is None:
             raise RuntimeError("Server's public key is missing")
-        hN = self.digest(to_byte_array(self.n))  # H(modulus)
-        hg = self.digest(to_byte_array(self.g))  # H(generator)
-        hGroup = bytes(
-            hN[i] ^ hg[i] for i in range(0, len(hN))
-        )  # H(modulus) xor H(generator)
+
         hu = self.digest(self.username.encode())
         K = to_byte_array(self.get_session_key())  # Session Key
         proof = self.digest(
-            hGroup,
+            self.hGroup,
             hu,
             self.salt_b,
             self.A_b,
@@ -225,9 +227,8 @@ class SrpServer(Srp):
         self.password = password
         self.verifier = self._get_verifier()
         self.b = self.generate_private_key()
-        k = self._calculate_k()
         g_b = pow(self.g, self.b, self.n)
-        self.B = (k * self.verifier + g_b) % self.n
+        self.B = (self.k * self.verifier + g_b) % self.n
         self.B_b = pad_left(to_byte_array(self.B), HK_KEY_LENGTH)  # public key as bytes
         self.A = None
 
@@ -246,8 +247,8 @@ class SrpServer(Srp):
         self.A_b = A_b
         self.A = int.from_bytes(A_b, "big")
 
-    def get_salt(self) -> int:
-        return self.salt
+    def get_salt(self) -> bytearray:
+        return self.salt_b
 
     def get_public_key(self) -> int:
         return self.B
@@ -268,27 +269,17 @@ class SrpServer(Srp):
             raise RuntimeError("Client's public key is missing")
         if self.B_b is None:
             raise RuntimeError("Servers's public key is missing")
-        hN = self.digest(to_byte_array(self.n))
-        hg = self.digest(to_byte_array(self.g))
-
-        hGroup = bytes(
-            hN[i] ^ hg[i] for i in range(0, len(hN))
-        )  # H(modulus) xor H(generator)
 
         hu = self.digest(self.username.encode())
         K = to_byte_array(self.get_session_key())
-        A_b = to_byte_array(self.A)
-        assert len(A_b) == HK_KEY_LENGTH
-        B_b = to_byte_array(self.B)
-        assert len(B_b) == HK_KEY_LENGTH
 
         return m == int.from_bytes(
             self.digest(
-                hGroup,
+                self.hGroup,
                 hu,
                 self.salt_b,
-                A_b,
-                B_b,
+                self.A_b,
+                self.B_b,
                 K,
             ),
             "big",
@@ -297,7 +288,7 @@ class SrpServer(Srp):
     def get_proof(self, m: int) -> int:
         return int.from_bytes(
             self.digest(
-                to_byte_array(self.A),
+                self.A_b,
                 to_byte_array(m),
                 to_byte_array(self.get_session_key()),
             ),
