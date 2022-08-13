@@ -39,13 +39,13 @@ def test_1(cls):
     client.set_server_public_key(server_pub_key)
 
     client_pub_key = client.get_public_key_bytes()
-    clients_proof = client.get_proof()
+    clients_proof = client.get_proof_bytes()
 
     # step M4
     server.set_client_public_key(client_pub_key)
     server.get_shared_secret()
     assert server.verify_clients_proof(clients_proof) is True
-    servers_proof = server.get_proof(clients_proof)
+    servers_proof = server.get_proof_bytes(clients_proof)
 
     # step M5
     assert client.verify_servers_proof(servers_proof) is True

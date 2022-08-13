@@ -1384,7 +1384,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 self.log_message("ios proof was verified")
 
             # 3) generate accessory proof
-            accessory_proof = server.get_proof(ios_proof)
+            accessory_proof = server.get_proof_bytes(ios_proof)
 
             # 4) create response tlv
             d_res.append(
@@ -1396,7 +1396,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             d_res.append(
                 (
                     TLV.kTLVType_Proof,
-                    SrpServer.to_byte_array(accessory_proof),
+                    accessory_proof,
                 )
             )
 

@@ -119,10 +119,9 @@ class Srp:
             raise RuntimeError("Server's public key is missing")
         return int.from_bytes(self.digest(self.A_b, self.B_b), "big")
 
-    def get_session_key(self) -> int:
+    def get_session_key_bytes(self) -> bytes:
         """Return the K value for the session key."""
-        S_b = pad_left(Srp.to_byte_array(self.get_shared_secret()), HK_KEY_LENGTH)
-        return int.from_bytes(self.digest(S_b), "big")
+        return pad_left(Srp.to_byte_array(self.get_shared_secret()), HK_KEY_LENGTH)
 
     @staticmethod
     def to_byte_array(num: int) -> bytearray:
@@ -182,14 +181,14 @@ class SrpClient(Srp):
         S = pow(tmp1, tmp2, self.n)
         return S
 
-    def get_proof(self) -> int:
+    def get_proof_bytes(self) -> bytes:
         """Get the proof/M value."""
         if self.B is None:
             raise RuntimeError("Server's public key is missing")
 
         hu = self.digest(self.username.encode())
-        K = to_byte_array(self.get_session_key())  # Session Key
-        proof = self.digest(
+        K = self.get_session_key_bytes()  # Session Key
+        return self.digest(
             self.hGroup,
             hu,
             self.salt_b,
@@ -197,20 +196,13 @@ class SrpClient(Srp):
             self.B_b,
             K,
         )
-        return int.from_bytes(proof, "big")
 
-    def verify_servers_proof(self, M: int | bytearray) -> bool:
-        if isinstance(M, bytearray):
-            tmp = int.from_bytes(M, "big")
-        else:
-            tmp = M
-        return tmp == int.from_bytes(
-            self.digest(
-                to_byte_array(self.A),
-                to_byte_array(self.get_proof()),
-                to_byte_array(self.get_session_key()),
-            ),
-            "big",
+    def verify_servers_proof(self, M: bytearray) -> bool:
+        assert isinstance(M, (bytes, bytearray))
+        return M == self.digest(
+            self.A_b,
+            self.get_proof_bytes(),
+            self.get_session_key_bytes(),
         )
 
 
@@ -264,33 +256,28 @@ class SrpServer(Srp):
         tmp1 = self.A * pow(self.verifier, self._calculate_u(), self.n)
         return pow(tmp1, self.b, self.n)
 
-    def verify_clients_proof(self, m: int) -> bool:
+    def verify_clients_proof(self, m: bytearray) -> bool:
+        assert isinstance(m, (bytes, bytearray))
         if self.A_b is None:
             raise RuntimeError("Client's public key is missing")
         if self.B_b is None:
             raise RuntimeError("Servers's public key is missing")
 
         hu = self.digest(self.username.encode())
-        K = to_byte_array(self.get_session_key())
+        K = self.get_session_key_bytes()
 
-        return m == int.from_bytes(
-            self.digest(
-                self.hGroup,
-                hu,
-                self.salt_b,
-                self.A_b,
-                self.B_b,
-                K,
-            ),
-            "big",
+        return m == self.digest(
+            self.hGroup,
+            hu,
+            self.salt_b,
+            self.A_b,
+            self.B_b,
+            K,
         )
 
-    def get_proof(self, m: int) -> int:
-        return int.from_bytes(
-            self.digest(
-                self.A_b,
-                to_byte_array(m),
-                to_byte_array(self.get_session_key()),
-            ),
-            "big",
+    def get_proof_bytes(self, m: bytes) -> bytes:
+        return self.digest(
+            self.A_b,
+            m,
+            self.get_session_key_bytes(),
         )
