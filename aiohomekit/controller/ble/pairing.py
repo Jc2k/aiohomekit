@@ -287,7 +287,7 @@ class BlePairing(AbstractPairing):
             char.iid,
             data,
         )
- 
+
     def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
         """Called when bleak disconnects from the accessory closed the connection."""
         logger.debug("%s: Session closed callback", self.name)
@@ -721,7 +721,9 @@ class BlePairing(AbstractPairing):
 
         async with self._ble_request_lock:
             for char in characteristics:
-                response_dict = await self._async_request_under_lock(OpCode.CHAR_READ, char)
+                response_dict = await self._async_request_under_lock(
+                    OpCode.CHAR_READ, char
+                )
                 decoded = response_dict[1]
 
                 logger.debug(
