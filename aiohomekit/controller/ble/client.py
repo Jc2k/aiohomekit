@@ -245,13 +245,10 @@ async def pairing_char_write(
 ) -> dict[int, bytes]:
     """Read or write a characteristic value."""
     complete_data = bytearray()
+    next_write = request
 
     for _ in range(MAX_REASSEMBLY):
-        status, data = await ble_request(
-            client, None, None, OpCode.CHAR_WRITE, handle, iid, next_write
-        )
-        data = decode_pdu_tlv_value(client, status, data)
-        decoded = dict(TLV.decode_bytearray(data))
+        decoded = await char_write(client, None, None, handle, iid, next_write)
         if TLV.kTLVType_FragmentLast in decoded:
             logger.debug("%s: Reassembling final fragment", client.address)
             complete_data.extend(decoded[TLV.kTLVType_FragmentLast])
