@@ -78,12 +78,15 @@ H_GROUP = bytes(
 class Srp:
     """HomeKit SRP implementation."""
 
-    def __init__(self) -> None:
+    def __init__(self, username: str, password: str) -> None:
+        self.username = username
+        self.password = password
+        # HomeKit requires SHA-512 (See page 36)
+        self.h = hashlib.sha512
+        self.hu = self.digest(self.username.encode())
         self.g = GENERATOR_VALUE  # generator
         self.n = MODULUS_VALUE  # modulus
         self.hGroup = H_GROUP
-        # HomeKit requires SHA-512 (See page 36)
-        self.h = hashlib.sha512
         self.A: int | None = None  # client's public key
         self.B: int | None = None  # server's public key
         self.salt: int | None = None  # salt as defined by RFC 5054
@@ -112,8 +115,7 @@ class Srp:
     def _calculate_u(self) -> int:
         """Returns the U value."""
         self._assert_public_keys()
-        u = int.from_bytes(self.digest(self.A_b, self.B_b), "big")
-        return u
+        return int.from_bytes(self.digest(self.A_b, self.B_b), "big")
 
     def get_session_key(self) -> int:
         """Return the K value for the session key."""
@@ -150,9 +152,7 @@ class SrpClient(Srp):
     """
 
     def __init__(self, username: str, password: str) -> None:
-        super().__init__()
-        self.username = username
-        self.password = password
+        super().__init__(username, password)
         self.a = self.generate_private_key()  # client's private key
         self.A = pow(self.g, self.a, self.n)  # public key
         self.A_b = pad_left(to_byte_array(self.A), HK_KEY_LENGTH)  # public key as bytes
@@ -195,11 +195,10 @@ class SrpClient(Srp):
     def get_proof_bytes(self) -> bytes:
         """Get the proof/M value."""
         self._assert_public_keys()
-        hu = self.digest(self.username.encode())
         K = to_byte_array(self.get_session_key())  # Session Key
         return self.digest(
             self.hGroup,
-            hu,
+            self.hu,
             self.salt_b,
             self.A_b,
             self.B_b,
@@ -227,11 +226,9 @@ class SrpServer(Srp):
     """
 
     def __init__(self, username: str, password: str) -> None:
-        super().__init__()
-        self.username = username
+        super().__init__(username, password)
         self.salt = SrpServer._create_salt()
         self.salt_b = pad_left(to_byte_array(self.salt), 16)
-        self.password = password
         self.verifier = self._get_verifier()
         self.b = self.generate_private_key()
         k = self._calculate_k()
@@ -275,12 +272,11 @@ class SrpServer(Srp):
 
     def verify_clients_proof(self, m: int) -> bool:
         self._assert_public_keys()
-        hu = self.digest(self.username.encode())
         K = to_byte_array(self.get_session_key())
         return m == int.from_bytes(
             self.digest(
                 self.hGroup,
-                hu,
+                self.hu,
                 self.salt_b,
                 self.A_b,
                 self.B_b,
