@@ -147,8 +147,7 @@ class SrpClient(Srp):
         self.password = password
         self.a = self.generate_private_key()  # client's private key
         self.A = pow(self.g, self.a, self.n)  # public key
-        self.A_b = to_byte_array(self.A)  # public key as bytes
-        assert len(self.A_b) == HK_KEY_LENGTH  # public key must be 384 bytes long
+        self.A_b = pad_left(to_byte_array(self.A), HK_KEY_LENGTH)  # public key as bytes
         self.k = self._calculate_k()  # static k value
         self.B = None  # server's public key
         self.B_b: bytearray | None = None  # server's public key as bytes
@@ -165,13 +164,10 @@ class SrpClient(Srp):
     def get_public_key(self) -> int:
         return self.A
 
-    def set_server_public_key(self, B: int | bytearray) -> None:
-        if isinstance(B, bytearray):
-            self.B = int.from_bytes(B, "big")
-        else:
-            self.B = B
-        self.B_b = to_byte_array(self.B)
-        assert len(self.B_b) == HK_KEY_LENGTH
+    def set_server_public_key(self, B_b: bytearray | bytes) -> None:
+        assert isinstance(B_b, (bytes, bytearray)), "The public key must be a bytes"
+        self.B_b = B_b
+        self.B = int.from_bytes(B_b, "big")
 
     def get_shared_secret(self) -> int:
         if self.B is None:
