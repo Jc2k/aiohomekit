@@ -200,8 +200,8 @@ def perform_pair_setup_part2(
 
     response_tlv = [
         (TLV.kTLVType_State, TLV.M3),
-        (TLV.kTLVType_PublicKey, client_pub_key),
-        (TLV.kTLVType_Proof, client_proof),
+        (TLV.kTLVType_PublicKey, client_pub_key_bytes),
+        (TLV.kTLVType_Proof, client_proof_bytes),
     ]
 
     step4_expectations = [
