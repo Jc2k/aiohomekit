@@ -227,10 +227,10 @@ async def char_write(
 ) -> bytes:
     """Execute a CHAR_WRITE request."""
     body = BleRequest(expect_response=1, value=body).encode()
-    status, data = await ble_request(
+    pdu_status, data = await ble_request(
         client, encryption_key, decryption_key, OpCode.CHAR_WRITE, handle, iid, body
     )
-    return _decode_pdu_tlv_value(client, status, data)
+    return _decode_pdu_tlv_value(client, pdu_status, data)
 
 
 async def _pairing_char_write(
@@ -273,10 +273,10 @@ async def char_read(
     iid: int,
 ) -> bytes:
     """Execute a CHAR_READ request."""
-    status, data = await ble_request(
+    pdu_status, data = await ble_request(
         client, encryption_key, decryption_key, OpCode.CHAR_READ, handle, iid
     )
-    return _decode_pdu_tlv_value(client, status, data)
+    return _decode_pdu_tlv_value(client, pdu_status, data)
 
 
 async def drive_pairing_state_machine(
