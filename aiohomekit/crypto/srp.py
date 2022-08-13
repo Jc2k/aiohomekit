@@ -113,8 +113,7 @@ class Srp:
     def _calculate_u(self) -> int:
         """Returns the U value."""
         self._assert_public_keys()
-        u = int.from_bytes(self.digest(self.A_b, self.B_b), "big")
-        return u
+        return int.from_bytes(self.digest(self.A_b, self.B_b), "big")
 
     def get_shared_secret_bytes(self) -> bytes:
         """Returns the shared secret as bytes."""
