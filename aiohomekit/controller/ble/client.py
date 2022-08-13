@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 2
-
+MAX_REASSEMBLY = 50
 
 def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFuncType:
     """Define a wrapper to retry on bluetooth connection error."""
@@ -172,6 +172,12 @@ async def ble_request(
     return status, data
 
 
+def raise_for_pdu_status(client: BleakClient, pdu_status: PDUStatus) -> None:
+    if pdu_status != PDUStatus.SUCCESS:
+        raise ValueError(
+            f"{client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
+        )
+
 async def char_write(
     client: BleakClient,
     encryption_key: EncryptionKey | None,
@@ -180,16 +186,10 @@ async def char_write(
     iid: int,
     body: bytes,
 ):
-    body = BleRequest(expect_response=1, value=body).encode()
-    pdu_status, data = await ble_request(
-        client, encryption_key, decryption_key, OpCode.CHAR_WRITE, handle, iid, body
+    """Write a characteristic value."""
+    return await _char_read_write(
+        client, encryption_key, decryption_key, handle, iid, OpCode.CHAR_WRITE, body
     )
-    if pdu_status != PDUStatus.SUCCESS:
-        raise ValueError(
-            f"{client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
-        )
-    decoded = dict(TLV.decode_bytes(data))
-    return decoded[AdditionalParameterTypes.Value.value]
 
 
 async def char_read(
@@ -199,15 +199,37 @@ async def char_read(
     handle: BleakGATTCharacteristic,
     iid: int,
 ):
-    pdu_status, data = await ble_request(
-        client, encryption_key, decryption_key, OpCode.CHAR_READ, handle, iid
+    """Read a characteristic value."""
+    return await _char_read_write(
+        client, encryption_key, decryption_key, handle, iid, OpCode.CHAR_READ, None
     )
-    if pdu_status != PDUStatus.SUCCESS:
-        raise ValueError(
-            f"{client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
+
+async def _char_read_write(
+    client: BleakClient,
+    encryption_key: EncryptionKey | None,
+    decryption_key: DecryptionKey | None,
+    handle: BleakGATTCharacteristic,
+    iid: int,
+    opcode: OpCode,
+    body: bytes | None,    
+):
+    """Read or write a characteristic value."""
+    complete_data = bytearray()
+    for _ in range(MAX_REASSEMBLY):
+        pdu_status, data = await ble_request(
+            client, encryption_key, decryption_key, opcode, handle, iid, body
         )
-    decoded = dict(TLV.decode_bytes(data))
-    return decoded[AdditionalParameterTypes.Value.value]
+        raise_for_pdu_status(client, pdu_status)
+        decoded = dict(TLV.decode_bytes(data))
+        data = decoded[AdditionalParameterTypes.Value.value]
+
+        if TLV.kTLVType_FragmentLast in data:               
+            complete_data.extend(data[TLV.kTLVType_FragmentLast])
+            return dict(TLV.decode_bytes(complete_data))
+        elif TLV.kTLVType_FragmentData in data:               
+            complete_data.extend(data[TLV.kTLVType_FragmentData])
+        else:
+            return data
 
 
 async def drive_pairing_state_machine(
