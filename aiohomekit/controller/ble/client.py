@@ -247,14 +247,12 @@ async def pairing_char_write(
 ) -> dict[int, bytes]:
     """Read or write a characteristic value."""
     complete_data = bytearray()
-    next_write = TLV.encode_list(request)
-    tid = random.randrange(1, 254)
-    body = BleRequest(expect_response=1, value=next_write).encode()
-    await write_pdu(client, None, OpCode.CHAR_WRITE, handle, iid, body, tid)
 
     for _ in range(MAX_REASSEMBLY):
-        status, data = await read_pdu(client, None, handle, tid)
-        decoded = dict(TLV.decode_bytearray(decode_pdu_tlv_value(client, status, data)))
+        data = await ble_request(
+            client, None, None, OpCode.CHAR_WRITE, handle, iid, next_write
+        )
+        decoded = dict(TLV.decode_bytearray(data))
         if TLV.kTLVType_FragmentLast in decoded:
             logger.debug("%s: Reassembling final fragment", client.address)
             complete_data.extend(decoded[TLV.kTLVType_FragmentLast])
@@ -265,11 +263,10 @@ async def pairing_char_write(
             # and keep reading
             complete_data.extend(decoded[TLV.kTLVType_FragmentData])
             # Acknowledge the fragment
-            ack_tlv_bytes = TLV.encode_list([(TLV.kTLVType_FragmentData, b"")])
-            body = BleRequest(expect_response=1, value=ack_tlv_bytes).encode()
-            await write_pdu(client, None, OpCode.CHAR_WRITE, handle, iid, body, tid)            
+            # We must construct this manually since TLV.encode_bytes
+            # current does not know how to encode a 0 length
+            next_write = bytes([TLV.kTLVType_FragmentData, 0])
         else:
-            logger.debug("%s: Data is not fragmented", client.address)
             return decoded
 
 
