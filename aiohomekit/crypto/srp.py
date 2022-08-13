@@ -79,8 +79,6 @@ class Srp:
     """HomeKit SRP implementation."""
 
     def __init__(self, username: str, password: str) -> None:
-        self.username = username
-        self.password = password
         self.g = GENERATOR_VALUE  # generator
         self.n = MODULUS_VALUE  # modulus
         self.hGroup = H_GROUP
@@ -90,10 +88,11 @@ class Srp:
         self.B: int | None = None  # server's public key
         self.salt: int | None = None  # salt as defined by RFC 5054
         self.salt_b: bytearray | None = None  # salt as bytes
-        self.username: str | None = None
-        self.password: str | None = None
         self.A_b: bytearray | None = None  # client's public key as bytes
         self.B_b: bytearray | None = None  # server's public key as bytes
+        self.username = username
+        self.password = password
+        self.hu = self.digest(self.username.encode())  # H(username)
 
     @staticmethod
     def generate_private_key() -> int:
@@ -195,11 +194,11 @@ class SrpClient(Srp):
     def get_proof_bytes(self) -> bytes:
         """Get the proof/M value."""
         self._assert_public_keys()
-        hu = self.digest(self.username.encode())
+        assert self.username is not None
         K = to_byte_array(self.get_session_key())  # Session Key
         return self.digest(
             self.hGroup,
-            hu,
+            self.hu,
             self.salt_b,
             self.A_b,
             self.B_b,
@@ -273,12 +272,11 @@ class SrpServer(Srp):
 
     def verify_clients_proof(self, m: int) -> bool:
         self._assert_public_keys()
-        hu = self.digest(self.username.encode())
         K = to_byte_array(self.get_session_key())
         return m == int.from_bytes(
             self.digest(
                 self.hGroup,
-                hu,
+                self.hu,
                 self.salt_b,
                 self.A_b,
                 self.B_b,
