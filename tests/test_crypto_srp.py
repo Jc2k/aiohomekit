@@ -31,21 +31,21 @@ def test_1(cls):
     setup_code = "123-45-678"  # transmitted on second channel
     server = cls("Pair-Setup", setup_code)
     server_pub_key = server.get_public_key_bytes()
-    server_salt = server.get_salt_bytes()
+    server_salt = server.get_salt()
 
     # step M3
     client = SrpClient("Pair-Setup", setup_code)
-    client.set_salt_bytes(server_salt)
-    client.set_server_public_key_bytes(server_pub_key)
+    client.set_salt(server_salt)
+    client.set_server_public_key(server_pub_key)
 
     client_pub_key = client.get_public_key_bytes()
-    clients_proof = client.get_proof_bytes()
+    clients_proof = client.get_proof()
 
     # step M4
-    server.set_client_public_key_bytes(client_pub_key)
+    server.set_client_public_key(client_pub_key)
     server.get_shared_secret()
     assert server.verify_clients_proof(clients_proof) is True
-    servers_proof = server.get_proof_bytes(clients_proof)
+    servers_proof = server.get_proof(clients_proof)
 
     # step M5
     assert client.verify_servers_proof(servers_proof) is True

@@ -1301,7 +1301,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             server = SrpServer("Pair-Setup", self.server.data.setup_code)
 
             # 6) create salt
-            salt = server.get_salt_bytes()
+            salt = server.get_salt()
 
             # 8) show setup code to user
             sc = self.server.data.setup_code
@@ -1317,7 +1317,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             self.log_message(sc_str)
 
             # 9) create public key
-            public_key = server.get_public_key_bytes()
+            public_key = server.get_public_key()
 
             # 10) create response tlv and send response
             d_res.append(
@@ -1329,13 +1329,13 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             d_res.append(
                 (
                     TLV.kTLVType_PublicKey,
-                    public_key,
+                    SrpServer.to_byte_array(public_key),
                 )
             )
             d_res.append(
                 (
                     TLV.kTLVType_Salt,
-                    salt,
+                    SrpServer.to_byte_array(salt),
                 )
             )
             self._send_response_tlv(d_res)
@@ -1350,19 +1350,19 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             self.log_message("Step #4 /pair-setup")
 
             # 1) use ios pub key to compute shared secret key
-            ios_pub_key = d_req[1][1]
+            ios_pub_key = int.from_bytes(d_req[1][1], "big")
             server = self.server.sessions[self.session_id]["srp"]
-            server.set_client_public_key_bytes(ios_pub_key)
+            server.set_client_public_key(ios_pub_key)
 
             session_key = hkdf_derive(
-                server.get_session_key_bytes(),
+                SrpServer.to_byte_array(server.get_session_key()),
                 b"Pair-Setup-Encrypt-Salt",
                 b"Pair-Setup-Encrypt-Info",
             )
             self.server.sessions[self.session_id]["session_key"] = session_key
 
             # 2) verify ios proof
-            ios_proof = d_req[2][1]
+            ios_proof = int.from_bytes(d_req[2][1], "big")
             if not server.verify_clients_proof(ios_proof):
                 d_res.append(
                     (
@@ -1384,7 +1384,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 self.log_message("ios proof was verified")
 
             # 3) generate accessory proof
-            accessory_proof = server.get_proof_bytes(ios_proof)
+            accessory_proof = server.get_proof(ios_proof)
 
             # 4) create response tlv
             d_res.append(
@@ -1396,7 +1396,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             d_res.append(
                 (
                     TLV.kTLVType_Proof,
-                    accessory_proof,
+                    SrpServer.to_byte_array(accessory_proof),
                 )
             )
 
@@ -1446,10 +1446,10 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 3) Derive ios_device_x
             shared_secret = self.server.sessions[self.session_id][
                 "srp"
-            ].get_session_key_bytes()
+            ].get_session_key()
 
             ios_device_x = hkdf_derive(
-                shared_secret,
+                SrpServer.to_byte_array(shared_secret),
                 b"Pair-Setup-Controller-Sign-Salt",
                 b"Pair-Setup-Controller-Sign-Info",
             )
@@ -1505,7 +1505,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 2) derive AccessoryX
             accessory_x = hkdf_derive(
-                shared_secret,
+                SrpServer.to_byte_array(shared_secret),
                 b"Pair-Setup-Accessory-Sign-Salt",
                 b"Pair-Setup-Accessory-Sign-Info",
             )
