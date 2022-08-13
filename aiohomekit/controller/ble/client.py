@@ -218,21 +218,18 @@ async def char_write(
 
 async def pairing_char_write(
     client: AIOHomeKitBleakClient,
-    encryption_key: EncryptionKey | None,
-    decryption_key: DecryptionKey | None,
     handle: BleakGATTCharacteristic,
     iid: int,
-    body: bytes | None,
+    request: list[tuple[TLV, bytes]],
 ) -> dict[int, bytes]:
     """Read or write a characteristic value."""
     complete_data = bytearray()
-    next_write = body
+    state = dict(request)[TLV.kTLVType_State]
+    next_write = TLV.encode_list(request)
 
     for _ in range(MAX_REASSEMBLY):
         # The value is actually stored in the value field
-        data = await char_write(
-            client, encryption_key, decryption_key, handle, iid, next_write
-        )
+        data = await char_write(client, None, None, handle, iid, next_write)
         decoded = dict(TLV.decode_bytes(data))
         logger.debug("%s: decoded pairing_char_write: %s", client.address, decoded)
 
@@ -243,12 +240,10 @@ async def pairing_char_write(
             # There is more data, acknowledge the fragment
             # and keep reading
             complete_data.extend(decoded[TLV.kTLVType_FragmentData])
-
             # Acknowledge the fragment
-            ack_tlv = TLV.encode_list(
-                [(TLV.kTLVType_State, 0x03), (TLV.kTLVType_FragmentData, b"")]
+            next_write = TLV.encode_list(
+                [(TLV.kTLVType_State, state), (TLV.kTLVType_FragmentData, b"")]
             )
-            next_write = BleRequest(expect_response=1, value=ack_tlv).encode()
         else:
             return decoded
 
@@ -280,15 +275,7 @@ async def drive_pairing_state_machine(
     request, expected = state_machine.send(None)
     while True:
         try:
-            body = TLV.encode_list(request)
-            decoded = await pairing_char_write(
-                client,
-                None,
-                None,
-                char,
-                iid,
-                body,
-            )
+            decoded = await pairing_char_write(client, char, iid, request)
             request, expected = state_machine.send(decoded)
         except StopIteration as result:
             return result.value
