@@ -33,7 +33,8 @@ from aiohomekit.exceptions import AccessoryNotFoundError, TransportNotSupportedE
 from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
-from aiohomekit.utils import async_create_task
+
+from .debounce import Debouncer
 
 HAP_TYPE_TCP = "_hap._tcp.local."
 HAP_TYPE_UDP = "_hap._udp.local."
@@ -145,6 +146,7 @@ class ZeroconfController(AbstractController):
         super().__init__(char_cache)
         self._async_zeroconf_instance = zeroconf_instance
         self._waiters: dict[str, list[asyncio.Future]] = {}
+        self._debouncers: dict[str, Debouncer] = {}
 
     async def async_start(self):
         zc = self._async_zeroconf_instance.zeroconf
@@ -174,8 +176,24 @@ class ZeroconfController(AbstractController):
     ):
         if service_type != self.hap_type:
             return
-        info = AsyncServiceInfo(service_type, name)
-        async_create_task(self._async_handle_service(info))
+
+        if not (debouncer := self._debouncers.get(name)):
+            info = AsyncServiceInfo(service_type, name)
+
+            async def _async_handle_service():
+                await self._async_handle_service(info)
+
+            debouncer = self._debouncers[name] = Debouncer(
+                logger,
+                cooldown=0.5,
+                immediate=False,
+                function=_async_handle_service,
+            )
+
+        debouncer.async_trigger()
+
+        if state_change == ServiceStateChange.Removed:
+            self._debouncers.pop(name, None)
 
     async def async_stop(self):
         self._browser.service_state_changed.unregister_handler(self._handle_service)
