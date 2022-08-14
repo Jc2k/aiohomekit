@@ -247,22 +247,12 @@ class CoAPHomeKitConnection:
         self.owner = owner
         self.pair_setup_client = None
 
-    async def reconnect_soon(self, updated_ip_port=None):
-        if updated_ip_port is None:
-            return
-        old_address = self.address
-        new_ip = updated_ip_port["AccessoryIP"]
-        new_port = updated_ip_port["AccessoryPort"]
-        new_address = f"[{new_ip}]:{new_port}"
-        logger.debug(
-            f"Device address update from zeroconf: old={old_address} new={new_address}"
-        )
-        if old_address != new_address:
-            self.address = new_address
-            await self.enc_ctx.coap_ctx.shutdown()
-            self.enc_ctx = None
-            # XXX can't .connect here w/o pairing_data
-        return
+    async def reconnect_soon(self):
+        description = self.owner.description
+        self.address = f"[{description.address}]:{description.port}"
+        await self.enc_ctx.coap_ctx.shutdown()
+        self.enc_ctx = None
+        # XXX can't .connect here w/o pairing_data
 
     async def do_identify(self):
         client = await Context.create_client_context()

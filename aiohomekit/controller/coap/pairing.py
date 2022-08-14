@@ -51,10 +51,36 @@ class CoAPPairing(AbstractPairing):
         self.pairing_data = pairing_data
 
     def _async_description_update(self, description: Optional[HomeKitService]) -> None:
+        old_description = self.description
+
         super()._async_description_update(description)
-        async_create_task(
-            self.connection.reconnect_soon(f"{description.address}:{description.port}")
-        )
+
+        if not description:
+            return
+
+        endpoint_changed = False
+        if not old_description:
+            logger.debug("%s: Device rediscovered", self.id)
+            endpoint_changed = True
+        elif old_description.port != description.port:
+            logger.debug(
+                "%s: Device IP changed",
+                self.id,
+                old_description.address,
+                description.address,
+            )
+            endpoint_changed = True
+        elif old_description.address != description.address:
+            logger.debug(
+                "%s: Device port changed",
+                self.id,
+                old_description.port,
+                description.port,
+            )
+            endpoint_changed = True
+
+        if endpoint_changed:
+            async_create_task(self.connection.reconnect_soon())
 
     @property
     def is_connected(self):
