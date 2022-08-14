@@ -207,6 +207,9 @@ class ZeroconfController(AbstractController):
 
         self.discoveries[description.id] = self._make_discovery(description)
 
+        if pairing := self.pairings.get(description.id):
+            pairing._async_description_update(description)
+
     @abstractmethod
     def _make_discovery(self, description: HomeKitService) -> AbstractDiscovery:
         pass

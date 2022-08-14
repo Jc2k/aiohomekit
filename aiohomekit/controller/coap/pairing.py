@@ -17,7 +17,7 @@
 import asyncio
 from datetime import timedelta
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from aiohomekit.controller.abstract import (
     AbstractController,
@@ -26,8 +26,10 @@ from aiohomekit.controller.abstract import (
 )
 from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Accessories, AccessoriesState, Transport
+from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
+from ...zeroconf import HomeKitService
 from .connection import CoAPHomeKitConnection
 
 logger = logging.getLogger(__name__)
@@ -47,6 +49,12 @@ class CoAPPairing(AbstractPairing):
         self.connection_future = None
         self.connection_lock = asyncio.Condition()
         self.pairing_data = pairing_data
+
+    def _async_description_update(self, description: Optional[HomeKitService]) -> None:
+        super()._async_description_update(description)
+        async_create_task(
+            self.connection.reconnect_soon(f"{description.address}:{description.port}")
+        )
 
     @property
     def is_connected(self):
@@ -219,12 +227,3 @@ class CoAPPairing(AbstractPairing):
     async def remove_pairing(self, pairingId):
         await self._ensure_connected()
         return await self.connection.remove_pairing(pairingId)
-
-    async def reconnect_soon(self) -> None:
-        # Conventiently Home Assistant mutates self.pairing_data for us
-        # So we can just re-read from pairing data.
-        # This is kinda gross but there is a longer term plan to refactor
-        # this API away, so will do for now
-        address = self.pairing_data["AccessoryAddress"]
-        port = self.pairing_data["AccessoryPort"]
-        await self.connection.reconnect_soon(f"{address}:{port}")
