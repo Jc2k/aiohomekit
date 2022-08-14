@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import uuid
 
-from bleak import BleakClient, BleakError
+from bleak import BleakError
 from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.backends.device import BLEDevice
+from bleak_retry_connector import BleakClientWithServiceCache
 
 from .const import HAP_MIN_REQUIRED_MTU
 
@@ -13,7 +14,7 @@ CHAR_DESCRIPTOR_ID = "DC46F0FE-81D2-4616-B5D9-6ABDD796939A"
 CHAR_DESCRIPTOR_UUID = uuid.UUID(CHAR_DESCRIPTOR_ID)
 
 
-class AIOHomeKitBleakClient(BleakClient):
+class AIOHomeKitBleakClient(BleakClientWithServiceCache):
     """Wrapper for bleak.BleakClient that auto discovers the max mtu."""
 
     def __init__(self, address_or_ble_device: BLEDevice | str) -> None:
@@ -28,9 +29,20 @@ class AIOHomeKitBleakClient(BleakClient):
         """Get a characteristic from the cache or the BleakGATTServiceCollection."""
         if char := self._char_cache.get((service_type, characteristic_type)):
             return char
-        char = self.services.get_service(service_type).get_characteristic(
-            characteristic_type
-        )
+        service = self.services.get_service(service_type)
+        if service is None:
+            available_services = [
+                service.uuid for service in self.services.services.values()
+            ]
+            raise ValueError(
+                f"Service {service_type} not found, available services: {available_services}"
+            )
+        char = service.get_characteristic(characteristic_type)
+        if char is None:
+            available_chars = [char.uuid for char in service.characteristics]
+            raise ValueError(
+                f"Characteristic {characteristic_type} not found, available characteristics: {available_chars}"
+            )
         self._char_cache[(service_type, characteristic_type)] = char
         return char
 
