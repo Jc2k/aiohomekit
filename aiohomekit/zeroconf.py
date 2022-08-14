@@ -212,8 +212,8 @@ class ZeroconfController(AbstractController):
 
         try:
             description = HomeKitService.from_service_info(info)
-        except ValueError:
-            logger.debug("Not a valid homekit device")
+        except ValueError as e:
+            logger.debug("%s: Not a valid homekit device: %s", info.name, e)
             return
 
         if description.id in self.discoveries:

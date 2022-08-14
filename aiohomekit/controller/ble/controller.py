@@ -13,7 +13,6 @@ from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.controller.ble.manufacturer_data import HomeKitAdvertisement
 from aiohomekit.controller.ble.pairing import BlePairing
-from aiohomekit.exceptions import AccessoryNotFoundError
 
 from .discovery import BleDiscovery
 
