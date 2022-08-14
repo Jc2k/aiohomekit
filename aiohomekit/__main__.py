@@ -153,7 +153,7 @@ async def pair(args):
         discovery = await controller.async_find(args.device)
 
         try:
-            finish_pairing = await discovery.start_pairing(args.alias)
+            finish_pairing = await discovery.async_start_pairing(args.alias)
         except HomeKitException as e:
             print(str(e))
             return False

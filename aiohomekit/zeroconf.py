@@ -23,6 +23,7 @@ from dataclasses import dataclass
 import logging
 from typing import AsyncIterable
 
+import async_timeout
 from zeroconf import ServiceListener, ServiceStateChange, Zeroconf
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
@@ -143,6 +144,7 @@ class ZeroconfController(AbstractController):
     ):
         super().__init__(char_cache)
         self._async_zeroconf_instance = zeroconf_instance
+        self._waiters: dict[str, list[asyncio.Future]] = {}
 
     async def async_start(self):
         zc = self._async_zeroconf_instance.zeroconf
@@ -178,13 +180,26 @@ class ZeroconfController(AbstractController):
     async def async_stop(self):
         self._browser.service_state_changed.unregister_handler(self._handle_service)
 
-    async def async_find(self, device_id: str) -> ZeroconfDiscovery:
+    async def async_find(
+        self, device_id: str, timeout: float = 10.0
+    ) -> ZeroconfDiscovery:
         device_id = device_id.lower()
 
-        if device_id in self.discoveries:
-            return self.discoveries[device_id]
+        if discovery := self.discoveries.get(device_id):
+            return discovery
 
-        raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
+        waiters = self._waiters.setdefault(device_id, [])
+        waiter = asyncio.Future()
+        waiters.append(waiter)
+
+        try:
+            async with async_timeout.timeout(timeout):
+                if discovery := await waiter:
+                    return discovery
+        except asyncio.TimeoutError:
+            raise AccessoryNotFoundError(
+                f"Accessory with device id {device_id} not found"
+            )
 
     async def async_discover(self) -> AsyncIterable[ZeroconfDiscovery]:
         for device in self.discoveries.values():
@@ -205,10 +220,14 @@ class ZeroconfController(AbstractController):
             self.discoveries[description.id]._update_from_discovery(description)
             return
 
-        self.discoveries[description.id] = self._make_discovery(description)
+        discovery = self.discoveries[description.id] = self._make_discovery(description)
 
         if pairing := self.pairings.get(description.id):
             pairing._async_description_update(description)
+
+        if waiters := self._waiters.pop(description.id, None):
+            for waiter in waiters:
+                waiter.set_result(discovery)
 
     @abstractmethod
     def _make_discovery(self, description: HomeKitService) -> AbstractDiscovery:

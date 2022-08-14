@@ -35,6 +35,7 @@ class BleController(AbstractController):
         super().__init__(char_cache=char_cache)
         self._scanner = bleak_scanner_instance
         self._ble_futures: dict[str, list[asyncio.Future[BLEDevice]]] = {}
+        self._ble_futures_by_id: dict[str, list[asyncio.Future[BLEDevice]]] = {}
 
     def _device_detected(
         self, device: BLEDevice, advertisement_data: AdvertisementData
@@ -47,6 +48,13 @@ class BleController(AbstractController):
         if pairing := self.pairings.get(data.id):
             pairing._async_description_update(data)
             pairing._async_ble_device_update(device)
+
+        if futures := self._ble_futures_by_id.get(data.id):
+            discovery = BleDiscovery(self, device, data)
+            logger.debug("BLE device for %s found, fulfilling futures", data.id)
+            for future in futures:
+                future.set_result(discovery)
+            futures.clear()
 
         if futures := self._ble_futures.get(data.address):
             discovery = BleDiscovery(self, device, data)
@@ -88,11 +96,34 @@ class BleController(AbstractController):
             self._scanner.register_detection_callback(None)
             self._scanner = None
 
-    async def async_find(self, device_id: str) -> BleDiscovery:
-        if device_id in self.discoveries:
-            return self.discoveries[device_id]
+    async def async_find(self, device_id: str, timeout: float = 10) -> BleDiscovery:
+        if discovery := self.discoveries.get(device_id):
+            logger.debug("Discovery for %s already found", device_id)
+            return discovery
 
-        raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
+        logger.debug(
+            "Discovery for hkid %s not found, waiting for advertisement with timeout: %s",
+            device_id,
+            timeout,
+        )
+        future = asyncio.Future()
+        self._ble_futures_by_id.setdefault(device_id, []).append(future)
+        try:
+            return await asyncio.wait_for(future, timeout=timeout)
+        except asyncio.TimeoutError:
+            logger.debug(
+                "Timed out after %s waiting for discovery with hkid %s",
+                timeout,
+                device_id,
+            )
+            return None
+        finally:
+            if device_id not in self._ble_futures_by_id:
+                return
+            if future in self._ble_futures_by_id[device_id]:
+                self._ble_futures_by_id[device_id].remove(future)
+            if not self._ble_futures_by_id[device_id]:
+                del self._ble_futures_by_id[device_id]
 
     async def async_discover(self) -> AsyncIterable[BleDiscovery]:
         for device in self.discoveries.values():

@@ -15,6 +15,7 @@
 #
 from __future__ import annotations
 
+import asyncio
 from asyncio.log import logger
 from contextlib import AsyncExitStack
 import pathlib
@@ -113,10 +114,16 @@ class Controller(AbstractController):
     async def async_stop(self) -> None:
         await self._tasks.aclose()
 
-    async def async_find(self, device_id: str) -> AbstractDiscovery:
+    async def async_find(
+        self, device_id: str, timeout: float = 30.0
+    ) -> AbstractDiscovery:
+        awaitables = []
         for transport in self._transports:
+            awaitables.append(transport.async_find(device_id, timeout))
+
+        for result in asyncio.as_completed(awaitables):
             try:
-                return await transport.async_find(device_id)
+                return await result
             except AccessoryNotFoundError:
                 pass
 
