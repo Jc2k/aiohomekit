@@ -625,7 +625,7 @@ class CoAPHomeKitConnection:
         return results
 
     async def unsubscribe_from(self, ids: list[tuple[int, int]]):
-        if len(ids) == 0:
+        if not ids:
             return {}
         iids = [int(aid_iid[1]) for aid_iid in ids]
         data = [b""] * len(iids)
