@@ -19,7 +19,7 @@ import asyncio
 from asyncio.log import logger
 from contextlib import AsyncExitStack
 import pathlib
-from typing import AsyncIterable
+from collections.abc import AsyncIterable
 
 from bleak import BleakScanner
 from zeroconf.asyncio import AsyncZeroconf
@@ -117,15 +117,25 @@ class Controller(AbstractController):
     async def async_find(
         self, device_id: str, timeout: float = 30.0
     ) -> AbstractDiscovery:
-        awaitables = []
+        pending = []
         for transport in self._transports:
-            awaitables.append(transport.async_find(device_id, timeout))
+            pending.append(asyncio.create_task(transport.async_find(device_id, timeout)))
 
-        for result in asyncio.as_completed(awaitables):
-            try:
-                return await result
-            except AccessoryNotFoundError:
-                pass
+        try:
+            while pending:
+                done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+                for result in done:
+                    try:
+                        return result.result()
+                    except AccessoryNotFoundError:
+                        continue
+        finally:
+            [task.cancel() for task in pending]
+            for task in pending:
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
         raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
 
