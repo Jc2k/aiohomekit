@@ -16,10 +16,10 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import AsyncIterable
 from dataclasses import dataclass
 from datetime import timedelta
 import logging
-from typing import AsyncIterable
 
 from aiohomekit import exceptions
 from aiohomekit.characteristic_cache import CharacteristicCacheMemory

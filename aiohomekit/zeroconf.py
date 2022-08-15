@@ -19,9 +19,9 @@ from __future__ import annotations
 
 from abc import abstractmethod
 import asyncio
+from collections.abc import AsyncIterable
 from dataclasses import dataclass
 import logging
-from typing import AsyncIterable
 
 import async_timeout
 from zeroconf import ServiceListener, ServiceStateChange, Zeroconf

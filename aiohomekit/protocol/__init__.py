@@ -16,8 +16,9 @@
 from __future__ import annotations
 
 from binascii import hexlify
+from collections.abc import Generator
 import logging
-from typing import Any, Callable, Generator
+from typing import Any, Callable
 
 from cryptography import exceptions as cryptography_exceptions
 from cryptography.hazmat.primitives import serialization

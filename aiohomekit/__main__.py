@@ -18,13 +18,13 @@ from __future__ import annotations
 import argparse
 from argparse import ArgumentParser, Namespace
 import asyncio
+from collections.abc import AsyncIterator
 import contextlib
 import locale
 import logging
 import pathlib
 import re
 import sys
-from typing import AsyncIterator
 
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf
 

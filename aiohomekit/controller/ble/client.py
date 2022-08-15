@@ -16,9 +16,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 import logging
 import random
-from typing import Any, Callable, Generator, TypeVar, cast
+from typing import Any, Callable, TypeVar, cast
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic

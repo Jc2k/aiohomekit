@@ -17,10 +17,10 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from collections.abc import Iterable
+from collections.abc import AsyncIterable, Awaitable, Iterable
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, AsyncIterable, Awaitable, Callable, TypedDict, final
+from typing import Any, Callable, TypedDict, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.model import Accessories, AccessoriesState, Transport

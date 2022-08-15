@@ -1,20 +1,12 @@
 from __future__ import annotations
 
 from collections import abc
+from collections.abc import Iterable, Sequence
 from dataclasses import field, fields
 import enum
 from functools import lru_cache
 import struct
-from typing import (
-    Any,
-    Callable,
-    ClassVar,
-    Generic,
-    Iterable,
-    Sequence,
-    TypeVar,
-    _GenericAlias,
-)
+from typing import Any, Callable, ClassVar, Generic, TypeVar, _GenericAlias
 
 SerializerCallback = Callable[[type, Any], bytes]
 DeserializerCallback = Callable[[type, bytes], Any]

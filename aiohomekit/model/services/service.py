@@ -16,7 +16,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Iterator
+from collections.abc import Iterable, Iterator
+from typing import TYPE_CHECKING, Any
 
 from aiohomekit.model.characteristics import Characteristic, CharacteristicsTypes
 from aiohomekit.model.characteristics.characteristic import check_convert_value

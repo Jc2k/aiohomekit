@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16, u32
 

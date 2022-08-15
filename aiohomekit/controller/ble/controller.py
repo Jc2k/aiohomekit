@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterable
 import logging
-from typing import AsyncIterable
 
 from bleak import BleakScanner
 from bleak.backends.device import BLEDevice

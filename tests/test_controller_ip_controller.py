@@ -1,6 +1,6 @@
+from collections.abc import Iterable
 import contextlib
 import socket
-from typing import Iterable
 from unittest.mock import MagicMock, patch
 
 import pytest

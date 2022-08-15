@@ -15,9 +15,10 @@
 #
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Iterable, Iterator
+from typing import Any
 
 import aiohomekit.hkjson as hkjson
 from aiohomekit.protocol.statuscodes import to_status_code

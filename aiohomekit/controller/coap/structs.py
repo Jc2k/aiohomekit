@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 import struct
-from typing import Sequence
 
 from aiohomekit.protocol.tlv import HAP_TLV
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u16, u128
