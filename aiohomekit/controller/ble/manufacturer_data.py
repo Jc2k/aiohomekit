@@ -6,6 +6,8 @@ import struct
 from aiohomekit.controller.abstract import AbstractDescription
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.status_flags import StatusFlags
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
 
 
 @dataclass
@@ -44,7 +46,9 @@ class HomeKitAdvertisement(AbstractDescription):
         )
 
     @classmethod
-    def from_advertisement(cls, device, advertisement_data) -> HomeKitAdvertisement:
+    def from_advertisement(
+        cls, device: BLEDevice, advertisement_data: AdvertisementData
+    ) -> HomeKitAdvertisement:
         if not (mfr_data := advertisement_data.manufacturer_data):
             raise ValueError("No manufacturer data")
 
