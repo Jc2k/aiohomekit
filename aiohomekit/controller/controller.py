@@ -15,10 +15,11 @@
 #
 from __future__ import annotations
 
+import asyncio
 from asyncio.log import logger
+from collections.abc import AsyncIterable
 from contextlib import AsyncExitStack
 import pathlib
-from typing import AsyncIterable
 
 from bleak import BleakScanner
 from zeroconf.asyncio import AsyncZeroconf
@@ -113,12 +114,32 @@ class Controller(AbstractController):
     async def async_stop(self) -> None:
         await self._tasks.aclose()
 
-    async def async_find(self, device_id: str) -> AbstractDiscovery:
+    async def async_find(
+        self, device_id: str, timeout: float = 30.0
+    ) -> AbstractDiscovery:
+        pending = []
         for transport in self._transports:
-            try:
-                return await transport.async_find(device_id)
-            except AccessoryNotFoundError:
-                pass
+            pending.append(
+                asyncio.create_task(transport.async_find(device_id, timeout))
+            )
+
+        try:
+            while pending:
+                done, pending = await asyncio.wait(
+                    pending, return_when=asyncio.FIRST_COMPLETED
+                )
+                for result in done:
+                    try:
+                        return result.result()
+                    except AccessoryNotFoundError:
+                        continue
+        finally:
+            [task.cancel() for task in pending]
+            for task in pending:
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
         raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
 

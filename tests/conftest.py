@@ -10,6 +10,7 @@ from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from zeroconf import SignalRegistrationInterface
 
 from aiohomekit import Controller
 from aiohomekit.controller.ip import IpPairing
@@ -48,27 +49,29 @@ def wait_for_server_online(port: int):
         time.sleep(0.1)
 
 
+class AsyncServiceBrowserStub:
+    types = [
+        "_hap._tcp.local.",
+        "_hap._udp.local.",
+    ]
+
+    def __init__(self):
+        self._handlers = []
+        self.service_state_changed = SignalRegistrationInterface(self._handlers)
+
+
 @pytest.fixture
 def mock_asynczeroconf():
     """Mock zeroconf."""
 
-    def browser(zeroconf, service, handlers):
-        # Make sure we get the right mocked object
-        assert zeroconf._extract_mock_name() == "zeroconf_mock"
-        handlers.add_service(zeroconf, service, f"name.{service}")
-        async_browser = MagicMock()
-        async_browser.async_cancel = AsyncMock()
-        return async_browser
-
-    with patch("zeroconf.asyncio.AsyncServiceBrowser") as mock_browser:
-        mock_browser.side_effect = browser
-
+    with patch("aiohomekit.zeroconf.AsyncServiceBrowser", AsyncServiceBrowserStub):
         with patch("aiohomekit.zeroconf.AsyncZeroconf") as mock_zc:
             zc = mock_zc.return_value
             zc.async_register_service = AsyncMock()
             zc.async_close = AsyncMock()
             zeroconf = MagicMock(name="zeroconf_mock")
             zeroconf.async_wait_for_start = AsyncMock()
+            zeroconf.listeners = [AsyncServiceBrowserStub()]
             zc.zeroconf = zeroconf
             yield zc
 

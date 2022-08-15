@@ -38,10 +38,10 @@ from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task
 
-logger = logging.getLogger(__name__)
-
 if TYPE_CHECKING:
-    from aiohomekit.controller.ip.controller import IpController
+    from .pairing import IpPairing
+
+logger = logging.getLogger(__name__)
 
 
 class InsecureHomeKitProtocol(asyncio.Protocol):
@@ -600,27 +600,24 @@ class SecureHomeKitConnection(HomeKitConnection):
         """_connect_once must only ever be called from _reconnect to ensure its done with a lock."""
         self.is_secure = False
 
-        if self.owner:
-            controller: IpController = self.owner.controller
+        if self.owner and self.owner.description:
+            pairing: IpPairing = self.owner
             try:
-                discovery = await controller.async_find(
-                    self.pairing_data["AccessoryPairingID"]
-                )
-                if self.host != discovery.description.address:
+                if self.host != pairing.description.address:
                     logger.debug(
                         "Host changed from %s to %s",
                         self.host,
-                        discovery.description.address,
+                        pairing.description.address,
                     )
-                    self.host = discovery.description.address
+                    self.host = pairing.description.address
 
-                if self.port != discovery.description.port:
+                if self.port != pairing.description.port:
                     logger.debug(
                         "Port changed from %s to %s",
                         self.port,
-                        discovery.description.port,
+                        pairing.description.port,
                     )
-                    self.port = discovery.description.port
+                    self.port = pairing.description.port
             except AccessoryNotFoundError:
                 pass
 
