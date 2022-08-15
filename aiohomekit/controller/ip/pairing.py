@@ -19,13 +19,9 @@ from datetime import timedelta
 from itertools import groupby
 import logging
 from operator import itemgetter
-from typing import Any
+from typing import Any, Optional
 
-from aiohomekit.controller.abstract import (
-    AbstractController,
-    AbstractPairing,
-    AbstractPairingData,
-)
+from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AuthenticationError,
@@ -43,6 +39,7 @@ from aiohomekit.protocol import error_handler
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.uuid import normalize_uuid
+from aiohomekit.zeroconf import HomeKitService, ZeroconfPairing
 
 from .connection import SecureHomeKitConnection
 
@@ -67,7 +64,7 @@ def format_characteristic_list(data):
     return tmp
 
 
-class IpPairing(AbstractPairing):
+class IpPairing(ZeroconfPairing):
     """
     This represents a paired HomeKit IP accessory.
     """
@@ -510,5 +507,9 @@ class IpPairing(AbstractPairing):
 
         return resp.body
 
-    async def reconnect_soon(self) -> None:
-        return await self.connection.reconnect_soon()
+    def _async_description_update(self, description: Optional[HomeKitService]) -> None:
+        """We have new zeroconf metadata for this device."""
+        super()._async_description_update(description)
+
+        # If we are not connected, or are in the process of reconnecting, hasten the process
+        self.connection.reconnect_soon()

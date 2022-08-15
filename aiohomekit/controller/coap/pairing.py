@@ -17,25 +17,21 @@
 import asyncio
 from datetime import timedelta
 import logging
-from typing import Any, Optional
+from typing import Any
 
-from aiohomekit.controller.abstract import (
-    AbstractController,
-    AbstractPairing,
-    AbstractPairingData,
-)
+from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
+from aiohomekit.zeroconf import ZeroconfPairing
 
-from ...zeroconf import HomeKitService
 from .connection import CoAPHomeKitConnection
 
 logger = logging.getLogger(__name__)
 
 
-class CoAPPairing(AbstractPairing):
+class CoAPPairing(ZeroconfPairing):
     def __init__(
         self, controller: AbstractController, pairing_data: AbstractPairingData
     ) -> None:
@@ -50,37 +46,9 @@ class CoAPPairing(AbstractPairing):
         self.connection_lock = asyncio.Condition()
         self.pairing_data = pairing_data
 
-    def _async_description_update(self, description: Optional[HomeKitService]) -> None:
-        old_description = self.description
-
-        super()._async_description_update(description)
-
-        if not description:
-            return
-
-        endpoint_changed = False
-        if not old_description:
-            logger.debug("%s: Device rediscovered", self.id)
-            endpoint_changed = True
-        elif old_description.port != description.port:
-            logger.debug(
-                "%s: Device IP changed from %s to %s",
-                self.id,
-                old_description.address,
-                description.address,
-            )
-            endpoint_changed = True
-        elif old_description.address != description.address:
-            logger.debug(
-                "%s: Device port changed from %s to %s",
-                self.id,
-                old_description.port,
-                description.port,
-            )
-            endpoint_changed = True
-
-        if endpoint_changed:
-            async_create_task(self.connection.reconnect_soon())
+    def _async_endpoint_changed(self) -> None:
+        """The IP/Port has changed, so close connection if active then reconnect."""
+        async_create_task(self.connection.reconnect_soon())
 
     @property
     def is_connected(self):

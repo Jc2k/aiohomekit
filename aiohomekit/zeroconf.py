@@ -28,7 +28,11 @@ from zeroconf import ServiceListener, ServiceStateChange, Zeroconf
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
-from aiohomekit.controller.abstract import AbstractController, AbstractDiscovery
+from aiohomekit.controller.abstract import (
+    AbstractController,
+    AbstractDiscovery,
+    AbstractPairing,
+)
 from aiohomekit.exceptions import AccessoryNotFoundError, TransportNotSupportedError
 from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
@@ -128,6 +132,44 @@ class ZeroconfDiscovery(AbstractDiscovery):
 
     def _update_from_discovery(self, description: HomeKitService):
         self.description = description
+
+
+class ZeroconfPairing(AbstractPairing):
+    def _async_endpoint_changed(self) -> None:
+        """The IP and/or port of the accessory has changed."""
+        pass
+
+    def _async_description_update(self, description: HomeKitService | None) -> None:
+        old_description = self.description
+
+        super()._async_description_update(description)
+
+        if not description:
+            return
+
+        endpoint_changed = False
+        if not old_description:
+            logger.debug("%s: Device rediscovered", self.id)
+            endpoint_changed = True
+        elif old_description.port != description.port:
+            logger.debug(
+                "%s: Device IP changed from %s to %s",
+                self.id,
+                old_description.address,
+                description.address,
+            )
+            endpoint_changed = True
+        elif old_description.address != description.address:
+            logger.debug(
+                "%s: Device port changed from %s to %s",
+                self.id,
+                old_description.port,
+                description.port,
+            )
+            endpoint_changed = True
+
+        if endpoint_changed:
+            self._async_endpoint_changed()
 
 
 class ZeroconfController(AbstractController):
