@@ -3,11 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 import struct
 
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
+
 from aiohomekit.controller.abstract import AbstractDescription
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.status_flags import StatusFlags
-from bleak.backends.device import BLEDevice
-from bleak.backends.scanner import AdvertisementData
 
 
 @dataclass
