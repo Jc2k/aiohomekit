@@ -64,7 +64,7 @@ class CoAPPairing(AbstractPairing):
             endpoint_changed = True
         elif old_description.port != description.port:
             logger.debug(
-                "%s: Device IP changed",
+                "%s: Device IP changed from %s to %s",
                 self.id,
                 old_description.address,
                 description.address,
@@ -72,7 +72,7 @@ class CoAPPairing(AbstractPairing):
             endpoint_changed = True
         elif old_description.address != description.address:
             logger.debug(
-                "%s: Device port changed",
+                "%s: Device port changed from %s to %s",
                 self.id,
                 old_description.port,
                 description.port,

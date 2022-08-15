@@ -248,6 +248,8 @@ class CoAPHomeKitConnection:
         self.pair_setup_client = None
 
     async def reconnect_soon(self):
+        if not self.enc_ctx:
+            return
         description = self.owner.description
         self.address = f"[{description.address}]:{description.port}"
         await self.enc_ctx.coap_ctx.shutdown()
