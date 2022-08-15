@@ -17,9 +17,9 @@ from __future__ import annotations
 
 import asyncio
 from asyncio.log import logger
+from collections.abc import AsyncIterable
 from contextlib import AsyncExitStack
 import pathlib
-from collections.abc import AsyncIterable
 
 from bleak import BleakScanner
 from zeroconf.asyncio import AsyncZeroconf
