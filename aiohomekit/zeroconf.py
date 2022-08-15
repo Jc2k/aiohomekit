@@ -276,13 +276,21 @@ class ZeroconfController(AbstractController):
             logger.debug("%s: Not a valid homekit device: %s", info.name, e)
             return
 
-        if description.id in self.discoveries:
-            self.discoveries[description.id]._update_from_discovery(description)
-            return
+        if discovery := self.discoveries.get(description.id):
+            discovery._update_from_discovery(description)
+        else:
+            discovery = self.discoveries[description.id] = self._make_discovery(
+                description
+            )
 
         discovery = self.discoveries[description.id] = self._make_discovery(description)
 
         if pairing := self.pairings.get(description.id):
+            logger.debug(
+                "%s: Notifying pairing of description update: %s",
+                description.id,
+                description,
+            )
             pairing._async_description_update(description)
 
         if waiters := self._waiters.pop(description.id, None):
