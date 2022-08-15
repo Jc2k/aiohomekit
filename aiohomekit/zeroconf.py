@@ -151,7 +151,7 @@ class ZeroconfPairing(AbstractPairing):
         if not old_description:
             logger.debug("%s: Device rediscovered", self.id)
             endpoint_changed = True
-        elif old_description.port != description.port:
+        elif old_description.address != description.address:
             logger.debug(
                 "%s: Device IP changed from %s to %s",
                 self.id,
@@ -159,7 +159,7 @@ class ZeroconfPairing(AbstractPairing):
                 description.address,
             )
             endpoint_changed = True
-        elif old_description.address != description.address:
+        elif old_description.port != description.port:
             logger.debug(
                 "%s: Device port changed from %s to %s",
                 self.id,
