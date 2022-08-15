@@ -119,11 +119,15 @@ class Controller(AbstractController):
     ) -> AbstractDiscovery:
         pending = []
         for transport in self._transports:
-            pending.append(asyncio.create_task(transport.async_find(device_id, timeout)))
+            pending.append(
+                asyncio.create_task(transport.async_find(device_id, timeout))
+            )
 
         try:
             while pending:
-                done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+                done, pending = await asyncio.wait(
+                    pending, return_when=asyncio.FIRST_COMPLETED
+                )
                 for result in done:
                     try:
                         return result.result()
