@@ -625,6 +625,8 @@ class CoAPHomeKitConnection:
         return results
 
     async def unsubscribe_from(self, ids: list[tuple[int, int]]):
+        if len(ids) == 0:
+            return {}
         iids = [int(aid_iid[1]) for aid_iid in ids]
         data = [b""] * len(iids)
         pdu_results = await self.enc_ctx.post_all(OpCode.UNK_0C_UNSUBSCRIBE, iids, data)
