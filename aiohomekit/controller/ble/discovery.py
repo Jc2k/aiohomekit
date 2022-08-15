@@ -69,11 +69,20 @@ class BleDiscovery(AbstractDiscovery):
         self._connection_lock = asyncio.Lock()
 
     @property
-    def name(self):
+    def name(self) -> str:
         return f"{self.description.name} ({self.description.address})"
 
+    @property
+    def rssi(self) -> int | None:
+        return self.device.rssi if self.device else None
+
     async def _ensure_connected(self):
-        logger.debug("Ensure connected with device %s", self.device)
+        logger.debug(
+            "%s: Ensure connected with device %s; rssi=%s",
+            self.name,
+            self.device,
+            self.rssi,
+        )
         if self.client and self.client.is_connected:
             return
         async with self._connection_lock:
@@ -87,7 +96,7 @@ class BleDiscovery(AbstractDiscovery):
             )
 
     def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
-        logger.debug("%s: Session closed callback", self.name)
+        logger.debug("%s: Session closed callback; rssi=%s", self.name, self.rssi)
 
     async def _close(self):
         if not self.client:
@@ -95,12 +104,13 @@ class BleDiscovery(AbstractDiscovery):
         async with self._connection_lock:
             if not self.client or not self.client.is_connected:
                 return
-            logger.debug("Disconnecting from %s", self.name)
+            logger.debug("%s: Disconnecting: %s", self.name, self.rssi)
             try:
                 await self.client.disconnect()
             except BleakError:
                 logger.debug(
-                    "Failed to close connection, client may have already closed it"
+                    "%s: Failed to close connection, client may have already closed it",
+                    self.name,
                 )
 
     async def _async_start_pairing(self, alias: str) -> tuple[bytearray, bytearray]:
@@ -113,6 +123,7 @@ class BleDiscovery(AbstractDiscovery):
         ff_iid = await self.client.get_characteristic_iid(ff_char)
         ff_raw = await char_read(self.client, None, None, ff_char, ff_iid)
         ff = FeatureFlags(ff_raw[0])
+        logger.debug("%s: starting pairing; rssi=%s", self.name, self.rssi)
         return await drive_pairing_state_machine(
             self.client,
             CharacteristicsTypes.PAIR_SETUP,
@@ -128,6 +139,8 @@ class BleDiscovery(AbstractDiscovery):
 
         @retry_bluetooth_connection_error()
         async def finish_pairing(pin: str) -> BlePairing:
+            logger.debug("%s: finish pairing; rssi=%s", self.name, self.rssi)
+
             nonlocal attempt
             nonlocal salt
             nonlocal pub_key
@@ -161,6 +174,7 @@ class BleDiscovery(AbstractDiscovery):
             obj = self.controller.pairings[alias] = BlePairing(
                 self.controller,
                 pairing,
+                device=self.device,
                 client=self.client,
                 description=self.description,
             )

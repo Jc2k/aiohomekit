@@ -173,11 +173,15 @@ class BlePairing(AbstractPairing):
         )
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the pairing."""
         if self.description:
             return f"{self.description.name} ({self.address})"
         return self.address
+
+    @property
+    def rssi(self) -> int | None:
+        return self.device.rssi if self.device else None
 
     @property
     def is_connected(self) -> bool:
@@ -277,7 +281,7 @@ class BlePairing(AbstractPairing):
     ) -> bytes:
         endpoint = self.client.get_characteristic(char.service.type, char.type)
         if not self.client or not self.client.is_connected:
-            logger.debug("%s: Client not connected", self.name)
+            logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
             raise AccessoryDisconnectedError(f"{self.name} is not connected")
         pdu_status, result_data = await ble_request(
             self.client,
@@ -293,7 +297,7 @@ class BlePairing(AbstractPairing):
 
     def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
         """Called when bleak disconnects from the accessory closed the connection."""
-        logger.debug("%s: Session closed callback", self.name)
+        logger.debug("%s: Session closed callback: rssi=%s", self.name, self.rssi)
         self._async_reset_connection_state()
 
     def _async_reset_connection_state(self) -> None:
@@ -331,9 +335,10 @@ class BlePairing(AbstractPairing):
             )
             self._cached_services = self.client.services
             logger.debug(
-                "%s: Connected, processing subscriptions: %s",
+                "%s: Connected, processing subscriptions: %s; rssi=%s",
                 self.name,
                 self.subscriptions,
+                self.rssi,
             )
             # Only start active subscriptions if we stay connected for more
             # than subscription delay seconds.
@@ -415,7 +420,9 @@ class BlePairing(AbstractPairing):
     async def _async_process_disconnected_events(self) -> None:
         """Handle disconnected events seen from the advertisement."""
         logger.debug(
-            "%s: Polling subscriptions for changes during disconnection", self.name
+            "%s: Polling subscriptions for changes during disconnection; rssi=%s",
+            self.name,
+            self.rssi,
         )
         try:
             results = await self.get_characteristics(list(self.subscriptions))
@@ -425,7 +432,10 @@ class BlePairing(AbstractPairing):
             AccessoryNotFoundError,
         ) as exc:
             logger.warning(
-                "%s: Failed to fetch disconnected events: %s", self.name, exc
+                "%s: Failed to fetch disconnected events: %s; rssi=%s",
+                self.name,
+                exc,
+                self.rssi,
             )
             return
 
@@ -433,7 +443,7 @@ class BlePairing(AbstractPairing):
             listener(results)
 
     async def _async_fetch_gatt_database(self) -> Accessories:
-        logger.debug("%s: Fetching GATT database", self.name)
+        logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
         accessory = Accessory()
         accessory.aid = 1
         # Never use the cache when fetching the GATT database
@@ -503,12 +513,15 @@ class BlePairing(AbstractPairing):
             await self.client.disconnect()
         except BleakError:
             logger.debug(
-                "%s: Failed to close connection, client may have already closed it",
+                "%s: Failed to close connection, client may have already closed it; rssi=%s",
                 self.name,
+                self.rssi,
             )
         self.client = None
         self._async_reset_connection_state()
-        logger.debug("%s: Connection closed from close call", self.name)
+        logger.debug(
+            "%s: Connection closed from close call; rssi=%s", self.name, self.rssi
+        )
 
     @operation_lock
     @retry_bluetooth_connection_error()
@@ -558,7 +571,9 @@ class BlePairing(AbstractPairing):
         try:
             await self._async_populate_accessories_state(force_update)
         except BleakError as ex:
-            raise AccessoryDisconnectedError(f"{self.name} connection failed: {ex}")
+            raise AccessoryDisconnectedError(
+                f"{self.name} connection failed: {ex}; rssi={self.rssi}"
+            ) from ex
 
     @operation_lock
     @retry_bluetooth_connection_error()
@@ -637,7 +652,11 @@ class BlePairing(AbstractPairing):
                     # Likely disconnected before we could start notifications
                     # we will get disconnected events instead.
                     logger.debug(
-                        "%s: Could not start notify for %s: %s", self.name, iid, ex
+                        "%s: Could not start notify for %s: %s; rssi=%s",
+                        self.name,
+                        iid,
+                        ex,
+                        self.rssi,
                     )
 
     @operation_lock
@@ -715,9 +734,10 @@ class BlePairing(AbstractPairing):
     ) -> dict[tuple[int, int], dict[str, Any]]:
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
-                "%s: Reading characteristics: %s",
+                "%s: Reading characteristics: %s; rssi=%s",
                 self.name,
                 [char.iid for char in characteristics],
+                self.rssi,
             )
 
         results = {}
@@ -756,7 +776,12 @@ class BlePairing(AbstractPairing):
         await self._populate_accessories_and_characteristics()
 
         results: dict[tuple[int, int], Any] = {}
-        logger.debug("%s: Writing characteristics: %s", self.name, characteristics)
+        logger.debug(
+            "%s: Writing characteristics: %s; rssi=%s",
+            self.name,
+            characteristics,
+            self.rssi,
+        )
         accessory_chars = self.accessories.aid(1).characteristics
         async with self._ble_request_lock:
 
