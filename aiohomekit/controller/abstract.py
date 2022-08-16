@@ -121,7 +121,7 @@ class AbstractPairing(metaclass=ABCMeta):
         if self.description != description:
             logger.debug(
                 "%s: Description updated: old=%s new=%s",
-                self.name,
+                self.id,
                 self.description,
                 description,
             )
@@ -131,7 +131,7 @@ class AbstractPairing(metaclass=ABCMeta):
             if description.config_num > self.description.config_num:
                 logger.debug(
                     "%s: Config number has changed from %s to %s; char cache invalid",
-                    self.name,
+                    self.id,
                     self.description.config_num,
                     description.config_num,
                 )
@@ -150,7 +150,7 @@ class AbstractPairing(metaclass=ABCMeta):
                 # as we don't want to miss events.
                 logger.debug(
                     "%s: Disconnected event notification received; Triggering catch-up poll",
-                    self.name,
+                    self.id,
                 )
                 async_create_task(self._process_disconnected_events())
 
