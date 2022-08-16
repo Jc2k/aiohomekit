@@ -238,37 +238,7 @@ class BlePairing(AbstractPairing):
                 description,
             )
 
-        repopulate_accessories = False
-        if description and self.description:
-            if description.config_num > self.description.config_num:
-                logger.debug(
-                    "%s: Config number has changed from %s to %s; char cache invalid",
-                    self.name,
-                    self.description.config_num,
-                    description.config_num,
-                )
-                repopulate_accessories = True
-
-            elif description.state_num != self.description.state_num:
-                # Only process disconnected events if the config number has
-                # not also changed since we will do a full repopulation
-                # of the accessories anyway when the config number changes.
-                #
-                # Otherwise, if only the state number we trigger a poll.
-                #
-                # The number will eventually roll over
-                # so we don't want to use a > comparison here. Also, its
-                # safer to poll the device again to get the latest state
-                # as we don't want to miss events.
-                logger.debug(
-                    "%s: Disconnected event notification received; Triggering catch-up poll",
-                    self.name,
-                )
-                async_create_task(self._async_process_disconnected_events())
-
         super()._async_description_update(description)
-        if repopulate_accessories:
-            async_create_task(self._async_process_config_changed())
 
     async def _async_request(
         self, opcode: OpCode, char: Characteristic, data: bytes | None = None
@@ -405,17 +375,6 @@ class BlePairing(AbstractPairing):
             # Used for session resume
             self._session_id = session_id
             self._derive = derive
-
-    async def _async_process_config_changed(self) -> None:
-        """Handle config changed seen from the advertisement."""
-        try:
-            await self._populate_accessories_and_characteristics()
-        except (
-            AccessoryDisconnectedError,
-            *BLEAK_EXCEPTIONS,
-            AccessoryNotFoundError,
-        ) as exc:
-            logger.warning("%s: Failed to process config change: %s", self.name, exc)
 
     async def _async_process_disconnected_events(self) -> None:
         """Handle disconnected events seen from the advertisement."""
