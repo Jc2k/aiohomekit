@@ -168,6 +168,7 @@ class IpPairing(ZeroconfPairing):
         self._accessories_state = AccessoriesState(
             Accessories.from_list(accessories), self.config_num or 0
         )
+        self._update_accessories_state_cache()
         return accessories
 
     async def list_pairings(self):
