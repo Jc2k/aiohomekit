@@ -137,7 +137,7 @@ class AbstractPairing(metaclass=ABCMeta):
                 logger.debug(
                     "%s: Config number has changed from %s to %s; char cache invalid",
                     self.id,
-                    self.description.config_num,
+                    self.config_num,
                     description.config_num,
                 )
                 repopulate_accessories = True
