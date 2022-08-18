@@ -121,9 +121,8 @@ class BlePairing(AbstractPairing):
         client: AIOHomeKitBleakClient | None = None,
         description: HomeKitAdvertisement | None = None,
     ) -> None:
-        super().__init__(controller)
+        super().__init__(controller, pairing_data)
 
-        self.id = pairing_data["AccessoryPairingID"]
         self.device = device
         self.client = client
         self._cached_services: BleakGATTServiceCollection | None = (
@@ -552,9 +551,6 @@ class BlePairing(AbstractPairing):
                 # No need to do it twice if we already have the data
                 # and we are not forcing an update
                 return
-
-            if not self.accessories:
-                self._load_accessories_from_cache()
 
             update_values = force_update
             config_changed = False

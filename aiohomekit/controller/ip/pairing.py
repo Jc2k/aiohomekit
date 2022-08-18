@@ -78,8 +78,7 @@ class IpPairing(ZeroconfPairing):
 
         :param pairing_data:
         """
-        super().__init__(controller)
-        self.id = pairing_data["AccessoryPairingID"]
+        super().__init__(controller, pairing_data)
         self.pairing_data = pairing_data
         self.connection = SecureHomeKitConnection(self, self.pairing_data)
         self.supports_subscribe = True

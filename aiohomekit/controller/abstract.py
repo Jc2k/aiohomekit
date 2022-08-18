@@ -65,13 +65,18 @@ class AbstractPairing(metaclass=ABCMeta):
     # and BLE advertisements), and also as AccessoryPairingID i pairing data.
     id: str
 
-    def __init__(self, controller: AbstractController) -> None:
+    def __init__(
+        self, controller: AbstractController, pairing_data: AbstractPairingData
+    ) -> None:
         self.controller = controller
         self.listeners: set[Callable[[dict], None]] = set()
         self.subscriptions: set[tuple[int, int]] = set()
         self.availability_listeners: set[Callable[[bool], None]] = set()
         self.config_changed_listeners: set[Callable[[int], None]] = set()
         self._accessories_state: AccessoriesState | None = None
+
+        self.id = pairing_data["AccessoryPairingID"]
+        self._load_accessories_from_cache()
 
     @property
     def accessories_state(self) -> AccessoriesState:
@@ -127,8 +132,8 @@ class AbstractPairing(metaclass=ABCMeta):
             )
 
         repopulate_accessories = False
-        if description and self.description:
-            if description.config_num > self.description.config_num:
+        if description:
+            if description.config_num > self.config_num:
                 logger.debug(
                     "%s: Config number has changed from %s to %s; char cache invalid",
                     self.id,
@@ -137,7 +142,10 @@ class AbstractPairing(metaclass=ABCMeta):
                 )
                 repopulate_accessories = True
 
-            elif description.state_num != self.description.state_num:
+            elif (
+                not self.description
+                or description.state_num != self.description.state_num
+            ):
                 # Only process disconnected events if the config number has
                 # not also changed since we will do a full repopulation
                 # of the accessories anyway when the config number changes.

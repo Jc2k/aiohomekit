@@ -35,9 +35,7 @@ class CoAPPairing(ZeroconfPairing):
     def __init__(
         self, controller: AbstractController, pairing_data: AbstractPairingData
     ) -> None:
-        super().__init__(controller)
-
-        self.id = pairing_data["AccessoryPairingID"]
+        super().__init__(controller, pairing_data)
 
         self.connection = CoAPHomeKitConnection(
             self, pairing_data["AccessoryIP"], pairing_data["AccessoryPort"]

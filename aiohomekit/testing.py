@@ -204,9 +204,7 @@ class FakePairing(AbstractPairing):
         accessories: Accessories,
     ) -> None:
         """Create a fake pairing from an accessory model."""
-        super().__init__(controller)
-
-        self.id = pairing_data["AccessoryPairingID"]
+        super().__init__(controller, pairing_data)
 
         self._accessories_state = AccessoriesState(accessories, 0)
         self.pairing_data: dict[str, str] = {}
