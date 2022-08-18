@@ -211,15 +211,31 @@ class BlePairing(AbstractPairing):
 
     def _async_ble_device_update(self, device: BLEDevice) -> None:
         """Update the BLE device."""
-        if self.device and ble_device_has_changed(self.device, device):
-            self._cached_services = None
-            logger.debug(
-                "BLE address changed from %s to %s; closing connection",
-                self.device.address,
-                device.address,
-            )
-            async_create_task(self.close())
+        original_device = self.device
         self.device = device
+        if not original_device or not ble_device_has_changed(original_device, device):
+            return
+        original_path: str | None = None
+        new_path: str | None = None
+        if (
+            isinstance(original_device.details, dict)
+            and isinstance(device.details, dict)
+            and "path" in original_device.details
+            and "path" in device.details
+        ):
+            original_path = original_device.details["path"]
+            new_path = device.details["path"]
+        logger.debug(
+            "%s: BLE device changed from %s (%s) [rssi:%s] to %s (%s) [rssi:%s]; closing connection",
+            self.name,
+            original_device.address,
+            original_path,
+            original_device.rssi,
+            device.address,
+            new_path,
+            device.rssi,
+        )
+        async_create_task(self.close_after_operation(clear_cached_services=True))
 
     def _async_description_update(
         self, description: HomeKitAdvertisement | None
@@ -502,11 +518,18 @@ class BlePairing(AbstractPairing):
 
         return accessories
 
-    async def close(self) -> None:
-        async with self._connection_lock:
-            await self._close_while_locked()
+    @operation_lock
+    async def close_after_operation(self, clear_cached_services: bool = False) -> None:
+        """Close the client after an operation."""
+        await self.close(clear_cached_services)
 
-    async def _close_while_locked(self):
+    async def close(self, clear_cached_services: bool = False) -> None:
+        async with self._connection_lock:
+            await self._close_while_locked(clear_cached_services)
+
+    async def _close_while_locked(self, clear_cached_services: bool = False):
+        if clear_cached_services:
+            self._cached_services = None
         if not self.client or not self.client.is_connected:
             return
         try:
