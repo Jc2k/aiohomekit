@@ -348,7 +348,7 @@ class BlePairing(AbstractPairing):
                 self.name,
                 self._async_disconnected,
                 cached_services=self._cached_services,
-                ble_device_callback=lambda: self.device
+                ble_device_callback=lambda: self.device,
             )
             self._cached_services = self.client.services
             logger.debug(
