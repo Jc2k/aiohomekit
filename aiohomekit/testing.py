@@ -112,14 +112,14 @@ class PairingTester:
     This is done to minimize the difference between a FakePairing and a real pairing.
     """
 
-    def __init__(self, pairing):
+    def __init__(self, pairing: FakePairing, accessories: Accessories):
         self.pairing = pairing
         self.events_enabled = True
 
         self.characteristics = {}
         self.services = {}
 
-        for accessory in self.pairing.accessories:
+        for accessory in accessories:
             for service in accessory.services:
                 service_map = {}
                 for char in service.characteristics:
@@ -206,11 +206,13 @@ class FakePairing(AbstractPairing):
         """Create a fake pairing from an accessory model."""
         super().__init__(controller, pairing_data)
 
-        self._accessories_state = AccessoriesState(accessories, 0)
+        self._initial_accessories_state = AccessoriesState(accessories, 0)
+
+        self._accessories_state = None
         self.pairing_data: dict[str, str] = {}
         self.available = True
 
-        self.testing = PairingTester(self)
+        self.testing = PairingTester(self, accessories)
 
     @property
     def is_connected(self) -> bool:
@@ -232,8 +234,16 @@ class FakePairing(AbstractPairing):
     async def close(self):
         """Close the connection."""
 
+    def _ensure_connected(self):
+        if not self.available:
+            raise AccessoryNotFoundError("Accessory not found")
+        if not self._accessories_state:
+            self._accessories_state = self._initial_accessories_state
+            self._update_accessories_state_cache()
+
     async def identify(self):
         """Identify the accessory."""
+        self._ensure_connected()
 
     async def list_pairings(self):
         """List pairing."""
@@ -241,6 +251,7 @@ class FakePairing(AbstractPairing):
 
     async def remove_pairing(self, pairing_id):
         """Remove a pairing."""
+        self._ensure_connected()
 
     async def async_populate_accessories_state(
         self, force_update: bool = False
@@ -250,8 +261,7 @@ class FakePairing(AbstractPairing):
         This method should try not to fetch all the accessories unless
         we know the config num is out of date or force_update is True
         """
-        if not self.accessories or force_update:
-            await self.list_accessories_and_characteristics()
+        self._ensure_connected()
         return True
 
     async def _process_config_changed(self, config_num: int) -> None:
@@ -263,12 +273,12 @@ class FakePairing(AbstractPairing):
 
     async def list_accessories_and_characteristics(self):
         """Fake implementation of list_accessories_and_characteristics."""
+        self._ensure_connected()
         return self.accessories.serialize()
 
     async def get_characteristics(self, characteristics):
         """Fake implementation of get_characteristics."""
-        if not self.available:
-            raise AccessoryNotFoundError("Accessory not found")
+        self._ensure_connected()
 
         results = {}
         for aid, cid in characteristics:
@@ -283,6 +293,8 @@ class FakePairing(AbstractPairing):
 
     async def put_characteristics(self, characteristics):
         """Fake implementation of put_characteristics."""
+        self._ensure_connected()
+
         filtered = []
         results = {}
         for (aid, cid, value) in characteristics:
@@ -296,6 +308,8 @@ class FakePairing(AbstractPairing):
         return results
 
     async def image(self, accessory: int, width: int, height: int) -> bytes:
+        self._ensure_connected()
+
         return base64.b64decode(FAKE_CAMERA_IMAGE)
 
 
@@ -312,8 +326,10 @@ class FakeController(AbstractController):
     pairings: dict[str, FakePairing]
     aliases: dict[str, FakePairing]
 
-    def __init__(self):
-        super().__init__(char_cache=CharacteristicCacheMemory())
+    def __init__(
+        self, async_zeroconf_instance=None, char_cache=None, bleak_scanner_instance=None
+    ):
+        super().__init__(char_cache=char_cache or CharacteristicCacheMemory())
 
     def add_device(self, accessories):
         device_id = "00:00:00:00:00:00"
