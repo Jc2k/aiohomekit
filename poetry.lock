@@ -137,7 +137,7 @@ typing-extensions = ">=4.2.0"
 
 [[package]]
 name = "bleak-retry-connector"
-version = "1.7.2"
+version = "1.9.0"
 description = "A connector for Bleak Clients that handles transient connection failures"
 category = "main"
 optional = false
@@ -751,7 +751,7 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "4199e4dc92c0c4b605cc03848994b2e6afbc2f87818a66607e714d1f5b7967ef"
+content-hash = "1fe2448a6f7b3802284c51e0b3cf4cfb9d81d964e406bf7f349a2952f77b98c8"
 
 [metadata.files]
 aiocoap = [
@@ -885,8 +885,8 @@ bleak = [
     {file = "bleak-0.15.1.tar.gz", hash = "sha256:d8c8d88de0f22a15bd135ba056c4e5b2fb9f15119283def21b1ed7d43c00d590"},
 ]
 bleak-retry-connector = [
-    {file = "bleak-retry-connector-1.7.2.tar.gz", hash = "sha256:7d77669cff91eafa5f905b3db57da186a0ce569a59b94a3f25bdfcdcc323be26"},
-    {file = "bleak_retry_connector-1.7.2-py3-none-any.whl", hash = "sha256:aebf7b788e7f09368deebd07ad23912c248a1c2717f2a682b7c712d813fffdee"},
+    {file = "bleak-retry-connector-1.9.0.tar.gz", hash = "sha256:3b34eb0605f570b2bcb4253286fcae99511fa002abaf6c19837e4fdc75708c6f"},
+    {file = "bleak_retry_connector-1.9.0-py3-none-any.whl", hash = "sha256:1e409ec3a4a1f8abec02ae828ff6c7ba1301810e3ed01837196391d22d5881a6"},
 ]
 bleak-winrt = [
     {file = "bleak-winrt-1.1.1.tar.gz", hash = "sha256:3e7765f98d71b5229d95bd3b197931994dead40f3144e7186de7b8f664e26df0"},
