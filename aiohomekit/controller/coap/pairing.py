@@ -63,6 +63,13 @@ class CoAPPairing(ZeroconfPairing):
         return Transport.COAP
 
     @property
+    def name(self) -> str:
+        """Return the name of the pairing with the address."""
+        if self.description:
+            return f"{self.description.name} [{self.connection.address}] (id={self.id})"
+        return f"[{self.connection.address}] (id={self.id})"
+
+    @property
     def poll_interval(self) -> timedelta:
         """Returns how often the device should be polled."""
         return timedelta(minutes=1)

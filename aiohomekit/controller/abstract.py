@@ -98,6 +98,13 @@ class AbstractPairing(metaclass=ABCMeta):
         return self._accessories_state.config_num
 
     @property
+    def name(self) -> str:
+        """Return the name of the pairing."""
+        if self.description:
+            return f"{self.description.name} (id={self.id})"
+        return f"(id={self.id})"
+
+    @property
     @abstractmethod
     def is_connected(self) -> bool:
         """Returns true if the device is currently connected."""
@@ -127,7 +134,7 @@ class AbstractPairing(metaclass=ABCMeta):
         if self.description != description:
             logger.debug(
                 "%s: Description updated: old=%s new=%s",
-                self.id,
+                self.name,
                 self.description,
                 description,
             )
@@ -137,7 +144,7 @@ class AbstractPairing(metaclass=ABCMeta):
             if description.config_num > self.config_num:
                 logger.debug(
                     "%s: Config number has changed from %s to %s; char cache invalid",
-                    self.id,
+                    self.name,
                     self.config_num,
                     description.config_num,
                 )
@@ -159,7 +166,7 @@ class AbstractPairing(metaclass=ABCMeta):
                 # as we don't want to miss events.
                 logger.debug(
                     "%s: Disconnected event notification received; Triggering catch-up poll",
-                    self.id,
+                    self.name,
                 )
                 async_create_task(self._process_disconnected_events())
 
