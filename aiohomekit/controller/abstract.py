@@ -117,8 +117,9 @@ class AbstractPairing(metaclass=ABCMeta):
     def poll_interval(self) -> timedelta:
         """Returns how often the device should be polled."""
 
+    @abstractmethod
     async def _process_disconnected_events(self):
-        pass
+        """Process any disconnected events that are available."""
 
     def _async_description_update(
         self, description: AbstractDescription | None

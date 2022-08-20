@@ -271,6 +271,9 @@ class FakePairing(AbstractPairing):
         )
         self._callback_and_save_config_changed(config_num)
 
+    async def _process_disconnected_events(self):
+        """Process any events that happened while we were disconnected."""
+
     async def list_accessories_and_characteristics(self):
         """Fake implementation of list_accessories_and_characteristics."""
         self._ensure_connected()

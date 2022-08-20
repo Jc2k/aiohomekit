@@ -375,7 +375,7 @@ class BlePairing(AbstractPairing):
             self._session_id = session_id
             self._derive = derive
 
-    async def _async_process_disconnected_events(self) -> None:
+    async def _process_disconnected_events(self) -> None:
         """Handle disconnected events seen from the advertisement."""
         logger.debug(
             "%s: Polling subscriptions for changes during disconnection; rssi=%s",
