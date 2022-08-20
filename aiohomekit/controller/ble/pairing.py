@@ -175,8 +175,8 @@ class BlePairing(AbstractPairing):
     def name(self) -> str:
         """Return the name of the pairing with the address."""
         if self.description:
-            return f"{self.description.name} [address={self.address}] (id={self.id})"
-        return f"[address={self.address}] (id={self.id})"
+            return f"{self.description.name} [{self.address}] (id={self.id})"
+        return f"[{self.address}] (id={self.id})"
 
     @property
     def rssi(self) -> int | None:
