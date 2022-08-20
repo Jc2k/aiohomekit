@@ -78,8 +78,7 @@ class IpPairing(ZeroconfPairing):
 
         :param pairing_data:
         """
-        super().__init__(controller)
-        self.id = pairing_data["AccessoryPairingID"]
+        super().__init__(controller, pairing_data)
         self.pairing_data = pairing_data
         self.connection = SecureHomeKitConnection(self, self.pairing_data)
         self.supports_subscribe = True
@@ -102,6 +101,13 @@ class IpPairing(ZeroconfPairing):
     def poll_interval(self) -> timedelta:
         """Returns how often the device should be polled."""
         return timedelta(minutes=1)
+
+    @property
+    def name(self) -> str:
+        """Return the name of the pairing with the address."""
+        if self.description:
+            return f"{self.description.name} [{self.connection.host}:{self.connection.port}] (id={self.id})"
+        return f"[{self.connection.host}:{self.connection.port}] (id={self.id})"
 
     def event_received(self, event):
         self._callback_listeners(format_characteristic_list(event))
@@ -169,6 +175,7 @@ class IpPairing(ZeroconfPairing):
         self._accessories_state = AccessoriesState(
             Accessories.from_list(accessories), self.config_num or 0
         )
+        self._update_accessories_state_cache()
         return accessories
 
     async def list_pairings(self):
@@ -379,6 +386,12 @@ class IpPairing(ZeroconfPairing):
             self._accessories_state.accessories, config_num
         )
         self._callback_and_save_config_changed(self.config_num)
+
+    async def _process_disconnected_events(self):
+        """Process any events that happened while we were disconnected.
+
+        We don't disconnect in IP so there is no need to do anything here.
+        """
 
     async def identify(self):
         """

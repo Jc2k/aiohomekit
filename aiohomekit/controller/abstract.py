@@ -20,6 +20,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import AsyncIterable, Awaitable, Iterable
 from dataclasses import dataclass
 from datetime import timedelta
+import logging
 from typing import Any, Callable, TypedDict, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
@@ -29,6 +30,8 @@ from aiohomekit.model.characteristics.characteristic_types import Characteristic
 from aiohomekit.model.services.service_types import ServicesTypes
 from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.utils import async_create_task
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractPairingData(TypedDict, total=False):
@@ -62,13 +65,18 @@ class AbstractPairing(metaclass=ABCMeta):
     # and BLE advertisements), and also as AccessoryPairingID i pairing data.
     id: str
 
-    def __init__(self, controller: AbstractController) -> None:
+    def __init__(
+        self, controller: AbstractController, pairing_data: AbstractPairingData
+    ) -> None:
         self.controller = controller
         self.listeners: set[Callable[[dict], None]] = set()
         self.subscriptions: set[tuple[int, int]] = set()
         self.availability_listeners: set[Callable[[bool], None]] = set()
         self.config_changed_listeners: set[Callable[[int], None]] = set()
         self._accessories_state: AccessoriesState | None = None
+
+        self.id = pairing_data["AccessoryPairingID"]
+        self._load_accessories_from_cache()
 
     @property
     def accessories_state(self) -> AccessoriesState:
@@ -90,6 +98,13 @@ class AbstractPairing(metaclass=ABCMeta):
         return self._accessories_state.config_num
 
     @property
+    def name(self) -> str:
+        """Return the name of the pairing."""
+        if self.description:
+            return f"{self.description.name} (id={self.id})"
+        return f"(id={self.id})"
+
+    @property
     @abstractmethod
     def is_connected(self) -> bool:
         """Returns true if the device is currently connected."""
@@ -109,10 +124,56 @@ class AbstractPairing(metaclass=ABCMeta):
     def poll_interval(self) -> timedelta:
         """Returns how often the device should be polled."""
 
+    @abstractmethod
+    async def _process_disconnected_events(self):
+        """Process any disconnected events that are available."""
+
     def _async_description_update(
         self, description: AbstractDescription | None
     ) -> None:
+        if self.description != description:
+            logger.debug(
+                "%s: Description updated: old=%s new=%s",
+                self.name,
+                self.description,
+                description,
+            )
+
+        repopulate_accessories = False
+        if description:
+            if description.config_num > self.config_num:
+                logger.debug(
+                    "%s: Config number has changed from %s to %s; char cache invalid",
+                    self.name,
+                    self.config_num,
+                    description.config_num,
+                )
+                repopulate_accessories = True
+
+            elif (
+                not self.description
+                or description.state_num != self.description.state_num
+            ):
+                # Only process disconnected events if the config number has
+                # not also changed since we will do a full repopulation
+                # of the accessories anyway when the config number changes.
+                #
+                # Otherwise, if only the state number we trigger a poll.
+                #
+                # The number will eventually roll over
+                # so we don't want to use a > comparison here. Also, its
+                # safer to poll the device again to get the latest state
+                # as we don't want to miss events.
+                logger.debug(
+                    "%s: Disconnected event notification received; Triggering catch-up poll",
+                    self.name,
+                )
+                async_create_task(self._process_disconnected_events())
+
         self.description = description
+
+        if repopulate_accessories:
+            async_create_task(self._process_config_changed(description.config_num))
 
     def _load_accessories_from_cache(self) -> None:
         if (cache := self.controller._char_cache.get_map(self.id)) is None:
@@ -212,11 +273,6 @@ class AbstractPairing(metaclass=ABCMeta):
         for callback in self.config_changed_listeners:
             callback(self.config_num)
         self._update_accessories_state_cache()
-
-    def notify_config_changed(self, config_num: int) -> None:
-        """Notify the pairing that the config number has changed."""
-        if config_num != self.config_num:
-            async_create_task(self._process_config_changed(config_num))
 
     async def subscribe(
         self, characteristics: Iterable[tuple[int, int]]

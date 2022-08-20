@@ -35,9 +35,7 @@ class CoAPPairing(ZeroconfPairing):
     def __init__(
         self, controller: AbstractController, pairing_data: AbstractPairingData
     ) -> None:
-        super().__init__(controller)
-
-        self.id = pairing_data["AccessoryPairingID"]
+        super().__init__(controller, pairing_data)
 
         self.connection = CoAPHomeKitConnection(
             self, pairing_data["AccessoryIP"], pairing_data["AccessoryPort"]
@@ -63,6 +61,13 @@ class CoAPPairing(ZeroconfPairing):
     def transport(self) -> Transport:
         """The transport used for the connection."""
         return Transport.COAP
+
+    @property
+    def name(self) -> str:
+        """Return the name of the pairing with the address."""
+        if self.description:
+            return f"{self.description.name} [{self.connection.address}] (id={self.id})"
+        return f"[{self.connection.address}] (id={self.id})"
 
     @property
     def poll_interval(self) -> timedelta:
@@ -152,6 +157,7 @@ class CoAPPairing(ZeroconfPairing):
         self._accessories_state = AccessoriesState(
             Accessories.from_list(accessories), self.config_num or 0
         )
+        self._update_accessories_state_cache()
         return accessories
 
     async def _process_config_changed(self, config_num: int) -> None:
@@ -164,6 +170,12 @@ class CoAPPairing(ZeroconfPairing):
             self._accessories_state.accessories, config_num
         )
         self._callback_and_save_config_changed(config_num)
+
+    async def _process_disconnected_events(self):
+        """Process any events that happened while we were disconnected.
+
+        We don't disconnect in COAP so there is no need to do anything here.
+        """
 
     async def async_populate_accessories_state(
         self, force_update: bool = False
