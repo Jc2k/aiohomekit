@@ -93,6 +93,7 @@ class BleDiscovery(AbstractDiscovery):
                 self.device,
                 self.name,
                 self._async_disconnected,
+                ble_device_callback=lambda: self.device,
             )
 
     def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:

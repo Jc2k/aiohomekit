@@ -41,6 +41,7 @@ async def establish_connection(
     disconnected_callback: Callable[[AIOHomeKitBleakClient], None],
     max_attempts: int = MAX_CONNECT_ATTEMPTS,
     cached_services: BleakGATTServiceCollection | None = None,
+    ble_device_callback: Callable[[BLEDevice], None] = None,
 ) -> AIOHomeKitBleakClient:
     """Establish a connection to the accessory."""
     try:
@@ -51,6 +52,7 @@ async def establish_connection(
             disconnected_callback,
             max_attempts=max_attempts,
             cached_services=cached_services,
+            ble_device_callback=ble_device_callback,
         )
     except (BleakAbortedError, BleakConnectionError) as ex:
         raise AccessoryDisconnectedError(ex) from ex
