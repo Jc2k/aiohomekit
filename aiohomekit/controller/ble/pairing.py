@@ -90,6 +90,12 @@ SKIP_SYNC_SERVICES = {
     ServicesTypes.PAIRING,
     ServicesTypes.TRANSFER_TRANSPORT_MANAGEMENT,
 }
+# These characteristics are not readable unless there has been a write
+WRITE_FIRST_REQUIRED_CHARACTERISTICS = {
+    "00000131-0000-1000-8000-0026BB765291",  # Setup Data Stream Transport
+    "00000117-0000-1000-8000-0026BB765291",  # Selected RTP Stream Configuration
+    "00000118-0000-1000-8000-0026BB765291",  # Setup Endpoints
+}
 BLE_AID = 1  # The aid for BLE devices is always 1
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
@@ -523,6 +529,8 @@ class BlePairing(AbstractPairing):
             ):
                 continue
             for char in service.characteristics:
+                if char.type in WRITE_FIRST_REQUIRED_CHARACTERISTICS:
+                    continue
                 if CharacteristicPermissions.paired_read not in char.perms:
                     continue
                 chars.append(char)
@@ -723,6 +731,14 @@ class BlePairing(AbstractPairing):
 
         async with self._ble_request_lock:
             for char in characteristics:
+                if char.type in WRITE_FIRST_REQUIRED_CHARACTERISTICS:
+                    logger.debug(
+                        "%s: Ignoring write first only characteristic %s",
+                        self.name,
+                        char.iid,
+                    )
+                    continue
+
                 logger.debug("%s: Reading characteristic %s", self.name, char.type)
 
                 data = await self._async_request_under_lock(OpCode.CHAR_READ, char)
