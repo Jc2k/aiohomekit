@@ -96,7 +96,7 @@ WRITE_FIRST_REQUIRED_CHARACTERISTICS = {
     "00000131-0000-1000-8000-0026BB765291",  # Setup Data Stream Transport
     "00000117-0000-1000-8000-0026BB765291",  # Selected RTP Stream Configuration
     "00000118-0000-1000-8000-0026BB765291",  # Setup Endpoints
-    # "246912DC-8FA3-82ED-DEA4-9EB91D8FC2EE",  # Unknown Vendor char seen on Belkin Wemo Switch
+    "246912DC-8FA3-82ED-DEA4-9EB91D8FC2EE",  # Unknown Vendor char seen on Belkin Wemo Switch
 }
 BLE_AID = 1  # The aid for BLE devices is always 1
 
