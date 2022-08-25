@@ -56,6 +56,7 @@ from aiohomekit.uuid import normalize_uuid
 from ..abstract import AbstractPairing, AbstractPairingData
 from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 from .client import (
+    PDUStatusError,
     ble_request,
     drive_pairing_state_machine,
     raise_for_pdu_status,
@@ -95,6 +96,7 @@ WRITE_FIRST_REQUIRED_CHARACTERISTICS = {
     "00000131-0000-1000-8000-0026BB765291",  # Setup Data Stream Transport
     "00000117-0000-1000-8000-0026BB765291",  # Selected RTP Stream Configuration
     "00000118-0000-1000-8000-0026BB765291",  # Setup Endpoints
+    # "246912DC-8FA3-82ED-DEA4-9EB91D8FC2EE",  # Unknown Vendor char seen on Belkin Wemo Switch
 }
 BLE_AID = 1  # The aid for BLE devices is always 1
 
@@ -741,7 +743,19 @@ class BlePairing(AbstractPairing):
 
                 logger.debug("%s: Reading characteristic %s", self.name, char.type)
 
-                data = await self._async_request_under_lock(OpCode.CHAR_READ, char)
+                try:
+                    data = await self._async_request_under_lock(OpCode.CHAR_READ, char)
+                except PDUStatusError as ex:
+                    # For the apple defines ones we know about we can avoid triggering
+                    # this state, but we do not know all the vendor custom chars so
+                    # we need to skip in this case.
+                    if ex.status == PDUStatus.INVALID_REQUEST:
+                        logger.debug(
+                            "%s: Reading characteristic %s resulted in an invalid request (skipped)",
+                            self.name,
+                            char.type,
+                        )
+                        continue
                 decoded = dict(TLV.decode_bytes(data))[1]
 
                 logger.debug(
