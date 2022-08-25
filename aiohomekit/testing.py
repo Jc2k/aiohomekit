@@ -369,8 +369,10 @@ class FakeController(AbstractController):
             raise AccessoryNotFoundError(device_id)
 
     async def remove_pairing(self, alias: str) -> None:
+        pairing = self.aliases[alias]
         del self.pairings[self.aliases[alias].id]
         del self.aliases[alias]
+        self._char_cache.async_delete_map(pairing.id)
 
     def load_pairing(self, alias: str, pairing_data):
         # This assumes a test has already preseed self.pairings with a fake via
