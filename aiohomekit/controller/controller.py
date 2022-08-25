@@ -235,19 +235,21 @@ class Controller(AbstractController):
 
         pairing = self.aliases[alias]
 
-        # Remove the pairing from the controller first
-        # so that it stops getting updates that might
-        # trigger a disconnected event poll.
-        self.aliases.pop(alias, None)
-        pairing.controller.aliases.pop(alias, None)
+        try:
+            # Remove the pairing from the controller first
+            # so that it stops getting updates that might
+            # trigger a disconnected event poll.
+            self.aliases.pop(alias, None)
+            pairing.controller.aliases.pop(alias, None)
 
-        self.pairings.pop(pairing.id, None)
-        pairing.controller.pairings.pop(pairing.id, None)
+            self.pairings.pop(pairing.id, None)
+            pairing.controller.pairings.pop(pairing.id, None)
 
-        primary_pairing_id = pairing.pairing_data["iOSPairingId"]
+            primary_pairing_id = pairing.pairing_data["iOSPairingId"]
 
-        await pairing.remove_pairing(primary_pairing_id)
+            await pairing.remove_pairing(primary_pairing_id)
 
-        await pairing.close()
+            await pairing.close()
 
-        self._char_cache.async_delete_map(primary_pairing_id)
+        finally:
+            self._char_cache.async_delete_map(primary_pairing_id)
