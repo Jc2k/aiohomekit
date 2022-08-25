@@ -26,6 +26,10 @@ class IpController(ZeroconfController):
             return None
 
         pairing = self.pairings[hkid.lower()] = IpPairing(self, pairing_data)
+
+        if discovery := self.discoveries.get(hkid.lower()):
+            pairing._async_description_update(discovery.description)
+
         self.aliases[alias] = pairing
 
         return pairing
