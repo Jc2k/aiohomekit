@@ -124,6 +124,7 @@ class BlePairing(AbstractPairing):
         self.device = device
         self.client = client
         self.description = description
+        self.pairing_data = pairing_data
 
         super().__init__(controller, pairing_data)
 
@@ -131,7 +132,6 @@ class BlePairing(AbstractPairing):
             client.services if client else None
         )
 
-        self.pairing_data = pairing_data
         self._last_seen = time.monotonic() if description else NEVER_TIME
 
         # Encryption
