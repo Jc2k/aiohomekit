@@ -35,14 +35,14 @@ class CoAPPairing(ZeroconfPairing):
     def __init__(
         self, controller: AbstractController, pairing_data: AbstractPairingData
     ) -> None:
-        super().__init__(controller, pairing_data)
-
         self.connection = CoAPHomeKitConnection(
             self, pairing_data["AccessoryIP"], pairing_data["AccessoryPort"]
         )
         self.connection_future = None
         self.connection_lock = asyncio.Condition()
         self.pairing_data = pairing_data
+
+        super().__init__(controller, pairing_data)
 
     def _async_endpoint_changed(self) -> None:
         """The IP/Port has changed, so close connection if active then reconnect."""

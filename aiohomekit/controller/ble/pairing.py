@@ -121,17 +121,17 @@ class BlePairing(AbstractPairing):
         client: AIOHomeKitBleakClient | None = None,
         description: HomeKitAdvertisement | None = None,
     ) -> None:
-        super().__init__(controller, pairing_data)
-
         self.device = device
         self.client = client
+        self.description = description
+
+        super().__init__(controller, pairing_data)
+
         self._cached_services: BleakGATTServiceCollection | None = (
             client.services if client else None
         )
 
         self.pairing_data = pairing_data
-        self.description = description
-        self.controller = controller
         self._last_seen = time.monotonic() if description else NEVER_TIME
 
         # Encryption

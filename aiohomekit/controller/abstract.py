@@ -177,7 +177,9 @@ class AbstractPairing(metaclass=ABCMeta):
 
     def _load_accessories_from_cache(self) -> None:
         if (cache := self.controller._char_cache.get_map(self.id)) is None:
-            logger.debug("%s: No accessories cache available for this device", self.name)
+            logger.debug(
+                "%s: No accessories cache available for this device", self.name
+            )
             return
         config_num = cache.get("config_num", 0)
         accessories = Accessories.from_list(cache["accessories"])

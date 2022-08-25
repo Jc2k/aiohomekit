@@ -78,10 +78,11 @@ class IpPairing(ZeroconfPairing):
 
         :param pairing_data:
         """
-        super().__init__(controller, pairing_data)
         self.pairing_data = pairing_data
         self.connection = SecureHomeKitConnection(self, self.pairing_data)
         self.supports_subscribe = True
+
+        super().__init__(controller, pairing_data)
 
     @property
     def is_connected(self) -> bool:
