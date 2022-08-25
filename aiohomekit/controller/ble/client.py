@@ -50,6 +50,15 @@ ATT_HEADER_SIZE = 3
 KEY_OVERHEAD_SIZE = 16
 
 
+class PDUStatusError(Exception):
+    """Raised when the PDU status is not success."""
+
+    def __init__(self, status: PDUStatus, message: str) -> None:
+        """Initialize a PDUStatusError."""
+        super().__init__(message)
+        self.status = status
+
+
 def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFuncType:
     """Define a wrapper to retry on bluetooth connection error."""
 
@@ -204,8 +213,9 @@ async def _read_pdu(
 def raise_for_pdu_status(client: BleakClient, pdu_status: PDUStatus) -> None:
     """Raise on non-success PDU status."""
     if pdu_status != PDUStatus.SUCCESS:
-        raise ValueError(
-            f"{client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})"
+        raise PDUStatusError(
+            pdu_status.value,
+            f"{client.address}: PDU status was not success: {pdu_status.description} ({pdu_status.value})",
         )
 
 

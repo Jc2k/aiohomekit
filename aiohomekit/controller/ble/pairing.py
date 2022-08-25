@@ -56,6 +56,7 @@ from aiohomekit.uuid import normalize_uuid
 from ..abstract import AbstractPairing, AbstractPairingData
 from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
 from .client import (
+    PDUStatusError,
     ble_request,
     drive_pairing_state_machine,
     raise_for_pdu_status,
@@ -89,6 +90,14 @@ SKIP_SYNC_SERVICES = {
     ServicesTypes.THREAD_TRANSPORT,
     ServicesTypes.PAIRING,
     ServicesTypes.TRANSFER_TRANSPORT_MANAGEMENT,
+}
+# These characteristics are not readable unless there has been a write
+WRITE_FIRST_REQUIRED_CHARACTERISTICS = {
+    "00000131-0000-1000-8000-0026BB765291",  # Setup Data Stream Transport
+    "00000117-0000-1000-8000-0026BB765291",  # Selected RTP Stream Configuration
+    "00000118-0000-1000-8000-0026BB765291",  # Setup Endpoints
+    "00000138-0000-1000-8000-0026BB765291",  # Unknown write first characteristic
+    "246912DC-8FA3-82ED-DEA4-9EB91D8FC2EE",  # Unknown Vendor char seen on Belkin Wemo Switch
 }
 BLE_AID = 1  # The aid for BLE devices is always 1
 
@@ -523,6 +532,8 @@ class BlePairing(AbstractPairing):
             ):
                 continue
             for char in service.characteristics:
+                if char.type in WRITE_FIRST_REQUIRED_CHARACTERISTICS:
+                    continue
                 if CharacteristicPermissions.paired_read not in char.perms:
                     continue
                 chars.append(char)
@@ -723,12 +734,35 @@ class BlePairing(AbstractPairing):
 
         async with self._ble_request_lock:
             for char in characteristics:
-                data = await self._async_request_under_lock(OpCode.CHAR_READ, char)
+                if char.type in WRITE_FIRST_REQUIRED_CHARACTERISTICS:
+                    logger.debug(
+                        "%s: Ignoring write first only characteristic %s",
+                        self.name,
+                        char.iid,
+                    )
+                    continue
+
+                logger.debug("%s: Reading characteristic %s", self.name, char.type)
+
+                try:
+                    data = await self._async_request_under_lock(OpCode.CHAR_READ, char)
+                except PDUStatusError as ex:
+                    # For the apple defines ones we know about we can avoid triggering
+                    # this state, but we do not know all the vendor custom chars so
+                    # we need to skip in this case.
+                    if ex.status == PDUStatus.INVALID_REQUEST:
+                        logger.debug(
+                            "%s: Reading characteristic %s resulted in an invalid request (skipped)",
+                            self.name,
+                            char.type,
+                        )
+                        continue
                 decoded = dict(TLV.decode_bytes(data))[1]
 
                 logger.debug(
-                    "%s: Read characteristic got data, expected format is %s: data=%s decoded=%s",
+                    "%s: Read characteristic %s got data, expected format is %s: data=%s decoded=%s",
                     self.name,
+                    char.type,
                     char.format,
                     data,
                     decoded,
