@@ -723,12 +723,15 @@ class BlePairing(AbstractPairing):
 
         async with self._ble_request_lock:
             for char in characteristics:
+                logger.debug("%s: Reading characteristic %s", self.name, char.type)
+
                 data = await self._async_request_under_lock(OpCode.CHAR_READ, char)
                 decoded = dict(TLV.decode_bytes(data))[1]
 
                 logger.debug(
-                    "%s: Read characteristic got data, expected format is %s: data=%s decoded=%s",
+                    "%s: Read characteristic %s got data, expected format is %s: data=%s decoded=%s",
                     self.name,
+                    char.type,
                     char.format,
                     data,
                     decoded,
