@@ -27,6 +27,10 @@ class CoAPController(ZeroconfController):
             return None
 
         pairing = self.pairings[hkid.lower()] = CoAPPairing(self, pairing_data)
+
+        if discovery := self.discoveries.get(hkid):
+            pairing._async_description_update(discovery.description)
+
         self.aliases[alias] = pairing
 
         return pairing
