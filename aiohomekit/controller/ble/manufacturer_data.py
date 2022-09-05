@@ -10,6 +10,18 @@ from aiohomekit.controller.abstract import AbstractDescription
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.status_flags import StatusFlags
 
+UNPACK_BBB = struct.Struct("<BBB").unpack
+UNPACK_HHBB = struct.Struct("<HHBB").unpack
+
+
+def is_homekit_advertisement(advertisement_data: AdvertisementData) -> bool:
+    """Check if advertisement data is a HomeKit device."""
+    return bool(
+        advertisement_data.manufacturer_data
+        and (data := advertisement_data.manufacturer_data.get(76))
+        and data[0] == 0x06
+    )
+
 
 @dataclass
 class HomeKitAdvertisement(AbstractDescription):
@@ -28,11 +40,11 @@ class HomeKitAdvertisement(AbstractDescription):
         if data[0] != 0x06:
             raise ValueError("Not a HomeKit device")
 
-        type, stl, sf = struct.unpack("<BBB", data[:3])
+        type, stl, sf = UNPACK_BBB(data[:3])
         device_id = ":".join(
             data[3:9].hex()[0 + i : 2 + i] for i in range(0, 12, 2)
         ).lower()
-        acid, gsn, cn, cv = struct.unpack("<HHBB", data[9:15])
+        acid, gsn, cn, cv = UNPACK_HHBB(data[9:15])
         sh = data[15:19]
 
         return cls(
