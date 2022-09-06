@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import lru_cache
+import logging
 import uuid
 
 from bleak import BleakError
@@ -12,6 +14,58 @@ from .const import HAP_MIN_REQUIRED_MTU
 BLEAK_EXCEPTIONS = (AttributeError, BleakError)
 CHAR_DESCRIPTOR_ID = "DC46F0FE-81D2-4616-B5D9-6ABDD796939A"
 CHAR_DESCRIPTOR_UUID = uuid.UUID(CHAR_DESCRIPTOR_ID)
+
+logger = logging.getLogger(__name__)
+ATT_HEADER_SIZE = 3
+
+
+@lru_cache(maxsize=64, typed=True)
+def _determine_fragment_size(
+    address: str,
+    mtu_size: int,
+    additional_overhead_size: int,
+    handle: BleakGATTCharacteristic,
+) -> int:
+    """Determine the fragment size for a characteristic based on the MTU."""
+    # Newer bleak, not currently released
+    if max_write_without_response_size := getattr(
+        handle, "max_write_without_response_size", None
+    ):
+        logger.debug(
+            "%s: Bleak max_write_without_response_size: %s, mtu_size-3: %s",
+            address,
+            max_write_without_response_size,
+            mtu_size - ATT_HEADER_SIZE,
+        )
+        fragment_size = max(max_write_without_response_size, mtu_size - ATT_HEADER_SIZE)
+    # Bleak 0.15.1 and below
+    elif (
+        (char_obj := getattr(handle, "obj", None))
+        and isinstance(char_obj, dict)
+        and (char_mtu := char_obj.get("MTU"))
+    ):
+        logger.debug(
+            "%s: Bleak obj MTU: %s, client.mtu_size: %s",
+            address,
+            char_mtu,
+            mtu_size,
+        )
+        fragment_size = max(char_mtu, mtu_size) - ATT_HEADER_SIZE
+    else:
+        logger.debug(
+            "%s: No bleak obj MTU or max_write_without_response_size, using client.mtu_size-3: %s",
+            address,
+            mtu_size - ATT_HEADER_SIZE,
+        )
+        fragment_size = mtu_size - ATT_HEADER_SIZE
+
+    if additional_overhead_size:
+        # Secure session means an extra 16 bytes of overhead
+        fragment_size -= additional_overhead_size
+
+    logger.debug("%s: Using fragment size: %s", address, fragment_size)
+
+    return fragment_size
 
 
 class AIOHomeKitBleakClient(BleakClientWithServiceCache):
@@ -64,3 +118,16 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
     def mtu_size(self) -> int:
         """Return the mtu size of the client."""
         return max(super().mtu_size, HAP_MIN_REQUIRED_MTU)
+
+    def determine_fragment_size(
+        self,
+        additional_overhead_size: int,
+        handle: BleakGATTCharacteristic,
+    ) -> int:
+        """Determine the fragment size for a characteristic based on the MTU."""
+        return _determine_fragment_size(
+            self.address,
+            self.mtu_size,
+            additional_overhead_size,
+            handle,
+        )

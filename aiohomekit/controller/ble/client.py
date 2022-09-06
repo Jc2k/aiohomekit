@@ -85,55 +85,6 @@ def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFu
     return cast(WrapFuncType, _decorator_retry_bluetooth_connection_error)
 
 
-def _determine_fragment_size(
-    client: AIOHomeKitBleakClient,
-    encryption_key: EncryptionKey | None,
-    handle: BleakGATTCharacteristic,
-) -> int:
-    """Determine the fragment size for a characteristic based on the MTU."""
-    # Newer bleak, not currently released
-    if max_write_without_response_size := getattr(
-        handle, "max_write_without_response_size", None
-    ):
-        logger.debug(
-            "%s: Bleak max_write_without_response_size: %s, mtu_size-3: %s",
-            client.address,
-            max_write_without_response_size,
-            client.mtu_size - ATT_HEADER_SIZE,
-        )
-        fragment_size = max(
-            max_write_without_response_size, client.mtu_size - ATT_HEADER_SIZE
-        )
-    # Bleak 0.15.1 and below
-    elif (
-        (char_obj := getattr(handle, "obj", None))
-        and isinstance(char_obj, dict)
-        and (char_mtu := char_obj.get("MTU"))
-    ):
-        logger.debug(
-            "%s: Bleak obj MTU: %s, client.mtu_size: %s",
-            client.address,
-            char_mtu,
-            client.mtu_size,
-        )
-        fragment_size = max(char_mtu, client.mtu_size) - ATT_HEADER_SIZE
-    else:
-        logger.debug(
-            "%s: No bleak obj MTU or max_write_without_response_size, using client.mtu_size-3: %s",
-            client.address,
-            client.mtu_size - ATT_HEADER_SIZE,
-        )
-        fragment_size = client.mtu_size - ATT_HEADER_SIZE
-
-    if encryption_key:
-        # Secure session means an extra 16 bytes of overhead
-        fragment_size -= KEY_OVERHEAD_SIZE
-
-    logger.debug("%s: Using fragment size: %s", client.address, fragment_size)
-
-    return fragment_size
-
-
 async def ble_request(
     client: AIOHomeKitBleakClient,
     encryption_key: EncryptionKey | None,
@@ -151,7 +102,7 @@ async def ble_request(
 
 async def _write_pdu(
     client: AIOHomeKitBleakClient,
-    encryption_key: EncryptionKey,
+    encryption_key: EncryptionKey | None,
     opcode: OpCode,
     handle: BleakGATTCharacteristic,
     iid: int,
@@ -159,7 +110,9 @@ async def _write_pdu(
     tid: int,
 ) -> None:
     """Write a PDU to the accessory."""
-    fragment_size = _determine_fragment_size(client, encryption_key, handle)
+    fragment_size = client.determine_fragment_size(
+        KEY_OVERHEAD_SIZE if encryption_key else 0, handle
+    )
     # Wrap data in one or more PDU's split at fragment_size
     # And write each one to the target characteristic handle
     writes = []
