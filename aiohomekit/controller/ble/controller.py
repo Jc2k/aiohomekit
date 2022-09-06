@@ -11,7 +11,10 @@ from bleak.exc import BleakDBusError, BleakError
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
-from aiohomekit.controller.ble.manufacturer_data import HomeKitAdvertisement
+from aiohomekit.controller.ble.manufacturer_data import (
+    HomeKitAdvertisement,
+    is_homekit_advertisement,
+)
 from aiohomekit.controller.ble.pairing import BlePairing
 
 from .discovery import BleDiscovery
@@ -39,8 +42,15 @@ class BleController(AbstractController):
     def _device_detected(
         self, device: BLEDevice, advertisement_data: AdvertisementData
     ) -> None:
+        # Since we are getting everything, reject anything that is not a HomeKit device
+        # as early as possible to avoid the try/except overhead.
+        if not is_homekit_advertisement(advertisement_data):
+            return
+
         try:
-            data = HomeKitAdvertisement.from_advertisement(device, advertisement_data)
+            data = HomeKitAdvertisement.from_manufacturer_data(
+                device.name, device.address, advertisement_data.manufacturer_data
+            )
         except ValueError:
             return
 
