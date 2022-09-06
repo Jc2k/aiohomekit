@@ -9,8 +9,6 @@ from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.backends.device import BLEDevice
 from bleak_retry_connector import BleakClientWithServiceCache
 
-from aiohomekit.controller.ble.key import EncryptionKey
-
 from .const import HAP_MIN_REQUIRED_MTU
 
 BLEAK_EXCEPTIONS = (AttributeError, BleakError)
