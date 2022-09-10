@@ -11,7 +11,7 @@ from bleak_retry_connector import BleakClientWithServiceCache
 
 from .const import HAP_MIN_REQUIRED_MTU
 
-BLEAK_EXCEPTIONS = (AttributeError, BleakError)
+BLEAK_EXCEPTIONS = (AttributeError, BleakError, EOFError)
 CHAR_DESCRIPTOR_ID = "DC46F0FE-81D2-4616-B5D9-6ABDD796939A"
 CHAR_DESCRIPTOR_UUID = uuid.UUID(CHAR_DESCRIPTOR_ID)
 
