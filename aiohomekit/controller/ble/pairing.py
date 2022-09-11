@@ -233,7 +233,7 @@ class BlePairing(AbstractPairing):
             original_path = original_device.details["path"]
             new_path = device.details["path"]
         logger.debug(
-            "%s: BLE device changed from %s (%s) [rssi:%s] to %s (%s) [rssi:%s]; closing connection",
+            "%s: BLE device changed from %s (%s) [rssi:%s] to %s (%s) [rssi:%s]; clearing cached services",
             self.name,
             original_device.address,
             original_path,
@@ -242,7 +242,7 @@ class BlePairing(AbstractPairing):
             new_path,
             device.rssi,
         )
-        async_create_task(self.close_after_operation(clear_cached_services=True))
+        async_create_task(self.clear_cached_services())
 
     def _async_description_update(
         self, description: HomeKitAdvertisement | None
@@ -485,18 +485,25 @@ class BlePairing(AbstractPairing):
 
         return accessories
 
-    @operation_lock
-    async def close_after_operation(self, clear_cached_services: bool = False) -> None:
-        """Close the client after an operation."""
-        await self.close(clear_cached_services)
+    async def clear_cached_services(self) -> None:
+        """Clear the cached services.
 
-    async def close(self, clear_cached_services: bool = False) -> None:
+        When bleak 0.17 is released, this can be removed
+        since it will handle all the service caching.
+        """
         async with self._connection_lock:
-            await self._close_while_locked(clear_cached_services)
-
-    async def _close_while_locked(self, clear_cached_services: bool = False):
-        if clear_cached_services:
             self._cached_services = None
+
+    @operation_lock
+    async def close_after_operation(self) -> None:
+        """Close the client after an operation."""
+        await self.close()
+
+    async def close(self) -> None:
+        async with self._connection_lock:
+            await self._close_while_locked()
+
+    async def _close_while_locked(self) -> None:
         if not self.client or not self.client.is_connected:
             return
         try:
