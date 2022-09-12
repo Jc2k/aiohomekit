@@ -19,7 +19,6 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from bleak.backends.device import BLEDevice
-from bleak.backends.service import BleakGATTServiceCollection
 from bleak_retry_connector import (
     BleakAbortedError,
     BleakConnectionError,

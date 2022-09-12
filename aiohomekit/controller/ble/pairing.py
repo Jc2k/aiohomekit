@@ -26,9 +26,7 @@ import time
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from bleak.backends.device import BLEDevice
-from bleak.backends.service import BleakGATTServiceCollection
 from bleak.exc import BleakError
-from bleak_retry_connector import ble_device_has_changed
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
