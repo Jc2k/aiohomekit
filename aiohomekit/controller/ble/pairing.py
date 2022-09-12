@@ -136,10 +136,6 @@ class BlePairing(AbstractPairing):
 
         super().__init__(controller, pairing_data)
 
-        self._cached_services: BleakGATTServiceCollection | None = (
-            client.services if client else None
-        )
-
         self._last_seen = time.monotonic() if description else NEVER_TIME
 
         # Encryption
@@ -218,31 +214,7 @@ class BlePairing(AbstractPairing):
 
     def _async_ble_device_update(self, device: BLEDevice) -> None:
         """Update the BLE device."""
-        original_device = self.device
         self.device = device
-        if not original_device or not ble_device_has_changed(original_device, device):
-            return
-        original_path: str | None = None
-        new_path: str | None = None
-        if (
-            isinstance(original_device.details, dict)
-            and isinstance(device.details, dict)
-            and "path" in original_device.details
-            and "path" in device.details
-        ):
-            original_path = original_device.details["path"]
-            new_path = device.details["path"]
-        logger.debug(
-            "%s: BLE device changed from %s (%s) [rssi:%s] to %s (%s) [rssi:%s]; clearing cached services",
-            self.name,
-            original_device.address,
-            original_path,
-            original_device.rssi,
-            device.address,
-            new_path,
-            device.rssi,
-        )
-        async_create_task(self.clear_cached_services())
 
     def _async_description_update(
         self, description: HomeKitAdvertisement | None
@@ -324,10 +296,9 @@ class BlePairing(AbstractPairing):
                 self.device,
                 self.name,
                 self._async_disconnected,
-                cached_services=self._cached_services,
+                use_services_cache=True,
                 ble_device_callback=lambda: self.device,
             )
-            self._cached_services = self.client.services
             logger.debug(
                 "%s: Connected, processing subscriptions: %s; rssi=%s",
                 self.name,
@@ -484,15 +455,6 @@ class BlePairing(AbstractPairing):
         logger.debug("%s: Completed fetching GATT database", self.name)
 
         return accessories
-
-    async def clear_cached_services(self) -> None:
-        """Clear the cached services.
-
-        When bleak 0.17 is released, this can be removed
-        since it will handle all the service caching.
-        """
-        async with self._connection_lock:
-            self._cached_services = None
 
     @operation_lock
     async def close_after_operation(self) -> None:
