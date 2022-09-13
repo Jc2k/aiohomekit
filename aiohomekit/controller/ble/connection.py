@@ -19,7 +19,6 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from bleak.backends.device import BLEDevice
-from bleak.backends.service import BleakGATTServiceCollection
 from bleak_retry_connector import (
     BleakAbortedError,
     BleakConnectionError,
@@ -40,7 +39,7 @@ async def establish_connection(
     name: str,
     disconnected_callback: Callable[[AIOHomeKitBleakClient], None],
     max_attempts: int = MAX_CONNECT_ATTEMPTS,
-    cached_services: BleakGATTServiceCollection | None = None,
+    use_services_cache: bool = False,
     ble_device_callback: Callable[[BLEDevice], None] = None,
 ) -> AIOHomeKitBleakClient:
     """Establish a connection to the accessory."""
@@ -51,7 +50,7 @@ async def establish_connection(
             name,
             disconnected_callback,
             max_attempts=max_attempts,
-            cached_services=cached_services,
+            use_services_cache=use_services_cache,
             ble_device_callback=ble_device_callback,
         )
     except (BleakAbortedError, BleakConnectionError) as ex:

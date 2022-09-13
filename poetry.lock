@@ -122,23 +122,23 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "bleak"
-version = "0.15.1"
+version = "0.17.0"
 description = "Bluetooth Low Energy platform Agnostic Klient"
 category = "main"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
-bleak-winrt = {version = ">=1.1.1", markers = "platform_system == \"Windows\""}
-dbus-next = {version = "*", markers = "platform_system == \"Linux\""}
-pyobjc-core = {version = "*", markers = "platform_system == \"Darwin\""}
-pyobjc-framework-CoreBluetooth = {version = "*", markers = "platform_system == \"Darwin\""}
-pyobjc-framework-libdispatch = {version = "*", markers = "platform_system == \"Darwin\""}
-typing-extensions = ">=4.2.0"
+async-timeout = ">=4.0.1,<5.0.0"
+bleak-winrt = {version = ">=1.1.1,<2.0.0", markers = "platform_system == \"Windows\""}
+dbus-fast = {version = ">=1.4.0,<2.0.0", markers = "platform_system == \"Linux\""}
+pyobjc-core = {version = ">=8.5,<9.0", markers = "platform_system == \"Darwin\""}
+pyobjc-framework-CoreBluetooth = {version = ">=8.5,<9.0", markers = "platform_system == \"Darwin\""}
+pyobjc-framework-libdispatch = {version = ">=8.5,<9.0", markers = "platform_system == \"Darwin\""}
 
 [[package]]
 name = "bleak-retry-connector"
-version = "1.14.0"
+version = "1.15.0"
 description = "A connector for Bleak Clients that handles transient connection failures"
 category = "main"
 optional = false
@@ -146,7 +146,7 @@ python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
 async-timeout = ">=4.0.1"
-bleak = ">=0.15.1"
+bleak = ">=0.17.0"
 dbus-fast = {version = ">=1.4.0", markers = "platform_system == \"Linux\""}
 
 [package.extras]
@@ -286,14 +286,6 @@ python-versions = ">=3.7,<4.0"
 
 [package.extras]
 docs = ["Sphinx[docs] (>=5.1.1,<6.0.0)", "myst-parser[docs] (>=0.18.0,<0.19.0)", "sphinx-rtd-theme[docs] (>=1.0.0,<2.0.0)", "sphinxcontrib-asyncio[docs] (>=0.3.0,<0.4.0)", "sphinxcontrib-fulltoc[docs] (>=1.2.0,<2.0.0)"]
-
-[[package]]
-name = "dbus-next"
-version = "0.2.3"
-description = "A zero-dependency DBus library for Python with asyncio support"
-category = "main"
-optional = false
-python-versions = ">=3.6.0"
 
 [[package]]
 name = "dill"
@@ -725,7 +717,7 @@ python-versions = ">=3.6,<4.0"
 name = "typing-extensions"
 version = "4.3.0"
 description = "Backported and Experimental Type Hints for Python 3.7+"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 
@@ -777,7 +769,7 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "a96a9bfedc9985dfa0761888926d8aa3d96eb0d4638200d42a3e69178cb015cc"
+content-hash = "ac1659b6371834ba2db3ee17d4e1db67266f3ed5b78084e3b2907ea15527436d"
 
 [metadata.files]
 aiocoap = [
@@ -907,12 +899,12 @@ black = [
     {file = "black-22.6.0.tar.gz", hash = "sha256:6c6d39e28aed379aec40da1c65434c77d75e65bb59a1e1c283de545fb4e7c6c9"},
 ]
 bleak = [
-    {file = "bleak-0.15.1-py2.py3-none-any.whl", hash = "sha256:af90ac301a723433460cb56215dd00f687281fa397395c2faadd9e59741ba3b4"},
-    {file = "bleak-0.15.1.tar.gz", hash = "sha256:d8c8d88de0f22a15bd135ba056c4e5b2fb9f15119283def21b1ed7d43c00d590"},
+    {file = "bleak-0.17.0-py3-none-any.whl", hash = "sha256:be243ced0132b02d43738411d7e5f210fb536905a867d26c339085b4f976ddb2"},
+    {file = "bleak-0.17.0.tar.gz", hash = "sha256:16f4decdc12d8dde5bef45496b7a4b1ef2de27f6a302119cd606eae16d54d483"},
 ]
 bleak-retry-connector = [
-    {file = "bleak-retry-connector-1.14.0.tar.gz", hash = "sha256:cb0862c0c932b25701fa9828ab2b9eb5e3deb9cf1360033173144a5638470e42"},
-    {file = "bleak_retry_connector-1.14.0-py3-none-any.whl", hash = "sha256:344680fb30d79dcaa2586badd634a5a2f74dbb91ddb621d52ca81373d81dc587"},
+    {file = "bleak-retry-connector-1.15.0.tar.gz", hash = "sha256:4483ec64095978e17c81296266a72fc0f73d6a89f053476f67bf2c1fe70c5d9e"},
+    {file = "bleak_retry_connector-1.15.0-py3-none-any.whl", hash = "sha256:ec76989d592d0e78729223a0a955cceec27f3ab9f0267996fd04ef1c9a79be37"},
 ]
 bleak-winrt = [
     {file = "bleak-winrt-1.1.1.tar.gz", hash = "sha256:3e7765f98d71b5229d95bd3b197931994dead40f3144e7186de7b8f664e26df0"},
@@ -1089,10 +1081,6 @@ cryptography = [
 dbus-fast = [
     {file = "dbus-fast-1.4.0.tar.gz", hash = "sha256:292fec563d27f39bdc46d0a7d03320ff2d77f5f336bd8f564fe186946a213764"},
     {file = "dbus_fast-1.4.0-py3-none-any.whl", hash = "sha256:3fea12c425587bb2b552e60e40bfcda2d3b94e77a8b2a30ec07c5bbc187bc984"},
-]
-dbus-next = [
-    {file = "dbus_next-0.2.3-py3-none-any.whl", hash = "sha256:58948f9aff9db08316734c0be2a120f6dc502124d9642f55e90ac82ffb16a18b"},
-    {file = "dbus_next-0.2.3.tar.gz", hash = "sha256:f4eae26909332ada528c0a3549dda8d4f088f9b365153952a408e28023a626a5"},
 ]
 dill = [
     {file = "dill-0.3.5.1-py2.py3-none-any.whl", hash = "sha256:33501d03270bbe410c72639b350e941882a8b0fd55357580fbc873fba0c59302"},
