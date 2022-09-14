@@ -67,7 +67,9 @@ async def test_reconnect_soon_after_disconnected(pairing: IpPairing):
     pairing._async_description_update(None)
     pairing._async_description_update(None)
 
-    await asyncio.sleep(0) # ensure the callback has a chance to run and create _connector
+    await asyncio.sleep(
+        0
+    )  # ensure the callback has a chance to run and create _connector
     await asyncio.wait_for(pairing.connection._connector, timeout=0.5)
     assert pairing.connection.is_connected
 
@@ -95,7 +97,9 @@ async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing: IpPairi
 
         for _ in range(3):
             pairing._async_description_update(None)
-            await asyncio.sleep(0) # ensure the callback has a chance to run and create _connector
+            await asyncio.sleep(
+                0
+            )  # ensure the callback has a chance to run and create _connector
             with pytest.raises(asyncio.TimeoutError):
                 await asyncio.wait_for(
                     asyncio.shield(pairing.connection._connector), timeout=0.2
