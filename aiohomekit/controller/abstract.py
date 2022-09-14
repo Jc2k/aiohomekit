@@ -272,7 +272,7 @@ class AbstractPairing(metaclass=ABCMeta):
         This method is called when the config num changes.
         """
 
-    async def shutdown_if_primary_pairing_removed(self, pairingId: str) -> None:
+    async def _shutdown_if_primary_pairing_removed(self, pairingId: str) -> None:
         """Shutdown the connection if the primary pairing was removed."""
         if pairingId == self._pairing_data.get("iOSPairingId"):
             await self.shutdown()
