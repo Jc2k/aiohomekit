@@ -271,8 +271,12 @@ class AbstractPairing(metaclass=ABCMeta):
         This method is called when the config num changes.
         """
 
-    async def shutdown(self):
-        """Shutdown the pairing."""
+    async def shutdown(self) -> None:
+        """Shutdown the pairing.
+        
+        This method is irreversible. It should be called when
+        the pairing is removed or the controller is shutdown.
+        """
         self._shutdown = True
         await self.close()
 
