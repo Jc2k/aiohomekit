@@ -273,7 +273,7 @@ class AbstractPairing(metaclass=ABCMeta):
 
     async def shutdown(self) -> None:
         """Shutdown the pairing.
-        
+
         This method is irreversible. It should be called when
         the pairing is removed or the controller is shutdown.
         """
