@@ -74,6 +74,7 @@ class AbstractPairing(metaclass=ABCMeta):
         self.availability_listeners: set[Callable[[bool], None]] = set()
         self.config_changed_listeners: set[Callable[[int], None]] = set()
         self._accessories_state: AccessoriesState | None = None
+        self._shutdown = False
 
         self.id = pairing_data["AccessoryPairingID"]
         self._load_accessories_from_cache()
@@ -131,6 +132,9 @@ class AbstractPairing(metaclass=ABCMeta):
     def _async_description_update(
         self, description: AbstractDescription | None
     ) -> None:
+        if self._shutdown:
+            return
+
         if self.description != description:
             logger.debug(
                 "%s: Description updated: old=%s new=%s",

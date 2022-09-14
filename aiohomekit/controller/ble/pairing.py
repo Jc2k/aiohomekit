@@ -277,6 +277,8 @@ class BlePairing(AbstractPairing):
         if self.client and self.client.is_connected:
             return
         async with self._connection_lock:
+            if self._shutdown:
+                raise RuntimeError("Pairing is shutting down")
             # Check again while holding the lock
             if self.client and self.client.is_connected:
                 return
@@ -894,7 +896,7 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error(attempts=10)
-    async def remove_pairing(self, pairingId: str):
+    async def remove_pairing(self, pairingId: str) -> bool:
         await self._populate_accessories_and_characteristics()
 
         request_tlv = TLV.encode_list(
@@ -934,6 +936,9 @@ class BlePairing(AbstractPairing):
                     f"{self.name}: Remove pairing failed: insufficient access"
                 )
             raise UnknownError(f"{self.name}: Remove pairing failed: unknown error")
+
+        self._shutdown = True
+        return True
 
     async def image(self, accessory: int, width: int, height: int) -> None:
         """Bluetooth devices don't return images."""

@@ -131,6 +131,8 @@ class IpPairing(ZeroconfPairing):
             await self.subscribe(self.subscriptions)
 
     async def _ensure_connected(self):
+        if self._shutdown:
+            raise RuntimeError("Pairing is shutting down")
         try:
             await asyncio.wait_for(self.connection.ensure_connection(), 10)
         except asyncio.TimeoutError:
@@ -459,7 +461,7 @@ class IpPairing(ZeroconfPairing):
 
         return True
 
-    async def remove_pairing(self, pairingId):
+    async def remove_pairing(self, pairingId: str) -> bool:
         """
         Remove a pairing between the controller and the accessory. The pairing data is delete on both ends, on the
         accessory and the controller.
@@ -491,6 +493,7 @@ class IpPairing(ZeroconfPairing):
                 raise AuthenticationError("Remove pairing failed: insufficient access")
             raise UnknownError("Remove pairing failed: unknown error")
 
+        self._shutdown = True
         return True
 
     async def image(self, accessory: int, width: int, height: int) -> bytes:
