@@ -132,7 +132,7 @@ class IpPairing(ZeroconfPairing):
 
     async def _ensure_connected(self):
         if self._shutdown:
-            raise RuntimeError("Pairing is shutting down")
+            return
         try:
             await asyncio.wait_for(self.connection.ensure_connection(), 10)
         except asyncio.TimeoutError:

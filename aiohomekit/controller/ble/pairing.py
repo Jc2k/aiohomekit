@@ -278,7 +278,7 @@ class BlePairing(AbstractPairing):
             return
         async with self._connection_lock:
             if self._shutdown:
-                raise RuntimeError("Pairing is shutting down")
+                return
             # Check again while holding the lock
             if self.client and self.client.is_connected:
                 return

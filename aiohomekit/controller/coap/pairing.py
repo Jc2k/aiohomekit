@@ -78,7 +78,7 @@ class CoAPPairing(ZeroconfPairing):
         # let in one coroutine at a time
         async with self.connection_lock:
             if self._shutdown:
-                raise RuntimeError("Pairing is shutting down")
+                return
             # are we already connected?
             if self.connection.is_connected:
                 return
