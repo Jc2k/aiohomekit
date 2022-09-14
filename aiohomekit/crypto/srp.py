@@ -93,6 +93,7 @@ class Srp:
         self.username = username
         self.password = password
         self.hu = self.digest(self.username.encode())  # H(username)
+        self._session_key: bytes | None = None  # session key
 
     @staticmethod
     def generate_private_key() -> int:
@@ -121,7 +122,10 @@ class Srp:
 
     def get_session_key_bytes(self) -> bytes:
         """Returns the session key as bytes."""
-        return self.digest(self.get_shared_secret_bytes())
+        if self._session_key is not None:
+            return self._session_key
+        self._session_key = self.digest(self.get_shared_secret_bytes())
+        return self._session_key
 
     def get_session_key(self) -> int:
         """Return the K value for the session key."""
