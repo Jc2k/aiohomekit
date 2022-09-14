@@ -493,7 +493,9 @@ class IpPairing(ZeroconfPairing):
                 raise AuthenticationError("Remove pairing failed: insufficient access")
             raise UnknownError("Remove pairing failed: unknown error")
 
-        await self.shutdown()
+        # shutdown if we remove the admin pairing
+        if pairingId == self.pairing_data["iOSPairingId"]:
+            await self.shutdown()
         return True
 
     async def image(self, accessory: int, width: int, height: int) -> bytes:

@@ -77,6 +77,7 @@ class AbstractPairing(metaclass=ABCMeta):
         self._shutdown = False
 
         self.id = pairing_data["AccessoryPairingID"]
+        self._admin_pairing_id = pairing_data["iOSPairingId"]
         self._load_accessories_from_cache()
 
     @property
@@ -270,6 +271,11 @@ class AbstractPairing(metaclass=ABCMeta):
 
         This method is called when the config num changes.
         """
+
+    async def shutdown_if_admin_pairing_removed(self, pairingId: str) -> None:
+        """Shutdown the connection if the admin pairing was removed."""
+        if pairingId == self._admin_pairing_id:
+            await self.shutdown()
 
     async def shutdown(self) -> None:
         """Shutdown the pairing.

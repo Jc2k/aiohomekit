@@ -5,7 +5,7 @@ import pytest
 from aiohomekit.controller import Controller, controller as controller_module
 from aiohomekit.controller.ble.controller import BleController
 from aiohomekit.controller.ip.controller import IpController
-from aiohomekit.exceptions import AuthenticationError
+from aiohomekit.exceptions import AccessoryDisconnectedError
 
 
 async def test_remove_pairing(controller_and_paired_accessory):
@@ -18,7 +18,7 @@ async def test_remove_pairing(controller_and_paired_accessory):
     await controller_and_paired_accessory.remove_pairing("alias")
 
     # Verify now gives an appropriate error
-    with pytest.raises(AuthenticationError):
+    with pytest.raises(AccessoryDisconnectedError):
         await pairing.get_characteristics([(1, 9)])
 
 

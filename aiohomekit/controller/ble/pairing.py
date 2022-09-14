@@ -937,7 +937,7 @@ class BlePairing(AbstractPairing):
                 )
             raise UnknownError(f"{self.name}: Remove pairing failed: unknown error")
 
-        await self.shutdown()
+        await self.shutdown_if_admin_pairing_removed(pairingId)
         return True
 
     async def image(self, accessory: int, width: int, height: int) -> None:

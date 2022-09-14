@@ -235,6 +235,6 @@ class CoAPPairing(ZeroconfPairing):
     async def remove_pairing(self, pairingId: str) -> bool:
         await self._ensure_connected()
         if await self.connection.remove_pairing(pairingId):
-            await self.shutdown()
+            await self.shutdown_if_admin_pairing_removed(pairingId)
             return True
         return False
