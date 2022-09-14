@@ -493,7 +493,7 @@ class IpPairing(ZeroconfPairing):
                 raise AuthenticationError("Remove pairing failed: insufficient access")
             raise UnknownError("Remove pairing failed: unknown error")
 
-        self.shutdown()
+        await self.shutdown()
         return True
 
     async def image(self, accessory: int, width: int, height: int) -> bytes:

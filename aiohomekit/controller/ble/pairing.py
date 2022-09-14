@@ -937,7 +937,7 @@ class BlePairing(AbstractPairing):
                 )
             raise UnknownError(f"{self.name}: Remove pairing failed: unknown error")
 
-        self.shutdown()
+        await self.shutdown()
         return True
 
     async def image(self, accessory: int, width: int, height: int) -> None:

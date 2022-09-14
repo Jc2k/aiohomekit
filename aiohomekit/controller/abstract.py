@@ -271,9 +271,10 @@ class AbstractPairing(metaclass=ABCMeta):
         This method is called when the config num changes.
         """
 
-    def shutdown(self):
+    async def shutdown(self):
         """Shutdown the pairing."""
         self._shutdown = True
+        await self.close()
 
     def _callback_availability_changed(self, available: bool) -> None:
         """Notify availability changed listeners."""
