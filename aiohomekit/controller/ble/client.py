@@ -23,6 +23,7 @@ from typing import Any, Callable, TypeVar, cast
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
+from bleak_retry_connector import BLEAK_RETRY_EXCEPTIONS as BLEAK_EXCEPTIONS
 
 from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
 from aiohomekit.exceptions import EncryptionError
@@ -36,7 +37,7 @@ from aiohomekit.pdu import (
 )
 from aiohomekit.protocol.tlv import TLV
 
-from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
+from .bleak import AIOHomeKitBleakClient
 from .const import AdditionalParameterTypes
 from .structs import BleRequest
 

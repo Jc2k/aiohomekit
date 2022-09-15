@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
+from bleak_retry_connector import BLEAK_RETRY_EXCEPTIONS as BLEAK_EXCEPTIONS
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -52,7 +53,7 @@ from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from ..abstract import AbstractPairing, AbstractPairingData
-from .bleak import BLEAK_EXCEPTIONS, AIOHomeKitBleakClient
+from .bleak import AIOHomeKitBleakClient
 from .client import (
     PDUStatusError,
     ble_request,
