@@ -74,8 +74,10 @@ class AbstractPairing(metaclass=ABCMeta):
         self.availability_listeners: set[Callable[[bool], None]] = set()
         self.config_changed_listeners: set[Callable[[int], None]] = set()
         self._accessories_state: AccessoriesState | None = None
+        self._shutdown = False
 
         self.id = pairing_data["AccessoryPairingID"]
+        self._pairing_data = pairing_data
         self._load_accessories_from_cache()
 
     @property
@@ -131,6 +133,9 @@ class AbstractPairing(metaclass=ABCMeta):
     def _async_description_update(
         self, description: AbstractDescription | None
     ) -> None:
+        if self._shutdown:
+            return
+
         if self.description != description:
             logger.debug(
                 "%s: Description updated: old=%s new=%s",
@@ -266,6 +271,20 @@ class AbstractPairing(metaclass=ABCMeta):
 
         This method is called when the config num changes.
         """
+
+    async def _shutdown_if_primary_pairing_removed(self, pairingId: str) -> None:
+        """Shutdown the connection if the primary pairing was removed."""
+        if pairingId == self._pairing_data.get("iOSPairingId"):
+            await self.shutdown()
+
+    async def shutdown(self) -> None:
+        """Shutdown the pairing.
+
+        This method is irreversible. It should be called when
+        the pairing is removed or the controller is shutdown.
+        """
+        self._shutdown = True
+        await self.close()
 
     def _callback_availability_changed(self, available: bool) -> None:
         """Notify availability changed listeners."""

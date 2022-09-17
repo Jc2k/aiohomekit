@@ -683,7 +683,7 @@ class CoAPHomeKitConnection:
         ]
         return list(zip(id_list, pk_list, pr_list))
 
-    async def remove_pairing(self, pairing_id):
+    async def remove_pairing(self, pairing_id) -> bool:
         pairings_characteristic = self.info.accessories[
             0
         ].find_service_characteristic_by_type(0x55, 0x50)

@@ -77,6 +77,8 @@ class CoAPPairing(ZeroconfPairing):
     async def _ensure_connected(self):
         # let in one coroutine at a time
         async with self.connection_lock:
+            if self._shutdown:
+                return
             # are we already connected?
             if self.connection.is_connected:
                 return
@@ -230,6 +232,9 @@ class CoAPPairing(ZeroconfPairing):
         )
         return pairings
 
-    async def remove_pairing(self, pairingId):
+    async def remove_pairing(self, pairingId: str) -> bool:
         await self._ensure_connected()
-        return await self.connection.remove_pairing(pairingId)
+        if await self.connection.remove_pairing(pairingId):
+            await self._shutdown_if_primary_pairing_removed(pairingId)
+            return True
+        return False
