@@ -48,6 +48,10 @@ class Pdu09Characteristic(TLVStruct):
         HAP_TLV.kTLVHAPParamHAPValidValuesRangeDescriptor
     )
 
+    user_descriptor: bytes = tlv_entry(
+        HAP_TLV.kTLVHAPParamGATTUserDescriptionDescriptor
+    )
+
     @property
     def supports_read(self) -> bool:
         return self.properties & 0x0001
