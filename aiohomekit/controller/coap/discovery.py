@@ -70,8 +70,6 @@ class CoAPDiscovery(ZeroconfDiscovery):
                 self.controller, pairing
             )
 
-            print(obj.pairing_data)
-
             return obj
 
         return finish_pairing
