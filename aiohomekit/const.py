@@ -33,9 +33,8 @@ else:
 
 
 try:
-    if "AIOHOMEKIT_TRANSPORT_COAP" in os.environ:
-        __import__("aiocoap")
-        COAP_TRANSPORT_SUPPORTED = True
+    __import__("aiocoap")
+    COAP_TRANSPORT_SUPPORTED = True
 except ModuleNotFoundError:
     pass
 
