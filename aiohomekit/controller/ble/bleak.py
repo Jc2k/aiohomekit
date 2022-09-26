@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 import logging
+from typing import Any
 import uuid
 
 from bleak.backends.characteristic import BleakGATTCharacteristic
@@ -69,9 +70,9 @@ def _determine_fragment_size(
 class AIOHomeKitBleakClient(BleakClientWithServiceCache):
     """Wrapper for bleak.BleakClient that auto discovers the max mtu."""
 
-    def __init__(self, address_or_ble_device: BLEDevice | str) -> None:
+    def __init__(self, address_or_ble_device: BLEDevice | str, **kwargs: Any) -> None:
         """Wrap bleak."""
-        super().__init__(address_or_ble_device)
+        super().__init__(address_or_ble_device, **kwargs)
         self._char_cache: dict[tuple[str, str], BleakGATTCharacteristic] = {}
         self._iid_cache: dict[BleakGATTCharacteristic, int] = {}
 
