@@ -283,7 +283,7 @@ class Pdu09Service(TLVStruct):
         HAP_TLV.kTLVHAPParamUnknown_14_Characteristics
     )
     properties: u16 = tlv_entry(HAP_TLV.kTLVHAPParamHAPServiceProperties)
-    linked_services: bytes = tlv_entry(HAP_TLV.kTLVHAPParamHAPLinkedServices)
+    linked_services: Sequence[u16] = tlv_entry(HAP_TLV.kTLVHAPParamHAPLinkedServices)
 
     @property
     def characteristics(self) -> list[Pdu09Characteristic]:
@@ -302,13 +302,18 @@ class Pdu09Service(TLVStruct):
         return None
 
     def to_dict(self):
-        return {
+        res = {
             "type": f"{self.type:X}",
             "iid": self.instance_id,
             "characteristics": [
                 characteristic.to_dict() for characteristic in self.characteristics
             ],
         }
+
+        if self.linked_services:
+            res["linked"] = self.linked_services
+
+        return res
 
 
 @dataclass
