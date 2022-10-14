@@ -145,6 +145,8 @@ class Pdu09Characteristic(TLVStruct):
 
     @property
     def value(self):
+        if not self._value:
+            return None
         return self._unpack_value(self._value)
 
     def _unpack_value(self, value: bytes) -> Any:
