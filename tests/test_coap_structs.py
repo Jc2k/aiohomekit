@@ -151,7 +151,7 @@ def test_coap_pdu09_decode_1():
 
     assert lightbulb_service.type == 0x43
     assert lightbulb_service.properties == 0x0001
-    assert lightbulb_service.linked_services == b""
+    assert lightbulb_service.linked_services == []
 
     # characteristic tests
     # get a characteristic whose type is string

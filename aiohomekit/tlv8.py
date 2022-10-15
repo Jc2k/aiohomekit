@@ -137,7 +137,8 @@ def deserialize_typing_sequence(value_type: type, value: bytes) -> Sequence[TLVS
 
     results = []
     for inner_value in tlv_array(value):
-        results.append(inner_type.decode(inner_value))
+        fn = find_deserializer(inner_type)
+        results.append(fn(inner_type, inner_value))
 
     return results
 
