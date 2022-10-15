@@ -46,7 +46,6 @@ def test_decode_wemo_stage():
         )
     )
 
-
     assert db.to_dict() == [
         {
             "aid": 1,
