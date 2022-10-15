@@ -323,7 +323,7 @@ def test_decode_wemo_stage():
         }
     ]
 
-    
+
 def test_decode_eve_energy():
     db = Pdu09Database.decode(
         bytes.fromhex(
