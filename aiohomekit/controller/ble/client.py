@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Generator
 import logging
 import random
@@ -23,7 +23,12 @@ from typing import Any, Callable, TypeVar, cast
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
-from bleak_retry_connector import BLEAK_RETRY_EXCEPTIONS as BLEAK_EXCEPTIONS
+from bleak.exc import BleakDBusError
+from bleak_retry_connector import (
+    BLEAK_BACKOFF_TIME,
+    BLEAK_DBUS_BACKOFF_TIME,
+    BLEAK_RETRY_EXCEPTIONS as BLEAK_EXCEPTIONS,
+)
 
 from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
 from aiohomekit.exceptions import EncryptionError
@@ -70,18 +75,37 @@ def retry_bluetooth_connection_error(attempts: int = DEFAULT_ATTEMPTS) -> WrapFu
         we need to retry the operation.
         """
 
-        async def _async_wrap(*args: Any, **kwargs: Any) -> Any:
+        async def _async_wrap_bluetooth_connection_error_retry(
+            *args: Any, **kwargs: Any
+        ) -> Any:
             for attempt in range(attempts):
                 try:
                     return await func(*args, **kwargs)
-                except BLEAK_EXCEPTIONS:
+                except BLEAK_EXCEPTIONS as ex:
+                    if isinstance(
+                        ex,
+                        (
+                            BleakDBusError,
+                            EOFError,
+                            asyncio.TimeoutError,
+                            BrokenPipeError,
+                        ),
+                    ):
+                        backoff_time = BLEAK_DBUS_BACKOFF_TIME
+                    else:
+                        backoff_time = BLEAK_BACKOFF_TIME
+
                     if attempt == attempts - 1:
                         raise
                     logger.debug(
-                        "Bleak error calling %s, retrying...", func, exc_info=True
+                        "Bleak error calling %s, backing off: %s, retrying...",
+                        func,
+                        backoff_time,
+                        exc_info=True,
                     )
+                    await asyncio.sleep(backoff_time)
 
-        return cast(WrapFuncType, _async_wrap)
+        return cast(WrapFuncType, _async_wrap_bluetooth_connection_error_retry)
 
     return cast(WrapFuncType, _decorator_retry_bluetooth_connection_error)
 
