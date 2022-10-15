@@ -46,8 +46,6 @@ def test_decode_wemo_stage():
         )
     )
 
-    print(db)
-    print(db.to_dict())
 
     assert db.to_dict() == [
         {
