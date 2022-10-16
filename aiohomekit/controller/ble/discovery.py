@@ -24,6 +24,7 @@ import uuid
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakError
+from bleak_retry_connector import retry_bluetooth_connection_error
 
 from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
 from aiohomekit.model import CharacteristicsTypes, ServicesTypes
@@ -32,12 +33,7 @@ from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_par
 from aiohomekit.utils import check_pin_format, pair_with_auth
 
 from .bleak import AIOHomeKitBleakClient
-from .client import (
-    char_read,
-    char_write,
-    drive_pairing_state_machine,
-    retry_bluetooth_connection_error,
-)
+from .client import char_read, char_write, drive_pairing_state_machine
 from .connection import establish_connection
 from .manufacturer_data import HomeKitAdvertisement
 from .pairing import BlePairing
