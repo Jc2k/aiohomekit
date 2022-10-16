@@ -28,7 +28,10 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakError
-from bleak_retry_connector import BLEAK_RETRY_EXCEPTIONS as BLEAK_EXCEPTIONS
+from bleak_retry_connector import (
+    BLEAK_RETRY_EXCEPTIONS as BLEAK_EXCEPTIONS,
+    retry_bluetooth_connection_error,
+)
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -60,7 +63,6 @@ from .client import (
     ble_request,
     drive_pairing_state_machine,
     raise_for_pdu_status,
-    retry_bluetooth_connection_error,
 )
 from .connection import establish_connection
 from .key import DecryptionKey, EncryptionKey
