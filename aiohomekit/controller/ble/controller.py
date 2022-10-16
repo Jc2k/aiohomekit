@@ -56,17 +56,17 @@ class BleController(AbstractController):
 
         if pairing := self.pairings.get(data.id):
             pairing._async_description_update(data)
-            pairing._async_ble_device_update(device)
+            pairing._async_ble_update(device, advertisement_data)
 
         if futures := self._ble_futures_by_id.get(data.id):
-            discovery = BleDiscovery(self, device, data)
+            discovery = BleDiscovery(self, device, data, advertisement_data)
             logger.debug("BLE device for %s found, fulfilling futures", data.id)
             for future in futures:
                 future.set_result(discovery)
             futures.clear()
 
         if futures := self._ble_futures.get(data.address):
-            discovery = BleDiscovery(self, device, data)
+            discovery = BleDiscovery(self, device, data, advertisement_data)
             logger.debug("BLE device for %s found, fulfilling futures", data.address)
             for future in futures:
                 future.set_result(discovery)
@@ -75,10 +75,12 @@ class BleController(AbstractController):
         if data.id in self.discoveries:
             # We need to make sure we update the device details
             # in case they changed
-            self.discoveries[data.id]._async_process_advertisement(device, data)
+            self.discoveries[data.id]._async_process_advertisement(
+                device, data, advertisement_data
+            )
             return
 
-        self.discoveries[data.id] = BleDiscovery(self, device, data)
+        self.discoveries[data.id] = BleDiscovery(self, device, data, advertisement_data)
 
     async def async_start(self) -> None:
         logger.debug("Starting BLE controller with instance: %s", self._scanner)

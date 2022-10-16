@@ -26,6 +26,7 @@ import time
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakError
 from bleak_retry_connector import BLEAK_RETRY_EXCEPTIONS as BLEAK_EXCEPTIONS
 
@@ -127,8 +128,10 @@ class BlePairing(AbstractPairing):
         device: BLEDevice | None = None,
         client: AIOHomeKitBleakClient | None = None,
         description: HomeKitAdvertisement | None = None,
+        ble_advertisement: AdvertisementData | None = None,
     ) -> None:
         self.device = device
+        self.ble_advertisement = ble_advertisement
         self.client = client
         self.description = description
         self.pairing_data = pairing_data
@@ -183,7 +186,7 @@ class BlePairing(AbstractPairing):
 
     @property
     def rssi(self) -> int | None:
-        return self.device.rssi if self.device else None
+        return self.ble_advertisement.rssi if self.ble_advertisement else None
 
     @property
     def is_connected(self) -> bool:
@@ -211,9 +214,12 @@ class BlePairing(AbstractPairing):
         """The transport used for the connection."""
         return Transport.BLE
 
-    def _async_ble_device_update(self, device: BLEDevice) -> None:
-        """Update the BLE device."""
+    def _async_ble_update(
+        self, device: BLEDevice, ble_advertisement: AdvertisementData
+    ) -> None:
+        """Update the BLE device and ble_advertisement."""
         self.device = device
+        self.ble_advertisement = ble_advertisement
 
     def _async_description_update(
         self, description: HomeKitAdvertisement | None
@@ -288,6 +294,7 @@ class BlePairing(AbstractPairing):
                 )
             ):
                 self.device = discovery.device
+                self.ble_advertisement = discovery.ble_advertisement
                 self.description = discovery.description
             elif not self.device:
                 raise AccessoryNotFoundError(

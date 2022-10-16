@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 import uuid
 
 from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakError
 
 from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
@@ -61,10 +62,12 @@ class BleDiscovery(AbstractDiscovery):
         controller: BleController,
         device: BLEDevice,
         description: HomeKitAdvertisement,
+        ble_advertisement: AdvertisementData,
     ) -> None:
         self.description = description
         self.controller = controller
         self.device = device
+        self.ble_advertisement = ble_advertisement
         self.client: AIOHomeKitBleakClient | None = None
         self._connection_lock = asyncio.Lock()
 
@@ -74,7 +77,7 @@ class BleDiscovery(AbstractDiscovery):
 
     @property
     def rssi(self) -> int | None:
-        return self.device.rssi if self.device else None
+        return self.ble_advertisement.rssi if self.ble_advertisement else None
 
     async def _ensure_connected(self):
         logger.debug(
@@ -201,8 +204,12 @@ class BleDiscovery(AbstractDiscovery):
         await char_write(self.client, None, None, char, iid, b"\x01")
 
     def _async_process_advertisement(
-        self, device: BLEDevice, description: HomeKitAdvertisement
+        self,
+        device: BLEDevice,
+        description: HomeKitAdvertisement,
+        ble_advertisement: AdvertisementData,
     ):
         """Update the device and description so we connect to the right place."""
         self.device = device
+        self.ble_advertisement = ble_advertisement
         self.description = description
