@@ -16,7 +16,7 @@
 from dataclasses import dataclass, field
 import enum
 import struct
-from typing import Any, Optional, Union
+from typing import Any, Optional, Sequence, Union
 
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16, u128
 
@@ -103,6 +103,7 @@ class Characteristic(TLVStruct):
     user_description: bytes = tlv_entry(
         HAP_TLV.kTLVHAPParamGATTUserDescriptionDescriptor
     )
+    linked_services: Sequence[u16] = tlv_entry(HAP_TLV.kTLVHAPParamHAPLinkedServices)
 
     @property
     def supports_read(self) -> bool:
@@ -303,5 +304,8 @@ class Characteristic(TLVStruct):
             min_max_value = self.min_max_value
             result["minValue"] = min_max_value[0]
             result["maxValue"] = min_max_value[1]
+
+        if self.linked_services:
+            result["linked"] = self.linked_services
 
         return result
