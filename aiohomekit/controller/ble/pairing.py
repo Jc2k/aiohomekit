@@ -251,7 +251,10 @@ class BlePairing(AbstractPairing):
     async def _async_request_under_lock(
         self, opcode: OpCode, char: Characteristic, data: bytes | None = None
     ) -> bytes:
-        endpoint = self.client.get_characteristic(char.service.type, char.type)
+        if char.handle:
+            endpoint = self.client.get_characteristic_by_handle(char.handle)
+        else:
+            endpoint = self.client.get_characteristic(char.service.type, char.type)
         if not self.client or not self.client.is_connected:
             logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
             raise AccessoryDisconnectedError(f"{self.name} is not connected")
@@ -448,6 +451,7 @@ class BlePairing(AbstractPairing):
                 logger.debug("%s: char: %s decoded: %s", self.name, char, decoded)
 
                 hap_char.iid = iid
+                hap_char.handle = char.handle
                 hap_char.perms = decoded["perms"]
                 # Some vendor characteristics have no format
                 # See https://github.com/home-assistant/core/issues/76104
