@@ -85,6 +85,7 @@ class Characteristic:
     minValue: int | float | None
     maxValue: int | float | None
     minStep: int | float | None
+    handle: int | None = None
 
     service: Service
 
@@ -99,6 +100,7 @@ class Characteristic:
         self.format = self._get_configuration(kwargs, "format", None)
 
         self.ev = None
+        self.handle = self._get_configuration(kwargs, "handle", None)
         self.description = self._get_configuration(kwargs, "description", None)
         self.unit = self._get_configuration(kwargs, "unit", None)
         self.minValue = self._get_configuration(kwargs, "min_value", None)
@@ -303,6 +305,8 @@ class Characteristic:
             d["maxLen"] = self.maxLen
         if self.valid_values is not None:
             d["valid-values"] = self.valid_values
+        if self.handle is not None:
+            d["handle"] = self.handle
         return d
 
 
