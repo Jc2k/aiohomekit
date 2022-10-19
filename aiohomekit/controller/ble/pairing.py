@@ -444,9 +444,8 @@ class BlePairing(AbstractPairing):
             service_iid = hap_char.service.iid
             service_iid = 7
             logger.debug(
-                "%s: Setting broadcast key for iid: %s service_iid: %s",
+                "%s: Setting broadcast key for service_iid: %s",
                 self.name,
-                iid,
                 service_iid,
             )
             data = await self._async_request_under_lock(
