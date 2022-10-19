@@ -419,32 +419,26 @@ class BlePairing(AbstractPairing):
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
         async with self._ble_request_lock:
-            try:
-                char = self.client.get_characteristic(
-                    SIGNATURE_SERVICE, SIGNATURE_SERVICE_CHAR
-                )
-            except ValueError:
-                logger.debug("%s: No broadcast key available", self.name)
-                return
 
-            iid = await self.client.get_characteristic_iid(char)
+            info = self.accessories.aid(1).services.first(
+                service_type=SIGNATURE_SERVICE
+            )
+            char = info[SIGNATURE_SERVICE_CHAR]
+            payload_inner = TLV.encode_list(
+                [
+                    (HAP_TLV.kTLVHAPParamValue, b"\x00"),
+                ]
+            )
+            payload = (len(payload_inner)).to_bytes(
+                length=2, byteorder="little"
+            ) + payload_inner
+            logger.debug("%s: Sending broadcast key request: %s", self.name, payload)
 
-            tid = random.randint(1, 254)
-            for data in encode_pdu(
-                OpCode.PROTOCOL_CONFIG_REQ, tid, iid, b"\x02\x01\x00"
-            ):
-                await self.client.write_gatt_char(
-                    char,
-                    data,
-                    "write-without-response" not in char.properties,
-                )
-            payload = await self.client.read_gatt_char(char)
+            data = await self._async_request_under_lock(
+                OpCode.PROTOCOL_CONFIG_REQ, char, payload
+            )
 
-            status, _, signature = decode_pdu(tid, payload)
-            if status != PDUStatus.SUCCESS:
-                return
-
-            key = ProtocolConfig.decode(signature).broadcast_encryption_key
+            key = ProtocolConfig.decode(data).broadcast_encryption_key
             self._broadcast_decryption_key = BroadcastDecryptionKey(key)
 
     async def _async_fetch_gatt_database(self) -> Accessories:
