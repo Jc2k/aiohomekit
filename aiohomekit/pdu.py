@@ -99,12 +99,13 @@ def decode_pdu(expected_tid: int, data: bytes) -> tuple[PDUStatus, bool, bytes]:
     status = PDUStatus(status)
 
     logger.debug(
-        "Got PDU %s: TID %02x (Expected: %02x), Status:%s, Len:%d",
+        "Got PDU %s: TID %02x (Expected: %02x), Status:%s, Len:%d - %s",
         control,
         tid,
         expected_tid,
         status,
         len(data) - 5,
+        data,
     )
 
     if tid != expected_tid:
