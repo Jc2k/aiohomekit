@@ -17,7 +17,6 @@ from aiohomekit.controller.ble.manufacturer_data import (
     HOMEKIT_ENCRYPTED_NOTIFICATION_TYPE,
     HomeKitAdvertisement,
     HomeKitEncryptedNotification,
-    is_homekit_manufacturer_data,
 )
 from aiohomekit.controller.ble.pairing import BlePairing
 
