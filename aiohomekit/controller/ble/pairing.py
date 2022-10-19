@@ -424,14 +424,7 @@ class BlePairing(AbstractPairing):
                 service_type=SIGNATURE_SERVICE
             )
             char = info[SIGNATURE_SERVICE_CHAR]
-            payload_inner = TLV.encode_list(
-                [
-                    (HAP_TLV.kTLVHAPParamValue, b"\x00"),
-                ]
-            )
-            payload = (len(payload_inner)).to_bytes(
-                length=2, byteorder="little"
-            ) + payload_inner
+            payload = b"\x02\x00\x01\x00"
             logger.debug("%s: Sending broadcast key request: %s", self.name, payload)
 
             data = await self._async_request_under_lock(
