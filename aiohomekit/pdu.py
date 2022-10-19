@@ -40,7 +40,8 @@ class OpCode(Enum):
     CHAR_TIMED_WRITE = 0x04
     CHAR_EXEC_WRITE = 0x05
     SERV_SIG_READ = 0x06
-    PROTOCOL_CONFIG_REQ = 0x08
+    CHAR_CONFIG = 0x07
+    PROTOCOL_CONFIG = 0x08
 
 
 class PDUStatus(EnumWithDescription):

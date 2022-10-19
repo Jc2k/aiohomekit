@@ -430,14 +430,15 @@ class BlePairing(AbstractPairing):
             )
             char = info[SIGNATURE_SERVICE_CHAR]
             payload = b"\x02\x00\x01\x00"
-            data = await self._async_request_under_lock(
-                OpCode.PROTOCOL_CONFIG_REQ, char, payload
-            )
             logger.debug(
                 "%s: Sending broadcast key request: iid=%s payload=%s",
                 self.name,
                 char.iid,
                 payload,
+            )
+
+            data = await self._async_request_under_lock(
+                OpCode.PROTOCOL_CONFIG, char, payload
             )
 
             key = ProtocolConfig.decode(data).broadcast_encryption_key
