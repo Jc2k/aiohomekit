@@ -276,7 +276,7 @@ class BlePairing(AbstractPairing):
             self._decryption_key,
             opcode,
             endpoint,
-            iid or char.iid,
+            iid if iid is not None else char.iid,
             data,
         )
         raise_for_pdu_status(self.client, pdu_status)
@@ -433,8 +433,17 @@ class BlePairing(AbstractPairing):
                 service_type=SIGNATURE_SERVICE
             )
             hap_char = info[SIGNATURE_SERVICE_CHAR]
+
+            #ble_char = self.client.get_characteristic_by_handle(hap_char.handle)
+            #iid = await self.client.get_characteristic_iid(ble_char)
+            #if iid is None:
+            #    logger.debug("%s: No iid for %s", self.name, hap_char.uuid)
+            #    return
+
             service_iid = hap_char.service.iid
-            payload = b"\x02\x00\x01\x00"
+            #logger.debug("%s: Setting broadcast key for iid: %s service_iid: %s", self.name, iid, service_iid)
+
+            payload = b"\x01\x00"
 
             data = await self._async_request_under_lock(
                 OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
