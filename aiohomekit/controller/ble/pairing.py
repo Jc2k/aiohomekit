@@ -69,7 +69,12 @@ from .client import (
 from .connection import establish_connection
 from .key import BroadcastDecryptionKey, DecryptionKey, EncryptionKey
 from .manufacturer_data import HomeKitAdvertisement, HomeKitEncryptedNotification
-from .structs import HAP_TLV, Characteristic as CharacteristicTLV, ProtocolConfig
+from .structs import (
+    HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV,
+    HAP_TLV,
+    Characteristic as CharacteristicTLV,
+    ProtocolConfig,
+)
 from .values import from_bytes, to_bytes
 
 if TYPE_CHECKING:
@@ -425,10 +430,14 @@ class BlePairing(AbstractPairing):
             )
             char = info[SIGNATURE_SERVICE_CHAR]
             payload = b"\x02\x00\x01\x00"
-            logger.debug("%s: Sending broadcast key request: %s", self.name, payload)
-
             data = await self._async_request_under_lock(
                 OpCode.PROTOCOL_CONFIG_REQ, char, payload
+            )
+            logger.debug(
+                "%s: Sending broadcast key request: iid=%s payload=%s",
+                self.name,
+                char.iid,
+                payload,
             )
 
             key = ProtocolConfig.decode(data).broadcast_encryption_key

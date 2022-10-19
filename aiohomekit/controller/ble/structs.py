@@ -23,6 +23,10 @@ from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16, u128
 from .const import AdditionalParameterTypes
 
 
+class HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV(enum.IntEnum):
+    GenerateBroadcastEncryptionKey = 0x01
+
+
 class HAP_PROTOCOL_CONFIG_TLV(enum.IntEnum):
     kTLVHAPParamCurrentStateNumber = 0x01
     kTLVHAPParamCurrentConfigNumber = 0x02
