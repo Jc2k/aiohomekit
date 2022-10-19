@@ -257,7 +257,11 @@ class BlePairing(AbstractPairing):
             return await self._async_request_under_lock(opcode, char, data)
 
     async def _async_request_under_lock(
-        self, opcode: OpCode, char: Characteristic, data: bytes | None = None
+        self,
+        opcode: OpCode,
+        char: Characteristic,
+        data: bytes | None = None,
+        iid: int | None = None,
     ) -> bytes:
         if char.handle:
             endpoint = self.client.get_characteristic_by_handle(char.handle)
@@ -272,7 +276,7 @@ class BlePairing(AbstractPairing):
             self._decryption_key,
             opcode,
             endpoint,
-            char.iid,
+            iid or char.iid,
             data,
         )
         raise_for_pdu_status(self.client, pdu_status)
@@ -428,6 +432,7 @@ class BlePairing(AbstractPairing):
             info = self.accessories.aid(1).services.first(
                 service_type=SIGNATURE_SERVICE
             )
+            service_iid = info.iid
             char = info[SIGNATURE_SERVICE_CHAR]
             payload = b"\x02\x00\x01\x00"
             logger.debug(
@@ -438,7 +443,7 @@ class BlePairing(AbstractPairing):
             )
 
             data = await self._async_request_under_lock(
-                OpCode.PROTOCOL_CONFIG, char, payload
+                OpCode.PROTOCOL_CONFIG, char, payload, iid=service_iid
             )
 
             key = ProtocolConfig.decode(data).broadcast_encryption_key
