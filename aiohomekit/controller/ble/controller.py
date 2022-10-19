@@ -57,11 +57,12 @@ class BleController(AbstractController):
             except ValueError:
                 return
 
-        if mfr_data[0] != HOMEKIT_ADVERTISEMENT_TYPE:
+            if pairing := self.pairings.get(data.id):
+                pairing._async_notification(data)
+            
             return
 
-        if pairing := self.pairings.get(data.id):
-            pairing._async_notification(data)
+        if mfr_data[0] != HOMEKIT_ADVERTISEMENT_TYPE:
             return
 
         try:
