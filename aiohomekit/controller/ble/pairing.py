@@ -442,30 +442,35 @@ class BlePairing(AbstractPairing):
             payload = b"\x01\x00"
 
             service_iid = hap_char.service.iid
-            #            service_iid = 7
-            # logger.debug("%s: Setting broadcast key for iid: %s service_iid: %s", self.name, iid, service_iid)
-            #            data = await self._async_request_under_lock(
-            #                OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
-            #            )
+            service_iid = 7
+            logger.debug(
+                "%s: Setting broadcast key for iid: %s service_iid: %s",
+                self.name,
+                iid,
+                service_iid,
+            )
+            data = await self._async_request_under_lock(
+                OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
+            )
 
-            for iid in range(64):
-                logger.debug(
-                    "%s: Trying to get key for iid: %s", self.name, iid
-                )
-                try:
-                    data = await self._async_request_under_lock(
-                        OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=iid
-                    )
-                except PDUStatusError:
-                    continue
+            # for iid in range(64):
+            #    logger.debug(
+            #        "%s: Trying to get key for iid: %s", self.name, iid
+            #    )
+            #    try:
+            #        data = await self._async_request_under_lock(
+            #            OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=iid
+            #        )
+            #    except PDUStatusError:
+            #        continue#
 
-                logger.warning(
-                    "%s: Got broadcast key for iid: %s %s", self.name, iid, data
-                )
-                if data == b"":
-                    continue
+            #                logger.warning(
+            #                   "%s: Got broadcast key for iid: %s %s", self.name, iid, data
+            #              )
+            #             if data == b"":
+            #                continue
 
-                break
+            #           break
 
             #            logger.warning("%s: Got broadcast key for iid: %s: %s", self.name, service_iid, data)
             key = ProtocolConfig.decode(data).broadcast_encryption_key
