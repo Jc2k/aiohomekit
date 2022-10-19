@@ -66,7 +66,7 @@ from .client import (
 )
 from .connection import establish_connection
 from .key import DecryptionKey, EncryptionKey
-from .manufacturer_data import HomeKitAdvertisement
+from .manufacturer_data import HomeKitAdvertisement, HomeKitEncryptedNotification
 from .structs import HAP_TLV, Characteristic as CharacteristicTLV
 from .values import from_bytes, to_bytes
 
@@ -408,6 +408,10 @@ class BlePairing(AbstractPairing):
 
         for listener in self.listeners:
             listener(results)
+
+    def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
+        """Receive a notification from the accessory."""
+        logger.warning("%s: Received notification: %s", self.name, data)
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
