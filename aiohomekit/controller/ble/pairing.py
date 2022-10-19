@@ -434,14 +434,14 @@ class BlePairing(AbstractPairing):
             )
             hap_char = info[SIGNATURE_SERVICE_CHAR]
 
-            #ble_char = self.client.get_characteristic_by_handle(hap_char.handle)
-            #iid = await self.client.get_characteristic_iid(ble_char)
-            #if iid is None:
+            # ble_char = self.client.get_characteristic_by_handle(hap_char.handle)
+            # iid = await self.client.get_characteristic_iid(ble_char)
+            # if iid is None:
             #    logger.debug("%s: No iid for %s", self.name, hap_char.uuid)
             #    return
 
             service_iid = hap_char.service.iid
-            #logger.debug("%s: Setting broadcast key for iid: %s service_iid: %s", self.name, iid, service_iid)
+            # logger.debug("%s: Setting broadcast key for iid: %s service_iid: %s", self.name, iid, service_iid)
 
             payload = b"\x01\x00"
 
