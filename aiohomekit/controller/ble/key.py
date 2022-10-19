@@ -45,3 +45,15 @@ class DecryptionKey:
         data = self.key.decrypt(b"", counter, bytes([0, 0, 0, 0]), data)
         self.counter += 1
         return data
+
+
+class BroadcastDecryptionKey:
+    def __init__(self, key: bytes) -> None:
+        self.key = ChaCha20Poly1305Decryptor(key)
+        self.counter = 0
+
+    def decrypt(self, data: bytes | bytearray):
+        counter = self.counter.to_bytes(8, byteorder="little")
+
+        data = self.key.decrypt(b"", counter, bytes([0, 0, 0, 0]), data)
+        return data

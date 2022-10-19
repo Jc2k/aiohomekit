@@ -32,6 +32,8 @@ from bleak_retry_connector import (
     BLEAK_RETRY_EXCEPTIONS as BLEAK_EXCEPTIONS,
     retry_bluetooth_connection_error,
 )
+from aiohomekit.controller.ble.const import SIGNATURE_SERVICE, SIGNATURE_SERVICE_CHAR
+from aiohomekit.crypto.hkdf import hkdf_derive
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -65,9 +67,9 @@ from .client import (
     raise_for_pdu_status,
 )
 from .connection import establish_connection
-from .key import DecryptionKey, EncryptionKey
+from .key import BroadcastDecryptionKey, DecryptionKey, EncryptionKey
 from .manufacturer_data import HomeKitAdvertisement, HomeKitEncryptedNotification
-from .structs import HAP_TLV, Characteristic as CharacteristicTLV
+from .structs import HAP_TLV, Characteristic as CharacteristicTLV, ProtocolConfig
 from .values import from_bytes, to_bytes
 
 if TYPE_CHECKING:
@@ -147,6 +149,7 @@ class BlePairing(AbstractPairing):
         self._session_id = None
         self._encryption_key: EncryptionKey | None = None
         self._decryption_key: DecryptionKey | None = None
+        self._broadcast_decryption_key: BroadcastDecryptionKey | None = None
 
         # Used to keep track of which characteristics we already started
         # notifications for
@@ -413,6 +416,37 @@ class BlePairing(AbstractPairing):
         """Receive a notification from the accessory."""
         logger.warning("%s: Received notification: %s", self.name, data)
 
+    async def _async_set_broadcast_encryption_key(self) -> None:
+        """Get the broadcast key for the accessory."""
+        async with self._ble_request_lock:
+            try:
+                char = self.client.get_characteristic(
+                    SIGNATURE_SERVICE, SIGNATURE_SERVICE_CHAR
+                )
+            except ValueError:
+                logger.debug("%s: No broadcast key available", self.name)
+                return
+
+            iid = await self.client.get_characteristic_iid(char)
+
+            tid = random.randint(1, 254)
+            for data in encode_pdu(
+                OpCode.PROTOCOL_CONFIG_REQ, tid, iid, b"\x02\x01\x00"
+            ):
+                await self.client.write_gatt_char(
+                    char,
+                    data,
+                    "write-without-response" not in char.properties,
+                )
+            payload = await self.client.read_gatt_char(char)
+
+            status, _, signature = decode_pdu(tid, payload)
+            if status != PDUStatus.SUCCESS:
+                return
+
+            key = ProtocolConfig.decode(signature).broadcast_encryption_key
+            self._broadcast_decryption_key = BroadcastDecryptionKey(key)
+
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
         accessory = Accessory()
@@ -613,6 +647,8 @@ class BlePairing(AbstractPairing):
         """Start notifications for the given subscriptions."""
         if not self.accessories or not self.client.is_connected:
             return
+
+        await self._async_set_broadcast_encryption_key()
 
         for _, iid in subscriptions:
             if iid in self._notifications:

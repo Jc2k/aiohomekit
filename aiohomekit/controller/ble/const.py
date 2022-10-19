@@ -18,6 +18,11 @@ from enum import IntEnum
 
 HAP_MIN_REQUIRED_MTU = 100
 
+from uuid import UUID
+
+SIGNATURE_SERVICE = str(UUID("000000A2-0000-1000-8000-0026BB765291")).lower()
+SIGNATURE_SERVICE_CHAR = str(UUID("000000A5-0000-1000-8000-0026BB765291")).lower()
+
 
 class AdditionalParameterTypes(IntEnum):
     # Additional Parameter Types for BLE (Table 6-9 page 98)
