@@ -122,9 +122,8 @@ class ChaCha20Poly1305PartialTag(ChaCha20Poly1305PurePython):
         expected_tag = combined_text[-4:]
         ciphertext = combined_text[:-4]
         logger.warning(
-            "Trying open with : nonce=%s, ciphertext=%s, data=%s ciphertext=%s expected_tag=%s",
+            "Trying open with : nonce=%s, data=%s ciphertext=%s expected_tag=%s",
             nonce,
-            ciphertext,
             data,
             ciphertext,
             expected_tag,
