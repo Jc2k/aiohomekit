@@ -456,6 +456,14 @@ class BlePairing(AbstractPairing):
             )
             if decrypted is not False:
                 gsn = int.from_bytes(decrypted[0:2], "little")
+                if gsn != state_num:
+                    logger.warning(
+                        "%s: GSN mismatch, expected: %s, got: %s",
+                        self.name,
+                        state_num,
+                        gsn,
+                    )
+                    return
                 iid = int.from_bytes(decrypted[2:4], "little")
                 value = decrypted[4:12]
                 logger.warning(
@@ -469,6 +477,15 @@ class BlePairing(AbstractPairing):
                 )
                 # We had a successful decrypt, so we can update the state_num
                 self.description.state_num = gsn
+                char = self.accessories.aid(1).characteristics.iid(iid)
+
+                results = {(BLE_AID, iid): {"value": from_bytes(char, value)}}
+                logger.warning(
+                    "%s: Received notification: results = %s", self.name, results
+                )
+
+                for listener in self.listeners:
+                    listener(results)
                 break
             else:
                 logger.warning(

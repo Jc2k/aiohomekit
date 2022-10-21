@@ -139,7 +139,7 @@ class ChaCha20Poly1305PartialTag(ChaCha20Poly1305PurePython):
 
         logger.warning("Expected tag: %s", expected_tag.hex())
         logger.warning("Actual tag: %s", tag.hex())
-        if tag.startswith(expected_tag):
+        if not tag.startswith(expected_tag):
             return False
 
         #        if not ct_compare_digest(tag, expected_tag):
