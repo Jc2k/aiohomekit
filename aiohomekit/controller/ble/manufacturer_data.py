@@ -38,7 +38,7 @@ class HomeKitAdvertisement(AbstractDescription):
         if data[0] != HOMEKIT_ADVERTISEMENT_TYPE:
             raise ValueError("Not a HomeKit device")
 
-        sf = data[6]
+        sf = data[2]
         device_id = ":".join(
             data[3:9].hex()[0 + i : 2 + i] for i in range(0, 12, 2)
         ).lower()
