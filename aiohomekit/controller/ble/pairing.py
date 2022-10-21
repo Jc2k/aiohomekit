@@ -326,19 +326,7 @@ class BlePairing(AbstractPairing):
                 use_services_cache=True,
                 ble_device_callback=lambda: self.device,
             )
-            logger.debug(
-                "%s: Connected, processing subscriptions: %s; rssi=%s",
-                self.name,
-                self.subscriptions,
-                self.rssi,
-            )
-            if self.subscriptions:
-                await self._async_subscribe_broadcast_events(list(self.subscriptions))
-            # Only start active subscriptions if we stay connected for more
-            # than subscription delay seconds.
-            self._restore_subscriptions_timer = asyncio.get_event_loop().call_later(
-                SUBSCRIPTION_RESTORE_DELAY, self._restore_subscriptions
-            )
+
 
     async def _async_start_notify(self, iid: int) -> None:
         char = self.accessories.aid(1).characteristics.iid(iid)
@@ -770,6 +758,21 @@ class BlePairing(AbstractPairing):
 
             if not self._encryption_key:
                 await self._async_pair_verify()
+
+            logger.debug(
+                "%s: Connected, processing subscriptions: %s; rssi=%s",
+                self.name,
+                self.subscriptions,
+                self.rssi,
+            )
+            if self.subscriptions:
+                await self._async_subscribe_broadcast_events(list(self.subscriptions))
+                
+            # Only start active subscriptions if we stay connected for more
+            # than subscription delay seconds.
+            self._restore_subscriptions_timer = asyncio.get_event_loop().call_later(
+                SUBSCRIPTION_RESTORE_DELAY, self._restore_subscriptions
+            )
 
             if update_values:
                 await self._populate_char_values(config_changed)
