@@ -769,6 +769,9 @@ class BlePairing(AbstractPairing):
         self, subscriptions: list[tuple[int, int]]
     ) -> None:
         """Subscribe to broadcast events."""
+        logger.warning(
+            "%s: Subscribing to broadcast events: %s", self.name, subscriptions
+        )
         accessory_chars = self.accessories.aid(1).characteristics
         for _, iid in subscriptions:
             hap_char = accessory_chars.iid(iid)
