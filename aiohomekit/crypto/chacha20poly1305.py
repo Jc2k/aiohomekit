@@ -117,8 +117,8 @@ class ChaCha20Poly1305PartialTag(ChaCha20Poly1305PurePython):
         if len(nonce) != 12:
             raise ValueError("Nonce must be 96 bit long")
 
-        data = b"\x00" * 6
-        data = b""
+        # data = b"\x00" * 6
+        # data = b""
         expected_tag = combined_text[-4:]
         ciphertext = combined_text[:-4]
         logger.warning(
