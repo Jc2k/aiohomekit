@@ -57,6 +57,8 @@ class BleController(AbstractController):
             except ValueError:
                 return
 
+            logger.debug("Got encrypted notification: %s", data)
+
             if pairing := self.pairings.get(data.id):
                 pairing._async_notification(data)
 
