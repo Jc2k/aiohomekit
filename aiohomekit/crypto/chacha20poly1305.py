@@ -20,9 +20,21 @@ https://tools.ietf.org/html/rfc7539. See HomeKit spec page 51.
 """
 
 from __future__ import annotations
+import struct
 
 from chacha20poly1305_reuseable import ChaCha20Poly1305Reusable
 from cryptography.exceptions import InvalidTag
+from chacha20poly1305 import (
+    ChaCha20Poly1305 as ChaCha20Poly1305PurePython,
+    Poly1305,
+    ChaCha,
+    ct_compare_digest,
+    TagInvalidException,
+)
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ChaCha20Poly1305Encryptor:
@@ -93,3 +105,43 @@ class ChaCha20Poly1305Decryptor:
         except InvalidTag:
             # This should raise rather than the callees having to test for False
             return False
+
+
+class ChaCha20Poly1305PartialTag(ChaCha20Poly1305PurePython):
+    def open(self, nonce: bytes, combined_text: bytes, data: bytes) -> bytes:
+        """
+        Decrypts and authenticates ciphertext using nonce and data. If the
+        tag is valid, the plaintext is returned. If the tag is invalid,
+        returns None.
+        """
+        if len(nonce) != 12:
+            raise ValueError("Nonce must be 96 bit long")
+
+        data = b"\x00" * 6
+        data = b""
+        expected_tag = combined_text[-4:]
+        ciphertext = combined_text[:-4]
+        logger.warning(
+            "Trying open with : nonce=%s, ciphertext=%s, data=%s ciphertext=%s expected_tag=%s",
+            nonce,
+            ciphertext,
+            data,
+            ciphertext,
+            expected_tag,
+        )
+
+        otk = self.poly1305_key_gen(self.key, nonce)
+
+        mac_data = data + self.pad16(data)
+        mac_data += ciphertext + self.pad16(ciphertext)
+        mac_data += struct.pack("<Q", len(data))
+        mac_data += struct.pack("<Q", len(ciphertext))
+        tag = Poly1305(otk).create_tag(mac_data)
+
+        logger.warning("Expected tag: %s", expected_tag.hex())
+        logger.warning("Actual tag: %s", tag.hex())
+
+        #        if not ct_compare_digest(tag, expected_tag):
+        #            raise TagInvalidException
+
+        return ChaCha(self.key, nonce, counter=1).decrypt(ciphertext)

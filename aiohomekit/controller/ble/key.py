@@ -19,6 +19,7 @@ from __future__ import annotations
 from aiohomekit.crypto.chacha20poly1305 import (
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,
+    ChaCha20Poly1305PartialTag,
 )
 
 
@@ -49,12 +50,8 @@ class DecryptionKey:
 
 class BroadcastDecryptionKey:
     def __init__(self, key: bytes) -> None:
-        self.key = ChaCha20Poly1305Decryptor(key)
+        self.key = ChaCha20Poly1305PartialTag(key)
 
     def decrypt(self, data: bytes | bytearray, gsn: int, advertising_identifier: bytes):
-        gsn_bytes = gsn.to_bytes(8, byteorder="little")
-
-        data = self.key.decrypt(
-            advertising_identifier, gsn_bytes, bytes([0, 0, 0, 0]), data
-        )
-        return data
+        gsn_bytes = gsn.to_bytes(8, byteorder="little") + b"\x00\x00\x00\x00"
+        return self.key.open(gsn_bytes, data, advertising_identifier)
