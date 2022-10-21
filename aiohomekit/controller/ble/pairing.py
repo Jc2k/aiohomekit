@@ -673,6 +673,23 @@ class BlePairing(AbstractPairing):
                 self._async_start_notify_subscriptions(list(self.subscriptions))
             )
 
+    async def _async_subscribe_broadcast_events(
+        self, subscriptions: list[tuple[int, int]]
+    ) -> None:
+        """Subscribe to broadcast events."""
+        accessory_chars = self.accessories.aid(1).characteristics
+        for _, iid in subscriptions:
+            hap_char = accessory_chars.iid(iid)
+            if not hap_char:
+                continue
+            if not hap_char.broadcast_events:
+                continue
+
+            enable_broadcast_payload = "\x01\x02\x01\x00\x02\x01\x01"
+            data = await self._async_request_under_lock(
+                OpCode.CHAR_CONFIG, hap_char, enable_broadcast_payload
+            )
+
     async def _async_start_notify_subscriptions(
         self, subscriptions: list[tuple[int, int]]
     ) -> None:
@@ -680,7 +697,9 @@ class BlePairing(AbstractPairing):
         if not self.accessories or not self.client.is_connected:
             return
 
-        await self._async_set_broadcast_encryption_key()
+        async with self._ble_request_lock:
+            await self._async_subscribe_broadcast_events(subscriptions)
+            await self._async_set_broadcast_encryption_key()
 
         for _, iid in subscriptions:
             if iid in self._notifications:
