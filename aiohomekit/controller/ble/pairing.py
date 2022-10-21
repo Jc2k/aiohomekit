@@ -444,7 +444,7 @@ class BlePairing(AbstractPairing):
         decrypted = self._broadcast_decryption_key.decrypt(
             data.encrypted_payload + (b"\x00" * 12),
             self.description.state_num,
-            b"\x00" * 6,
+            bytes.fromhex(self.description.id.replace(":", "")),
         )
         logger.warning(
             "%s: Received notification: encrypted =  %s - decrypted = %s",
@@ -463,28 +463,28 @@ class BlePairing(AbstractPairing):
         # if iid is None:
         #    logger.debug("%s: No iid for %s", self.name, hap_char.uuid)
         #    return
-        payload = b"\x03\x06\x00\x00\x00\x00\x00\x00"
+        # payload = b"\x03\x06\x00\x00\x00\x00\x00\x00"
 
-        service_iid = hap_char.service.iid
+        # service_iid = hap_char.service.iid
         # service_iid = 7
-        logger.debug(
-            "%s: Setting advertising identifier for service_iid: %s",
-            self.name,
-            service_iid,
-        )
-        try:
-            data = await self._async_request_under_lock(
-                OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
-            )
-        except PDUStatusError:
-            logger.exception("%s: Failed to set advertising identifier", self.name)
-            return
-
-        logger.warning(
-            "%s: Received advertising identifier: %s",
-            self.name,
-            data,
-        )
+        # logger.debug(
+        #    "%s: Setting advertising identifier for service_iid: %s",
+        #    self.name,
+        #    service_iid,
+        # )
+        # try:
+        #    data = await self._async_request_under_lock(
+        #        OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
+        #    )
+        # except PDUStatusError:
+        #    logger.exception("%s: Failed to set advertising identifier", self.name)
+        #    return
+        #
+        # logger.warning(
+        #    "%s: Received advertising identifier: %s",
+        #    self.name,
+        #    data,
+        # )
 
         payload = b"\x01\x00"
         service_iid = hap_char.service.iid
