@@ -72,11 +72,12 @@ class HomeKitEncryptedNotification:
     name: str
     address: str
     id: str
+    advertising_identifier: bytes
     encrypted_payload: bytes
 
     @classmethod
     def from_manufacturer_data(
-        cls, name, address, manufacturer_data
+        cls, name: str, address: str, manufacturer_data: dict[int, bytes]
     ) -> HomeKitAdvertisement:
         if not (data := manufacturer_data.get(APPLE_MANUFACTURER_ID)):
             raise ValueError("Not an Apple device")
@@ -86,8 +87,9 @@ class HomeKitEncryptedNotification:
 
         logger.debug("Decode encrypted notification: %s", data)
 
+        advertising_identifier = data[2:8]
         device_id = ":".join(
-            data[2:8].hex()[0 + i : 2 + i] for i in range(0, 12, 2)
+            advertising_identifier.hex()[0 + i : 2 + i] for i in range(0, 12, 2)
         ).lower()
         encrypted_payload = data[8:]
 
@@ -95,6 +97,7 @@ class HomeKitEncryptedNotification:
             name=name,
             id=device_id,
             address=address,
+            advertising_identifier=advertising_identifier,
             encrypted_payload=encrypted_payload,
         )
 

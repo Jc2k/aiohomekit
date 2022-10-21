@@ -444,7 +444,7 @@ class BlePairing(AbstractPairing):
         decrypted = self._broadcast_decryption_key.decrypt(
             data.encrypted_payload,
             self.description.state_num,
-            bytes.fromhex(self.description.id.replace(":", "")),
+            data.advertising_identifier,
         )
         if decrypted:
             gsn = int.from_bytes(decrypted[0:2], "little")
