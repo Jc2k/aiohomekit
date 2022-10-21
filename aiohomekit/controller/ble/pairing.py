@@ -474,38 +474,31 @@ class BlePairing(AbstractPairing):
         """Get the broadcast key for the accessory."""
         info = self.accessories.aid(1).services.first(service_type=SIGNATURE_SERVICE)
         hap_char = info[SIGNATURE_SERVICE_CHAR]
+        service_iid = hap_char.service.iid
 
-        # ble_char = self.client.get_characteristic_by_handle(hap_char.handle)
-        # iid = await self.client.get_characteristic_iid(ble_char)
-        # if iid is None:
-        #    logger.debug("%s: No iid for %s", self.name, hap_char.uuid)
-        #    return
-        # payload = b"\x03\x06\x00\x00\x00\x00\x00\x00"
+        adv_id = bytes.fromhex(self.description.id.replace(":", ""))
 
-        # service_iid = hap_char.service.iid
-        # service_iid = 7
-        # logger.debug(
-        #    "%s: Setting advertising identifier for service_iid: %s",
-        #    self.name,
-        #    service_iid,
-        # )
-        # try:
-        #    data = await self._async_request_under_lock(
-        #        OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
-        #    )
-        # except PDUStatusError:
-        #    logger.exception("%s: Failed to set advertising identifier", self.name)
-        #    return
-        #
-        # logger.warning(
-        #    "%s: Received advertising identifier: %s",
-        #    self.name,
-        #    data,
-        # )
+        payload = b"\x03\x06" + adv_id
+        service_iid = hap_char.service.iid
+        logger.debug(
+            "%s: Setting advertising identifier for service_iid: %s",
+            self.name,
+            service_iid,
+        )
+        try:
+            data = await self._async_request_under_lock(
+                OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
+            )
+        except PDUStatusError:
+            logger.exception("%s: Failed to set advertising identifier", self.name)
+            return
+        logger.warning(
+            "%s: Received advertising identifier: %s",
+            self.name,
+            data,
+        )
 
         payload = b"\x01\x00"
-        service_iid = hap_char.service.iid
-        # service_iid = 7
         logger.debug(
             "%s: Setting broadcast key for service_iid: %s",
             self.name,
