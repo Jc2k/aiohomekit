@@ -427,53 +427,49 @@ class BlePairing(AbstractPairing):
 
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
-        async with self._ble_request_lock:
+        info = self.accessories.aid(1).services.first(service_type=SIGNATURE_SERVICE)
+        hap_char = info[SIGNATURE_SERVICE_CHAR]
 
-            info = self.accessories.aid(1).services.first(
-                service_type=SIGNATURE_SERVICE
-            )
-            hap_char = info[SIGNATURE_SERVICE_CHAR]
+        # ble_char = self.client.get_characteristic_by_handle(hap_char.handle)
+        # iid = await self.client.get_characteristic_iid(ble_char)
+        # if iid is None:
+        #    logger.debug("%s: No iid for %s", self.name, hap_char.uuid)
+        #    return
+        payload = b"\x01\x00"
 
-            # ble_char = self.client.get_characteristic_by_handle(hap_char.handle)
-            # iid = await self.client.get_characteristic_iid(ble_char)
-            # if iid is None:
-            #    logger.debug("%s: No iid for %s", self.name, hap_char.uuid)
-            #    return
-            payload = b"\x01\x00"
+        service_iid = hap_char.service.iid
+        service_iid = 7
+        logger.debug(
+            "%s: Setting broadcast key for service_iid: %s",
+            self.name,
+            service_iid,
+        )
+        data = await self._async_request_under_lock(
+            OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
+        )
 
-            service_iid = hap_char.service.iid
-            service_iid = 7
-            logger.debug(
-                "%s: Setting broadcast key for service_iid: %s",
-                self.name,
-                service_iid,
-            )
-            data = await self._async_request_under_lock(
-                OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
-            )
+        # for iid in range(64):
+        #    logger.debug(
+        #        "%s: Trying to get key for iid: %s", self.name, iid
+        #    )
+        #    try:
+        #        data = await self._async_request_under_lock(
+        #            OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=iid
+        #        )
+        #    except PDUStatusError:
+        #        continue#
 
-            # for iid in range(64):
-            #    logger.debug(
-            #        "%s: Trying to get key for iid: %s", self.name, iid
-            #    )
-            #    try:
-            #        data = await self._async_request_under_lock(
-            #            OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=iid
-            #        )
-            #    except PDUStatusError:
-            #        continue#
+        #                logger.warning(
+        #                   "%s: Got broadcast key for iid: %s %s", self.name, iid, data
+        #              )
+        #             if data == b"":
+        #                continue
 
-            #                logger.warning(
-            #                   "%s: Got broadcast key for iid: %s %s", self.name, iid, data
-            #              )
-            #             if data == b"":
-            #                continue
+        #           break
 
-            #           break
-
-            #            logger.warning("%s: Got broadcast key for iid: %s: %s", self.name, service_iid, data)
-            key = ProtocolConfig.decode(data).broadcast_encryption_key
-            self._broadcast_decryption_key = BroadcastDecryptionKey(key)
+        #            logger.warning("%s: Got broadcast key for iid: %s: %s", self.name, service_iid, data)
+        key = ProtocolConfig.decode(data).broadcast_encryption_key
+        self._broadcast_decryption_key = BroadcastDecryptionKey(key)
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
