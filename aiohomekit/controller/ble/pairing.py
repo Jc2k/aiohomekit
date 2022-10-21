@@ -434,7 +434,9 @@ class BlePairing(AbstractPairing):
             data,
         )
         decrypted = self._broadcast_decryption_key.decrypt(
-            data.encrypted_payload + (b"\x00" * 12)
+            data.encrypted_payload + (b"\x00" * 12),
+            self.description.state_num,
+            b"\x00" * 6,
         )
         logger.warning(
             "%s: Received notification: encrypted =  %s - decrypted = %s",

@@ -50,10 +50,9 @@ class DecryptionKey:
 class BroadcastDecryptionKey:
     def __init__(self, key: bytes) -> None:
         self.key = ChaCha20Poly1305Decryptor(key)
-        self.counter = 0
 
-    def decrypt(self, data: bytes | bytearray):
-        counter = self.counter.to_bytes(8, byteorder="little")
+    def decrypt(self, data: bytes | bytearray, gsn: int, advertising_identifier: bytes):
+        gsn_bytes = gsn.to_bytes(8, byteorder="little")
 
-        data = self.key.decrypt(b"", counter, bytes([0, 0, 0, 0]), data)
+        data = self.key.decrypt(advertising_identifier, gsn_bytes, bytes([0, 0, 0, 0]), data)
         return data
