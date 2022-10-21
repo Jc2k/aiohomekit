@@ -555,20 +555,24 @@ class BlePairing(AbstractPairing):
         services = await self.client.get_services()
         for service in services:
             ble_service_char = service.get_characteristic(SERVICE_INSTANCE_ID_UUID)
-            service_iid_bytes = await self.client.read_gatt_char(
-                ble_service_char.handle
-            )
-            service_iid = int.from_bytes(service_iid_bytes, "little")
-            logger.warning(
-                "%s: Service %s iid: %s (decoded as %s)",
-                self.name,
-                service.uuid,
-                service_iid_bytes,
-                service_iid,
-            )
+            service_iid = None
+            if ble_service_char:
+                service_iid_bytes = await self.client.read_gatt_char(
+                    ble_service_char.handle
+                )
+                service_iid = int.from_bytes(service_iid_bytes, "little")
+                logger.warning(
+                    "%s: Service %s iid: %s (decoded as %s)",
+                    self.name,
+                    service.uuid,
+                    service_iid_bytes,
+                    service_iid,
+                )
 
             s = accessory.add_service(normalize_uuid(service.uuid))
-            s.iid = service_iid
+
+            if service_iid:
+                s.iid = service_iid
 
             for char in service.characteristics:
                 if normalize_uuid(char.uuid) == SERVICE_INSTANCE_ID:
