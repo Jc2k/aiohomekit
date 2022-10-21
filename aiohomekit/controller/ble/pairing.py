@@ -442,7 +442,7 @@ class BlePairing(AbstractPairing):
             data,
         )
         start_state_num = self.description.state_num
-        for state_num in range(start_state_num, start_state_num + 5):
+        for state_num in [0, *range(start_state_num, start_state_num + 5)]:
             logger.warning("%s: Trying state_num: %s", self.name, state_num)
             decrypted = self._broadcast_decryption_key.decrypt(
                 data.encrypted_payload,
