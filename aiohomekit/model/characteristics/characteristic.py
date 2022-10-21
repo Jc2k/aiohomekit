@@ -103,8 +103,12 @@ class Characteristic:
 
         self.ev = None
         self.handle = self._get_configuration(kwargs, "handle", None)
-        self.broadcast_events = self._get_configuration(kwargs, "broadcast_events", False)
-        self.disconnected_events = self._get_configuration(kwargs, "disconnected_events", False)
+        self.broadcast_events = self._get_configuration(
+            kwargs, "broadcast_events", False
+        )
+        self.disconnected_events = self._get_configuration(
+            kwargs, "disconnected_events", False
+        )
         self.description = self._get_configuration(kwargs, "description", None)
         self.unit = self._get_configuration(kwargs, "unit", None)
         self.minValue = self._get_configuration(kwargs, "min_value", None)
@@ -314,7 +318,7 @@ class Characteristic:
         if self.disconnected_events is not None:
             d["disconnected_events"] = self.disconnected_events
         if self.broadcast_events is not None:
-            d["broadcast_events"] = self.broadcast_events                        
+            d["broadcast_events"] = self.broadcast_events
         return d
 
 
