@@ -781,9 +781,17 @@ class BlePairing(AbstractPairing):
                 continue
 
             enable_broadcast_payload = b"\x01\x02\x01\x00\x02\x01\x01"
-            data = await self._async_request_under_lock(
-                OpCode.CHAR_CONFIG, hap_char, enable_broadcast_payload
-            )
+            try:
+                data = await self._async_request_under_lock(
+                    OpCode.CHAR_CONFIG, hap_char, enable_broadcast_payload
+                )
+            except PDUStatusError:
+                logger.debug(
+                    "%s: Failed to subscribe to broadcast events for %s",
+                    self.name,
+                    hap_char,
+                )
+                continue
 
     async def _async_start_notify_subscriptions(
         self, subscriptions: list[tuple[int, int]]
