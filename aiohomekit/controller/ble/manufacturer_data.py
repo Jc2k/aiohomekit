@@ -72,10 +72,7 @@ class HomeKitEncryptedNotification:
     name: str
     address: str
     id: str
-    state_num: int
-    iid: int
-    value: bytes
-    auth_tag: bytes
+    encrypted_payload: bytes
 
     @classmethod
     def from_manufacturer_data(
@@ -92,18 +89,13 @@ class HomeKitEncryptedNotification:
         device_id = ":".join(
             data[2:8].hex()[0 + i : 2 + i] for i in range(0, 12, 2)
         ).lower()
-        gsn, iid = UNPACK_HH(data[8:12])
-        value = data[12:20]
-        auth_tag = data[20:24]
+        encrypted_payload = data[8:]
 
         return cls(
             name=name,
             id=device_id,
-            state_num=gsn,
             address=address,
-            iid=iid,
-            value=value,
-            auth_tag=auth_tag,
+            encrypted_payload=encrypted_payload,
         )
 
     @classmethod
