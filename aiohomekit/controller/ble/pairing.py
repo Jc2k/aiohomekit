@@ -444,10 +444,13 @@ class BlePairing(AbstractPairing):
             self.name,
             service_iid,
         )
-        data = await self._async_request_under_lock(
-            OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
-        )
-
+        try:
+            data = await self._async_request_under_lock(
+                OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
+            )
+        except PDUStatusError:
+            logger.exception("%s: Failed to set broadcast key", self.name)
+            return
         # for iid in range(64):
         #    logger.debug(
         #        "%s: Trying to get key for iid: %s", self.name, iid
