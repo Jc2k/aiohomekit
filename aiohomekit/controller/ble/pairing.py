@@ -428,11 +428,16 @@ class BlePairing(AbstractPairing):
 
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
         """Receive a notification from the accessory."""
-        decrypted = self._broadcast_decryption_key.decrypt(data)
+        logger.warning(
+            "%s: Received notification: %s",
+            self.name,
+            data,
+        )
+        decrypted = self._broadcast_decryption_key.decrypt(data.encrypted_payload)
         logger.warning(
             "%s: Received notification: encrypted =  %s - decrypted = %s",
             self.name,
-            data,
+            data.encrypted_payload,
             decrypted,
         )
 
@@ -485,8 +490,8 @@ class BlePairing(AbstractPairing):
         logger.warning(
             "%s: Got broadcast key for iid: %s: %s", self.name, service_iid, data
         )
-        #key = ProtocolConfig.decode(data).broadcast_encryption_key
-        #self._broadcast_decryption_key = BroadcastDecryptionKey(key)
+        # key = ProtocolConfig.decode(data).broadcast_encryption_key
+        # self._broadcast_decryption_key = BroadcastDecryptionKey(key)
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
