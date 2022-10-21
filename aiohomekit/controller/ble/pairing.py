@@ -20,6 +20,7 @@ import asyncio
 from collections.abc import Callable
 from datetime import timedelta
 import logging
+from os import F_ULOCK
 import random
 import struct
 import time
@@ -331,6 +332,8 @@ class BlePairing(AbstractPairing):
                 self.subscriptions,
                 self.rssi,
             )
+            if self.subscriptions:
+                await self._async_subscribe_broadcast_events(list(self.subscriptions))
             # Only start active subscriptions if we stay connected for more
             # than subscription delay seconds.
             self._restore_subscriptions_timer = asyncio.get_event_loop().call_later(
@@ -786,18 +789,18 @@ class BlePairing(AbstractPairing):
         if not self.accessories or not self.client.is_connected:
             return
 
-        if self._ble_request_lock.locked():
-            logger.debug(
-                "%s: Waiting for request lock to start subscriptions",
-                self.name,
-            )
-            return
+        # if self._ble_request_lock.locked():
+        #    logger.debug(
+        #        "%s: Waiting for request lock to start subscriptions",
+        #        self.name,
+        #    )
+        #    return
 
-        async with self._ble_request_lock:
-            # logger.debug("%s: Setting broadcast encryption key", self.name)
-            # await self._async_set_broadcast_encryption_key()
-            logger.warning("%s: Subscribing to broadcast events", self.name)
-            await self._async_subscribe_broadcast_events(subscriptions)
+        # async with self._ble_request_lock:
+        #    # logger.debug("%s: Setting broadcast encryption key", self.name)
+        #    # await self._async_set_broadcast_encryption_key()
+        #    logger.warning("%s: Subscribing to broadcast events", self.name)
+        #    await self._async_subscribe_broadcast_events(subscriptions)
 
         for _, iid in subscriptions:
             if iid in self._notifications:
