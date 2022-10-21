@@ -698,14 +698,16 @@ class BlePairing(AbstractPairing):
             return
 
         if self._ble_request_lock.locked():
-            logger.error(
-                "%s: Not starting notify subscriptions because request lock is locked",
+            logger.debug(
+                "%s: Waiting for request lock to start subscriptions",
                 self.name,
             )
             return
 
         async with self._ble_request_lock:
+            logger.debug("%s: Subscribing to broadcast events", self.name)
             await self._async_subscribe_broadcast_events(subscriptions)
+            logger.debug("%s: Setting broadcast encryption key", self.name)
             await self._async_set_broadcast_encryption_key()
 
         for _, iid in subscriptions:
