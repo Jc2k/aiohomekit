@@ -485,8 +485,8 @@ class BlePairing(AbstractPairing):
         logger.warning(
             "%s: Got broadcast key for iid: %s: %s", self.name, service_iid, data
         )
-        key = ProtocolConfig.decode(data).broadcast_encryption_key
-        self._broadcast_decryption_key = BroadcastDecryptionKey(key)
+        #key = ProtocolConfig.decode(data).broadcast_encryption_key
+        #self._broadcast_decryption_key = BroadcastDecryptionKey(key)
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
