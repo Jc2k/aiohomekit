@@ -394,7 +394,7 @@ class BlePairing(AbstractPairing):
             )
             long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
             long_term_pub_key_bytes = bytes.fromhex(long_term_pub_key_hex)
-            self._broadcast_decryption_key = DecryptionKey(
+            self._broadcast_decryption_key = BroadcastDecryptionKey(
                 derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
             )
             # Used for session resume
