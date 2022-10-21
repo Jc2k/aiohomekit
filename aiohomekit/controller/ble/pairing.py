@@ -392,7 +392,11 @@ class BlePairing(AbstractPairing):
             self._decryption_key = DecryptionKey(
                 derive(b"Control-Salt", b"Control-Read-Encryption-Key")
             )
-
+            long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
+            long_term_pub_key_bytes = bytes.fromhex(long_term_pub_key_hex)
+            self._broadcast_decryption_key = DecryptionKey(
+                derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
+            )
             # Used for session resume
             self._session_id = session_id
             self._derive = derive
@@ -424,7 +428,13 @@ class BlePairing(AbstractPairing):
 
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
         """Receive a notification from the accessory."""
-        logger.warning("%s: Received notification: %s", self.name, data)
+        decrypted = self._broadcast_decryption_key.decrypt(data)
+        logger.warning(
+            "%s: Received notification: encrypted =  %s - decrypted = %s",
+            self.name,
+            data,
+            decrypted,
+        )
 
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
@@ -452,6 +462,7 @@ class BlePairing(AbstractPairing):
         except PDUStatusError:
             logger.exception("%s: Failed to set broadcast key", self.name)
             return
+
         # for iid in range(64):
         #    logger.debug(
         #        "%s: Trying to get key for iid: %s", self.name, iid
