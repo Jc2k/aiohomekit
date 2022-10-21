@@ -453,7 +453,7 @@ class BlePairing(AbstractPairing):
         # if iid is None:
         #    logger.debug("%s: No iid for %s", self.name, hap_char.uuid)
         #    return
-        payload = b"\x03\x00"
+        payload = b"\x03\x06\x00\x00\x00\x00\x00\x00"
 
         service_iid = hap_char.service.iid
         # service_iid = 7
