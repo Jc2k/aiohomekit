@@ -104,10 +104,10 @@ class Characteristic:
         self.ev = None
         self.handle = self._get_configuration(kwargs, "handle", None)
         self.broadcast_events = self._get_configuration(
-            kwargs, "broadcast_events", False
+            kwargs, "broadcast_events", None
         )
         self.disconnected_events = self._get_configuration(
-            kwargs, "disconnected_events", False
+            kwargs, "disconnected_events", None
         )
         self.description = self._get_configuration(kwargs, "description", None)
         self.unit = self._get_configuration(kwargs, "unit", None)
