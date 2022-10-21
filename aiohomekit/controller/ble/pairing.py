@@ -487,6 +487,13 @@ class BlePairing(AbstractPairing):
                 ble_service_char.handle
             )
             service_iid = int.from_bytes(service_iid_bytes, "little")
+            logger.warning(
+                "%s: Service %s iid: %s (decoded as %s)",
+                self.name,
+                service.uuid,
+                service_iid_bytes,
+                service_iid,
+            )
 
             s = accessory.add_service(normalize_uuid(service.uuid))
             s.iid = service_iid
