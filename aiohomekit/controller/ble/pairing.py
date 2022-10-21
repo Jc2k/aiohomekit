@@ -447,7 +447,7 @@ class BlePairing(AbstractPairing):
             data,
         )
         start_state_num = self.description.state_num
-        for state_num in range(start_state_num, start_state_num + 5):
+        for state_num in range(start_state_num, start_state_num + 30):
             logger.warning("%s: Trying state_num: %s", self.name, state_num)
             decrypted = self._broadcast_decryption_key.decrypt(
                 data.encrypted_payload,
@@ -467,6 +467,9 @@ class BlePairing(AbstractPairing):
                     iid,
                     value,
                 )
+                # We had a successful decrypt, so we can update the state_num
+                self.description.state_num = gsn
+                break
             else:
                 logger.warning(
                     "%s: Received notification: encrypted =  %s - decryption failed = %s",
