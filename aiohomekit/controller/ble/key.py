@@ -54,5 +54,7 @@ class BroadcastDecryptionKey:
     def decrypt(self, data: bytes | bytearray, gsn: int, advertising_identifier: bytes):
         gsn_bytes = gsn.to_bytes(8, byteorder="little")
 
-        data = self.key.decrypt(advertising_identifier, gsn_bytes, bytes([0, 0, 0, 0]), data)
+        data = self.key.decrypt(
+            advertising_identifier, gsn_bytes, bytes([0, 0, 0, 0]), data
+        )
         return data
