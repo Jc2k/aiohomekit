@@ -454,7 +454,7 @@ class BlePairing(AbstractPairing):
                 state_num,
                 data.advertising_identifier,
             )
-            if decrypted:
+            if decrypted is not False:
                 gsn = int.from_bytes(decrypted[0:2], "little")
                 iid = int.from_bytes(decrypted[2:4], "little")
                 value = decrypted[4:12]
