@@ -471,7 +471,9 @@ class BlePairing(AbstractPairing):
 
         #           break
 
-        logger.warning("%s: Got broadcast key for iid: %s: %s", self.name, service_iid, data)
+        logger.warning(
+            "%s: Got broadcast key for iid: %s: %s", self.name, service_iid, data
+        )
         key = ProtocolConfig.decode(data).broadcast_encryption_key
         self._broadcast_decryption_key = BroadcastDecryptionKey(key)
 
