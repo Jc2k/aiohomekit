@@ -476,9 +476,10 @@ class BlePairing(AbstractPairing):
         hap_char = info[SIGNATURE_SERVICE_CHAR]
         service_iid = hap_char.service.iid
 
-        adv_id = bytes.fromhex(self.description.id.replace(":", ""))
+        adv_id_bytes = bytes.fromhex(self.description.id.replace(":", ""))
+        # Some devices must have this set or we won't be able to decrypt
 
-        payload = b"\x03\x06" + adv_id
+        payload = b"\x03\x06" + adv_id_bytes
         service_iid = hap_char.service.iid
         logger.debug(
             "%s: Setting advertising identifier for service_iid: %s",
