@@ -24,6 +24,7 @@ import random
 import struct
 import time
 from typing import TYPE_CHECKING, Any, TypeVar, cast
+from uuid import UUID
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -92,7 +93,7 @@ NEVER_TIME = -AVAILABILITY_INTERVAL
 
 
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
-
+SERVICE_INSTANCE_ID_UUID = UUID(SERVICE_INSTANCE_ID)
 
 SUBSCRIPTION_RESTORE_DELAY = 0.5
 SKIP_SYNC_SERVICES = {
@@ -481,7 +482,14 @@ class BlePairing(AbstractPairing):
         # Never use the cache when fetching the GATT database
         services = await self.client.get_services()
         for service in services:
+            ble_service_char = service.get_characteristic(SERVICE_INSTANCE_ID_UUID)
+            service_iid_bytes = await self.client.read_gatt_char(
+                ble_service_char.handle
+            )
+            service_iid = int.from_bytes(service_iid_bytes, "little")
+
             s = accessory.add_service(normalize_uuid(service.uuid))
+            s.iid = service_iid
 
             for char in service.characteristics:
                 if normalize_uuid(char.uuid) == SERVICE_INSTANCE_ID:
