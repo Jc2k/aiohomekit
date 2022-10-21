@@ -685,7 +685,7 @@ class BlePairing(AbstractPairing):
             if not hap_char.broadcast_events:
                 continue
 
-            enable_broadcast_payload = "\x01\x02\x01\x00\x02\x01\x01"
+            enable_broadcast_payload = b"\x01\x02\x01\x00\x02\x01\x01"
             data = await self._async_request_under_lock(
                 OpCode.CHAR_CONFIG, hap_char, enable_broadcast_payload
             )
@@ -695,6 +695,13 @@ class BlePairing(AbstractPairing):
     ) -> None:
         """Start notifications for the given subscriptions."""
         if not self.accessories or not self.client.is_connected:
+            return
+
+        if self._ble_request_lock.locked():
+            logger.error(
+                "%s: Not starting notify subscriptions because request lock is locked",
+                self.name,
+            )
             return
 
         async with self._ble_request_lock:
