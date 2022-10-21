@@ -529,6 +529,10 @@ class BlePairing(AbstractPairing):
                     hap_char.minValue = decoded["minValue"]
                 if "maxValue" in decoded:
                     hap_char.maxValue = decoded["maxValue"]
+                if "disconnected_events" in decoded:
+                    hap_char.disconnected_events = decoded["disconnected_events"]
+                if "broadcast_events" in decoded:
+                    hap_char.broadcast_events = decoded["broadcast_events"]
 
         accessories = Accessories()
         accessories.add_accessory(accessory)

@@ -314,8 +314,11 @@ class Characteristic(TLVStruct):
             "perms": perms,
         }
 
-        result["broadcast_events"] = bool(self.supports_broadcast_notify)
-        result["disconnected_events"] = bool(self.notifies_events_in_disconnected_state)
+        if self.supports_broadcast_notify:
+            result["broadcast_events"] = True
+
+        if self.notifies_events_in_disconnected_state:
+            result["disconnected_events"] = True
 
         if self.data_type_str != "unknown":
             result["format"] = self.data_type_str
