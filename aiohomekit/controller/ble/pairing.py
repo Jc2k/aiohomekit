@@ -796,7 +796,7 @@ class BlePairing(AbstractPairing):
         async with self._ble_request_lock:
             # logger.debug("%s: Setting broadcast encryption key", self.name)
             # await self._async_set_broadcast_encryption_key()
-            logger.debug("%s: Subscribing to broadcast events", self.name)
+            logger.warning("%s: Subscribing to broadcast events", self.name)
             await self._async_subscribe_broadcast_events(subscriptions)
 
         for _, iid in subscriptions:
