@@ -475,6 +475,9 @@ class BlePairing(AbstractPairing):
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
         info = self.accessories.aid(1).services.first(service_type=SIGNATURE_SERVICE)
+        if not info:
+            logger.debug("%s: No signature service found", self.name)
+            return
         hap_char = info[SIGNATURE_SERVICE_CHAR]
         service_iid = hap_char.service.iid
 
