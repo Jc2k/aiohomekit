@@ -93,7 +93,7 @@ class HomeKitEncryptedNotification:
 
         return cls(
             name=name,
-            id=device_id,
+            device_id=device_id,
             state_num=gsn,
             address=address,
             iid=iid,

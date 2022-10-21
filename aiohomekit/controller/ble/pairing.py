@@ -438,7 +438,7 @@ class BlePairing(AbstractPairing):
         payload = b"\x01\x00"
 
         service_iid = hap_char.service.iid
-        service_iid = 7
+        #service_iid = 7
         logger.debug(
             "%s: Setting broadcast key for service_iid: %s",
             self.name,
