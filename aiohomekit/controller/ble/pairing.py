@@ -441,31 +441,34 @@ class BlePairing(AbstractPairing):
             self.name,
             data,
         )
-        decrypted = self._broadcast_decryption_key.decrypt(
-            data.encrypted_payload,
-            self.description.state_num,
-            data.advertising_identifier,
-        )
-        if decrypted:
-            gsn = int.from_bytes(decrypted[0:2], "little")
-            iid = int.from_bytes(decrypted[2:4], "little")
-            value = decrypted[4:12]
-            logger.warning(
-                "%s: Received notification: encrypted =  %s - decrypted = %s - gsn=%s - iid=%s - value=%s",
-                self.name,
+        start_state_num = self.description.state_num
+        for state_num in range(start_state_num, start_state_num + 5):
+            logger.warning("%s: Trying state_num: %s", self.name, state_num)
+            decrypted = self._broadcast_decryption_key.decrypt(
                 data.encrypted_payload,
-                decrypted,
-                gsn,
-                iid,
-                value,
+                state_num,
+                data.advertising_identifier,
             )
-        else:
-            logger.warning(
-                "%s: Received notification: encrypted =  %s - decryption failed = %s",
-                self.name,
-                data.encrypted_payload,
-                decrypted,
-            )
+            if decrypted:
+                gsn = int.from_bytes(decrypted[0:2], "little")
+                iid = int.from_bytes(decrypted[2:4], "little")
+                value = decrypted[4:12]
+                logger.warning(
+                    "%s: Received notification: encrypted =  %s - decrypted = %s - gsn=%s - iid=%s - value=%s",
+                    self.name,
+                    data.encrypted_payload,
+                    decrypted,
+                    gsn,
+                    iid,
+                    value,
+                )
+            else:
+                logger.warning(
+                    "%s: Received notification: encrypted =  %s - decryption failed = %s",
+                    self.name,
+                    data.encrypted_payload,
+                    decrypted,
+                )
 
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
