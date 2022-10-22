@@ -762,9 +762,7 @@ class BlePairing(AbstractPairing):
     def _restore_subscriptions(self):
         """Restore subscriptions after after connecting."""
         if self.client and self.client.is_connected:
-            async_create_task(
-                self._async_restore_subscriptions(list(self.subscriptions))
-            )
+            async_create_task(self._async_restore_subscriptions())
 
     async def _async_subscribe_broadcast_events(
         self, subscriptions: list[tuple[int, int]]
@@ -797,18 +795,15 @@ class BlePairing(AbstractPairing):
                 )
                 continue
 
-    async def _async_restore_subscriptions(
-        self, subscriptions: list[tuple[int, int]]
-    ) -> None:
+    async def _async_restore_subscriptions(self) -> None:
         """Restore subscriptions and setup notifications after after connecting."""
-        if not self.client or not self.client.is_connected:
+        if not self.client or not self.client.is_connected or not self.subscriptions:
             return
 
-        assert (
-            not self._ble_request_lock.locked()
-        ), "Should not have a _ble_request_lock"
+        subscriptions = list(self.subscriptions)
+
         async with self._ble_request_lock:
-            await self._async_subscribe_broadcast_events(list(self.subscriptions))
+            await self._async_subscribe_broadcast_events(subscriptions)
 
         await self._async_start_notify_subscriptions(subscriptions)
 
