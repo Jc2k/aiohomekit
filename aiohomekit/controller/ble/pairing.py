@@ -97,7 +97,7 @@ NEVER_TIME = -AVAILABILITY_INTERVAL
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
 SERVICE_INSTANCE_ID_UUID = UUID(SERVICE_INSTANCE_ID)
 
-SUBSCRIPTION_RESTORE_DELAY = 0.5
+SUBSCRIPTION_RESTORE_DELAY = 0.2
 SKIP_SYNC_SERVICES = {
     ServicesTypes.PAIRING,
     ServicesTypes.TRANSFER_TRANSPORT_MANAGEMENT,
@@ -739,14 +739,6 @@ class BlePairing(AbstractPairing):
 
             if not self._encryption_key:
                 await self._async_pair_verify()
-                if self.subscriptions:
-                    assert (
-                        not self._ble_request_lock.locked()
-                    ), "Should not have a _ble_request_lock"
-                    async with self._ble_request_lock:
-                        await self._async_subscribe_broadcast_events(
-                            list(self.subscriptions)
-                        )
 
             if update_values:
                 await self._populate_char_values(config_changed)
@@ -771,7 +763,7 @@ class BlePairing(AbstractPairing):
         """Restore subscriptions after after connecting."""
         if self.client and self.client.is_connected:
             async_create_task(
-                self._async_start_notify_subscriptions(list(self.subscriptions))
+                self._async_restore_subscriptions(list(self.subscriptions))
             )
 
     async def _async_subscribe_broadcast_events(
@@ -805,13 +797,25 @@ class BlePairing(AbstractPairing):
                 )
                 continue
 
+    async def _async_restore_subscriptions(
+        self, subscriptions: list[tuple[int, int]]
+    ) -> None:
+        """Restore subscriptions and setup notifications after after connecting."""
+        if not self.client or not self.client.is_connected:
+            return
+
+        assert (
+            not self._ble_request_lock.locked()
+        ), "Should not have a _ble_request_lock"
+        async with self._ble_request_lock:
+            await self._async_subscribe_broadcast_events(list(self.subscriptions))
+
+        await self._async_start_notify_subscriptions(subscriptions)
+
     async def _async_start_notify_subscriptions(
         self, subscriptions: list[tuple[int, int]]
     ) -> None:
         """Start notifications for the given subscriptions."""
-        if not self.accessories or not self.client.is_connected:
-            return
-
         for _, iid in subscriptions:
             if iid in self._notifications:
                 continue
