@@ -86,6 +86,8 @@ class Characteristic:
     maxValue: int | float | None
     minStep: int | float | None
     handle: int | None = None
+    broadcast_events: bool = False
+    disconnected_events: bool = False
 
     service: Service
 
@@ -101,6 +103,12 @@ class Characteristic:
 
         self.ev = None
         self.handle = self._get_configuration(kwargs, "handle", None)
+        self.broadcast_events = self._get_configuration(
+            kwargs, "broadcast_events", None
+        )
+        self.disconnected_events = self._get_configuration(
+            kwargs, "disconnected_events", None
+        )
         self.description = self._get_configuration(kwargs, "description", None)
         self.unit = self._get_configuration(kwargs, "unit", None)
         self.minValue = self._get_configuration(kwargs, "min_value", None)
@@ -307,6 +315,10 @@ class Characteristic:
             d["valid-values"] = self.valid_values
         if self.handle is not None:
             d["handle"] = self.handle
+        if self.disconnected_events is not None:
+            d["disconnected_events"] = self.disconnected_events
+        if self.broadcast_events is not None:
+            d["broadcast_events"] = self.broadcast_events
         return d
 
 

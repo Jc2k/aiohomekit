@@ -180,6 +180,18 @@ python-versions = "*"
 pycparser = "*"
 
 [[package]]
+name = "chacha20poly1305"
+version = "0.0.3"
+description = "Chacha20Poly1305"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.extras]
+dev = ["pep8", "pypandoc", "tox"]
+docs = ["Sphinx (>=1.0)", "sphinx_rtd_theme", "sphinxcontrib-programoutput"]
+
+[[package]]
 name = "chacha20poly1305-reuseable"
 version = "0.0.4"
 description = "ChaCha20Poly1305 that is reuseable for asyncio"
@@ -772,7 +784,7 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "b97c6ca0e492368c8b0f532702807daeb71d623d00d29e8472dccf23d6359dcd"
+content-hash = "7ce18fe238b8c1a0b2d704b59a591f68e75169805d83af44a02d8854262505a4"
 
 [metadata.files]
 aiocoap = [
@@ -991,6 +1003,9 @@ cffi = [
     {file = "cffi-1.15.1-cp39-cp39-win32.whl", hash = "sha256:40f4774f5a9d4f5e344f31a32b5096977b5d48560c5592e2f3d2c4374bd543ee"},
     {file = "cffi-1.15.1-cp39-cp39-win_amd64.whl", hash = "sha256:70df4e3b545a17496c9b3f41f5115e69a4f2e77e94e1d2a8e1070bc0c38c8a3c"},
     {file = "cffi-1.15.1.tar.gz", hash = "sha256:d400bfb9a37b1351253cb402671cea7e89bdecc294e8016a707f6d1d8ac934f9"},
+]
+chacha20poly1305 = [
+    {file = "chacha20poly1305-0.0.3.tar.gz", hash = "sha256:f2f005c7cf4638ffa4ff06c02c78748068b642916795c6d16c7cc5e355e70edf"},
 ]
 chacha20poly1305-reuseable = [
     {file = "chacha20poly1305-reuseable-0.0.4.tar.gz", hash = "sha256:bfb307f1db956c4fe80387a229641de37594b0381d6f4af49a5ea5fbf8ea3492"},
