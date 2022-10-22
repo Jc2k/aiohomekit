@@ -266,6 +266,8 @@ class BlePairing(AbstractPairing):
         data: bytes | None = None,
         iid: int | None = None,
     ) -> bytes:
+        assert self._ble_request_lock.locked(), "_ble_request_lock Should be locked"
+
         if char.handle:
             endpoint = self.client.get_characteristic_by_handle(char.handle)
         else:
@@ -536,28 +538,6 @@ class BlePairing(AbstractPairing):
             data,
         )
 
-        # for iid in range(64):
-        #    logger.debug(
-        #        "%s: Trying to get key for iid: %s", self.name, iid
-        #    )
-        #    try:
-        #        data = await self._async_request_under_lock(
-        #            OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=iid
-        #        )
-        #    except PDUStatusError:
-        #        continue#
-
-        #                logger.warning(
-        #                   "%s: Got broadcast key for iid: %s %s", self.name, iid, data
-        #              )
-        #             if data == b"":
-        #                continue
-
-        #           break
-
-        # key = ProtocolConfig.decode(data).broadcast_encryption_key
-        # self._broadcast_decryption_key = BroadcastDecryptionKey(key)
-
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
         accessory = Accessory()
@@ -759,21 +739,10 @@ class BlePairing(AbstractPairing):
 
             if not self._encryption_key:
                 await self._async_pair_verify()
-
-            logger.debug(
-                "%s: Connected, processing subscriptions: %s; rssi=%s",
-                self.name,
-                self.subscriptions,
-                self.rssi,
-            )
-            if self.subscriptions:
-                await self._async_subscribe_broadcast_events(list(self.subscriptions))
-
-            # Only start active subscriptions if we stay connected for more
-            # than subscription delay seconds.
-            self._restore_subscriptions_timer = asyncio.get_event_loop().call_later(
-                SUBSCRIPTION_RESTORE_DELAY, self._restore_subscriptions
-            )
+                if self.subscriptions:
+                    await self._async_subscribe_broadcast_events(
+                        list(self.subscriptions)
+                    )
 
             if update_values:
                 await self._populate_char_values(config_changed)
@@ -781,6 +750,18 @@ class BlePairing(AbstractPairing):
 
             if config_changed:
                 self._callback_and_save_config_changed(self.config_num)
+
+            logger.debug(
+                "%s: Connected, processing subscriptions: %s; rssi=%s",
+                self.name,
+                self.subscriptions,
+                self.rssi,
+            )
+            # Only start active subscriptions if we stay connected for more
+            # than subscription delay seconds.
+            self._restore_subscriptions_timer = asyncio.get_event_loop().call_later(
+                SUBSCRIPTION_RESTORE_DELAY, self._restore_subscriptions
+            )
 
     def _restore_subscriptions(self):
         """Restore subscriptions after after connecting."""
@@ -823,19 +804,6 @@ class BlePairing(AbstractPairing):
         """Start notifications for the given subscriptions."""
         if not self.accessories or not self.client.is_connected:
             return
-
-        # if self._ble_request_lock.locked():
-        #    logger.debug(
-        #        "%s: Waiting for request lock to start subscriptions",
-        #        self.name,
-        #    )
-        #    return
-
-        # async with self._ble_request_lock:
-        #    # logger.debug("%s: Setting broadcast encryption key", self.name)
-        #    # await self._async_set_broadcast_encryption_key()
-        #    logger.warning("%s: Subscribing to broadcast events", self.name)
-        #    await self._async_subscribe_broadcast_events(subscriptions)
 
         for _, iid in subscriptions:
             if iid in self._notifications:
