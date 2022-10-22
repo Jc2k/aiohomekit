@@ -69,6 +69,7 @@ from .connection import establish_connection
 from .key import BroadcastDecryptionKey, DecryptionKey, EncryptionKey
 from .manufacturer_data import HomeKitAdvertisement, HomeKitEncryptedNotification
 from .structs import (
+    HAP_BLE_CHARACTERISTIC_CONFIGURATION_REQUEST_TLV,
     HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV,
     HAP_TLV,
     Characteristic as CharacteristicTLV,
@@ -106,6 +107,24 @@ WRITE_FIRST_REQUIRED_CHARACTERISTICS = {
     "246912DC-8FA3-82ED-DEA4-9EB91D8FC2EE",  # Unknown Vendor char seen on Belkin Wemo Switch
 }
 BLE_AID = 1  # The aid for BLE devices is always 1
+
+ENABLE_BROADCAST_PAYLOAD = TLV.encode_list(
+    [
+        (
+            HAP_BLE_CHARACTERISTIC_CONFIGURATION_REQUEST_TLV.kTLVHAPParamCharacteristicConfigurationProperties,
+            int.to_bytes(1, 2, "little"),
+        ),
+        (
+            HAP_BLE_CHARACTERISTIC_CONFIGURATION_REQUEST_TLV.kTLVHAPParamCharacteristicConfigurationBroadcastInterval,
+            bytes([0x01]),
+        ),
+    ]
+)
+
+GENERATE_BROADCAST_KEY_PAYLOAD = (
+    bytes([HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV.GenerateBroadcastEncryptionKey])
+    + b"\x00"
+)
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
@@ -515,14 +534,6 @@ class BlePairing(AbstractPairing):
             logger.exception("%s: Failed to set advertising identifier", self.name)
             return
 
-        payload = (
-            bytes(
-                [
-                    HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV.GenerateBroadcastEncryptionKey
-                ]
-            )
-            + b"\x00"
-        )
         logger.debug(
             "%s: Setting broadcast key for service_iid: %s",
             self.name,
@@ -530,7 +541,10 @@ class BlePairing(AbstractPairing):
         )
         try:
             await self._async_request_under_lock(
-                OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
+                OpCode.PROTOCOL_CONFIG,
+                hap_char,
+                GENERATE_BROADCAST_KEY_PAYLOAD,
+                iid=service_iid,
             )
         except PDUStatusError:
             logger.exception("%s: Failed to set broadcast key", self.name)
@@ -791,10 +805,9 @@ class BlePairing(AbstractPairing):
                 logger.debug(
                     "%s: Subscribing to broadcast notify for iid: %s", self.name, iid
                 )
-                enable_broadcast_payload = b"\x01\x02\x01\x00\x02\x01\x01"
                 try:
                     await self._async_request_under_lock(
-                        OpCode.CHAR_CONFIG, hap_char, enable_broadcast_payload
+                        OpCode.CHAR_CONFIG, hap_char, ENABLE_BROADCAST_PAYLOAD
                     )
                 except PDUStatusError:
                     logger.debug(

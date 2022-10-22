@@ -27,6 +27,11 @@ class HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV(enum.IntEnum):
     GenerateBroadcastEncryptionKey = 0x01
 
 
+class HAP_BLE_CHARACTERISTIC_CONFIGURATION_REQUEST_TLV(enum.IntEnum):
+    kTLVHAPParamCharacteristicConfigurationProperties = 0x01
+    kTLVHAPParamCharacteristicConfigurationBroadcastInterval = 0x02
+
+
 class HAP_TLV(enum.IntEnum):
     # Additional Parameter Types for BLE (Table 6-9 page 98)
     kTLVHAPSeparator = 0x00
