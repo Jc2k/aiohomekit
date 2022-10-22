@@ -331,6 +331,8 @@ class BlePairing(AbstractPairing):
         self._broadcast_notifications = set()
 
     async def _ensure_connected(self):
+        """Ensure that we are connected to the accessory."""
+        assert self._config_lock.locked(), "_config_lock Should be locked"
         if self.client and self.client.is_connected:
             return
         async with self._connection_lock:
