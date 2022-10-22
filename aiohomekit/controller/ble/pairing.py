@@ -75,7 +75,6 @@ from .structs import (
     HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV,
     HAP_TLV,
     Characteristic as CharacteristicTLV,
-    ProtocolConfig,
 )
 from .values import from_bytes, to_bytes
 
@@ -519,7 +518,14 @@ class BlePairing(AbstractPairing):
             logger.exception("%s: Failed to set advertising identifier", self.name)
             return
 
-        payload = b"\x01\x00"
+        payload = (
+            bytes(
+                [
+                    HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV.GenerateBroadcastEncryptionKey
+                ]
+            )
+            + b"\x00"
+        )
         logger.debug(
             "%s: Setting broadcast key for service_iid: %s",
             self.name,

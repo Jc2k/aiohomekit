@@ -27,13 +27,6 @@ class HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV(enum.IntEnum):
     GenerateBroadcastEncryptionKey = 0x01
 
 
-class HAP_PROTOCOL_CONFIG_TLV(enum.IntEnum):
-    kTLVHAPParamCurrentStateNumber = 0x01
-    kTLVHAPParamCurrentConfigNumber = 0x02
-    kTLVHAPParamAccessoryAdvertisingIdentifier = 0x03
-    kTLVHAPParamBroadcastEncryptionKey = 0x04
-
-
 class HAP_TLV(enum.IntEnum):
     # Additional Parameter Types for BLE (Table 6-9 page 98)
     kTLVHAPSeparator = 0x00
@@ -82,23 +75,6 @@ DATA_TYPE_STR = {
     0x19: "string",
     0x1B: "data",
 }
-
-
-@dataclass
-class ProtocolConfig(TLVStruct):
-
-    current_state_number: u8 = tlv_entry(
-        HAP_PROTOCOL_CONFIG_TLV.kTLVHAPParamCurrentStateNumber
-    )
-    current_config_number: u8 = tlv_entry(
-        HAP_PROTOCOL_CONFIG_TLV.kTLVHAPParamCurrentConfigNumber
-    )
-    accessory_advertising_identifier: u128 = tlv_entry(
-        HAP_PROTOCOL_CONFIG_TLV.kTLVHAPParamAccessoryAdvertisingIdentifier
-    )
-    broadcast_encryption_key: bytes = tlv_entry(
-        HAP_PROTOCOL_CONFIG_TLV.kTLVHAPParamBroadcastEncryptionKey
-    )
 
 
 @dataclass
