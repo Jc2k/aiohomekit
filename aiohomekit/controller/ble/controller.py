@@ -12,8 +12,11 @@ from bleak.exc import BleakDBusError, BleakError
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.controller.ble.manufacturer_data import (
+    APPLE_MANUFACTURER_ID,
+    HOMEKIT_ADVERTISEMENT_TYPE,
+    HOMEKIT_ENCRYPTED_NOTIFICATION_TYPE,
     HomeKitAdvertisement,
-    is_homekit_advertisement,
+    HomeKitEncryptedNotification,
 )
 from aiohomekit.controller.ble.pairing import BlePairing
 
@@ -42,14 +45,31 @@ class BleController(AbstractController):
     def _device_detected(
         self, device: BLEDevice, advertisement_data: AdvertisementData
     ) -> None:
-        # Since we are getting everything, reject anything that is not a HomeKit device
-        # as early as possible to avoid the try/except overhead.
-        if not is_homekit_advertisement(advertisement_data):
+        manufacturer_data = advertisement_data.manufacturer_data
+        if not (mfr_data := manufacturer_data.get(APPLE_MANUFACTURER_ID)):
+            return
+
+        elif mfr_data[0] == HOMEKIT_ENCRYPTED_NOTIFICATION_TYPE:
+            try:
+                data = HomeKitEncryptedNotification.from_manufacturer_data(
+                    device.name, device.address, manufacturer_data
+                )
+            except ValueError:
+                return
+
+            logger.debug("Got encrypted notification: %s", data)
+
+            if pairing := self.pairings.get(data.id):
+                pairing._async_notification(data)
+
+            return
+
+        if mfr_data[0] != HOMEKIT_ADVERTISEMENT_TYPE:
             return
 
         try:
             data = HomeKitAdvertisement.from_manufacturer_data(
-                device.name, device.address, advertisement_data.manufacturer_data
+                device.name, device.address, manufacturer_data
             )
         except ValueError:
             return
