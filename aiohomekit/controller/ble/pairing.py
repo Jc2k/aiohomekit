@@ -709,6 +709,7 @@ class BlePairing(AbstractPairing):
     ) -> None:
         was_locked = self._config_lock.locked()
         async with self._config_lock:
+            was_connected = self.client and self.client.is_connected
             await self._ensure_connected()
             if was_locked and not force_update:
                 # No need to do it twice if we already have the data
@@ -742,17 +743,18 @@ class BlePairing(AbstractPairing):
             if config_changed:
                 self._callback_and_save_config_changed(self.config_num)
 
-            logger.debug(
-                "%s: Connected, processing subscriptions: %s; rssi=%s",
-                self.name,
-                self.subscriptions,
-                self.rssi,
-            )
-            # Only start active subscriptions if we stay connected for more
-            # than subscription delay seconds.
-            self._restore_subscriptions_timer = asyncio.get_event_loop().call_later(
-                SUBSCRIPTION_RESTORE_DELAY, self._restore_subscriptions
-            )
+            if not was_connected:
+                logger.debug(
+                    "%s: Connected, processing subscriptions: %s; rssi=%s",
+                    self.name,
+                    self.subscriptions,
+                    self.rssi,
+                )
+                # Only start active subscriptions if we stay connected for more
+                # than subscription delay seconds.
+                self._restore_subscriptions_timer = asyncio.get_event_loop().call_later(
+                    SUBSCRIPTION_RESTORE_DELAY, self._restore_subscriptions
+                )
 
     def _restore_subscriptions(self):
         """Restore subscriptions after after connecting."""
