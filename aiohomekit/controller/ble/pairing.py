@@ -759,6 +759,12 @@ class BlePairing(AbstractPairing):
             was_connected = self.client and self.client.is_connected
             self._restore_pending |= not was_connected
             self._tried_to_connect_once = True
+            logger.debug(
+                "%s: Populating accessories and characteristics: was_connected=%s restore_pending=%s",
+                self.name,
+                was_connected,
+                self._restore_pending,
+            )
 
             await self._ensure_connected()
 
