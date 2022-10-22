@@ -368,7 +368,7 @@ class BlePairing(AbstractPairing):
                 return
             async_create_task(_async_callback())
 
-        logger.debug("%s: Subscribing to iid: %s", self.name, iid)
+        logger.debug("%s: Subscribing to gatt notify for iid: %s", self.name, iid)
         await self.client.start_notify(endpoint, _callback)
         self._notifications.add(iid)
 
@@ -789,6 +789,9 @@ class BlePairing(AbstractPairing):
             if not hap_char.broadcast_events:
                 continue
 
+            logger.debug(
+                "%s: Subscribing to broadcast notify for iid: %s", self.name, iid
+            )
             enable_broadcast_payload = b"\x01\x02\x01\x00\x02\x01\x01"
             try:
                 data = await self._async_request_under_lock(
