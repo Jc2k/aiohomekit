@@ -147,11 +147,11 @@ def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
         self: BlePairing, *args: Any, **kwargs: Any
     ) -> None:
         """Restore connection, populate data, and then resume when the operation completes."""
-        should_restore = await self._populate_accessories_and_characteristics()
+        await self._populate_accessories_and_characteristics()
         try:
             return await func(self, *args, **kwargs)
         finally:
-            if not self._shutdown and should_restore:
+            if not self._shutdown and self._restore_pending:
                 await self._async_restore_subscriptions()
 
     return cast(WrapFuncType, _async_restore_and_resume)
@@ -211,6 +211,7 @@ class BlePairing(AbstractPairing):
         self._config_lock = asyncio.Lock()
         # Only subscribe to characteristics one at a time
         self._subscription_lock = asyncio.Lock()
+        self._restore_pending = False
 
     @property
     def address(self) -> str:
@@ -329,6 +330,7 @@ class BlePairing(AbstractPairing):
         self._decryption_key = None
         self._notifications = set()
         self._broadcast_notifications = set()
+        self._restore_pending = False
 
     async def _ensure_connected(self):
         """Ensure that we are connected to the accessory."""
@@ -710,8 +712,9 @@ class BlePairing(AbstractPairing):
         self, force_update: bool = False
     ) -> None:
         """Populate the state of all accessories under the lock."""
-        if await self._populate_accessories_and_characteristics(force_update):
-            self._async_restore_subscriptions()
+        await self._populate_accessories_and_characteristics(force_update)
+        if self._restore_pending:
+            await self._async_restore_subscriptions()
 
     def _all_handles_are_missing(self) -> bool:
         """Check if any characteristic has a handle.
@@ -731,7 +734,10 @@ class BlePairing(AbstractPairing):
         was_locked = self._config_lock.locked()
         async with self._config_lock:
             was_connected = self.client and self.client.is_connected
+            self._restore_pending |= not was_connected
+
             await self._ensure_connected()
+
             if was_locked and not force_update:
                 # No need to do it twice if we already have the data
                 # and we are not forcing an update
@@ -767,19 +773,6 @@ class BlePairing(AbstractPairing):
 
             if config_changed:
                 self._callback_and_save_config_changed(self.config_num)
-
-            if not was_connected:
-                logger.debug(
-                    "%s: Connected, will process subscriptions after operation: %s; rssi=%s",
-                    self.name,
-                    self.subscriptions,
-                    self.rssi,
-                )
-                # Only start active subscriptions if we stay connected for more
-                # than subscription delay seconds.
-                return True
-
-        return False
 
     async def _async_subscribe_broadcast_events(
         self, subscriptions: list[tuple[int, int]]
@@ -823,7 +816,7 @@ class BlePairing(AbstractPairing):
 
     async def _async_restore_subscriptions(self) -> None:
         """Restore subscriptions and setup notifications after after connecting."""
-        if not self.client or not self.client.is_connected:
+        if not self._restore_pending or not self.client or not self.client.is_connected:
             return
 
         logger.debug("%s: Setting broadcast encryption key", self.name)
@@ -835,6 +828,7 @@ class BlePairing(AbstractPairing):
         )
 
         if not self.subscriptions:
+            self._restore_pending = False
             return
 
         subscriptions = list(self.subscriptions)
@@ -846,6 +840,7 @@ class BlePairing(AbstractPairing):
         )
         await self._async_subscribe_broadcast_events(subscriptions)
         await self._async_start_notify_subscriptions(subscriptions)
+        self._restore_pending = False
 
     async def _async_start_notify_subscriptions(
         self, subscriptions: list[tuple[int, int]]
@@ -879,7 +874,8 @@ class BlePairing(AbstractPairing):
 
         This method is called when the config num changes.
         """
-        if await self._populate_accessories_and_characteristics():
+        await self._populate_accessories_and_characteristics()
+        if self._restore_pending:
             await self._async_restore_subscriptions()
 
     @operation_lock
