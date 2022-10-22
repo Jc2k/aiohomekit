@@ -426,18 +426,13 @@ class BlePairing(AbstractPairing):
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
         """Receive a notification from the accessory."""
         if not self._broadcast_decryption_key:
-            logger.warning(
+            logger.debug(
                 "%s: Received notification before session is setup, ignoring: %s",
                 self.name,
                 data,
             )
             return
 
-        logger.warning(
-            "%s: Received notification: %s",
-            self.name,
-            data,
-        )
         start_state_num = self.description.state_num
         # Usually we increment by one, but sometimes we get multiple with the same
         # state number so the first pass is optimistic to reduce the number of
@@ -447,7 +442,12 @@ class BlePairing(AbstractPairing):
             start_state_num,
             *range(start_state_num + 2, start_state_num + 30),
         ):
-            logger.warning("%s: Trying state_num: %s", self.name, state_num)
+            logger.debug(
+                "%s: Trying state_num %s for encrypted notification: %s",
+                self.name,
+                state_num,
+                data,
+            )
             decrypted = self._broadcast_decryption_key.decrypt(
                 data.encrypted_payload,
                 state_num,
@@ -456,7 +456,7 @@ class BlePairing(AbstractPairing):
             if decrypted is not None:
                 gsn = int.from_bytes(decrypted[0:2], "little")
                 if gsn != state_num:
-                    logger.warning(
+                    logger.debug(
                         "%s: GSN mismatch, expected: %s, got: %s",
                         self.name,
                         state_num,
@@ -465,7 +465,7 @@ class BlePairing(AbstractPairing):
                     return
                 iid = int.from_bytes(decrypted[2:4], "little")
                 value = decrypted[4:12]
-                logger.warning(
+                logger.debug(
                     "%s: Received notification: encrypted =  %s - decrypted = %s - gsn=%s - iid=%s - value=%s",
                     self.name,
                     data.encrypted_payload,
@@ -479,20 +479,17 @@ class BlePairing(AbstractPairing):
                 char = self.accessories.aid(1).characteristics.iid(iid)
 
                 results = {(BLE_AID, iid): {"value": from_bytes(char, value)}}
-                logger.warning(
+                logger.debug(
                     "%s: Received notification: results = %s", self.name, results
                 )
 
                 for listener in self.listeners:
                     listener(results)
-                break
-            else:
-                logger.warning(
-                    "%s: Received notification: encrypted =  %s - decryption failed = %s",
-                    self.name,
-                    data.encrypted_payload,
-                    decrypted,
-                )
+                return
+
+        logger.warning(
+            "%s: Received notification but could not decrypt: %s", self.name, data
+        )
 
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
@@ -515,17 +512,12 @@ class BlePairing(AbstractPairing):
             service_iid,
         )
         try:
-            data = await self._async_request_under_lock(
+            await self._async_request_under_lock(
                 OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
             )
         except PDUStatusError:
             logger.exception("%s: Failed to set advertising identifier", self.name)
             return
-        logger.warning(
-            "%s: Received advertising identifier: %s",
-            self.name,
-            data,
-        )
 
         payload = b"\x01\x00"
         logger.debug(
@@ -534,18 +526,12 @@ class BlePairing(AbstractPairing):
             service_iid,
         )
         try:
-            data = await self._async_request_under_lock(
+            await self._async_request_under_lock(
                 OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
             )
         except PDUStatusError:
             logger.exception("%s: Failed to set broadcast key", self.name)
             return
-
-        logger.warning(
-            "%s: Received broadcast key: %s",
-            self.name,
-            data,
-        )
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
@@ -561,7 +547,7 @@ class BlePairing(AbstractPairing):
                     ble_service_char.handle
                 )
                 service_iid = int.from_bytes(service_iid_bytes, "little")
-                logger.warning(
+                logger.debug(
                     "%s: Service %s iid: %s (decoded as %s)",
                     self.name,
                     service.uuid,
