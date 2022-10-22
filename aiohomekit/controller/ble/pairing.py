@@ -821,7 +821,7 @@ class BlePairing(AbstractPairing):
 
     async def _async_restore_subscriptions(self) -> None:
         """Restore subscriptions and setup notifications after after connecting."""
-        if not self.client or not self.client.is_connected or not self.subscriptions:
+        if not self.client or not self.client.is_connected:
             return
 
         logger.debug("%s: Setting broadcast encryption key", self.name)
@@ -831,6 +831,10 @@ class BlePairing(AbstractPairing):
         self._broadcast_decryption_key = BroadcastDecryptionKey(
             self._derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
         )
+
+        if not self.subscriptions:
+            return
+
         subscriptions = list(self.subscriptions)
         logger.debug(
             "%s: Connected, resuming subscriptions: %s; rssi=%s",
