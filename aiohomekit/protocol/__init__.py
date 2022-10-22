@@ -591,13 +591,6 @@ def get_session_keys(
 
     # return function to calculate session keys
     def derive(salt: bytes, info: bytes, length: int = 32) -> bytes:
-        logger.debug(
-            "get_session_keys derive: shared_secret=%s salt=%s info=%s length=%s",
-            shared_secret,
-            salt,
-            info,
-            length,
-        )
         return hkdf_derive(shared_secret, salt, info, length=length)
 
     session_id = derive(
