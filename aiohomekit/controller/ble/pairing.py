@@ -514,27 +514,6 @@ class BlePairing(AbstractPairing):
             return
         hap_char = info[CharacteristicsTypes.SERVICE_SIGNATURE]
         service_iid = hap_char.service.iid
-
-        if 0:
-            adv_id_bytes = bytes.fromhex(self.description.id.replace(":", ""))
-            # Some devices must have this set or we won't be able to decrypt
-            # ** THIS MAY NOT BE NEEDED **
-
-            payload = b"\x03\x06" + adv_id_bytes
-            service_iid = hap_char.service.iid
-            logger.debug(
-                "%s: Setting advertising identifier for service_iid: %s",
-                self.name,
-                service_iid,
-            )
-            try:
-                await self._async_request_under_lock(
-                    OpCode.PROTOCOL_CONFIG, hap_char, payload, iid=service_iid
-                )
-            except PDUStatusError:
-                logger.exception("%s: Failed to set advertising identifier", self.name)
-                return
-
         logger.debug(
             "%s: Setting broadcast key for service_iid: %s",
             self.name,
@@ -548,7 +527,7 @@ class BlePairing(AbstractPairing):
                 iid=service_iid,
             )
         except PDUStatusError:
-            logger.exception("%s: Failed to set broadcast key", self.name)
+            logger.exception("%s: Failed to set broadcast key, try un-paring and re-pairing the accessory.", self.name)
             return
 
     async def _async_fetch_gatt_database(self) -> Accessories:
