@@ -439,7 +439,14 @@ class BlePairing(AbstractPairing):
             data,
         )
         start_state_num = self.description.state_num
-        for state_num in range(start_state_num, start_state_num + 30):
+        # Usually we increment by one, but sometimes we get multiple with the same
+        # state number so the first pass is optimistic to reduce the number of
+        # of decrypts we do.
+        for state_num in (
+            start_state_num + 1,
+            start_state_num,
+            *range(start_state_num + 2, start_state_num + 30),
+        ):
             logger.warning("%s: Trying state_num: %s", self.name, state_num)
             decrypted = self._broadcast_decryption_key.decrypt(
                 data.encrypted_payload,
