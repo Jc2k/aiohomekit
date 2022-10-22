@@ -162,6 +162,7 @@ class BlePairing(AbstractPairing):
         # Used to keep track of which characteristics we already started
         # notifications for
         self._notifications: set[int] = set()
+        self._broadcast_notifications: set[int] = set()
 
         # Only allow one attempt to aquire the connection at a time
         self._connection_lock = asyncio.Lock()
@@ -297,6 +298,7 @@ class BlePairing(AbstractPairing):
         self._encryption_key = None
         self._decryption_key = None
         self._notifications = set()
+        self._broadcast_notifications = set()
         if self._restore_subscriptions_timer:
             self._restore_subscriptions_timer.cancel()
             self._restore_subscriptions_timer = None
@@ -778,6 +780,8 @@ class BlePairing(AbstractPairing):
                 continue
             if not hap_char.broadcast_events:
                 continue
+            if iid in self._broadcast_notifications:
+                continue
 
             logger.debug(
                 "%s: Subscribing to broadcast notify for iid: %s", self.name, iid
@@ -794,6 +798,7 @@ class BlePairing(AbstractPairing):
                     hap_char,
                 )
                 continue
+            self._broadcast_notifications.add(iid)
 
     async def _async_restore_subscriptions(self) -> None:
         """Restore subscriptions and setup notifications after after connecting."""
