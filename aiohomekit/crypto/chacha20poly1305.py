@@ -119,13 +119,6 @@ class ChaCha20Poly1305PartialTag(ChaCha20Poly1305PurePython):
 
         expected_tag = combined_text[-4:]
         ciphertext = combined_text[:-4]
-        logger.warning(
-            "Trying open with : nonce=%s, data=%s ciphertext=%s expected_tag=%s",
-            nonce,
-            data,
-            ciphertext,
-            expected_tag,
-        )
 
         otk = self.poly1305_key_gen(self.key, nonce)
 
