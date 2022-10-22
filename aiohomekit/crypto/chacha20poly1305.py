@@ -20,19 +20,19 @@ https://tools.ietf.org/html/rfc7539. See HomeKit spec page 51.
 """
 
 from __future__ import annotations
-import struct
-
-from chacha20poly1305_reuseable import ChaCha20Poly1305Reusable
-from cryptography.exceptions import InvalidTag
-from chacha20poly1305 import (
-    ChaCha20Poly1305 as ChaCha20Poly1305PurePython,
-    Poly1305,
-    ChaCha,
-    ct_compare_digest,
-    TagInvalidException,
-)
 
 import logging
+import struct
+
+from chacha20poly1305 import (
+    ChaCha,
+    ChaCha20Poly1305 as ChaCha20Poly1305PurePython,
+    Poly1305,
+    TagInvalidException,
+    ct_compare_digest,
+)
+from chacha20poly1305_reuseable import ChaCha20Poly1305Reusable
+from cryptography.exceptions import InvalidTag
 
 logger = logging.getLogger(__name__)
 

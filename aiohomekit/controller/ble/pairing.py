@@ -20,7 +20,6 @@ import asyncio
 from collections.abc import Callable
 from datetime import timedelta
 import logging
-from os import F_ULOCK
 import random
 import struct
 import time
@@ -34,9 +33,8 @@ from bleak_retry_connector import (
     BLEAK_RETRY_EXCEPTIONS as BLEAK_EXCEPTIONS,
     retry_bluetooth_connection_error,
 )
-from aiohomekit.controller.ble.const import SIGNATURE_SERVICE, SIGNATURE_SERVICE_CHAR
-from aiohomekit.crypto.hkdf import hkdf_derive
 
+from aiohomekit.controller.ble.const import SIGNATURE_SERVICE, SIGNATURE_SERVICE_CHAR
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AccessoryNotFoundError,
@@ -52,6 +50,9 @@ from aiohomekit.model import (
     Transport,
 )
 from aiohomekit.model.characteristics import Characteristic, CharacteristicPermissions
+from aiohomekit.model.characteristics.characteristic_formats import (
+    CharacteristicFormats,
+)
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import OpCode, PDUStatus, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
@@ -434,7 +435,7 @@ class BlePairing(AbstractPairing):
             data,
         )
         start_state_num = self.description.state_num
-        for state_num in range(start_state_num, start_state_num + 30):
+        for state_num in range(start_state_num + 1, start_state_num + 30):
             logger.warning("%s: Trying state_num: %s", self.name, state_num)
             decrypted = self._broadcast_decryption_key.decrypt(
                 data.encrypted_payload,
@@ -493,6 +494,7 @@ class BlePairing(AbstractPairing):
 
         adv_id_bytes = bytes.fromhex(self.description.id.replace(":", ""))
         # Some devices must have this set or we won't be able to decrypt
+        # ** THIS MAY NOT BE NEEDED **
 
         payload = b"\x03\x06" + adv_id_bytes
         service_iid = hap_char.service.iid

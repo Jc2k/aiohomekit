@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 import enum
 import struct
 from typing import Any, Optional, Union
+
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16, u128
 
 from .const import AdditionalParameterTypes
