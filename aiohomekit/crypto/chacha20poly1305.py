@@ -113,6 +113,9 @@ class ChaCha20Poly1305PartialTag(ChaCha20Poly1305PurePython):
         Decrypts and authenticates ciphertext using nonce and data. If the
         tag is valid, the plaintext is returned. If the tag is invalid,
         returns None.
+
+        This decryption only handles ble advertisements, which have a 4 byte
+        partial tag.
         """
         if len(nonce) != 12:
             raise ValueError("Nonce must be 96 bit long")

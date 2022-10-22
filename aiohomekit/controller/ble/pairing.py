@@ -453,7 +453,7 @@ class BlePairing(AbstractPairing):
                 state_num,
                 data.advertising_identifier,
             )
-            if decrypted is not False:
+            if decrypted is not None:
                 gsn = int.from_bytes(decrypted[0:2], "little")
                 if gsn != state_num:
                     logger.warning(
