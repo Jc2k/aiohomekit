@@ -213,6 +213,8 @@ class BlePairing(AbstractPairing):
         self._config_lock = asyncio.Lock()
         # Only subscribe to characteristics one at a time
         self._subscription_lock = asyncio.Lock()
+
+        self._accessory_populated_once = False
         self._restore_pending = False
 
     @property
@@ -426,6 +428,14 @@ class BlePairing(AbstractPairing):
 
     async def _process_disconnected_events(self) -> None:
         """Handle disconnected events seen from the advertisement."""
+        if not self._accessory_populated_once:
+            # We never connected to the accessory, so we don't need to
+            # process the disconnected events
+            logger.debug(
+                "%s: Skipping disconnected events because we have not yet connected.",
+                self.name,
+            )
+            return
         logger.debug(
             "%s: Polling subscriptions for changes during disconnection; rssi=%s",
             self.name,
@@ -778,6 +788,8 @@ class BlePairing(AbstractPairing):
 
             if config_changed:
                 self._callback_and_save_config_changed(self.config_num)
+
+            self._accessory_populated_once = True
 
     async def _async_subscribe_broadcast_events(
         self, subscriptions: list[tuple[int, int]]
