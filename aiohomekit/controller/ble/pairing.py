@@ -93,7 +93,6 @@ NEVER_TIME = -AVAILABILITY_INTERVAL
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
 SERVICE_INSTANCE_ID_UUID = UUID(SERVICE_INSTANCE_ID)
 
-SUBSCRIPTION_RESTORE_DELAY = 0.2
 SKIP_SYNC_SERVICES = {
     ServicesTypes.PAIRING,
     ServicesTypes.TRANSFER_TRANSPORT_MANAGEMENT,
@@ -132,11 +131,30 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
 
-    async def _async_wrap(self: BlePairing, *args: Any, **kwargs: Any) -> None:
+    async def _async_operation_lock_wrap(
+        self: BlePairing, *args: Any, **kwargs: Any
+    ) -> None:
         async with self._operation_lock:
             return await func(self, *args, **kwargs)
 
-    return cast(WrapFuncType, _async_wrap)
+    return cast(WrapFuncType, _async_operation_lock_wrap)
+
+
+def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
+    """Define a wrapper restore connection, populate data, and then resume when the operation completes."""
+
+    async def _async_restore_and_resume(
+        self: BlePairing, *args: Any, **kwargs: Any
+    ) -> None:
+        """Restore connection, populate data, and then resume when the operation completes."""
+        should_restore = await self._populate_accessories_and_characteristics()
+        try:
+            return await func(self, *args, **kwargs)
+        finally:
+            if not self._shutdown and should_restore:
+                await self._async_restore_subscriptions()
+
+    return cast(WrapFuncType, _async_restore_and_resume)
 
 
 class BlePairing(AbstractPairing):
@@ -193,8 +211,6 @@ class BlePairing(AbstractPairing):
         self._config_lock = asyncio.Lock()
         # Only subscribe to characteristics one at a time
         self._subscription_lock = asyncio.Lock()
-
-        self._restore_subscriptions_timer: asyncio.TimerHandle | None = None
 
     @property
     def address(self) -> str:
@@ -313,9 +329,6 @@ class BlePairing(AbstractPairing):
         self._decryption_key = None
         self._notifications = set()
         self._broadcast_notifications = set()
-        if self._restore_subscriptions_timer:
-            self._restore_subscriptions_timer.cancel()
-            self._restore_subscriptions_timer = None
 
     async def _ensure_connected(self):
         if self.client and self.client.is_connected:
@@ -644,8 +657,8 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @restore_connection_and_resume
     async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
-        await self._populate_accessories_and_characteristics()
         return self.accessories.serialize()
 
     async def _populate_char_values(self, config_changed: bool) -> None:
@@ -702,7 +715,8 @@ class BlePairing(AbstractPairing):
         self, force_update: bool = False
     ) -> None:
         """Populate the state of all accessories under the lock."""
-        await self._populate_accessories_and_characteristics(force_update)
+        if await self._populate_accessories_and_characteristics(force_update):
+            self._async_restore_subscriptions()
 
     def _all_handles_are_missing(self) -> bool:
         """Check if any characteristic has a handle.
@@ -718,7 +732,7 @@ class BlePairing(AbstractPairing):
 
     async def _populate_accessories_and_characteristics(
         self, force_update: bool = False
-    ) -> None:
+    ) -> bool:
         was_locked = self._config_lock.locked()
         async with self._config_lock:
             was_connected = self.client and self.client.is_connected
@@ -768,14 +782,9 @@ class BlePairing(AbstractPairing):
                 )
                 # Only start active subscriptions if we stay connected for more
                 # than subscription delay seconds.
-                self._restore_subscriptions_timer = asyncio.get_event_loop().call_later(
-                    SUBSCRIPTION_RESTORE_DELAY, self._restore_subscriptions
-                )
+                return True
 
-    def _restore_subscriptions(self):
-        """Restore subscriptions after after connecting."""
-        if self.client and self.client.is_connected:
-            async_create_task(self._async_restore_subscriptions())
+        return False
 
     async def _async_subscribe_broadcast_events(
         self, subscriptions: list[tuple[int, int]]
@@ -859,10 +868,12 @@ class BlePairing(AbstractPairing):
 
         This method is called when the config num changes.
         """
-        await self._populate_accessories_and_characteristics()
+        if await self._populate_accessories_and_characteristics():
+            await self._async_restore_subscriptions()
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @restore_connection_and_resume
     async def list_pairings(self):
         request_tlv = TLV.encode_list(
             [(TLV.kTLVType_State, TLV.M1), (TLV.kTLVType_Method, TLV.ListPairings)]
@@ -879,7 +890,6 @@ class BlePairing(AbstractPairing):
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
 
-        await self._populate_accessories_and_characteristics()
         resp = await self._async_request(OpCode.CHAR_WRITE, char, request_tlv)
 
         response = dict(TLV.decode_bytes(resp))
@@ -911,11 +921,11 @@ class BlePairing(AbstractPairing):
         return await self._get_characteristics_without_retry(characteristics)
 
     @operation_lock
+    @restore_connection_and_resume
     async def _get_characteristics_without_retry(
         self,
         characteristics: list[tuple[int, int]],
     ) -> dict[tuple[int, int], dict[str, Any]]:
-        await self._populate_accessories_and_characteristics()
         accessory_chars = self.accessories.aid(1).characteristics
         return await self._get_characteristics_while_connected(
             [accessory_chars.iid(iid) for _, iid in characteristics]
@@ -986,11 +996,10 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @restore_connection_and_resume
     async def put_characteristics(
         self, characteristics: list[tuple[int, int, Any]]
     ) -> dict[tuple[int, int], Any]:
-        await self._populate_accessories_and_characteristics()
-
         results: dict[tuple[int, int], Any] = {}
         logger.debug(
             "%s: Writing characteristics: %s; rssi=%s",
@@ -1043,6 +1052,7 @@ class BlePairing(AbstractPairing):
 
     # No retry since disconnected events are ok as well
     @operation_lock
+    @restore_connection_and_resume
     async def subscribe(self, characteristics):
         new_chars = await super().subscribe(characteristics)
         if not new_chars or not self.client or not self.client.is_connected:
@@ -1050,7 +1060,6 @@ class BlePairing(AbstractPairing):
             # connected as we will get disconnected events.
             return
         logger.debug("%s: subscribing to %s", self.name, new_chars)
-        await self._populate_accessories_and_characteristics()
         await self._async_subscribe_broadcast_events(new_chars)
         await self._async_start_notify_subscriptions(new_chars)
 
@@ -1059,9 +1068,8 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @restore_connection_and_resume
     async def identify(self):
-        await self._populate_accessories_and_characteristics()
-
         info = self.accessories.aid(1).services.first(
             service_type=ServicesTypes.ACCESSORY_INFORMATION
         )
@@ -1075,10 +1083,10 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @restore_connection_and_resume
     async def add_pairing(
         self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
     ):
-        await self._populate_accessories_and_characteristics()
         if permissions == "User":
             permissions = TLV.kTLVType_Permission_RegularUser
         elif permissions == "Admin":
@@ -1131,9 +1139,8 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error(attempts=10)
+    @restore_connection_and_resume
     async def remove_pairing(self, pairingId: str) -> bool:
-        await self._populate_accessories_and_characteristics()
-
         request_tlv = TLV.encode_list(
             [
                 (TLV.kTLVType_State, TLV.M1),
