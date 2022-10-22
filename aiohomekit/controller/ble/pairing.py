@@ -783,6 +783,8 @@ class BlePairing(AbstractPairing):
         async with self._ble_request_lock:
             for hap_char in to_subscribe:
                 iid = hap_char.iid
+                if iid in self._broadcast_notifications:
+                    continue  # check again with the lock
                 logger.debug(
                     "%s: Subscribing to broadcast notify for iid: %s", self.name, iid
                 )
