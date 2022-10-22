@@ -740,7 +740,9 @@ class BlePairing(AbstractPairing):
             if not self._encryption_key:
                 await self._async_pair_verify()
                 if self.subscriptions:
-                    assert not self._ble_request_lock, "Should not have a _ble_request_lock"
+                    assert (
+                        not self._ble_request_lock.locked()
+                    ), "Should not have a _ble_request_lock"
                     async with self._ble_request_lock:
                         await self._async_subscribe_broadcast_events(
                             list(self.subscriptions)
