@@ -764,7 +764,7 @@ class BlePairing(AbstractPairing):
     ) -> None:
         """Subscribe to broadcast events."""
         accessory_chars = self.accessories.aid(1).characteristics
-        to_subscribe = []
+        to_subscribe: list[Characteristic] = []
         for _, iid in subscriptions:
             hap_char = accessory_chars.iid(iid)
             if not hap_char:
@@ -780,6 +780,7 @@ class BlePairing(AbstractPairing):
 
         async with self._ble_request_lock:
             for hap_char in to_subscribe:
+                iid = hap_char.iid
                 logger.debug(
                     "%s: Subscribing to broadcast notify for iid: %s", self.name, iid
                 )
