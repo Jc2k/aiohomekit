@@ -327,7 +327,6 @@ class BlePairing(AbstractPairing):
                 ble_device_callback=lambda: self.device,
             )
 
-
     async def _async_start_notify(self, iid: int) -> None:
         char = self.accessories.aid(1).characteristics.iid(iid)
 
@@ -767,7 +766,7 @@ class BlePairing(AbstractPairing):
             )
             if self.subscriptions:
                 await self._async_subscribe_broadcast_events(list(self.subscriptions))
-                
+
             # Only start active subscriptions if we stay connected for more
             # than subscription delay seconds.
             self._restore_subscriptions_timer = asyncio.get_event_loop().call_later(
