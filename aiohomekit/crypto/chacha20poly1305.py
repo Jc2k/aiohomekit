@@ -128,8 +128,6 @@ class ChaCha20Poly1305PartialTag(ChaCha20Poly1305PurePython):
         mac_data += struct.pack("<Q", len(ciphertext))
         tag = Poly1305(otk).create_tag(mac_data)
 
-        logger.warning("Expected tag: %s", expected_tag.hex())
-        logger.warning("Actual tag: %s", tag.hex())
         if not tag.startswith(expected_tag):
             return None
         return ChaCha(self.key, nonce, counter=1).decrypt(ciphertext)
