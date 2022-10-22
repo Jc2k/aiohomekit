@@ -213,8 +213,10 @@ class BlePairing(AbstractPairing):
         self._config_lock = asyncio.Lock()
         # Only subscribe to characteristics one at a time
         self._subscription_lock = asyncio.Lock()
+        # Only process disconnected events once
+        self._disconnected_events_lock = asyncio.Lock()
 
-        self._accessory_populated_once = False
+        self._tried_to_connect_once = False
         self._restore_pending = False
 
     @property
@@ -428,36 +430,42 @@ class BlePairing(AbstractPairing):
 
     async def _process_disconnected_events(self) -> None:
         """Handle disconnected events seen from the advertisement."""
-        if not self._accessory_populated_once:
-            # We never connected to the accessory, so we don't need to
+        if not self._tried_to_connect_once:
+            # We never tried connected to the accessory, so we don't need to
             # process the disconnected events
             logger.debug(
                 "%s: Skipping disconnected events because we have not yet connected.",
                 self.name,
             )
             return
-        logger.debug(
-            "%s: Polling subscriptions for changes during disconnection; rssi=%s",
-            self.name,
-            self.rssi,
-        )
-        try:
-            results = await self.get_characteristics(list(self.subscriptions))
-        except (
-            AccessoryDisconnectedError,
-            *BLEAK_EXCEPTIONS,
-            AccessoryNotFoundError,
-        ) as exc:
-            logger.warning(
-                "%s: Failed to fetch disconnected events: %s; rssi=%s",
-                self.name,
-                exc,
-                self.rssi,
-            )
+
+        if self._disconnected_events_lock.locked():
+            # Already processing disconnected events
             return
 
-        for listener in self.listeners:
-            listener(results)
+        async with self._disconnected_events_lock:
+            logger.debug(
+                "%s: Polling subscriptions for changes during disconnection; rssi=%s",
+                self.name,
+                self.rssi,
+            )
+            try:
+                results = await self.get_characteristics(list(self.subscriptions))
+            except (
+                AccessoryDisconnectedError,
+                *BLEAK_EXCEPTIONS,
+                AccessoryNotFoundError,
+            ) as exc:
+                logger.warning(
+                    "%s: Failed to fetch disconnected events: %s; rssi=%s",
+                    self.name,
+                    exc,
+                    self.rssi,
+                )
+                return
+
+            for listener in self.listeners:
+                listener(results)
 
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
         """Receive a notification from the accessory."""
@@ -750,6 +758,7 @@ class BlePairing(AbstractPairing):
 
             was_connected = self.client and self.client.is_connected
             self._restore_pending |= not was_connected
+            self._tried_to_connect_once = True
 
             await self._ensure_connected()
 
@@ -788,8 +797,6 @@ class BlePairing(AbstractPairing):
 
             if config_changed:
                 self._callback_and_save_config_changed(self.config_num)
-
-            self._accessory_populated_once = True
 
     async def _async_subscribe_broadcast_events(
         self, subscriptions: list[tuple[int, int]]
