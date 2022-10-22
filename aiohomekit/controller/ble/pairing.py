@@ -527,7 +527,10 @@ class BlePairing(AbstractPairing):
                 iid=service_iid,
             )
         except PDUStatusError:
-            logger.exception("%s: Failed to set broadcast key, try un-paring and re-pairing the accessory.", self.name)
+            logger.exception(
+                "%s: Failed to set broadcast key, try un-paring and re-pairing the accessory.",
+                self.name,
+            )
             return
 
     async def _async_fetch_gatt_database(self) -> Accessories:
@@ -703,7 +706,7 @@ class BlePairing(AbstractPairing):
 
     def _all_handles_are_missing(self) -> bool:
         """Check if any characteristic has a handle.
-        
+
         Older code did not save the handle, so if we have no handles
         we need to re-fetch the gatt database.
         """
@@ -730,7 +733,11 @@ class BlePairing(AbstractPairing):
             if self.description:
                 config_changed = self.config_num != self.description.config_num
 
-            if not self.accessories or config_changed or self._all_handles_are_missing():
+            if (
+                not self.accessories
+                or config_changed
+                or self._all_handles_are_missing()
+            ):
                 logger.debug(
                     "%s: Fetching gatt database because, cached_config_num: %s, adv config_num: %s",
                     self.name,
