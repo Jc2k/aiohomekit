@@ -132,8 +132,4 @@ class ChaCha20Poly1305PartialTag(ChaCha20Poly1305PurePython):
         logger.warning("Actual tag: %s", tag.hex())
         if not tag.startswith(expected_tag):
             return False
-
-        #        if not ct_compare_digest(tag, expected_tag):
-        #            raise TagInvalidException
-
         return ChaCha(self.key, nonce, counter=1).decrypt(ciphertext)
