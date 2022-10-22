@@ -1052,7 +1052,6 @@ class BlePairing(AbstractPairing):
 
     # No retry since disconnected events are ok as well
     @operation_lock
-    @restore_connection_and_resume
     async def subscribe(self, characteristics):
         new_chars = await super().subscribe(characteristics)
         if not new_chars or not self.client or not self.client.is_connected:
@@ -1060,6 +1059,7 @@ class BlePairing(AbstractPairing):
             # connected as we will get disconnected events.
             return
         logger.debug("%s: subscribing to %s", self.name, new_chars)
+        await self._populate_accessories_and_characteristics()
         await self._async_subscribe_broadcast_events(new_chars)
         await self._async_start_notify_subscriptions(new_chars)
 
