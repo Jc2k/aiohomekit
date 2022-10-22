@@ -777,10 +777,8 @@ class BlePairing(AbstractPairing):
         self, subscriptions: list[tuple[int, int]]
     ) -> None:
         """Subscribe to broadcast events."""
-        logger.warning(
-            "%s: Subscribing to broadcast events: %s", self.name, subscriptions
-        )
         accessory_chars = self.accessories.aid(1).characteristics
+        to_subscribe = []
         for _, iid in subscriptions:
             hap_char = accessory_chars.iid(iid)
             if not hap_char:
@@ -789,23 +787,29 @@ class BlePairing(AbstractPairing):
                 continue
             if iid in self._broadcast_notifications:
                 continue
+            to_subscribe.append(hap_char)
 
-            logger.debug(
-                "%s: Subscribing to broadcast notify for iid: %s", self.name, iid
-            )
-            enable_broadcast_payload = b"\x01\x02\x01\x00\x02\x01\x01"
-            try:
-                data = await self._async_request_under_lock(
-                    OpCode.CHAR_CONFIG, hap_char, enable_broadcast_payload
-                )
-            except PDUStatusError:
+        if not to_subscribe:
+            return
+
+        async with self._ble_request_lock:
+            for hap_char in to_subscribe:
                 logger.debug(
-                    "%s: Failed to subscribe to broadcast events for %s",
-                    self.name,
-                    hap_char,
+                    "%s: Subscribing to broadcast notify for iid: %s", self.name, iid
                 )
-                continue
-            self._broadcast_notifications.add(iid)
+                enable_broadcast_payload = b"\x01\x02\x01\x00\x02\x01\x01"
+                try:
+                    data = await self._async_request_under_lock(
+                        OpCode.CHAR_CONFIG, hap_char, enable_broadcast_payload
+                    )
+                except PDUStatusError:
+                    logger.debug(
+                        "%s: Failed to subscribe to broadcast events for %s",
+                        self.name,
+                        hap_char,
+                    )
+                    continue
+                self._broadcast_notifications.add(iid)
 
     async def _async_restore_subscriptions(self) -> None:
         """Restore subscriptions and setup notifications after after connecting."""
@@ -814,9 +818,7 @@ class BlePairing(AbstractPairing):
 
         subscriptions = list(self.subscriptions)
 
-        async with self._ble_request_lock:
-            await self._async_subscribe_broadcast_events(subscriptions)
-
+        await self._async_subscribe_broadcast_events(subscriptions)
         await self._async_start_notify_subscriptions(subscriptions)
 
     async def _async_start_notify_subscriptions(
@@ -1043,8 +1045,7 @@ class BlePairing(AbstractPairing):
             return
         logger.debug("%s: subscribing to %s", self.name, new_chars)
         await self._populate_accessories_and_characteristics()
-        async with self._ble_request_lock:
-            await self._async_subscribe_broadcast_events(new_chars)
+        await self._async_subscribe_broadcast_events(new_chars)
         await self._async_start_notify_subscriptions(new_chars)
 
     async def unsubscribe(self, characteristics):
