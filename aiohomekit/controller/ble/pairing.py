@@ -34,7 +34,6 @@ from bleak_retry_connector import (
     retry_bluetooth_connection_error,
 )
 
-from aiohomekit.controller.ble.const import SIGNATURE_SERVICE, SIGNATURE_SERVICE_CHAR
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
     AccessoryNotFoundError,
@@ -493,11 +492,13 @@ class BlePairing(AbstractPairing):
 
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
-        info = self.accessories.aid(1).services.first(service_type=SIGNATURE_SERVICE)
+        info = self.accessories.aid(1).services.first(
+            service_type=ServicesTypes.PROTOCOL_INFORMATION
+        )
         if not info:
             logger.debug("%s: No signature service found", self.name)
             return
-        hap_char = info[SIGNATURE_SERVICE_CHAR]
+        hap_char = info[CharacteristicsTypes.SERVICE_SIGNATURE]
         service_iid = hap_char.service.iid
 
         adv_id_bytes = bytes.fromhex(self.description.id.replace(":", ""))
