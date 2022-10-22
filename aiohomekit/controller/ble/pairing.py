@@ -1104,9 +1104,6 @@ class BlePairing(AbstractPairing):
     async def unsubscribe(self, characteristics):
         pass
 
-    @operation_lock
-    @retry_bluetooth_connection_error()
-    @restore_connection_and_resume
     async def identify(self):
         info = self.accessories.aid(1).services.first(
             service_type=ServicesTypes.ACCESSORY_INFORMATION
