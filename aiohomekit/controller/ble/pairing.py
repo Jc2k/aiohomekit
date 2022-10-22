@@ -786,11 +786,11 @@ class BlePairing(AbstractPairing):
         to_subscribe: list[Characteristic] = []
         for _, iid in subscriptions:
             hap_char = accessory_chars.iid(iid)
-            if not hap_char:
-                continue
-            if not hap_char.broadcast_events:
-                continue
-            if iid in self._broadcast_notifications:
+            if (
+                not hap_char
+                or not hap_char.broadcast_events
+                or iid in self._broadcast_notifications
+            ):
                 continue
             to_subscribe.append(hap_char)
 
