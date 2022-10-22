@@ -28,8 +28,6 @@ from chacha20poly1305 import (
     ChaCha,
     ChaCha20Poly1305 as ChaCha20Poly1305PurePython,
     Poly1305,
-    TagInvalidException,
-    ct_compare_digest,
 )
 from chacha20poly1305_reuseable import ChaCha20Poly1305Reusable
 from cryptography.exceptions import InvalidTag

@@ -49,9 +49,6 @@ from aiohomekit.model import (
     Transport,
 )
 from aiohomekit.model.characteristics import Characteristic, CharacteristicPermissions
-from aiohomekit.model.characteristics.characteristic_formats import (
-    CharacteristicFormats,
-)
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import OpCode, PDUStatus, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
