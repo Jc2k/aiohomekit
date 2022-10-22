@@ -85,7 +85,6 @@ class HomeKitEncryptedNotification:
         if data[0] != HOMEKIT_ENCRYPTED_NOTIFICATION_TYPE:
             raise ValueError("Not a HomeKit encrypted notification")
 
-        logger.debug("Decode encrypted notification: %s", data)
 
         advertising_identifier = data[2:8]
         device_id = ":".join(
