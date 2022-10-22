@@ -414,13 +414,6 @@ class BlePairing(AbstractPairing):
             self._decryption_key = DecryptionKey(
                 derive(b"Control-Salt", b"Control-Read-Encryption-Key")
             )
-            logger.debug("%s: Setting broadcast encryption key", self.name)
-            await self._async_set_broadcast_encryption_key()
-            long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
-            long_term_pub_key_bytes = bytes.fromhex(long_term_pub_key_hex)
-            self._broadcast_decryption_key = BroadcastDecryptionKey(
-                derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
-            )
             # Used for session resume
             self._session_id = session_id
             self._derive = derive
@@ -775,7 +768,7 @@ class BlePairing(AbstractPairing):
 
             if not was_connected:
                 logger.debug(
-                    "%s: Connected, processing subscriptions: %s; rssi=%s",
+                    "%s: Connected, will process subscriptions after operation: %s; rssi=%s",
                     self.name,
                     self.subscriptions,
                     self.rssi,
@@ -831,8 +824,20 @@ class BlePairing(AbstractPairing):
         if not self.client or not self.client.is_connected or not self.subscriptions:
             return
 
+        logger.debug("%s: Setting broadcast encryption key", self.name)
+        await self._async_set_broadcast_encryption_key()
+        long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
+        long_term_pub_key_bytes = bytes.fromhex(long_term_pub_key_hex)
+        self._broadcast_decryption_key = BroadcastDecryptionKey(
+            self._derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
+        )
         subscriptions = list(self.subscriptions)
-
+        logger.debug(
+            "%s: Connected, resuming subscriptions: %s; rssi=%s",
+            self.name,
+            subscriptions,
+            self.rssi,
+        )
         await self._async_subscribe_broadcast_events(subscriptions)
         await self._async_start_notify_subscriptions(subscriptions)
 
