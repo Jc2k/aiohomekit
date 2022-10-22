@@ -428,8 +428,6 @@ def resume_m3(
     )
 
     def derive(salt: bytes, info: bytes, length: int = 32) -> bytes:
-        logger.debug("resume_m3 derive: salt=%s info=%s length=%s", salt, info, length)
-
         return hkdf_derive(shared_secret, salt, info, length=length)
 
     logger.debug("M3: Resume exchange success")
