@@ -820,7 +820,8 @@ class BlePairing(AbstractPairing):
             return
 
         logger.debug("%s: Setting broadcast encryption key", self.name)
-        await self._async_set_broadcast_encryption_key()
+        async with self._ble_request_lock:        
+            await self._async_set_broadcast_encryption_key()
         long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
         long_term_pub_key_bytes = bytes.fromhex(long_term_pub_key_hex)
         self._broadcast_decryption_key = BroadcastDecryptionKey(
