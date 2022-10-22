@@ -452,39 +452,38 @@ class BlePairing(AbstractPairing):
                 state_num,
                 data.advertising_identifier,
             )
-            if decrypted is not None:
-                gsn = int.from_bytes(decrypted[0:2], "little")
-                if gsn != state_num:
-                    logger.debug(
-                        "%s: GSN mismatch, expected: %s, got: %s",
-                        self.name,
-                        state_num,
-                        gsn,
-                    )
-                    return
-                iid = int.from_bytes(decrypted[2:4], "little")
-                value = decrypted[4:12]
+            if decrypted is None:
+                continue
+            gsn = int.from_bytes(decrypted[0:2], "little")
+            if gsn != state_num:
                 logger.debug(
-                    "%s: Received notification: encrypted =  %s - decrypted = %s - gsn=%s - iid=%s - value=%s",
+                    "%s: GSN mismatch, expected: %s, got: %s",
                     self.name,
-                    data.encrypted_payload,
-                    decrypted,
+                    state_num,
                     gsn,
-                    iid,
-                    value,
                 )
-                # We had a successful decrypt, so we can update the state_num
-                self.description.state_num = gsn
-                char = self.accessories.aid(1).characteristics.iid(iid)
-
-                results = {(BLE_AID, iid): {"value": from_bytes(char, value)}}
-                logger.debug(
-                    "%s: Received notification: results = %s", self.name, results
-                )
-
-                for listener in self.listeners:
-                    listener(results)
                 return
+            iid = int.from_bytes(decrypted[2:4], "little")
+            value = decrypted[4:12]
+            logger.debug(
+                "%s: Received notification: encrypted =  %s - decrypted = %s - gsn=%s - iid=%s - value=%s",
+                self.name,
+                data.encrypted_payload,
+                decrypted,
+                gsn,
+                iid,
+                value,
+            )
+            # We had a successful decrypt, so we can update the state_num
+            self.description.state_num = gsn
+            char = self.accessories.aid(1).characteristics.iid(iid)
+
+            results = {(BLE_AID, iid): {"value": from_bytes(char, value)}}
+            logger.debug("%s: Received notification: results = %s", self.name, results)
+
+            for listener in self.listeners:
+                listener(results)
+            return
 
         logger.warning(
             "%s: Received notification but could not decrypt: %s", self.name, data
