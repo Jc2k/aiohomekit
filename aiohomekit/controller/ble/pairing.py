@@ -147,6 +147,8 @@ def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
         self: BlePairing, *args: Any, **kwargs: Any
     ) -> None:
         """Restore connection, populate data, and then resume when the operation completes."""
+        if self._shutdown:
+            return
         await self._populate_accessories_and_characteristics()
         try:
             return await func(self, *args, **kwargs)
@@ -733,6 +735,9 @@ class BlePairing(AbstractPairing):
     ) -> bool:
         was_locked = self._config_lock.locked()
         async with self._config_lock:
+            if self._shutdown:
+                return
+
             was_connected = self.client and self.client.is_connected
             self._restore_pending |= not was_connected
 
