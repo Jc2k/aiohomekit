@@ -732,7 +732,7 @@ class BlePairing(AbstractPairing):
 
     async def _populate_accessories_and_characteristics(
         self, force_update: bool = False
-    ) -> bool:
+    ) -> None:
         was_locked = self._config_lock.locked()
         async with self._config_lock:
             if self._shutdown:
