@@ -27,8 +27,8 @@ def from_bytes(char: Characteristic, value: bytes) -> bool | str | float | int |
     elif char.format == CharacteristicFormats.int:
         return struct.unpack_from("i", value)[0]
     elif char.format == CharacteristicFormats.float:
-        # HAP spec says float is 64 bit so its actually a double
-        return struct.unpack_from("d", value)[0]
+        # FOR BLE float is 32 bit
+        return struct.unpack_from("f", value)[0]
     elif char.format == CharacteristicFormats.string:
         return value.decode("utf-8")
 
@@ -49,8 +49,8 @@ def to_bytes(char: Characteristic, value: bool | str | float | int | bytes) -> b
     elif char.format == CharacteristicFormats.int:
         value = struct.pack("i", value)
     elif char.format == CharacteristicFormats.float:
-        # HAP spec says float is 64 bit so its actually a double
-        value = struct.pack("d", value)
+        # FOR BLE float is 32 bit
+        value = struct.pack("f", value)
     elif char.format == CharacteristicFormats.string:
         value = value.encode("utf-8")
 
