@@ -20,7 +20,7 @@ from datetime import timedelta
 from itertools import groupby
 import logging
 from operator import itemgetter
-from typing import Any, Optional
+from typing import Any
 
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import (
