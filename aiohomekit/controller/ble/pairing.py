@@ -472,10 +472,12 @@ class BlePairing(AbstractPairing):
         """Receive a notification from the accessory."""
         if not self._broadcast_decryption_key:
             logger.debug(
-                "%s: Received notification before session is setup, ignoring: %s",
+                "%s: Received notification before session is setup, "
+                "falling back processing as disconnected event: %s",
                 self.name,
                 data,
             )
+            async_create_task(self._process_disconnected_events())
             return
 
         start_state_num = self.description.state_num
