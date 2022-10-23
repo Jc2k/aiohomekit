@@ -525,7 +525,7 @@ class IpPairing(ZeroconfPairing):
 
         return resp.body
 
-    def _async_description_update(self, description: Optional[HomeKitService]) -> None:
+    def _async_description_update(self, description: HomeKitService | None) -> None:
         """We have new zeroconf metadata for this device."""
         super()._async_description_update(description)
 
