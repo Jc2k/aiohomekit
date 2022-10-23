@@ -254,7 +254,7 @@ class FakePairing(AbstractPairing):
         self._ensure_connected()
 
     async def async_populate_accessories_state(
-        self, force_update: bool = False
+        self, force_update: bool = False, attempts: int | None = None
     ) -> bool:
         """Populate the state of all accessories.
 

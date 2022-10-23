@@ -222,7 +222,7 @@ class AbstractPairing(metaclass=ABCMeta):
 
     @abstractmethod
     async def async_populate_accessories_state(
-        self, force_update: bool = False
+        self, force_update: bool = False, attempts: int | None = None
     ) -> None:
         """Populate the state of all accessories.
 

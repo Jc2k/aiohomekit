@@ -338,7 +338,7 @@ class BlePairing(AbstractPairing):
         self._broadcast_notifications = set()
         self._restore_pending = False
 
-    async def _ensure_connected(self):
+    async def _ensure_connected(self, attempts: int | None = None):
         """Ensure that we are connected to the accessory."""
         assert self._config_lock.locked(), "_config_lock Should be locked"
         if self.client and self.client.is_connected:
@@ -367,6 +367,7 @@ class BlePairing(AbstractPairing):
                 self._async_disconnected,
                 use_services_cache=True,
                 ble_device_callback=lambda: self.device,
+                max_attempts=attempts,
             )
 
     async def _async_start_notify(self, iid: int) -> None:
@@ -712,7 +713,7 @@ class BlePairing(AbstractPairing):
             char.value = result["value"]
 
     async def async_populate_accessories_state(
-        self, force_update: bool = False
+        self, force_update: bool = False, attempts: int | None = None
     ) -> None:
         """Populate the state of all accessories.
 
@@ -723,7 +724,7 @@ class BlePairing(AbstractPairing):
         AccessoryDisconnectedError.
         """
         try:
-            await self._async_populate_accessories_state(force_update)
+            await self._async_populate_accessories_state(force_update, attempts)
         except BleakError as ex:
             raise AccessoryDisconnectedError(
                 f"{self.name} connection failed: {ex}; rssi={self.rssi}"
@@ -732,10 +733,10 @@ class BlePairing(AbstractPairing):
     @operation_lock
     @retry_bluetooth_connection_error()
     async def _async_populate_accessories_state(
-        self, force_update: bool = False
+        self, force_update: bool = False, attempts: int | None = None
     ) -> None:
         """Populate the state of all accessories under the lock."""
-        await self._populate_accessories_and_characteristics(force_update)
+        await self._populate_accessories_and_characteristics(force_update, attempts)
         if self._restore_pending:
             await self._async_restore_subscriptions()
 
@@ -752,7 +753,7 @@ class BlePairing(AbstractPairing):
         return True
 
     async def _populate_accessories_and_characteristics(
-        self, force_update: bool = False
+        self, force_update: bool = False, attempts: int | None = None
     ) -> None:
         was_locked = self._config_lock.locked()
         async with self._config_lock:
@@ -769,7 +770,7 @@ class BlePairing(AbstractPairing):
                 self._restore_pending,
             )
 
-            await self._ensure_connected()
+            await self._ensure_connected(attempts)
 
             if was_locked and not force_update:
                 # No need to do it twice if we already have the data
