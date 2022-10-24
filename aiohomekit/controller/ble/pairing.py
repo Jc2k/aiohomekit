@@ -333,14 +333,15 @@ class BlePairing(AbstractPairing):
         iid: int | None = None,
     ) -> bytes:
         assert self._ble_request_lock.locked(), "_ble_request_lock Should be locked"
+        if not self.client or not self.client.is_connected:
+            logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
+            raise AccessoryDisconnectedError(f"{self.name} is not connected")
 
         if char.handle:
             endpoint = self.client.get_characteristic_by_handle(char.handle)
         else:
             endpoint = self.client.get_characteristic(char.service.type, char.type)
-        if not self.client or not self.client.is_connected:
-            logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
-            raise AccessoryDisconnectedError(f"{self.name} is not connected")
+
         pdu_status, result_data = await ble_request(
             self.client,
             self._encryption_key,
@@ -350,6 +351,11 @@ class BlePairing(AbstractPairing):
             iid if iid is not None else char.iid,
             data,
         )
+
+        if not self.client or not self.client.is_connected:
+            logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
+            raise AccessoryDisconnectedError(f"{self.name} is not connected")
+
         raise_for_pdu_status(self.client, pdu_status)
         return result_data
 
