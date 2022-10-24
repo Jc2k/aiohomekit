@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import timedelta
+from enum import IntEnum
 import logging
 import random
 import struct
@@ -130,6 +132,24 @@ GET_ALL_PARAMS_PAYLOAD = (
 )
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
+
+
+@dataclass
+class ProtocolParams:
+
+    state_number: int
+    config_number: int
+    advertising_id: bytes
+    broadcast_key: bytes
+
+
+class ProtocolParamsTLV(IntEnum):
+    """Protocol params."""
+
+    GLOBAL_STATE_NUMBER = 1
+    CONFIGURATION_NUMBER = 2
+    ADVERTISING_ID = 3
+    BROADCAST_KEY = 4
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -459,8 +479,7 @@ class BlePairing(AbstractPairing):
                 self.rssi,
             )
             try:
-                await self.get_global_state_number()
-
+                protocol_param = await self.get_all_protocol_params()
                 results = await self.get_characteristics(list(self.subscriptions))
             except (
                 AccessoryDisconnectedError,
@@ -477,6 +496,8 @@ class BlePairing(AbstractPairing):
 
             for listener in self.listeners:
                 listener(results)
+
+            self.description.state_num = protocol_param.state_number
 
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
         """Receive a notification from the accessory."""
@@ -715,7 +736,7 @@ class BlePairing(AbstractPairing):
         if not chars:
             return
 
-        await self._get_global_state_number()
+        protocol_params = await self._get_all_protocol_params()
 
         results = await self._get_characteristics_while_connected(chars)
         logger.debug("%s: Read %s", self.name, results)
@@ -726,14 +747,16 @@ class BlePairing(AbstractPairing):
                 continue
             char.value = result["value"]
 
+        self.description.state_num = protocol_params.state_number
+
     @operation_lock
     @retry_bluetooth_connection_error()
-    async def get_global_state_number(self) -> int:
+    async def get_all_protocol_params(self) -> ProtocolParams | None:
         """Get the global state number."""
-        return await self._get_global_state_number()
+        return await self._get_all_protocol_params()
 
-    async def _get_global_state_number(self) -> int | None:
-        """Get the current global state number."""
+    async def _get_all_protocol_params(self) -> ProtocolParams | None:
+        """Get the current protocol params number."""
         info = self.accessories.aid(1).services.first(
             service_type=ServicesTypes.PROTOCOL_INFORMATION
         )
@@ -755,9 +778,19 @@ class BlePairing(AbstractPairing):
                 self.name,
             )
             return None
-
         response = dict(TLV.decode_bytes(resp))
-        logger.warning("%s: Got global state number response: %s", self.name, response)
+        protocol_params = ProtocolParams(
+            global_state_number=int.from_bytes(
+                response[ProtocolParamsTLV.GLOBAL_STATE_NUMBER], "little"
+            ),
+            configuration_number=int.from_bytes(
+                response[ProtocolParamsTLV.CONFIGURATION_NUMBER], "little"
+            ),
+            advertising_id=response[ProtocolParamsTLV.ADVERTISING_ID],
+            advertising_id_expiration=response[ProtocolParamsTLV.BROADCAST_KEY],
+        )
+        logger.warning("%s: Got protocol params: %s", self.name, protocol_params)
+        return protocol_params
 
     async def async_populate_accessories_state(
         self, force_update: bool = False, attempts: int | None = None
