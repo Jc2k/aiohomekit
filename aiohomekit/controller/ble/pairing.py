@@ -657,8 +657,14 @@ class BlePairing(AbstractPairing):
                     continue
 
                 decoded = CharacteristicTLV.decode(signature).to_dict()
+                normalized_uuid = normalize_uuid(char.uuid)
 
-                hap_char = s.add_char(normalize_uuid(char.uuid))
+                if normalized_uuid == CharacteristicsTypes.IDENTIFY:
+                    # Workaround for older eve v1 devices which has a broken identify characteristic
+                    # that presents identify as data.
+                    decoded["format"] = "bool"
+
+                hap_char = s.add_char(normalized_uuid)
                 logger.debug("%s: char: %s decoded: %s", self.name, char, decoded)
 
                 hap_char.iid = iid
