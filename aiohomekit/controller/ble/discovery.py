@@ -113,6 +113,8 @@ class BleDiscovery(AbstractDiscovery):
                     "%s: Failed to close connection, client may have already closed it",
                     self.name,
                 )
+            finally:
+                self.client = None
 
     async def _async_start_pairing(self, alias: str) -> tuple[bytearray, bytearray]:
         await self._ensure_connected()
