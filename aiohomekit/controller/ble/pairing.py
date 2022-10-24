@@ -786,7 +786,7 @@ class BlePairing(AbstractPairing):
             return None
         response = dict(TLV.decode_bytes(resp))
         protocol_params = ProtocolParams(
-            global_state_number=int.from_bytes(
+            state_number=int.from_bytes(
                 response[ProtocolParamsTLV.GLOBAL_STATE_NUMBER], "little"
             ),
             configuration_number=int.from_bytes(
