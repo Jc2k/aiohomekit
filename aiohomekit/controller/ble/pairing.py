@@ -789,11 +789,11 @@ class BlePairing(AbstractPairing):
             state_number=int.from_bytes(
                 response[ProtocolParamsTLV.GLOBAL_STATE_NUMBER], "little"
             ),
-            configuration_number=int.from_bytes(
+            config_number=int.from_bytes(
                 response[ProtocolParamsTLV.CONFIGURATION_NUMBER], "little"
             ),
             advertising_id=response[ProtocolParamsTLV.ADVERTISING_ID],
-            advertising_id_expiration=response[ProtocolParamsTLV.BROADCAST_KEY],
+            broadcast_key=response[ProtocolParamsTLV.BROADCAST_KEY],
         )
         logger.warning("%s: Got protocol params: %s", self.name, protocol_params)
         return protocol_params
