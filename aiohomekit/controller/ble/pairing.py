@@ -456,17 +456,6 @@ class BlePairing(AbstractPairing):
             )
             return
 
-        if not self._async_get_service_signature_char():
-            # If we tried to connect before and we don't have the service signature
-            # characteristic, then we can't process the disconnected events
-            # so we just return
-            logger.debug(
-                "%s: No signature service characteristic found, "
-                "first connection attempt likely failed",
-                self.name,
-            )
-            return
-
         if self._disconnected_events_lock.locked():
             # Already processing disconnected events
             return
@@ -577,7 +566,11 @@ class BlePairing(AbstractPairing):
             logger.debug("%s: No signature service found", self.name)
             return None
         if not info.has(CharacteristicsTypes.SERVICE_SIGNATURE):
-            logger.debug("%s: No signature characteristic found", self.name)
+            logger.debug(
+                "%s: No signature characteristic found, "
+                "accessory may not implement encrypted notifications",
+                self.name,
+            )
             return None
         return info[CharacteristicsTypes.SERVICE_SIGNATURE]
 
@@ -585,7 +578,6 @@ class BlePairing(AbstractPairing):
         """Get the broadcast key for the accessory."""
         hap_char = self._async_get_service_signature_char()
         if not hap_char:
-            logger.debug("%s: No signature service characteristic found", self.name)
             return
         service_iid = hap_char.service.iid
         logger.debug(
@@ -770,7 +762,6 @@ class BlePairing(AbstractPairing):
         """Get the current protocol params number."""
         hap_char = self._async_get_service_signature_char()
         if not hap_char:
-            logger.debug("%s: No signature service characteristic found", self.name)
             return
         service_iid = hap_char.service.iid
         try:
