@@ -456,6 +456,17 @@ class BlePairing(AbstractPairing):
             )
             return
 
+        if not self._async_get_service_signature_char():
+            # If we tried to connect before and we don't have the service signature
+            # characteristic, then we can't process the disconnected events
+            # so we just return
+            logger.debug(
+                "%s: No signature service characteristic found, "
+                "first connection attempt likely failed",
+                self.name,
+            )
+            return
+
         if self._disconnected_events_lock.locked():
             # Already processing disconnected events
             return
@@ -557,15 +568,25 @@ class BlePairing(AbstractPairing):
             "%s: Received notification but could not decrypt: %s", self.name, data
         )
 
-    async def _async_set_broadcast_encryption_key(self) -> None:
-        """Get the broadcast key for the accessory."""
+    def _async_get_service_signature_char(self) -> Characteristic | None:
+        """Get the service signature characteristic."""
         info = self.accessories.aid(1).services.first(
             service_type=ServicesTypes.PROTOCOL_INFORMATION
         )
         if not info:
             logger.debug("%s: No signature service found", self.name)
+            return None
+        if not info.has(CharacteristicsTypes.SERVICE_SIGNATURE):
+            logger.debug("%s: No signature characteristic found", self.name)
+            return None
+        return info[CharacteristicsTypes.SERVICE_SIGNATURE]
+
+    async def _async_set_broadcast_encryption_key(self) -> None:
+        """Get the broadcast key for the accessory."""
+        hap_char = self._async_get_service_signature_char()
+        if not hap_char:
+            logger.debug("%s: No signature service characteristic found", self.name)
             return
-        hap_char = info[CharacteristicsTypes.SERVICE_SIGNATURE]
         service_iid = hap_char.service.iid
         logger.debug(
             "%s: Setting broadcast key for service_iid: %s",
@@ -747,13 +768,10 @@ class BlePairing(AbstractPairing):
 
     async def _get_all_protocol_params(self) -> ProtocolParams | None:
         """Get the current protocol params number."""
-        info = self.accessories.aid(1).services.first(
-            service_type=ServicesTypes.PROTOCOL_INFORMATION
-        )
-        if not info:
-            logger.debug("%s: No signature service found", self.name)
-            return None
-        hap_char = info[CharacteristicsTypes.SERVICE_SIGNATURE]
+        hap_char = self._async_get_service_signature_char()
+        if not hap_char:
+            logger.debug("%s: No signature service characteristic found", self.name)
+            return
         service_iid = hap_char.service.iid
         try:
             resp = await self._async_request(
