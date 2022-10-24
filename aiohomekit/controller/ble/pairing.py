@@ -487,7 +487,8 @@ class BlePairing(AbstractPairing):
             for listener in self.listeners:
                 listener(results)
 
-            self.description.state_num = protocol_param.state_number
+            if protocol_param:
+                self.description.state_num = protocol_param.state_number
 
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
         """Receive a notification from the accessory."""
@@ -737,7 +738,8 @@ class BlePairing(AbstractPairing):
                 continue
             char.value = result["value"]
 
-        self.description.state_num = protocol_params.state_number
+        if protocol_params:
+            self.description.state_num = protocol_params.state_number
 
     @operation_lock
     @retry_bluetooth_connection_error()
