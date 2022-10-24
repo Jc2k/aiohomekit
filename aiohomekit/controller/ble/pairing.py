@@ -474,7 +474,7 @@ class BlePairing(AbstractPairing):
                 *BLEAK_EXCEPTIONS,
                 AccessoryNotFoundError,
             ) as exc:
-                logger.warning(
+                logger.exception(
                     "%s: Failed to fetch disconnected events: %s; rssi=%s",
                     self.name,
                     exc,
@@ -754,6 +754,7 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @restore_connection_and_resume
     async def get_all_protocol_params(self) -> ProtocolParams | None:
         """Get the global state number."""
         return await self._get_all_protocol_params()
