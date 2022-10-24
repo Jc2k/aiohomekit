@@ -73,6 +73,8 @@ from .structs import (
     HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV,
     HAP_TLV,
     Characteristic as CharacteristicTLV,
+    ProtocolParams,
+    ProtocolParamsTLV,
 )
 from .values import from_bytes, to_bytes
 
@@ -123,6 +125,10 @@ ENABLE_BROADCAST_PAYLOAD = TLV.encode_list(
 GENERATE_BROADCAST_KEY_PAYLOAD = (
     bytes([HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV.GenerateBroadcastEncryptionKey])
     + b"\x00"
+)
+
+GET_ALL_PARAMS_PAYLOAD = (
+    bytes([HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV.GetAllParams]) + b"\x00"
 )
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
@@ -292,10 +298,14 @@ class BlePairing(AbstractPairing):
         super()._async_description_update(description)
 
     async def _async_request(
-        self, opcode: OpCode, char: Characteristic, data: bytes | None = None
+        self,
+        opcode: OpCode,
+        char: Characteristic,
+        data: bytes | None = None,
+        iid: int | None = None,
     ) -> bytes:
         async with self._ble_request_lock:
-            return await self._async_request_under_lock(opcode, char, data)
+            return await self._async_request_under_lock(opcode, char, data, iid)
 
     async def _async_request_under_lock(
         self,
@@ -305,14 +315,15 @@ class BlePairing(AbstractPairing):
         iid: int | None = None,
     ) -> bytes:
         assert self._ble_request_lock.locked(), "_ble_request_lock Should be locked"
+        if not self.client or not self.client.is_connected:
+            logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
+            raise AccessoryDisconnectedError(f"{self.name} is not connected")
 
         if char.handle:
             endpoint = self.client.get_characteristic_by_handle(char.handle)
         else:
             endpoint = self.client.get_characteristic(char.service.type, char.type)
-        if not self.client or not self.client.is_connected:
-            logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
-            raise AccessoryDisconnectedError(f"{self.name} is not connected")
+
         pdu_status, result_data = await ble_request(
             self.client,
             self._encryption_key,
@@ -322,6 +333,11 @@ class BlePairing(AbstractPairing):
             iid if iid is not None else char.iid,
             data,
         )
+
+        if not self.client or not self.client.is_connected:
+            logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
+            raise AccessoryDisconnectedError(f"{self.name} is not connected")
+
         raise_for_pdu_status(self.client, pdu_status)
         return result_data
 
@@ -451,6 +467,7 @@ class BlePairing(AbstractPairing):
                 self.rssi,
             )
             try:
+                protocol_param = await self.get_all_protocol_params()
                 results = await self.get_characteristics(list(self.subscriptions))
             except (
                 AccessoryDisconnectedError,
@@ -467,6 +484,9 @@ class BlePairing(AbstractPairing):
 
             for listener in self.listeners:
                 listener(results)
+
+            if protocol_param:
+                self.description.state_num = protocol_param.state_number
 
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
         """Receive a notification from the accessory."""
@@ -705,6 +725,8 @@ class BlePairing(AbstractPairing):
         if not chars:
             return
 
+        protocol_params = await self._get_all_protocol_params()
+
         results = await self._get_characteristics_while_connected(chars)
         logger.debug("%s: Read %s", self.name, results)
         for char in chars:
@@ -713,6 +735,57 @@ class BlePairing(AbstractPairing):
                 logger.debug("%s: No value for %s", self.name, char)
                 continue
             char.value = result["value"]
+
+        if protocol_params:
+            self.description.state_num = protocol_params.state_number
+
+    @operation_lock
+    @retry_bluetooth_connection_error()
+    async def get_all_protocol_params(self) -> ProtocolParams | None:
+        """Get the global state number."""
+        return await self._get_all_protocol_params()
+
+    async def _get_all_protocol_params(self) -> ProtocolParams | None:
+        """Get the current protocol params number."""
+        info = self.accessories.aid(1).services.first(
+            service_type=ServicesTypes.PROTOCOL_INFORMATION
+        )
+        if not info:
+            logger.debug("%s: No signature service found", self.name)
+            return None
+        hap_char = info[CharacteristicsTypes.SERVICE_SIGNATURE]
+        service_iid = hap_char.service.iid
+        try:
+            resp = await self._async_request(
+                OpCode.PROTOCOL_CONFIG,
+                hap_char,
+                GET_ALL_PARAMS_PAYLOAD,
+                iid=service_iid,
+            )
+        except PDUStatusError:
+            logger.exception(
+                "%s: Failed to get global state number.",
+                self.name,
+            )
+            return None
+        response = dict(TLV.decode_bytes(resp))
+        protocol_params = ProtocolParams(
+            state_number=int.from_bytes(
+                response[ProtocolParamsTLV.GlobalStateNumber], "little"
+            ),
+            config_number=int.from_bytes(
+                response[ProtocolParamsTLV.ConfigurationNumber], "little"
+            ),
+            advertising_id=response[ProtocolParamsTLV.AdvertisingId],
+            broadcast_key=response[ProtocolParamsTLV.BroadcastKey],
+        )
+        logger.debug(
+            "%s: Fetched protocol params: gsn=%s, c#=%s",
+            self.name,
+            protocol_params.state_number,
+            protocol_params.config_number,
+        )
+        return protocol_params
 
     async def async_populate_accessories_state(
         self, force_update: bool = False, attempts: int | None = None
