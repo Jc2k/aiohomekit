@@ -125,6 +125,10 @@ GENERATE_BROADCAST_KEY_PAYLOAD = (
     + b"\x00"
 )
 
+GET_ALL_PARAMS_PAYLOAD = (
+    bytes([HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV.GetAllParams]) + b"\x00"
+)
+
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 
@@ -292,10 +296,14 @@ class BlePairing(AbstractPairing):
         super()._async_description_update(description)
 
     async def _async_request(
-        self, opcode: OpCode, char: Characteristic, data: bytes | None = None
+        self,
+        opcode: OpCode,
+        char: Characteristic,
+        data: bytes | None = None,
+        iid: int | None = None,
     ) -> bytes:
         async with self._ble_request_lock:
-            return await self._async_request_under_lock(opcode, char, data)
+            return await self._async_request_under_lock(opcode, char, data, iid)
 
     async def _async_request_under_lock(
         self,
@@ -451,6 +459,8 @@ class BlePairing(AbstractPairing):
                 self.rssi,
             )
             try:
+                await self.get_global_state_number()
+
                 results = await self.get_characteristics(list(self.subscriptions))
             except (
                 AccessoryDisconnectedError,
@@ -705,6 +715,8 @@ class BlePairing(AbstractPairing):
         if not chars:
             return
 
+        await self._get_global_state_number()
+
         results = await self._get_characteristics_while_connected(chars)
         logger.debug("%s: Read %s", self.name, results)
         for char in chars:
@@ -713,6 +725,39 @@ class BlePairing(AbstractPairing):
                 logger.debug("%s: No value for %s", self.name, char)
                 continue
             char.value = result["value"]
+
+    @operation_lock
+    @retry_bluetooth_connection_error()
+    async def get_global_state_number(self) -> int:
+        """Get the global state number."""
+        return await self._get_global_state_number()
+
+    async def _get_global_state_number(self) -> int | None:
+        """Get the current global state number."""
+        info = self.accessories.aid(1).services.first(
+            service_type=ServicesTypes.PROTOCOL_INFORMATION
+        )
+        if not info:
+            logger.debug("%s: No signature service found", self.name)
+            return None
+        hap_char = info[CharacteristicsTypes.SERVICE_SIGNATURE]
+        service_iid = hap_char.service.iid
+        try:
+            resp = await self._async_request(
+                OpCode.PROTOCOL_CONFIG,
+                hap_char,
+                GET_ALL_PARAMS_PAYLOAD,
+                iid=service_iid,
+            )
+        except PDUStatusError:
+            logger.exception(
+                "%s: Failed to get global state number.",
+                self.name,
+            )
+            return None
+
+        response = dict(TLV.decode_bytes(resp))
+        logger.warning("%s: Got global state number response: %s", self.name, response)
 
     async def async_populate_accessories_state(
         self, force_update: bool = False, attempts: int | None = None

@@ -25,6 +25,7 @@ from .const import AdditionalParameterTypes
 
 class HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV(enum.IntEnum):
     GenerateBroadcastEncryptionKey = 0x01
+    GetAllParams = 0x02
 
 
 class HAP_BLE_CHARACTERISTIC_CONFIGURATION_REQUEST_TLV(enum.IntEnum):
