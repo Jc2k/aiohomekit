@@ -75,6 +75,8 @@ from .structs import (
     HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV,
     HAP_TLV,
     Characteristic as CharacteristicTLV,
+    ProtocolParams,
+    ProtocolParamsTLV,
 )
 from .values import from_bytes, to_bytes
 
@@ -132,24 +134,6 @@ GET_ALL_PARAMS_PAYLOAD = (
 )
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
-
-
-@dataclass
-class ProtocolParams:
-
-    state_number: int
-    config_number: int
-    advertising_id: bytes
-    broadcast_key: bytes
-
-
-class ProtocolParamsTLV(IntEnum):
-    """Protocol params."""
-
-    GLOBAL_STATE_NUMBER = 1
-    CONFIGURATION_NUMBER = 2
-    ADVERTISING_ID = 3
-    BROADCAST_KEY = 4
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -787,15 +771,20 @@ class BlePairing(AbstractPairing):
         response = dict(TLV.decode_bytes(resp))
         protocol_params = ProtocolParams(
             state_number=int.from_bytes(
-                response[ProtocolParamsTLV.GLOBAL_STATE_NUMBER], "little"
+                response[ProtocolParamsTLV.GlobalStateNumber], "little"
             ),
             config_number=int.from_bytes(
-                response[ProtocolParamsTLV.CONFIGURATION_NUMBER], "little"
+                response[ProtocolParamsTLV.ConfigurationNumber], "little"
             ),
-            advertising_id=response[ProtocolParamsTLV.ADVERTISING_ID],
-            broadcast_key=response[ProtocolParamsTLV.BROADCAST_KEY],
+            advertising_id=response[ProtocolParamsTLV.AdvertisingId],
+            broadcast_key=response[ProtocolParamsTLV.BroadcastKey],
         )
-        logger.warning("%s: Got protocol params: %s", self.name, protocol_params)
+        logger.debug(
+            "%s: Fetched protocol params: gsn=%s, c#=%s",
+            self.name,
+            protocol_params.state_number,
+            protocol_params.config_number,
+        )
         return protocol_params
 
     async def async_populate_accessories_state(

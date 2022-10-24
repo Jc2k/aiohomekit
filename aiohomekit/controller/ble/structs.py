@@ -23,6 +23,24 @@ from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16, u128
 from .const import AdditionalParameterTypes
 
 
+@dataclass
+class ProtocolParams:
+
+    state_number: int
+    config_number: int
+    advertising_id: bytes
+    broadcast_key: bytes
+
+
+class ProtocolParamsTLV(enum.IntEnum):
+    """Protocol params."""
+
+    GlobalStateNumber = 0x01
+    ConfigurationNumber = 0x02
+    AdvertisingId = 0x03
+    BroadcastKey = 0x04
+
+
 class HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV(enum.IntEnum):
     GenerateBroadcastEncryptionKey = 0x01
     GetAllParams = 0x02
