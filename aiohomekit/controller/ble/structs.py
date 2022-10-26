@@ -29,7 +29,7 @@ class ProtocolParams:
     state_number: int
     config_number: int
     advertising_id: bytes
-    broadcast_key: bytes
+    broadcast_key: Optional[bytes]
 
 
 class ProtocolParamsTLV(enum.IntEnum):
