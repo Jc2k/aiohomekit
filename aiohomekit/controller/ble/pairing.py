@@ -793,7 +793,7 @@ class BlePairing(AbstractPairing):
                 response[ProtocolParamsTLV.ConfigurationNumber], "little"
             ),
             advertising_id=response[ProtocolParamsTLV.AdvertisingId],
-            broadcast_key=response[ProtocolParamsTLV.BroadcastKey],
+            broadcast_key=response.get(ProtocolParamsTLV.BroadcastKey),
         )
         logger.debug(
             "%s: Fetched protocol params: gsn=%s, c#=%s",
