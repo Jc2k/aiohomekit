@@ -159,6 +159,12 @@ def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
         try:
             return await func(self, *args, **kwargs)
         finally:
+            logger.debug(
+                "%s: Finished %s, checking for subscription restore: %s",
+                self.name,
+                func.__name__,
+                self._restore_pending,
+            )
             if not self._shutdown and self._restore_pending:
                 await self._async_restore_subscriptions()
 
@@ -944,7 +950,16 @@ class BlePairing(AbstractPairing):
         if not self._restore_pending or not self.client or not self.client.is_connected:
             return
 
+        if not self.subscriptions:
+            logger.debug("%s: No subscriptions to restore", self.name)
+            self._restore_pending = False
+            return
+
         logger.debug("%s: Setting broadcast encryption key", self.name)
+        if self._ble_request_lock.locked():
+            logger.debug(
+                "%s: Waiting ble request lock to restore subscriptions", self.name
+            )
         async with self._ble_request_lock:
             await self._async_set_broadcast_encryption_key()
         long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
@@ -952,11 +967,6 @@ class BlePairing(AbstractPairing):
         self._broadcast_decryption_key = BroadcastDecryptionKey(
             self._derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
         )
-
-        if not self.subscriptions:
-            self._restore_pending = False
-            return
-
         subscriptions = list(self.subscriptions)
         logger.debug(
             "%s: Connected, resuming subscriptions: %s; rssi=%s",
