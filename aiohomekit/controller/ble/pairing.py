@@ -416,11 +416,9 @@ class BlePairing(AbstractPairing):
                     # Client disconnected
                     return
                 logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
-                if results := await self._get_characteristics_without_retry(
-                    [(BLE_AID, iid)]
-                ):
-                    for listener in self.listeners:
-                        listener(results)
+                await self._get_characteristics_without_retry(
+                    [(BLE_AID, iid)], notify_listeners=True
+                )
 
         def _callback(id: int, data: bytes) -> None:
             logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
@@ -476,10 +474,7 @@ class BlePairing(AbstractPairing):
                 self.rssi,
             )
             try:
-                (
-                    protocol_param,
-                    results,
-                ) = await self._process_disconnected_events_with_retry()
+                protocol_param = await self._process_disconnected_events_with_retry()
             except (
                 AccessoryDisconnectedError,
                 *BLEAK_EXCEPTIONS,
@@ -493,9 +488,6 @@ class BlePairing(AbstractPairing):
                 )
                 return
 
-            for listener in self.listeners:
-                listener(results)
-
             if protocol_param:
                 self.description.state_num = protocol_param.state_number
 
@@ -504,13 +496,14 @@ class BlePairing(AbstractPairing):
     @restore_connection_and_resume
     async def _process_disconnected_events_with_retry(
         self,
-    ) -> tuple[ProtocolParams | None, dict[tuple[int, int], dict[str, Any]]]:
+    ) -> ProtocolParams | None:
         accessory_chars = self.accessories.aid(1).characteristics
         protocol_param = await self._get_all_protocol_params()
-        results = await self._get_characteristics_while_connected(
-            [accessory_chars.iid(iid) for _, iid in self.subscriptions]
+        await self._get_characteristics_while_connected(
+            [accessory_chars.iid(iid) for _, iid in self.subscriptions],
+            notify_listeners=True,
         )
-        return protocol_param, results
+        return protocol_param
 
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
         """Receive a notification from the accessory."""
@@ -1079,15 +1072,17 @@ class BlePairing(AbstractPairing):
     async def _get_characteristics_without_retry(
         self,
         characteristics: list[tuple[int, int]],
+        notify_listeners: bool = False,
     ) -> dict[tuple[int, int], dict[str, Any]]:
         accessory_chars = self.accessories.aid(1).characteristics
         return await self._get_characteristics_while_connected(
-            [accessory_chars.iid(iid) for _, iid in characteristics]
+            [accessory_chars.iid(iid) for _, iid in characteristics], notify_listeners
         )
 
     async def _get_characteristics_while_connected(
         self,
         characteristics: list[Characteristic],
+        notify_listeners: bool = False,
     ) -> dict[tuple[int, int], dict[str, Any]]:
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
@@ -1136,7 +1131,7 @@ class BlePairing(AbstractPairing):
                 )
 
                 try:
-                    results[(BLE_AID, char.iid)] = {"value": from_bytes(char, decoded)}
+                    value = from_bytes(char, decoded)
                 except struct.error as ex:
                     logger.debug(
                         "%s: Failed to decode characteristic for %s from %s: %s",
@@ -1145,6 +1140,19 @@ class BlePairing(AbstractPairing):
                         decoded,
                         ex,
                     )
+                    continue
+
+                result_key = (BLE_AID, char.iid)
+                result_value = {"value": value}
+                results[result_key] = result_value
+
+                if notify_listeners:
+                    # Since it can take a while to read all the characteristics
+                    # we want to notify the listeners as soon as we have the
+                    # value for each characteristic.
+                    single_results = {result_key: result_value}
+                    for listener in self.listeners:
+                        listener(single_results)
 
         return results
 
