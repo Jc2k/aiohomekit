@@ -582,28 +582,34 @@ class BlePairing(AbstractPairing):
 
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
-        hap_char = self._async_get_service_signature_char()
-        if not hap_char:
-            return
-        service_iid = hap_char.service.iid
-        logger.debug(
-            "%s: Setting broadcast key for service_iid: %s",
-            self.name,
-            service_iid,
-        )
-        try:
-            await self._async_request_under_lock(
-                OpCode.PROTOCOL_CONFIG,
-                hap_char,
-                GENERATE_BROADCAST_KEY_PAYLOAD,
-                iid=service_iid,
-            )
-        except PDUStatusError:
-            logger.exception(
-                "%s: Failed to set broadcast key, try un-paring and re-pairing the accessory.",
+        logger.debug("%s: Setting broadcast encryption key", self.name)
+        if self._ble_request_lock.locked():
+            logger.debug(
+                "%s: Waiting ble request lock to set broadcast encryption key",
                 self.name,
             )
-            return
+        async with self._ble_request_lock:
+            hap_char = self._async_get_service_signature_char()
+            if not hap_char:
+                return
+            service_iid = hap_char.service.iid
+            logger.debug(
+                "%s: Setting broadcast key for service_iid: %s",
+                self.name,
+                service_iid,
+            )
+            try:
+                await self._async_request_under_lock(
+                    OpCode.PROTOCOL_CONFIG,
+                    hap_char,
+                    GENERATE_BROADCAST_KEY_PAYLOAD,
+                    iid=service_iid,
+                )
+            except PDUStatusError:
+                logger.exception(
+                    "%s: Failed to set broadcast key, try un-paring and re-pairing the accessory.",
+                    self.name,
+                )
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
@@ -955,13 +961,7 @@ class BlePairing(AbstractPairing):
             self._restore_pending = False
             return
 
-        logger.debug("%s: Setting broadcast encryption key", self.name)
-        if self._ble_request_lock.locked():
-            logger.debug(
-                "%s: Waiting ble request lock to restore subscriptions", self.name
-            )
-        async with self._ble_request_lock:
-            await self._async_set_broadcast_encryption_key()
+        await self._async_set_broadcast_encryption_key()
         long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
         long_term_pub_key_bytes = bytes.fromhex(long_term_pub_key_hex)
         self._broadcast_decryption_key = BroadcastDecryptionKey(
@@ -1203,6 +1203,8 @@ class BlePairing(AbstractPairing):
             return
         logger.debug("%s: subscribing to %s", self.name, new_chars)
         await self._populate_accessories_and_characteristics()
+        if not self._async_set_broadcast_encryption_key:
+            await self._async_set_broadcast_encryption_key()
         await self._async_subscribe_broadcast_events(new_chars)
         await self._async_start_notify_subscriptions(new_chars)
 
