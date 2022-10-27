@@ -419,6 +419,12 @@ class BlePairing(AbstractPairing):
                 await self._get_characteristics_without_retry(
                     [(BLE_AID, iid)], notify_listeners=True
                 )
+                # After a char has changed we need to check if the
+                # GSN has changed as well so we don't reconnect
+                # to the accessory if we don't need to
+                protocol_param = await self._get_all_protocol_params()
+                if protocol_param:
+                    self.description.state_num = protocol_param.state_number
 
         def _callback(id: int, data: bytes) -> None:
             logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
@@ -981,6 +987,11 @@ class BlePairing(AbstractPairing):
         await self._async_subscribe_broadcast_events(subscriptions)
         await self._async_start_notify_subscriptions(subscriptions)
         self._restore_pending = False
+        # After we have restored subscriptions, we need to read
+        # the state number again to make sure we are in sync
+        protocol_param = await self._get_all_protocol_params()
+        if protocol_param:
+            self.description.state_num = protocol_param.state_number
 
     async def _async_start_notify_subscriptions(
         self, subscriptions: list[tuple[int, int]]
