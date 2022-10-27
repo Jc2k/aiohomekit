@@ -476,8 +476,7 @@ class BlePairing(AbstractPairing):
                 self.rssi,
             )
             try:
-                protocol_param = await self.get_all_protocol_params()
-                results = await self.get_characteristics(list(self.subscriptions))
+                protocol_param, results = self._process_disconnected_events_with_retry()
             except (
                 AccessoryDisconnectedError,
                 *BLEAK_EXCEPTIONS,
@@ -496,6 +495,19 @@ class BlePairing(AbstractPairing):
 
             if protocol_param:
                 self.description.state_num = protocol_param.state_number
+
+    @operation_lock
+    @retry_bluetooth_connection_error()
+    @restore_connection_and_resume
+    async def _process_disconnected_events_with_retry(
+        self,
+    ) -> tuple[ProtocolParams | None, dict[tuple[int, int], dict[str, Any]]]:
+        accessory_chars = self.accessories.aid(1).characteristics
+        protocol_param = await self._get_all_protocol_params()
+        results = await self._get_characteristics_while_connected(
+            [accessory_chars.iid(iid) for _, iid in self.subscriptions]
+        )
+        return protocol_param, results
 
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
         """Receive a notification from the accessory."""
@@ -777,13 +789,6 @@ class BlePairing(AbstractPairing):
 
         if protocol_params:
             self.description.state_num = protocol_params.state_number
-
-    @operation_lock
-    @retry_bluetooth_connection_error()
-    @restore_connection_and_resume
-    async def get_all_protocol_params(self) -> ProtocolParams | None:
-        """Get the global state number."""
-        return await self._get_all_protocol_params()
 
     async def _get_all_protocol_params(self) -> ProtocolParams | None:
         """Get the current protocol params number."""
