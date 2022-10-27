@@ -360,17 +360,19 @@ class BlePairing(AbstractPairing):
         self._broadcast_notifications = set()
         self._restore_pending = False
 
-    async def _ensure_connected(self, attempts: int | None = None):
-        """Ensure that we are connected to the accessory."""
+    async def _ensure_connected(self, attempts: int | None = None) -> bool | None:
+        """Ensure that we are connected to the accessory.
+
+        Returns True if we had to make the connection,
+        returns False if we were already connected or shutdown.
+        """
         assert self._config_lock.locked(), "_config_lock Should be locked"
-        if self.client and self.client.is_connected:
-            return
+        if self._shutdown or (self.client and self.client.is_connected):
+            return False
         async with self._connection_lock:
-            if self._shutdown:
-                return
             # Check again while holding the lock
-            if self.client and self.client.is_connected:
-                return
+            if self._shutdown or (self.client and self.client.is_connected):
+                return False
             if not self.device and (
                 discovery := await self.controller.async_get_discovery(
                     self.address, DISCOVER_TIMEOUT
@@ -391,6 +393,7 @@ class BlePairing(AbstractPairing):
                 ble_device_callback=lambda: self.device,
                 max_attempts=attempts,
             )
+            return True
 
     async def _async_start_notify(self, iid: int) -> None:
         char = self.accessories.aid(1).characteristics.iid(iid)
@@ -863,17 +866,17 @@ class BlePairing(AbstractPairing):
             if self._shutdown:
                 return
 
-            was_connected = self.client and self.client.is_connected
-            self._restore_pending |= not was_connected
             self._tried_to_connect_once = True
+
+            needed_to_connect = await self._ensure_connected(attempts)
+
             logger.debug(
-                "%s: Populating accessories and characteristics: was_connected=%s restore_pending=%s",
+                "%s: Populating accessories and characteristics: needed_to_connect=%s restore_pending=%s",
                 self.name,
-                was_connected,
+                needed_to_connect,
                 self._restore_pending,
             )
-
-            await self._ensure_connected(attempts)
+            self._restore_pending |= needed_to_connect
 
             if was_locked and not force_update:
                 # No need to do it twice if we already have the data
