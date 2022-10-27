@@ -613,6 +613,11 @@ class BlePairing(AbstractPairing):
                     "%s: Failed to set broadcast key, try un-paring and re-pairing the accessory.",
                     self.name,
                 )
+        long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
+        long_term_pub_key_bytes = bytes.fromhex(long_term_pub_key_hex)
+        self._broadcast_decryption_key = BroadcastDecryptionKey(
+            self._derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
+        )
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
@@ -965,11 +970,6 @@ class BlePairing(AbstractPairing):
             return
 
         await self._async_set_broadcast_encryption_key()
-        long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
-        long_term_pub_key_bytes = bytes.fromhex(long_term_pub_key_hex)
-        self._broadcast_decryption_key = BroadcastDecryptionKey(
-            self._derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
-        )
         subscriptions = list(self.subscriptions)
         logger.debug(
             "%s: Connected, resuming subscriptions: %s; rssi=%s",
