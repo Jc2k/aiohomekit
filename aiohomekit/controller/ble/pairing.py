@@ -476,7 +476,10 @@ class BlePairing(AbstractPairing):
                 self.rssi,
             )
             try:
-                protocol_param, results = await self._process_disconnected_events_with_retry()
+                (
+                    protocol_param,
+                    results,
+                ) = await self._process_disconnected_events_with_retry()
             except (
                 AccessoryDisconnectedError,
                 *BLEAK_EXCEPTIONS,
