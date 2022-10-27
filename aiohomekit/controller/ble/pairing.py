@@ -1206,7 +1206,7 @@ class BlePairing(AbstractPairing):
             return
         logger.debug("%s: subscribing to %s", self.name, new_chars)
         await self._populate_accessories_and_characteristics()
-        if not self._async_set_broadcast_encryption_key:
+        if not self._broadcast_decryption_key:
             await self._async_set_broadcast_encryption_key()
         await self._async_subscribe_broadcast_events(new_chars)
         await self._async_start_notify_subscriptions(new_chars)
