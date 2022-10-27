@@ -868,15 +868,15 @@ class BlePairing(AbstractPairing):
 
             self._tried_to_connect_once = True
 
-            needed_to_connect = await self._ensure_connected(attempts)
+            made_connection = await self._ensure_connected(attempts)
 
             logger.debug(
-                "%s: Populating accessories and characteristics: needed_to_connect=%s restore_pending=%s",
+                "%s: Populating accessories and characteristics: made_connection=%s restore_pending=%s",
                 self.name,
-                needed_to_connect,
+                made_connection,
                 self._restore_pending,
             )
-            self._restore_pending |= needed_to_connect
+            self._restore_pending |= made_connection
 
             if was_locked and not force_update:
                 # No need to do it twice if we already have the data
