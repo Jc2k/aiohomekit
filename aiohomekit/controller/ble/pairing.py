@@ -26,6 +26,7 @@ import time
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 from uuid import UUID
 
+from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakError
@@ -633,6 +634,30 @@ class BlePairing(AbstractPairing):
             self._derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
         )
 
+    async def _read_signature(
+        self, char: BleakGATTCharacteristic, op_code: OpCode, iid: int
+    ) -> dict[str, Any]:
+        """Read the signature for the given characteristic."""
+        tid = random.randint(1, 254)
+        for data in encode_pdu(
+            OpCode.SERV_SIG_READ,
+            tid,
+            iid,
+        ):
+            await self.client.write_gatt_char(
+                char,
+                data,
+                "write-without-response" not in char.properties,
+            )
+
+        payload = await self.client.read_gatt_char(char)
+
+        status, _, signature = decode_pdu(tid, payload)
+        if status != PDUStatus.SUCCESS:
+            return {}
+
+        return CharacteristicTLV.decode(signature).to_dict()
+
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
         accessory = Accessory()
@@ -662,6 +687,14 @@ class BlePairing(AbstractPairing):
             )
             s = accessory.add_service(normalize_uuid(service.uuid))
             s.iid = service_iid
+            decoded_service = await self._read_signature(
+                ble_service_char, OpCode.SERV_SIG_READ, service_iid
+            )
+            if "linked" in decoded_service:
+                s.linked = decoded_service["linked"]
+            logger.debug(
+                "%s: service: %s decoded: %s", self.name, service, decoded_service
+            )
 
             for char in service.characteristics:
                 normalized_uuid = normalize_uuid(char.uuid)
@@ -673,26 +706,7 @@ class BlePairing(AbstractPairing):
                     logger.debug("%s: No iid for %s", self.name, char.uuid)
                     continue
 
-                tid = random.randint(1, 254)
-                for data in encode_pdu(
-                    OpCode.CHAR_SIG_READ,
-                    tid,
-                    iid,
-                ):
-                    await self.client.write_gatt_char(
-                        char,
-                        data,
-                        "write-without-response" not in char.properties,
-                    )
-
-                payload = await self.client.read_gatt_char(char)
-
-                status, _, signature = decode_pdu(tid, payload)
-                if status != PDUStatus.SUCCESS:
-                    continue
-
-                decoded = CharacteristicTLV.decode(signature).to_dict()
-
+                decoded = await self._read_signature(char, OpCode.CHAR_SIG_READ, iid)
                 if normalized_uuid == CharacteristicsTypes.IDENTIFY:
                     # Workaround for older eve v1 devices which has a broken identify characteristic
                     # that presents identify as data.
@@ -718,11 +732,6 @@ class BlePairing(AbstractPairing):
                     hap_char.disconnected_events = decoded["disconnected_events"]
                 if "broadcast_events" in decoded:
                     hap_char.broadcast_events = decoded["broadcast_events"]
-                if (
-                    "linked" in decoded
-                    and normalized_uuid == CharacteristicsTypes.SERVICE_SIGNATURE
-                ):
-                    s.linked = decoded["linked"]
 
         accessories = Accessories()
         accessories.add_accessory(accessory)
