@@ -664,7 +664,8 @@ class BlePairing(AbstractPairing):
             s.iid = service_iid
 
             for char in service.characteristics:
-                if normalize_uuid(char.uuid) == SERVICE_INSTANCE_ID:
+                normalized_uuid = normalize_uuid(char.uuid)
+                if normalized_uuid == SERVICE_INSTANCE_ID:
                     continue
 
                 iid = await self.client.get_characteristic_iid(char)
@@ -691,7 +692,6 @@ class BlePairing(AbstractPairing):
                     continue
 
                 decoded = CharacteristicTLV.decode(signature).to_dict()
-                normalized_uuid = normalize_uuid(char.uuid)
 
                 if normalized_uuid == CharacteristicsTypes.IDENTIFY:
                     # Workaround for older eve v1 devices which has a broken identify characteristic
@@ -718,6 +718,11 @@ class BlePairing(AbstractPairing):
                     hap_char.disconnected_events = decoded["disconnected_events"]
                 if "broadcast_events" in decoded:
                     hap_char.broadcast_events = decoded["broadcast_events"]
+                if (
+                    "linked" in decoded
+                    and normalized_uuid == CharacteristicsTypes.SERVICE_SIGNATURE
+                ):
+                    s.linked = decoded["linked"]
 
         accessories = Accessories()
         accessories.add_accessory(accessory)
