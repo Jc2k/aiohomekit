@@ -16,7 +16,7 @@
 from dataclasses import dataclass, field
 import enum
 import struct
-from typing import Any, Optional, Union
+from typing import Any, Optional, Sequence, Union
 
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16, u128
 
@@ -337,5 +337,38 @@ class Characteristic(TLVStruct):
             min_max_value = self.min_max_value
             result["minValue"] = min_max_value[0]
             result["maxValue"] = min_max_value[1]
+
+        return result
+
+
+@dataclass
+class Service(TLVStruct):
+    # permission bits
+    service_properties: u16 = tlv_entry(HAP_TLV.kTLVHAPParamHAPServiceProperties)
+    linked_services: Sequence[u16] = tlv_entry(HAP_TLV.kTLVHAPParamHAPLinkedServices)
+
+    @property
+    def primary_service(self) -> bool:
+        return self.service_properties and self.service_properties & 0x0001
+
+    @property
+    def hidden_service(self) -> bool:
+        return self.service_properties and self.service_properties & 0x0002
+
+    @property
+    def supports_configuration(self) -> bool:
+        return self.service_properties and self.service_properties & 0x0004
+
+    def to_dict(self):
+        perms = list()
+        if self.hidden_service:
+            perms.append("hd")
+
+        result = {
+            "perms": perms,
+        }
+
+        if self.linked_services:
+            result["linked"] = self.linked_services
 
         return result
