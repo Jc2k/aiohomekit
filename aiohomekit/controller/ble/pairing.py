@@ -96,6 +96,8 @@ NEVER_TIME = -AVAILABILITY_INTERVAL
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
 SERVICE_INSTANCE_ID_UUID = UUID(SERVICE_INSTANCE_ID)
 
+SERVICE_SIGNATURE_UUID = UUID(CharacteristicsTypes.SERVICE_SIGNATURE)
+
 SKIP_SYNC_SERVICES = {
     ServicesTypes.PAIRING,
     ServicesTypes.TRANSFER_TRANSPORT_MANAGEMENT,
@@ -639,11 +641,7 @@ class BlePairing(AbstractPairing):
     ) -> dict[str, Any]:
         """Read the signature for the given characteristic."""
         tid = random.randint(1, 254)
-        for data in encode_pdu(
-            OpCode.SERV_SIG_READ,
-            tid,
-            iid,
-        ):
+        for data in encode_pdu(op_code, tid, iid):
             await self.client.write_gatt_char(
                 char,
                 data,
@@ -687,14 +685,17 @@ class BlePairing(AbstractPairing):
             )
             s = accessory.add_service(normalize_uuid(service.uuid))
             s.iid = service_iid
-            decoded_service = await self._read_signature(
-                ble_service_char, OpCode.SERV_SIG_READ, service_iid
-            )
-            if "linked" in decoded_service:
-                s.linked = decoded_service["linked"]
-            logger.debug(
-                "%s: service: %s decoded: %s", self.name, service, decoded_service
-            )
+
+            service_signature_char = service.get_characteristic(SERVICE_SIGNATURE_UUID)
+            if service_signature_char:
+                decoded_service = await self._read_signature(
+                    service_signature_char, OpCode.SERV_SIG_READ, service_iid
+                )
+                if "linked" in decoded_service:
+                    s.linked = decoded_service["linked"]
+                logger.debug(
+                    "%s: service: %s decoded: %s", self.name, service, decoded_service
+                )
 
             for char in service.characteristics:
                 normalized_uuid = normalize_uuid(char.uuid)
