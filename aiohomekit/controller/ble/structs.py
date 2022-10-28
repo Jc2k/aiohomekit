@@ -343,11 +343,6 @@ class Characteristic(TLVStruct):
 
 @dataclass
 class Service(TLVStruct):
-    # raw value
-    _value: bytes = field(init=False, default=None)
-
-    type: u128 = tlv_entry(HAP_TLV.kTLVHAPParamCharacteristicType)
-    instance_id: u16 = tlv_entry(HAP_TLV.kTLVHAPParamCharacteristicInstanceId)
     # permission bits
     service_properties: u16 = tlv_entry(HAP_TLV.kTLVHAPParamHAPServiceProperties)
     linked_services: Sequence[u16] = tlv_entry(HAP_TLV.kTLVHAPParamHAPLinkedServices)
@@ -370,8 +365,6 @@ class Service(TLVStruct):
             perms.append("hd")
 
         result = {
-            "type": f"{self.type:X}",
-            "iid": self.instance_id,
             "perms": perms,
         }
 
