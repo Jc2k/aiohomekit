@@ -403,7 +403,10 @@ class BlePairing(AbstractPairing):
         char = self.accessories.aid(BLE_AID).characteristics.iid(iid)
 
         # Find the GATT Characteristic object for this iid
-        endpoint = self.client.get_characteristic_by_handle(char.handle)
+        if char.handle:
+            endpoint = self.client.get_characteristic_by_handle(char.handle)
+        else:
+            endpoint = self.client.get_characteristic(char.service.type, char.type)
 
         # We only want to allow one in flight read
         # and one pending read at a time since there
