@@ -131,8 +131,6 @@ class Characteristic(TLVStruct):
     user_description: bytes = tlv_entry(
         HAP_TLV.kTLVHAPParamGATTUserDescriptionDescriptor
     )
-    linked_services: Sequence[u16] = tlv_entry(HAP_TLV.kTLVHAPParamHAPLinkedServices)
-    service_properties: u16 = tlv_entry(HAP_TLV.kTLVHAPParamHAPServiceProperties)
 
     @property
     def supports_read(self) -> bool:
@@ -173,18 +171,6 @@ class Characteristic(TLVStruct):
     @property
     def supports_broadcast_notify(self) -> bool:
         return self.properties & 0x0200
-
-    @property
-    def service_primary(self) -> bool:
-        return self.service_properties & 0x0001
-
-    @property
-    def service_hidden(self) -> bool:
-        return self.service_properties & 0x0002
-
-    @property
-    def service_supports_configuration(self) -> bool:
-        return self.service_properties & 0x0004
 
     @property
     def pf_format(self):
@@ -351,6 +337,43 @@ class Characteristic(TLVStruct):
             min_max_value = self.min_max_value
             result["minValue"] = min_max_value[0]
             result["maxValue"] = min_max_value[1]
+
+        return result
+
+
+@dataclass
+class Service(TLVStruct):
+    # raw value
+    _value: bytes = field(init=False, default=None)
+
+    type: u128 = tlv_entry(HAP_TLV.kTLVHAPParamCharacteristicType)
+    instance_id: u16 = tlv_entry(HAP_TLV.kTLVHAPParamCharacteristicInstanceId)
+    # permission bits
+    service_properties: u16 = tlv_entry(HAP_TLV.kTLVHAPParamHAPServiceProperties)
+    linked_services: Sequence[u16] = tlv_entry(HAP_TLV.kTLVHAPParamHAPLinkedServices)
+
+    @property
+    def primary_service(self) -> bool:
+        return self.service_properties & 0x0001
+
+    @property
+    def hidden_service(self) -> bool:
+        return self.service_properties & 0x0002
+
+    @property
+    def supports_configuration(self) -> bool:
+        return self.service_properties & 0x0004
+
+    def to_dict(self):
+        perms = list()
+        if self.hidden_service:
+            perms.append("hd")
+
+        result = {
+            "type": f"{self.type:X}",
+            "iid": self.instance_id,
+            "perms": perms,
+        }
 
         if self.linked_services:
             result["linked"] = self.linked_services

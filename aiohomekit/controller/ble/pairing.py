@@ -74,6 +74,7 @@ from .structs import (
     HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV,
     HAP_TLV,
     Characteristic as CharacteristicTLV,
+    Service as ServiceTLV,
     ProtocolParams,
     ProtocolParamsTLV,
 )
@@ -637,7 +638,11 @@ class BlePairing(AbstractPairing):
         )
 
     async def _read_signature(
-        self, char: BleakGATTCharacteristic, op_code: OpCode, iid: int
+        self,
+        char: BleakGATTCharacteristic,
+        op_code: OpCode,
+        iid: int,
+        tlv_struct: ServiceTLV | CharacteristicTLV,
     ) -> dict[str, Any]:
         """Read the signature for the given characteristic."""
         tid = random.randint(1, 254)
@@ -654,7 +659,7 @@ class BlePairing(AbstractPairing):
         if status != PDUStatus.SUCCESS:
             return {}
 
-        return CharacteristicTLV.decode(signature).to_dict()
+        return tlv_struct.decode(signature).to_dict()
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
@@ -689,7 +694,10 @@ class BlePairing(AbstractPairing):
             service_signature_char = service.get_characteristic(SERVICE_SIGNATURE_UUID)
             if service_signature_char:
                 decoded_service = await self._read_signature(
-                    service_signature_char, OpCode.SERV_SIG_READ, service_iid
+                    service_signature_char,
+                    OpCode.SERV_SIG_READ,
+                    service_iid,
+                    ServiceTLV,
                 )
                 if "linked" in decoded_service:
                     s.linked = decoded_service["linked"]
@@ -707,7 +715,9 @@ class BlePairing(AbstractPairing):
                     logger.debug("%s: No iid for %s", self.name, char.uuid)
                     continue
 
-                decoded = await self._read_signature(char, OpCode.CHAR_SIG_READ, iid)
+                decoded = await self._read_signature(
+                    char, OpCode.CHAR_SIG_READ, iid, CharacteristicTLV
+                )
                 if normalized_uuid == CharacteristicsTypes.IDENTIFY:
                     # Workaround for older eve v1 devices which has a broken identify characteristic
                     # that presents identify as data.
