@@ -38,7 +38,7 @@ async def establish_connection(
     device: BLEDevice,
     name: str,
     disconnected_callback: Callable[[AIOHomeKitBleakClient], None],
-    max_attempts: int = MAX_CONNECT_ATTEMPTS,
+    max_attempts: int | None = None,
     use_services_cache: bool = False,
     ble_device_callback: Callable[[BLEDevice], None] = None,
 ) -> AIOHomeKitBleakClient:
@@ -49,7 +49,7 @@ async def establish_connection(
             device,
             name,
             disconnected_callback,
-            max_attempts=max_attempts,
+            max_attempts=max_attempts or MAX_CONNECT_ATTEMPTS,
             use_services_cache=use_services_cache,
             ble_device_callback=ble_device_callback,
         )

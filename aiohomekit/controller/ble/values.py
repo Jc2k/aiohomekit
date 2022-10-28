@@ -15,19 +15,20 @@ INT_TYPES = {
 
 def from_bytes(char: Characteristic, value: bytes) -> bool | str | float | int | bytes:
     if char.format == CharacteristicFormats.bool:
-        return struct.unpack("?", value)[0]
+        return struct.unpack_from("?", value)[0]
     elif char.format == CharacteristicFormats.uint8:
-        return struct.unpack("B", value)[0]
+        return struct.unpack_from("B", value)[0]
     elif char.format == CharacteristicFormats.uint16:
-        return struct.unpack("H", value)[0]
+        return struct.unpack_from("H", value)[0]
     elif char.format == CharacteristicFormats.uint32:
-        return struct.unpack("I", value)[0]
+        return struct.unpack_from("I", value)[0]
     elif char.format == CharacteristicFormats.uint64:
-        return struct.unpack("Q", value)[0]
+        return struct.unpack_from("Q", value)[0]
     elif char.format == CharacteristicFormats.int:
-        return struct.unpack("i", value)[0]
+        return struct.unpack_from("i", value)[0]
     elif char.format == CharacteristicFormats.float:
-        return struct.unpack("f", value)[0]
+        # FOR BLE float is 32 bit
+        return struct.unpack_from("f", value)[0]
     elif char.format == CharacteristicFormats.string:
         return value.decode("utf-8")
 
@@ -48,6 +49,7 @@ def to_bytes(char: Characteristic, value: bool | str | float | int | bytes) -> b
     elif char.format == CharacteristicFormats.int:
         value = struct.pack("i", value)
     elif char.format == CharacteristicFormats.float:
+        # FOR BLE float is 32 bit
         value = struct.pack("f", value)
     elif char.format == CharacteristicFormats.string:
         value = value.encode("utf-8")

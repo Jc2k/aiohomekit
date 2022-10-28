@@ -205,7 +205,15 @@ class ZeroconfController(AbstractController):
             for record in zc.cache.get_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
         ]
 
-        await asyncio.gather(*(self._async_handle_service(info) for info in infos))
+        tasks = []
+        for info in infos:
+            if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
+                self._async_handle_loaded_service_info(info)
+            else:
+                tasks.append(self._async_handle_service(info))
+
+        if tasks:
+            await asyncio.gather(*tasks)
 
         return self
 
@@ -223,7 +231,10 @@ class ZeroconfController(AbstractController):
             info = AsyncServiceInfo(service_type, name)
 
             async def _async_handle_service():
-                await self._async_handle_service(info)
+                if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
+                    self._async_handle_loaded_service_info(info)
+                else:
+                    await self._async_handle_service(info)
 
             debouncer = self._debouncers[name] = Debouncer(
                 logger,
@@ -269,7 +280,10 @@ class ZeroconfController(AbstractController):
         """Add a device that became visible via zeroconf."""
         # AsyncServiceInfo already tries 3x
         await info.async_request(self._async_zeroconf_instance.zeroconf, _TIMEOUT_MS)
+        self._async_handle_loaded_service_info(info)
 
+    def _async_handle_loaded_service_info(self, info: AsyncServiceInfo) -> None:
+        """Handle a service info that was discovered via zeroconf."""
         try:
             description = HomeKitService.from_service_info(info)
         except ValueError as e:

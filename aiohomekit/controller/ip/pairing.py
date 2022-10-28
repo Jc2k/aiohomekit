@@ -13,13 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
 from itertools import groupby
 import logging
 from operator import itemgetter
-from typing import Any, Optional
+from typing import Any
 
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import (
@@ -369,7 +370,7 @@ class IpPairing(ZeroconfPairing):
         return status
 
     async def async_populate_accessories_state(
-        self, force_update: bool = False
+        self, force_update: bool = False, attempts: int | None = None
     ) -> bool:
         """Populate the state of all accessories.
 
@@ -524,7 +525,7 @@ class IpPairing(ZeroconfPairing):
 
         return resp.body
 
-    def _async_description_update(self, description: Optional[HomeKitService]) -> None:
+    def _async_description_update(self, description: HomeKitService | None) -> None:
         """We have new zeroconf metadata for this device."""
         super()._async_description_update(description)
 

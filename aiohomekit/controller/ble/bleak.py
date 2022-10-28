@@ -76,6 +76,10 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
         self._char_cache: dict[tuple[str, str], BleakGATTCharacteristic] = {}
         self._iid_cache: dict[BleakGATTCharacteristic, int] = {}
 
+    def get_characteristic_by_handle(self, handle: int) -> BleakGATTCharacteristic:
+        """Get a characteristic by handle."""
+        return self.services.get_characteristic(handle)
+
     def get_characteristic(
         self, service_type: str, characteristic_type: str
     ) -> BleakGATTCharacteristic:

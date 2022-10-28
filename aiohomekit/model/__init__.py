@@ -252,6 +252,12 @@ class Accessory:
                     kwargs["min_step"] = char_data["minStep"]
                 if "maxLen" in char_data:
                     kwargs["max_len"] = char_data["maxLen"]
+                if "handle" in char_data:
+                    kwargs["handle"] = char_data["handle"]
+                if "broadcast_events" in char_data:
+                    kwargs["broadcast_events"] = char_data["broadcast_events"]
+                if "disconnected_events" in char_data:
+                    kwargs["disconnected_events"] = char_data["disconnected_events"]
 
                 char = service.add_char(char_data["type"], **kwargs)
                 char.iid = char_data["iid"]

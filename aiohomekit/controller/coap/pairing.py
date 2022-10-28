@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
@@ -180,7 +181,7 @@ class CoAPPairing(ZeroconfPairing):
         """
 
     async def async_populate_accessories_state(
-        self, force_update: bool = False
+        self, force_update: bool = False, attempts: int | None = None
     ) -> bool:
         """Populate the state of all accessories.
 

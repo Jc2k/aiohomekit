@@ -113,14 +113,27 @@ class BleDiscovery(AbstractDiscovery):
                     "%s: Failed to close connection, client may have already closed it",
                     self.name,
                 )
+            finally:
+                self.client = None
 
     async def _async_start_pairing(self, alias: str) -> tuple[bytearray, bytearray]:
         await self._ensure_connected()
 
-        ff_char = self.client.get_characteristic(
-            ServicesTypes.PAIRING,
-            CharacteristicsTypes.PAIRING_FEATURES,
-        )
+        try:
+            ff_char = self.client.get_characteristic(
+                ServicesTypes.PAIRING,
+                CharacteristicsTypes.PAIRING_FEATURES,
+            )
+        except ValueError:
+            # If the device closed the connection while reading the services
+            # we need to reconnect since our client is now invalid.
+            await self._close()
+            await self._ensure_connected()
+            ff_char = self.client.get_characteristic(
+                ServicesTypes.PAIRING,
+                CharacteristicsTypes.PAIRING_FEATURES,
+            )
+
         ff_iid = await self.client.get_characteristic_iid(ff_char)
         ff_raw = await char_read(self.client, None, None, ff_char, ff_iid)
         ff = FeatureFlags(ff_raw[0])

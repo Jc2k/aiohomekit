@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 import struct
 
 from bleak.backends.device import BLEDevice
@@ -10,17 +11,14 @@ from aiohomekit.controller.abstract import AbstractDescription
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.status_flags import StatusFlags
 
-UNPACK_BBB = struct.Struct("<BBB").unpack
 UNPACK_HHBB = struct.Struct("<HHBB").unpack
+UNPACK_HH = struct.Struct("<HH").unpack
 
+APPLE_MANUFACTURER_ID = 76
+HOMEKIT_ADVERTISEMENT_TYPE = 0x06
+HOMEKIT_ENCRYPTED_NOTIFICATION_TYPE = 0x11
 
-def is_homekit_advertisement(advertisement_data: AdvertisementData) -> bool:
-    """Check if advertisement data is a HomeKit device."""
-    return bool(
-        advertisement_data.manufacturer_data
-        and (data := advertisement_data.manufacturer_data.get(76))
-        and data[0] == 0x06
-    )
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -32,15 +30,15 @@ class HomeKitAdvertisement(AbstractDescription):
 
     @classmethod
     def from_manufacturer_data(
-        cls, name, address, manufacturer_data
+        cls, name: str, address: str, manufacturer_data: dict[int, bytes]
     ) -> HomeKitAdvertisement:
-        if not (data := manufacturer_data.get(76)):
+        if not (data := manufacturer_data.get(APPLE_MANUFACTURER_ID)):
             raise ValueError("Not an Apple device")
 
-        if data[0] != 0x06:
+        if data[0] != HOMEKIT_ADVERTISEMENT_TYPE:
             raise ValueError("Not a HomeKit device")
 
-        type, stl, sf = UNPACK_BBB(data[:3])
+        sf = data[2]
         device_id = ":".join(
             data[3:9].hex()[0 + i : 2 + i] for i in range(0, 12, 2)
         ).lower()
@@ -56,6 +54,49 @@ class HomeKitAdvertisement(AbstractDescription):
             state_num=gsn,
             setup_hash=sh,
             address=address,
+        )
+
+    @classmethod
+    def from_advertisement(
+        cls, device: BLEDevice, advertisement_data: AdvertisementData
+    ) -> HomeKitAdvertisement:
+        if not (mfr_data := advertisement_data.manufacturer_data):
+            raise ValueError("No manufacturer data")
+
+        return cls.from_manufacturer_data(device.name, device.address, mfr_data)
+
+
+@dataclass
+class HomeKitEncryptedNotification:
+
+    name: str
+    address: str
+    id: str
+    advertising_identifier: bytes
+    encrypted_payload: bytes
+
+    @classmethod
+    def from_manufacturer_data(
+        cls, name: str, address: str, manufacturer_data: dict[int, bytes]
+    ) -> HomeKitAdvertisement:
+        if not (data := manufacturer_data.get(APPLE_MANUFACTURER_ID)):
+            raise ValueError("Not an Apple device")
+
+        if data[0] != HOMEKIT_ENCRYPTED_NOTIFICATION_TYPE:
+            raise ValueError("Not a HomeKit encrypted notification")
+
+        advertising_identifier = data[2:8]
+        device_id = ":".join(
+            advertising_identifier.hex()[0 + i : 2 + i] for i in range(0, 12, 2)
+        ).lower()
+        encrypted_payload = data[8:]
+
+        return cls(
+            name=name,
+            id=device_id,
+            address=address,
+            advertising_identifier=advertising_identifier,
+            encrypted_payload=encrypted_payload,
         )
 
     @classmethod

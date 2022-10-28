@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aiohomekit"
-version = "2.1.0"
+version = "2.2.6"
 description = "An asyncio HomeKit client"
 authors = ["John Carr <john.carr@unrouted.co.uk>"]
 license = "Apache-2.0"
@@ -29,6 +29,7 @@ chacha20poly1305-reuseable = ">=0.0.4"
 bleak-retry-connector = ">=2.3.0"
 orjson = ">=3.7.8"
 async-timeout = "^4.0.2"
+chacha20poly1305 = "^0.0.3"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.10.1"
