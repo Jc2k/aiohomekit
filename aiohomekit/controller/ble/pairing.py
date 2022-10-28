@@ -50,14 +50,14 @@ from aiohomekit.model import (
     Transport,
 )
 from aiohomekit.model.characteristics import Characteristic, CharacteristicPermissions
-from aiohomekit.model.services import ServicesTypes
+from aiohomekit.model.services import Service, ServicesTypes
 from aiohomekit.pdu import OpCode, PDUStatus, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
-from aiohomekit.model.services import Service
+
 from ..abstract import AbstractPairing, AbstractPairingData
 from .bleak import AIOHomeKitBleakClient
 from .client import (
@@ -74,9 +74,9 @@ from .structs import (
     HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV,
     HAP_TLV,
     Characteristic as CharacteristicTLV,
-    Service as ServiceTLV,
     ProtocolParams,
     ProtocolParamsTLV,
+    Service as ServiceTLV,
 )
 from .values import from_bytes, to_bytes
 
