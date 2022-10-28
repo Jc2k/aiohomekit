@@ -745,6 +745,8 @@ class BlePairing(AbstractPairing):
                 if "broadcast_events" in decoded:
                     hap_char.broadcast_events = decoded["broadcast_events"]
 
+        # Link services after we are done since we need to have all services
+        # in the accessory to link them.
         for service, linked in services_to_link:
             for iid in linked:
                 service.add_linked_service(accessory.services.iid(iid))
