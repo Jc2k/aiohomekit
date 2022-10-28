@@ -74,7 +74,7 @@ class HAP_TLV(enum.IntEnum):
     kTLVHAPParamHAPValidValuesRangeDescriptor = 0x12
     kTLVHAPParamUnknown_13_Characteristic = 0x13
     kTLVHAPParamUnknown_14_Characteristics = 0x14
-    kTLVHAPParamServiceProperties = 0x15
+    kTLVHAPParamUnknown_15_Service = 0x15
     kTLVHAPParamUnknown_16_Services = 0x16
     kTLVHAPParamUnknown_17 = 0x17
     kTLVHAPParamUnknown_18 = 0x18
