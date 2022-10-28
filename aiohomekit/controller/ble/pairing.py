@@ -57,7 +57,7 @@ from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
-
+from aiohomekit.model.services import Service
 from ..abstract import AbstractPairing, AbstractPairingData
 from .bleak import AIOHomeKitBleakClient
 from .client import (
@@ -400,7 +400,7 @@ class BlePairing(AbstractPairing):
             return True
 
     async def _async_start_notify(self, iid: int) -> None:
-        char = self.accessories.aid(1).characteristics.iid(iid)
+        char = self.accessories.aid(BLE_AID).characteristics.iid(iid)
 
         # Find the GATT Characteristic object for this iid
         endpoint = self.client.get_characteristic(char.service.type, char.type)
@@ -507,7 +507,7 @@ class BlePairing(AbstractPairing):
     async def _process_disconnected_events_with_retry(
         self,
     ) -> ProtocolParams | None:
-        accessory_chars = self.accessories.aid(1).characteristics
+        accessory_chars = self.accessories.aid(BLE_AID).characteristics
         protocol_param = await self._get_all_protocol_params()
         await self._get_characteristics_while_connected(
             [accessory_chars.iid(iid) for _, iid in self.subscriptions],
@@ -571,7 +571,7 @@ class BlePairing(AbstractPairing):
             )
             # We had a successful decrypt, so we can update the state_num
             self.description.state_num = gsn
-            char = self.accessories.aid(1).characteristics.iid(iid)
+            char = self.accessories.aid(BLE_AID).characteristics.iid(iid)
 
             results = {(BLE_AID, iid): {"value": from_bytes(char, value)}}
             logger.debug("%s: Received notification: results = %s", self.name, results)
@@ -586,7 +586,7 @@ class BlePairing(AbstractPairing):
 
     def _async_get_service_signature_char(self) -> Characteristic | None:
         """Get the service signature characteristic."""
-        info = self.accessories.aid(1).services.first(
+        info = self.accessories.aid(BLE_AID).services.first(
             service_type=ServicesTypes.PROTOCOL_INFORMATION
         )
         if not info:
@@ -666,6 +666,7 @@ class BlePairing(AbstractPairing):
         accessory = Accessory()
         accessory.aid = 1
         # Never use the cache when fetching the GATT database
+        services_to_link: list[tuple[Service, list[int]]] = []
         services = await self.client.get_services()
         for service in services:
             ble_service_char = service.get_characteristic(SERVICE_INSTANCE_ID_UUID)
@@ -700,7 +701,7 @@ class BlePairing(AbstractPairing):
                     ServiceTLV,
                 )
                 if "linked" in decoded_service:
-                    s.linked = decoded_service["linked"]
+                    services_to_link.append((s, decoded_service["linked"]))
                 logger.debug(
                     "%s: service: %s decoded: %s", self.name, service, decoded_service
                 )
@@ -744,6 +745,10 @@ class BlePairing(AbstractPairing):
                 if "broadcast_events" in decoded:
                     hap_char.broadcast_events = decoded["broadcast_events"]
 
+        for service, linked in services_to_link:
+            for iid in linked:
+                service.add_linked_service(accessory.services.iid(iid))
+
         accessories = Accessories()
         accessories.add_accessory(accessory)
         logger.debug("%s: Completed fetching GATT database", self.name)
@@ -785,7 +790,7 @@ class BlePairing(AbstractPairing):
     async def _populate_char_values(self, config_changed: bool) -> None:
         """Populate the values of all characteristics."""
         chars: list[Characteristic] = []
-        for service in self.accessories.aid(1).services:
+        for service in self.accessories.aid(BLE_AID).services:
             if service.type in SKIP_SYNC_SERVICES:
                 continue
             if (
@@ -889,7 +894,7 @@ class BlePairing(AbstractPairing):
         Older code did not save the handle, so if we have no handles
         we need to re-fetch the gatt database.
         """
-        for service in self.accessories.aid(1).services:
+        for service in self.accessories.aid(BLE_AID).services:
             for char in service.characteristics:
                 if char.handle is not None:
                     return False
@@ -955,7 +960,7 @@ class BlePairing(AbstractPairing):
         self, subscriptions: list[tuple[int, int]]
     ) -> None:
         """Subscribe to broadcast events."""
-        accessory_chars = self.accessories.aid(1).characteristics
+        accessory_chars = self.accessories.aid(BLE_AID).characteristics
         to_subscribe: list[Characteristic] = []
         for _, iid in subscriptions:
             hap_char = accessory_chars.iid(iid)
@@ -1068,7 +1073,7 @@ class BlePairing(AbstractPairing):
             ]
         )
 
-        info = self.accessories.aid(1).services.first(
+        info = self.accessories.aid(BLE_AID).services.first(
             service_type=ServicesTypes.PAIRING
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
@@ -1110,7 +1115,7 @@ class BlePairing(AbstractPairing):
         characteristics: list[tuple[int, int]],
         notify_listeners: bool = False,
     ) -> dict[tuple[int, int], dict[str, Any]]:
-        accessory_chars = self.accessories.aid(1).characteristics
+        accessory_chars = self.accessories.aid(BLE_AID).characteristics
         return await self._get_characteristics_while_connected(
             [accessory_chars.iid(iid) for _, iid in characteristics], notify_listeners
         )
@@ -1205,7 +1210,7 @@ class BlePairing(AbstractPairing):
             characteristics,
             self.rssi,
         )
-        accessory_chars = self.accessories.aid(1).characteristics
+        accessory_chars = self.accessories.aid(BLE_AID).characteristics
         async with self._ble_request_lock:
 
             for aid, iid, value in characteristics:
@@ -1267,7 +1272,7 @@ class BlePairing(AbstractPairing):
         pass
 
     async def identify(self):
-        info = self.accessories.aid(1).services.first(
+        info = self.accessories.aid(BLE_AID).services.first(
             service_type=ServicesTypes.ACCESSORY_INFORMATION
         )
         char = info[CharacteristicsTypes.IDENTIFY]
@@ -1311,7 +1316,7 @@ class BlePairing(AbstractPairing):
             ]
         )
 
-        info = self.accessories.aid(1).services.first(
+        info = self.accessories.aid(BLE_AID).services.first(
             service_type=ServicesTypes.PAIRING
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
@@ -1353,7 +1358,7 @@ class BlePairing(AbstractPairing):
             ]
         )
 
-        info = self.accessories.aid(1).services.first(
+        info = self.accessories.aid(BLE_AID).services.first(
             service_type=ServicesTypes.PAIRING
         )
         char = info[CharacteristicsTypes.PAIRING_PAIRINGS]
