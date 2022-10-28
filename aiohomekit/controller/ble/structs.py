@@ -349,15 +349,15 @@ class Service(TLVStruct):
 
     @property
     def primary_service(self) -> bool:
-        return self.service_properties & 0x0001
+        return self.service_properties and self.service_properties & 0x0001
 
     @property
     def hidden_service(self) -> bool:
-        return self.service_properties & 0x0002
+        return self.service_properties and self.service_properties & 0x0002
 
     @property
     def supports_configuration(self) -> bool:
-        return self.service_properties & 0x0004
+        return self.service_properties and self.service_properties & 0x0004
 
     def to_dict(self):
         perms = list()
