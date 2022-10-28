@@ -159,6 +159,12 @@ def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
         try:
             return await func(self, *args, **kwargs)
         finally:
+            logger.debug(
+                "%s: Finished %s, checking for subscription restore: %s",
+                self.name,
+                func.__name__,
+                self._restore_pending,
+            )
             if not self._shutdown and self._restore_pending:
                 await self._async_restore_subscriptions()
 
@@ -354,17 +360,19 @@ class BlePairing(AbstractPairing):
         self._broadcast_notifications = set()
         self._restore_pending = False
 
-    async def _ensure_connected(self, attempts: int | None = None):
-        """Ensure that we are connected to the accessory."""
+    async def _ensure_connected(self, attempts: int | None = None) -> bool | None:
+        """Ensure that we are connected to the accessory.
+
+        Returns True if we had to make the connection,
+        returns False if we were already connected or shutdown.
+        """
         assert self._config_lock.locked(), "_config_lock Should be locked"
-        if self.client and self.client.is_connected:
-            return
+        if self._shutdown or (self.client and self.client.is_connected):
+            return False
         async with self._connection_lock:
-            if self._shutdown:
-                return
             # Check again while holding the lock
-            if self.client and self.client.is_connected:
-                return
+            if self._shutdown or (self.client and self.client.is_connected):
+                return False
             if not self.device and (
                 discovery := await self.controller.async_get_discovery(
                     self.address, DISCOVER_TIMEOUT
@@ -385,6 +393,7 @@ class BlePairing(AbstractPairing):
                 ble_device_callback=lambda: self.device,
                 max_attempts=attempts,
             )
+            return True
 
     async def _async_start_notify(self, iid: int) -> None:
         char = self.accessories.aid(1).characteristics.iid(iid)
@@ -407,11 +416,15 @@ class BlePairing(AbstractPairing):
                     # Client disconnected
                     return
                 logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
-                if results := await self._get_characteristics_without_retry(
-                    [(BLE_AID, iid)]
-                ):
-                    for listener in self.listeners:
-                        listener(results)
+                await self._get_characteristics_without_retry(
+                    [(BLE_AID, iid)], notify_listeners=True
+                )
+                # After a char has changed we need to check if the
+                # GSN has changed as well so we don't reconnect
+                # to the accessory if we don't need to
+                protocol_param = await self._get_all_protocol_params()
+                if protocol_param:
+                    self.description.state_num = protocol_param.state_number
 
         def _callback(id: int, data: bytes) -> None:
             logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
@@ -467,8 +480,7 @@ class BlePairing(AbstractPairing):
                 self.rssi,
             )
             try:
-                protocol_param = await self.get_all_protocol_params()
-                results = await self.get_characteristics(list(self.subscriptions))
+                protocol_param = await self._process_disconnected_events_with_retry()
             except (
                 AccessoryDisconnectedError,
                 *BLEAK_EXCEPTIONS,
@@ -482,11 +494,22 @@ class BlePairing(AbstractPairing):
                 )
                 return
 
-            for listener in self.listeners:
-                listener(results)
-
             if protocol_param:
                 self.description.state_num = protocol_param.state_number
+
+    @operation_lock
+    @retry_bluetooth_connection_error()
+    @restore_connection_and_resume
+    async def _process_disconnected_events_with_retry(
+        self,
+    ) -> ProtocolParams | None:
+        accessory_chars = self.accessories.aid(1).characteristics
+        protocol_param = await self._get_all_protocol_params()
+        await self._get_characteristics_while_connected(
+            [accessory_chars.iid(iid) for _, iid in self.subscriptions],
+            notify_listeners=True,
+        )
+        return protocol_param
 
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
         """Receive a notification from the accessory."""
@@ -576,28 +599,39 @@ class BlePairing(AbstractPairing):
 
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
-        hap_char = self._async_get_service_signature_char()
-        if not hap_char:
-            return
-        service_iid = hap_char.service.iid
-        logger.debug(
-            "%s: Setting broadcast key for service_iid: %s",
-            self.name,
-            service_iid,
-        )
-        try:
-            await self._async_request_under_lock(
-                OpCode.PROTOCOL_CONFIG,
-                hap_char,
-                GENERATE_BROADCAST_KEY_PAYLOAD,
-                iid=service_iid,
-            )
-        except PDUStatusError:
-            logger.exception(
-                "%s: Failed to set broadcast key, try un-paring and re-pairing the accessory.",
+        logger.debug("%s: Setting broadcast encryption key", self.name)
+        if self._ble_request_lock.locked():
+            logger.debug(
+                "%s: Waiting ble request lock to set broadcast encryption key",
                 self.name,
             )
-            return
+        async with self._ble_request_lock:
+            hap_char = self._async_get_service_signature_char()
+            if not hap_char:
+                return
+            service_iid = hap_char.service.iid
+            logger.debug(
+                "%s: Setting broadcast key for service_iid: %s",
+                self.name,
+                service_iid,
+            )
+            try:
+                await self._async_request_under_lock(
+                    OpCode.PROTOCOL_CONFIG,
+                    hap_char,
+                    GENERATE_BROADCAST_KEY_PAYLOAD,
+                    iid=service_iid,
+                )
+            except PDUStatusError:
+                logger.exception(
+                    "%s: Failed to set broadcast key, try un-paring and re-pairing the accessory.",
+                    self.name,
+                )
+        long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
+        long_term_pub_key_bytes = bytes.fromhex(long_term_pub_key_hex)
+        self._broadcast_decryption_key = BroadcastDecryptionKey(
+            self._derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
+        )
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
@@ -758,13 +792,6 @@ class BlePairing(AbstractPairing):
         if protocol_params:
             self.description.state_num = protocol_params.state_number
 
-    @operation_lock
-    @retry_bluetooth_connection_error()
-    @restore_connection_and_resume
-    async def get_all_protocol_params(self) -> ProtocolParams | None:
-        """Get the global state number."""
-        return await self._get_all_protocol_params()
-
     async def _get_all_protocol_params(self) -> ProtocolParams | None:
         """Get the current protocol params number."""
         hap_char = self._async_get_service_signature_char()
@@ -851,17 +878,17 @@ class BlePairing(AbstractPairing):
             if self._shutdown:
                 return
 
-            was_connected = self.client and self.client.is_connected
-            self._restore_pending |= not was_connected
             self._tried_to_connect_once = True
+
+            made_connection = await self._ensure_connected(attempts)
+
             logger.debug(
-                "%s: Populating accessories and characteristics: was_connected=%s restore_pending=%s",
+                "%s: Populating accessories and characteristics: made_connection=%s restore_pending=%s",
                 self.name,
-                was_connected,
+                made_connection,
                 self._restore_pending,
             )
-
-            await self._ensure_connected(attempts)
+            self._restore_pending |= made_connection
 
             if was_locked and not force_update:
                 # No need to do it twice if we already have the data
@@ -944,19 +971,12 @@ class BlePairing(AbstractPairing):
         if not self._restore_pending or not self.client or not self.client.is_connected:
             return
 
-        logger.debug("%s: Setting broadcast encryption key", self.name)
-        async with self._ble_request_lock:
-            await self._async_set_broadcast_encryption_key()
-        long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
-        long_term_pub_key_bytes = bytes.fromhex(long_term_pub_key_hex)
-        self._broadcast_decryption_key = BroadcastDecryptionKey(
-            self._derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
-        )
-
         if not self.subscriptions:
+            logger.debug("%s: No subscriptions to restore", self.name)
             self._restore_pending = False
             return
 
+        await self._async_set_broadcast_encryption_key()
         subscriptions = list(self.subscriptions)
         logger.debug(
             "%s: Connected, resuming subscriptions: %s; rssi=%s",
@@ -967,6 +987,11 @@ class BlePairing(AbstractPairing):
         await self._async_subscribe_broadcast_events(subscriptions)
         await self._async_start_notify_subscriptions(subscriptions)
         self._restore_pending = False
+        # After we have restored subscriptions, we need to read
+        # the state number again to make sure we are in sync
+        protocol_param = await self._get_all_protocol_params()
+        if protocol_param:
+            self.description.state_num = protocol_param.state_number
 
     async def _async_start_notify_subscriptions(
         self, subscriptions: list[tuple[int, int]]
@@ -1058,15 +1083,17 @@ class BlePairing(AbstractPairing):
     async def _get_characteristics_without_retry(
         self,
         characteristics: list[tuple[int, int]],
+        notify_listeners: bool = False,
     ) -> dict[tuple[int, int], dict[str, Any]]:
         accessory_chars = self.accessories.aid(1).characteristics
         return await self._get_characteristics_while_connected(
-            [accessory_chars.iid(iid) for _, iid in characteristics]
+            [accessory_chars.iid(iid) for _, iid in characteristics], notify_listeners
         )
 
     async def _get_characteristics_while_connected(
         self,
         characteristics: list[Characteristic],
+        notify_listeners: bool = False,
     ) -> dict[tuple[int, int], dict[str, Any]]:
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
@@ -1115,7 +1142,7 @@ class BlePairing(AbstractPairing):
                 )
 
                 try:
-                    results[(BLE_AID, char.iid)] = {"value": from_bytes(char, decoded)}
+                    value = from_bytes(char, decoded)
                 except struct.error as ex:
                     logger.debug(
                         "%s: Failed to decode characteristic for %s from %s: %s",
@@ -1124,6 +1151,19 @@ class BlePairing(AbstractPairing):
                         decoded,
                         ex,
                     )
+                    continue
+
+                result_key = (BLE_AID, char.iid)
+                result_value = {"value": value}
+                results[result_key] = result_value
+
+                if notify_listeners:
+                    # Since it can take a while to read all the characteristics
+                    # we want to notify the listeners as soon as we have the
+                    # value for each characteristic.
+                    single_results = {result_key: result_value}
+                    for listener in self.listeners:
+                        listener(single_results)
 
         return results
 
@@ -1193,6 +1233,8 @@ class BlePairing(AbstractPairing):
             return
         logger.debug("%s: subscribing to %s", self.name, new_chars)
         await self._populate_accessories_and_characteristics()
+        if not self._broadcast_decryption_key:
+            await self._async_set_broadcast_encryption_key()
         await self._async_subscribe_broadcast_events(new_chars)
         await self._async_start_notify_subscriptions(new_chars)
 
