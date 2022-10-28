@@ -74,7 +74,7 @@ class HAP_TLV(enum.IntEnum):
     kTLVHAPParamHAPValidValuesRangeDescriptor = 0x12
     kTLVHAPParamUnknown_13_Characteristic = 0x13
     kTLVHAPParamUnknown_14_Characteristics = 0x14
-    kTLVHAPParamUnknown_15_Service = 0x15
+    kTLVHAPParamServiceProperties = 0x15
     kTLVHAPParamUnknown_16_Services = 0x16
     kTLVHAPParamUnknown_17 = 0x17
     kTLVHAPParamUnknown_18 = 0x18
@@ -132,6 +132,7 @@ class Characteristic(TLVStruct):
         HAP_TLV.kTLVHAPParamGATTUserDescriptionDescriptor
     )
     linked_services: Sequence[u16] = tlv_entry(HAP_TLV.kTLVHAPParamHAPLinkedServices)
+    service_properties: u16 = tlv_entry(HAP_TLV.kTLVHAPParamHAPServiceProperties)
 
     @property
     def supports_read(self) -> bool:
@@ -172,6 +173,18 @@ class Characteristic(TLVStruct):
     @property
     def supports_broadcast_notify(self) -> bool:
         return self.properties & 0x0200
+
+    @property
+    def service_primary(self) -> bool:
+        return self.service_properties & 0x0001
+
+    @property
+    def service_hidden(self) -> bool:
+        return self.service_properties & 0x0002
+
+    @property
+    def service_supports_configuration(self) -> bool:
+        return self.service_properties & 0x0004
 
     @property
     def pf_format(self):
