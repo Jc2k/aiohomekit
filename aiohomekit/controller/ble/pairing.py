@@ -928,9 +928,13 @@ class BlePairing(AbstractPairing):
             if self._shutdown:
                 return
 
-            self._tried_to_connect_once = True
-
-            made_connection = await self._ensure_connected(attempts)
+            try:
+                made_connection = await self._ensure_connected(attempts)
+            finally:
+                # Only set _tried_to_connect_once after the connection
+                # attempt is complete so we don't try to process disconnected
+                # events while we are still trying to connect.
+                self._tried_to_connect_once = True
 
             logger.debug(
                 "%s: Populating accessories and characteristics: made_connection=%s restore_pending=%s",
