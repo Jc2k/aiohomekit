@@ -53,7 +53,11 @@ class CharacteristicCacheType(Protocol):
         pass
 
     def async_create_or_update_map(
-        self, homekit_id: str, config_num: int, accessories: list[Any]
+        self,
+        homekit_id: str,
+        config_num: int,
+        accessories: list[Any],
+        broadcast_key: bytes | None = None,
     ) -> Pairing:
         pass
 
