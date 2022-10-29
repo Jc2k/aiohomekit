@@ -234,6 +234,7 @@ class BlePairing(AbstractPairing):
 
         self._tried_to_connect_once = False
         self._restore_pending = False
+        self._fetched_gsn_this_session = False
 
     @property
     def address(self) -> str:
@@ -363,6 +364,7 @@ class BlePairing(AbstractPairing):
         self._notifications = set()
         self._broadcast_notifications = set()
         self._restore_pending = False
+        self._fetched_gsn_this_session = False
 
     async def _ensure_connected(self, attempts: int | None = None) -> bool | None:
         """Ensure that we are connected to the accessory.
@@ -429,9 +431,14 @@ class BlePairing(AbstractPairing):
                 # After a char has changed we need to check if the
                 # GSN has changed as well so we don't reconnect
                 # to the accessory if we don't need to
+                if self._fetched_gsn_this_session:
+                    # The spec says we should only do this once per session
+                    # after a characteristic has changed
+                    return
                 protocol_param = await self._get_all_protocol_params()
                 if protocol_param:
                     self.description.state_num = protocol_param.state_number
+                    self._fetched_gsn_this_session = True
 
         def _callback(id: int, data: bytes) -> None:
             logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
