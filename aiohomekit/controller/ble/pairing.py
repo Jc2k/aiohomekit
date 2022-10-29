@@ -85,7 +85,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# The discover timeout is how longer we will wait for and advertisement to be
+# The discover timeout is how long we will wait for and advertisement to be
 # received. If we don't get it in this time we will try again later since
 # the scanner is always running anyways.
 DISCOVER_TIMEOUT = 10
