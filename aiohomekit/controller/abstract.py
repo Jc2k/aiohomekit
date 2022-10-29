@@ -187,16 +187,24 @@ class AbstractPairing(metaclass=ABCMeta):
             )
             return
         config_num = cache.get("config_num", 0)
+        broadcast_key = cache.get("broadcast_key")
         accessories = Accessories.from_list(cache["accessories"])
-        self._accessories_state = AccessoriesState(accessories, config_num)
+        self._accessories_state = AccessoriesState(
+            accessories, config_num, broadcast_key
+        )
         logger.debug("%s: Accessories cache loaded (c#: %d)", self.name, config_num)
 
     def restore_accessories_state(
-        self, accessories: list[dict[str, Any]], config_num: int
+        self,
+        accessories: list[dict[str, Any]],
+        config_num: int,
+        broadcast_key: bytes | None,
     ) -> None:
         """Restore accessories from cache."""
         accessories = Accessories.from_list(accessories)
-        self._accessories_state = AccessoriesState(accessories, config_num)
+        self._accessories_state = AccessoriesState(
+            accessories, config_num, broadcast_key
+        )
         self._update_accessories_state_cache()
 
     def _update_accessories_state_cache(self):

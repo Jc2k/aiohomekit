@@ -209,6 +209,10 @@ class BlePairing(AbstractPairing):
         self._decryption_key: DecryptionKey | None = None
         self._broadcast_decryption_key: BroadcastDecryptionKey | None = None
 
+        cached_key = self.broadcast_key
+        if cached_key:
+            self._broadcast_decryption_key = BroadcastDecryptionKey(cached_key)
+
         # Used to keep track of which characteristics we already started
         # notifications for
         self._notifications: set[int] = set()
@@ -272,6 +276,13 @@ class BlePairing(AbstractPairing):
             # Currently only used for devices that have energy data
             return timedelta(minutes=5)
         return timedelta(hours=24)
+
+    @property
+    def broadcast_key(self) -> bytes | None:
+        """Return the broadcast key."""
+        if not self._accessories_state:
+            return None
+        return self._accessories_state.broadcast_key
 
     def _is_available_at_time(self, monotonic: float) -> bool:
         """Check if we are considered available at the given time."""
@@ -643,9 +654,13 @@ class BlePairing(AbstractPairing):
                 )
         long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
         long_term_pub_key_bytes = bytes.fromhex(long_term_pub_key_hex)
-        self._broadcast_decryption_key = BroadcastDecryptionKey(
-            self._derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
+        broadcast_key_bytes = self._derive(
+            long_term_pub_key_bytes, b"Broadcast-Encryption-Key"
         )
+        self._broadcast_decryption_key = BroadcastDecryptionKey(broadcast_key_bytes)
+        if self._accessories_state and self.broadcast_key != broadcast_key_bytes:
+            self._accessories_state.broadcast_key = broadcast_key_bytes
+            self._callback_and_save_config_changed(self.config_num)
 
     async def _read_signature(
         self,
@@ -955,7 +970,9 @@ class BlePairing(AbstractPairing):
                 )
                 accessories = await self._async_fetch_gatt_database()
                 new_config_num = self.description.config_num if self.description else 0
-                self._accessories_state = AccessoriesState(accessories, new_config_num)
+                self._accessories_state = AccessoriesState(
+                    accessories, new_config_num, self.broadcast_key
+                )
                 update_values = True
 
             if not self._encryption_key:
