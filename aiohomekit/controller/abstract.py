@@ -167,11 +167,8 @@ class AbstractPairing(metaclass=ABCMeta):
                 repopulate_accessories = True
 
             elif (
-                self.description
-                # If the description is not yet set we should not process
-                # disconnect events as we have not yet populated the
-                # accessories state.
-                and description.state_num != self.description.state_num
+                not self.description
+                or description.state_num != self.description.state_num
             ):
                 # Only process disconnected events if the config number has
                 # not also changed since we will do a full repopulation
