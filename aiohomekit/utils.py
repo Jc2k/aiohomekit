@@ -101,3 +101,17 @@ def domain_supported(domain) -> bool:
     if domain.endswith("._hap._udp.local.") and COAP_TRANSPORT_SUPPORTED:
         return True
     return False
+
+
+def serialize_broadcast_key(broadcast_key: bytes | None) -> str | None:
+    """Serialize a broadcast key to a string."""
+    if broadcast_key is None:
+        return None
+    return broadcast_key.hex()
+
+
+def deserialize_broadcast_key(broadcast_key: str | None) -> bytes | None:
+    """Deserialize a broadcast key from a string."""
+    if broadcast_key is None:
+        return None
+    return bytes.fromhex(broadcast_key)

@@ -29,7 +29,11 @@ from aiohomekit.model.categories import Categories
 from aiohomekit.model.characteristics.characteristic_types import CharacteristicsTypes
 from aiohomekit.model.services.service_types import ServicesTypes
 from aiohomekit.model.status_flags import StatusFlags
-from aiohomekit.utils import async_create_task
+from aiohomekit.utils import (
+    async_create_task,
+    deserialize_broadcast_key,
+    serialize_broadcast_key,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -195,12 +199,9 @@ class AbstractPairing(metaclass=ABCMeta):
             return
         config_num = cache.get("config_num", 0)
         broadcast_key_hex = cache.get("broadcast_key")
-        broadcast_key = None
-        if broadcast_key_hex:
-            broadcast_key = bytes.fromhex(broadcast_key_hex)
         accessories = Accessories.from_list(cache["accessories"])
         self._accessories_state = AccessoriesState(
-            accessories, config_num, broadcast_key
+            accessories, config_num, deserialize_broadcast_key(broadcast_key_hex)
         )
         logger.debug("%s: Accessories cache loaded (c#: %d)", self.name, config_num)
 
@@ -219,15 +220,11 @@ class AbstractPairing(metaclass=ABCMeta):
 
     def _update_accessories_state_cache(self):
         """Update the cache with the current state of the accessories."""
-        broadcast_key_bytes = self.broadcast_key
-        broadcast_key = None
-        if broadcast_key_bytes:
-            broadcast_key = broadcast_key_bytes.hex()
         self.controller._char_cache.async_create_or_update_map(
             self.id,
             self.config_num,
             self.accessories.serialize(),
-            broadcast_key,
+            serialize_broadcast_key(self.broadcast_key),
         )
 
     async def get_primary_name(self) -> str:
