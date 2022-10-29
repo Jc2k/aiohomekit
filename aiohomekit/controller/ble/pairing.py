@@ -277,13 +277,6 @@ class BlePairing(AbstractPairing):
             return timedelta(minutes=5)
         return timedelta(hours=24)
 
-    @property
-    def broadcast_key(self) -> bytes | None:
-        """Return the broadcast key."""
-        if not self._accessories_state:
-            return None
-        return self._accessories_state.broadcast_key
-
     def _is_available_at_time(self, monotonic: float) -> bool:
         """Check if we are considered available at the given time."""
         return self.is_connected or monotonic - self._last_seen < AVAILABILITY_INTERVAL

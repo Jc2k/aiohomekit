@@ -39,7 +39,7 @@ class Pairing(TypedDict):
 
     config_num: int
     accessories: list[Any]
-    broadcast_key: bytes | None
+    broadcast_key: str | None
 
 
 class StorageLayout(TypedDict):
@@ -57,7 +57,7 @@ class CharacteristicCacheType(Protocol):
         homekit_id: str,
         config_num: int,
         accessories: list[Any],
-        broadcast_key: bytes | None = None,
+        broadcast_key: str | None = None,
     ) -> Pairing:
         pass
 
@@ -79,7 +79,7 @@ class CharacteristicCacheMemory:
         homekit_id: str,
         config_num: int,
         accessories: list[Any],
-        broadcast_key: bytes | None = None,
+        broadcast_key: str | None = None,
     ) -> Pairing:
         """Create a new pairing cache."""
         data = Pairing(

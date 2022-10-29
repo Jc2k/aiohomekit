@@ -126,6 +126,13 @@ class AbstractPairing(metaclass=ABCMeta):
     def poll_interval(self) -> timedelta:
         """Returns how often the device should be polled."""
 
+    @property
+    def broadcast_key(self) -> bytes | None:
+        """Returns the broadcast key."""
+        if not self._accessories_state:
+            return None
+        return self._accessories_state.broadcast_key
+
     @abstractmethod
     async def _process_disconnected_events(self):
         """Process any disconnected events that are available."""
@@ -187,7 +194,10 @@ class AbstractPairing(metaclass=ABCMeta):
             )
             return
         config_num = cache.get("config_num", 0)
-        broadcast_key = cache.get("broadcast_key")
+        broadcast_key_hex = cache.get("broadcast_key")
+        broadcast_key = None
+        if broadcast_key_hex:
+            broadcast_key = bytes.fromhex(broadcast_key_hex)
         accessories = Accessories.from_list(cache["accessories"])
         self._accessories_state = AccessoriesState(
             accessories, config_num, broadcast_key
@@ -209,10 +219,15 @@ class AbstractPairing(metaclass=ABCMeta):
 
     def _update_accessories_state_cache(self):
         """Update the cache with the current state of the accessories."""
+        broadcast_key_bytes = self.broadcast_key
+        broadcast_key = None
+        if broadcast_key_bytes:
+            broadcast_key = broadcast_key_bytes.hex()
         self.controller._char_cache.async_create_or_update_map(
             self.id,
             self.config_num,
             self.accessories.serialize(),
+            broadcast_key,
         )
 
     async def get_primary_name(self) -> str:
