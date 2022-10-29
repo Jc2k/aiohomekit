@@ -39,6 +39,7 @@ class Pairing(TypedDict):
 
     config_num: int
     accessories: list[Any]
+    broadcast_key: str | None
 
 
 class StorageLayout(TypedDict):
@@ -52,7 +53,11 @@ class CharacteristicCacheType(Protocol):
         pass
 
     def async_create_or_update_map(
-        self, homekit_id: str, config_num: int, accessories: list[Any]
+        self,
+        homekit_id: str,
+        config_num: int,
+        accessories: list[Any],
+        broadcast_key: str | None = None,
     ) -> Pairing:
         pass
 
@@ -70,10 +75,16 @@ class CharacteristicCacheMemory:
         return self.storage_data.get(homekit_id)
 
     def async_create_or_update_map(
-        self, homekit_id: str, config_num: int, accessories: list[Any]
+        self,
+        homekit_id: str,
+        config_num: int,
+        accessories: list[Any],
+        broadcast_key: str | None = None,
     ) -> Pairing:
         """Create a new pairing cache."""
-        data = Pairing(config_num=config_num, accessories=accessories)
+        data = Pairing(
+            config_num=config_num, accessories=accessories, broadcast_key=broadcast_key
+        )
         self.storage_data[homekit_id] = data
         return data
 
@@ -101,10 +112,16 @@ class CharacteristicCacheFile(CharacteristicCacheMemory):
                     )
 
     def async_create_or_update_map(
-        self, homekit_id: str, config_num: int, accessories: list[Any]
+        self,
+        homekit_id: str,
+        config_num: int,
+        accessories: list[Any],
+        broadcast_key: bytes | None = None,
     ) -> Pairing:
         """Create a new pairing cache."""
-        data = super().async_create_or_update_map(homekit_id, config_num, accessories)
+        data = super().async_create_or_update_map(
+            homekit_id, config_num, accessories, broadcast_key
+        )
         self._do_save()
         return data
 

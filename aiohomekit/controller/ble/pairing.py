@@ -85,7 +85,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-DISCOVER_TIMEOUT = 30
+# The discover timeout is how long we will wait for and advertisement to be
+# received. If we don't get it in this time we will try again later since
+# the scanner is always running anyways.
+DISCOVER_TIMEOUT = 10
 
 # Battery powered devices may not broadcast once paired until
 # there is an event so we use a long availablity interval.
@@ -208,6 +211,10 @@ class BlePairing(AbstractPairing):
         self._encryption_key: EncryptionKey | None = None
         self._decryption_key: DecryptionKey | None = None
         self._broadcast_decryption_key: BroadcastDecryptionKey | None = None
+
+        cached_key = self.broadcast_key
+        if cached_key:
+            self._broadcast_decryption_key = BroadcastDecryptionKey(cached_key)
 
         # Used to keep track of which characteristics we already started
         # notifications for
@@ -643,9 +650,13 @@ class BlePairing(AbstractPairing):
                 )
         long_term_pub_key_hex: str = self.pairing_data["iOSDeviceLTPK"]
         long_term_pub_key_bytes = bytes.fromhex(long_term_pub_key_hex)
-        self._broadcast_decryption_key = BroadcastDecryptionKey(
-            self._derive(long_term_pub_key_bytes, b"Broadcast-Encryption-Key")
+        broadcast_key_bytes = self._derive(
+            long_term_pub_key_bytes, b"Broadcast-Encryption-Key"
         )
+        self._broadcast_decryption_key = BroadcastDecryptionKey(broadcast_key_bytes)
+        if self._accessories_state and self.broadcast_key != broadcast_key_bytes:
+            self._accessories_state.broadcast_key = broadcast_key_bytes
+            self._callback_and_save_config_changed(self.config_num)
 
     async def _read_signature(
         self,
@@ -920,9 +931,13 @@ class BlePairing(AbstractPairing):
             if self._shutdown:
                 return
 
-            self._tried_to_connect_once = True
-
-            made_connection = await self._ensure_connected(attempts)
+            try:
+                made_connection = await self._ensure_connected(attempts)
+            finally:
+                # Only set _tried_to_connect_once after the connection
+                # attempt is complete so we don't try to process disconnected
+                # events while we are still trying to connect.
+                self._tried_to_connect_once = True
 
             logger.debug(
                 "%s: Populating accessories and characteristics: made_connection=%s restore_pending=%s",
@@ -955,7 +970,9 @@ class BlePairing(AbstractPairing):
                 )
                 accessories = await self._async_fetch_gatt_database()
                 new_config_num = self.description.config_num if self.description else 0
-                self._accessories_state = AccessoriesState(accessories, new_config_num)
+                self._accessories_state = AccessoriesState(
+                    accessories, new_config_num, self.broadcast_key
+                )
                 update_values = True
 
             if not self._encryption_key:

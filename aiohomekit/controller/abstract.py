@@ -29,7 +29,11 @@ from aiohomekit.model.categories import Categories
 from aiohomekit.model.characteristics.characteristic_types import CharacteristicsTypes
 from aiohomekit.model.services.service_types import ServicesTypes
 from aiohomekit.model.status_flags import StatusFlags
-from aiohomekit.utils import async_create_task
+from aiohomekit.utils import (
+    async_create_task,
+    deserialize_broadcast_key,
+    serialize_broadcast_key,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +130,13 @@ class AbstractPairing(metaclass=ABCMeta):
     def poll_interval(self) -> timedelta:
         """Returns how often the device should be polled."""
 
+    @property
+    def broadcast_key(self) -> bytes | None:
+        """Returns the broadcast key."""
+        if not self._accessories_state:
+            return None
+        return self._accessories_state.broadcast_key
+
     @abstractmethod
     async def _process_disconnected_events(self):
         """Process any disconnected events that are available."""
@@ -187,16 +198,24 @@ class AbstractPairing(metaclass=ABCMeta):
             )
             return
         config_num = cache.get("config_num", 0)
+        broadcast_key_hex = cache.get("broadcast_key")
         accessories = Accessories.from_list(cache["accessories"])
-        self._accessories_state = AccessoriesState(accessories, config_num)
+        self._accessories_state = AccessoriesState(
+            accessories, config_num, deserialize_broadcast_key(broadcast_key_hex)
+        )
         logger.debug("%s: Accessories cache loaded (c#: %d)", self.name, config_num)
 
     def restore_accessories_state(
-        self, accessories: list[dict[str, Any]], config_num: int
+        self,
+        accessories: list[dict[str, Any]],
+        config_num: int,
+        broadcast_key: bytes | None,
     ) -> None:
         """Restore accessories from cache."""
         accessories = Accessories.from_list(accessories)
-        self._accessories_state = AccessoriesState(accessories, config_num)
+        self._accessories_state = AccessoriesState(
+            accessories, config_num, broadcast_key
+        )
         self._update_accessories_state_cache()
 
     def _update_accessories_state_cache(self):
@@ -205,6 +224,7 @@ class AbstractPairing(metaclass=ABCMeta):
             self.id,
             self.config_num,
             self.accessories.serialize(),
+            serialize_broadcast_key(self.broadcast_key),
         )
 
     async def get_primary_name(self) -> str:
