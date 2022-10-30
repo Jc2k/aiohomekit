@@ -542,7 +542,7 @@ class BlePairing(AbstractPairing):
 
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
         """Receive a notification from the accessory."""
-        if not self._broadcast_decryption_key:
+        if not self._broadcast_decryption_key or not self.description:
             logger.debug(
                 "%s: Received notification before session is setup, "
                 "falling back processing as disconnected event: %s",
