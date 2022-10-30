@@ -102,20 +102,19 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
             char = possible_matching_chars[0]
             self._char_cache[cache_key] = char
             return char
-
-        elif not possible_matching_chars and not iid:
-            raise ValueError(
-                f"The service {service_uuid} and {characteristic_uuid} "
-                "maps more more than one handle, iid must be provided to disambiguate."
-            )
-
-        for possible_matching_char in possible_matching_chars:
-            possible_matching_iid = await self.get_characteristic_iid(
-                possible_matching_char
-            )
-            if iid == possible_matching_iid:
-                self._char_cache[cache_key] = possible_matching_char
-                return possible_matching_char
+        elif possible_matching_chars:
+            if not iid:
+                raise ValueError(
+                    f"The service {service_uuid} and {characteristic_uuid} "
+                    "maps more more than one handle, iid must be provided to disambiguate."
+                )
+            for possible_matching_char in possible_matching_chars:
+                possible_matching_iid = await self.get_characteristic_iid(
+                    possible_matching_char
+                )
+                if iid == possible_matching_iid:
+                    self._char_cache[cache_key] = possible_matching_char
+                    return possible_matching_char
 
         if not service_matched:
             available_services = [
