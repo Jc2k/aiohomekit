@@ -1195,7 +1195,13 @@ class BlePairing(AbstractPairing):
                             char.type,
                         )
                         continue
-                    raise
+                    logger.exception(
+                        "%s: Reading characteristic %s resulted in an error: %s",
+                        self.name,
+                        char.type,
+                        ex,
+                    )
+                    continue
 
                 decoded = dict(TLV.decode_bytes(data))[1]
 
