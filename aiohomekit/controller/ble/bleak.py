@@ -97,7 +97,7 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
                 for char in service.characteristics:
                     if char.uuid.lower() == characteristic_uuid.lower():
                         possible_matching_chars.append(char)
-        
+
         if len(possible_matching_chars) == 1:
             char = possible_matching_chars[0]
             self._char_cache[cache_key] = char
@@ -110,7 +110,9 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
             )
 
         for possible_matching_char in possible_matching_chars:
-            possible_matching_iid = await self.get_characteristic_iid(possible_matching_char)
+            possible_matching_iid = await self.get_characteristic_iid(
+                possible_matching_char
+            )
             if iid == possible_matching_iid:
                 self._char_cache[cache_key] = possible_matching_char
                 return possible_matching_char

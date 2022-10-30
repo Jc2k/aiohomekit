@@ -338,7 +338,9 @@ class BlePairing(AbstractPairing):
             raise AccessoryDisconnectedError(f"{self.name} is not connected")
 
         endpoint_iid = iid if iid is not None else char.iid
-        endpoint = await self.client.get_characteristic(char.service.type, char.type, endpoint_iid)
+        endpoint = await self.client.get_characteristic(
+            char.service.type, char.type, endpoint_iid
+        )
 
         pdu_status, result_data = await ble_request(
             self.client,
