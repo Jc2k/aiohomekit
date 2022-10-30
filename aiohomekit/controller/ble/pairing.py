@@ -337,17 +337,12 @@ class BlePairing(AbstractPairing):
             logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
             raise AccessoryDisconnectedError(f"{self.name} is not connected")
 
-        if char.handle:
-            endpoint = self.client.get_characteristic_by_handle(char.handle)
-        else:
-            endpoint = self.client.get_characteristic(char.service.type, char.type)
-
         pdu_status, result_data = await ble_request(
             self.client,
             self._encryption_key,
             self._decryption_key,
             opcode,
-            endpoint,
+            self.client.get_characteristic(char.service.type, char.type),
             iid if iid is not None else char.iid,
             data,
         )
@@ -412,10 +407,7 @@ class BlePairing(AbstractPairing):
         char = self.accessories.aid(BLE_AID).characteristics.iid(iid)
 
         # Find the GATT Characteristic object for this iid
-        if char.handle:
-            endpoint = self.client.get_characteristic_by_handle(char.handle)
-        else:
-            endpoint = self.client.get_characteristic(char.service.type, char.type)
+        endpoint = self.client.get_characteristic(char.service.type, char.type)
 
         # We only want to allow one in flight read
         # and one pending read at a time since there

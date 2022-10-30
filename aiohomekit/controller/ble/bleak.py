@@ -5,7 +5,9 @@ import logging
 from typing import Any
 import uuid
 
+from bleak.exc import BleakError
 from bleak.backends.characteristic import BleakGATTCharacteristic
+from bleak.backends.service import BleakGATTService
 from bleak.backends.device import BLEDevice
 from bleak_retry_connector import BleakClientWithServiceCache
 
@@ -76,32 +78,38 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
         self._char_cache: dict[tuple[str, str], BleakGATTCharacteristic] = {}
         self._iid_cache: dict[BleakGATTCharacteristic, int] = {}
 
-    def get_characteristic_by_handle(self, handle: int) -> BleakGATTCharacteristic:
-        """Get a characteristic by handle."""
-        return self.services.get_characteristic(handle)
-
     def get_characteristic(
-        self, service_type: str, characteristic_type: str
+        self, service_uuid: str, characteristic_uuid: str
     ) -> BleakGATTCharacteristic:
-        """Get a characteristic from the cache or the BleakGATTServiceCollection."""
-        if char := self._char_cache.get((service_type, characteristic_type)):
+        """Get a characteristic from the cache or the BleakGATTServiceCollection.
+
+        We need to do the linear searching ourselves because the BleakGATTServiceCollection
+        calls can raise BleakError if there are more than one matching service or characteristic
+        and we want to match the service and characteristic together.
+        """
+        cache_key = (service_uuid, characteristic_uuid)
+        if char := self._char_cache.get(cache_key):
             return char
-        service = self.services.get_service(service_type)
-        if service is None:
+        uuid_lower = service_uuid.lower()
+        service_matched = False
+        for service in self.services.services.values():
+            if service.uuid.lower() == uuid_lower:
+                service_matched = True
+                for char in service.characteristics:
+                    if char.uuid.lower() == characteristic_uuid.lower():
+                        self._char_cache[cache_key] = char
+                        return char
+        if not service_matched:
             available_services = [
                 service.uuid for service in self.services.services.values()
             ]
             raise ValueError(
-                f"Service {service_type} not found, available services: {available_services}"
+                f"Service {service_uuid} not found, available services: {available_services}"
             )
-        char = service.get_characteristic(characteristic_type)
-        if char is None:
-            available_chars = [char.uuid for char in service.characteristics]
-            raise ValueError(
-                f"Characteristic {characteristic_type} not found, available characteristics: {available_chars}"
-            )
-        self._char_cache[(service_type, characteristic_type)] = char
-        return char
+        available_chars = [char.uuid for char in service.characteristics]
+        raise ValueError(
+            f"Characteristic {characteristic_uuid} not found, available characteristics: {available_chars}"
+        )
 
     async def get_characteristic_iid(
         self: AIOHomeKitBleakClient, char: BleakGATTCharacteristic
