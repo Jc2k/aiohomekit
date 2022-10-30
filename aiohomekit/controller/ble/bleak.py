@@ -5,10 +5,10 @@ import logging
 from typing import Any
 import uuid
 
-from bleak.exc import BleakError
 from bleak.backends.characteristic import BleakGATTCharacteristic
-from bleak.backends.service import BleakGATTService
 from bleak.backends.device import BLEDevice
+from bleak.backends.service import BleakGATTService
+from bleak.exc import BleakError
 from bleak_retry_connector import BleakClientWithServiceCache
 
 from .const import HAP_MIN_REQUIRED_MTU
