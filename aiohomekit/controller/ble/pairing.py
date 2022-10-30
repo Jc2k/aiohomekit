@@ -526,10 +526,16 @@ class BlePairing(AbstractPairing):
     ) -> ProtocolParams | None:
         accessory_chars = self.accessories.aid(BLE_AID).characteristics
         protocol_param = await self._get_all_protocol_params()
-        await self._get_characteristics_while_connected(
-            [accessory_chars.iid(iid) for _, iid in self.subscriptions],
-            notify_listeners=True,
-        )
+        chars_to_update = []
+        for _, iid in self.subscriptions:
+            char = accessory_chars.iid(iid)
+            if char.broadcast_events or char.disconnected_events:
+                chars_to_update.append(char)
+        if chars_to_update:
+            await self._get_characteristics_while_connected(
+                chars_to_update,
+                notify_listeners=True,
+            )
         return protocol_param
 
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
