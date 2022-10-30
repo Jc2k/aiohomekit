@@ -104,6 +104,11 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
             return char
 
         if possible_matching_chars:
+            logger.debug(
+                "Service %s with characteristics %s is ambiguous",
+                service_uuid,
+                characteristic_uuid,
+            )
             if not iid:
                 raise ValueError(
                     f"The service {service_uuid} and {characteristic_uuid} "
