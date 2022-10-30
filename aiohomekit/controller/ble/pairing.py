@@ -1190,15 +1190,17 @@ class BlePairing(AbstractPairing):
                     # we need to skip in this case.
                     if ex.status == PDUStatus.INVALID_REQUEST:
                         logger.debug(
-                            "%s: Reading characteristic %s resulted in an invalid request (skipped)",
+                            "%s: Reading characteristic %s with iid %s resulted in an invalid request (skipped)",
                             self.name,
+                            char.iid,
                             char.type,
                         )
                         continue
                     logger.exception(
-                        "%s: Reading characteristic %s resulted in an error: %s",
+                        "%s: Reading characteristic %s with iid %s resulted in an error: %s",
                         self.name,
                         char.type,
+                        char.iid,
                         ex,
                     )
                     continue
