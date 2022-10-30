@@ -203,7 +203,12 @@ class AbstractPairing(metaclass=ABCMeta):
         self._accessories_state = AccessoriesState(
             accessories, config_num, deserialize_broadcast_key(broadcast_key_hex)
         )
-        logger.debug("%s: Accessories cache loaded (c#: %d)", self.name, config_num)
+        logger.debug(
+            "%s: Accessories cache loaded (c#: %d) (has broadcast_key: %s)",
+            self.name,
+            config_num,
+            bool(broadcast_key_hex),
+        )
 
     def restore_accessories_state(
         self,
