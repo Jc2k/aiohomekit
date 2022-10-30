@@ -118,7 +118,7 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
             if not iid:
                 raise ValueError(
                     f"{self.__name}: The service {service_uuid} and {characteristic_uuid} "
-                    "maps more more than one handle, iid must be provided to disambiguate."
+                    "maps to more than one handle, iid must be provided to disambiguate."
                 )
             for possible_matching_char in possible_matching_chars:
                 possible_matching_iid = await self.get_characteristic_iid(
