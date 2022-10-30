@@ -120,7 +120,7 @@ class BleDiscovery(AbstractDiscovery):
         await self._ensure_connected()
 
         try:
-            ff_char = self.client.get_characteristic(
+            ff_char = await self.client.get_characteristic(
                 ServicesTypes.PAIRING,
                 CharacteristicsTypes.PAIRING_FEATURES,
             )
@@ -129,7 +129,7 @@ class BleDiscovery(AbstractDiscovery):
             # we need to reconnect since our client is now invalid.
             await self._close()
             await self._ensure_connected()
-            ff_char = self.client.get_characteristic(
+            ff_char = await self.client.get_characteristic(
                 ServicesTypes.PAIRING,
                 CharacteristicsTypes.PAIRING_FEATURES,
             )
@@ -204,7 +204,7 @@ class BleDiscovery(AbstractDiscovery):
 
         await self._ensure_connected()
 
-        char = self.client.get_characteristic(
+        char = await self.client.get_characteristic(
             ServicesTypes.ACCESSORY_INFORMATION,
             CharacteristicsTypes.IDENTIFY,
         )

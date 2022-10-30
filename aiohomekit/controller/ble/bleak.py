@@ -76,8 +76,8 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
         self._char_cache: dict[tuple[str, str], BleakGATTCharacteristic] = {}
         self._iid_cache: dict[BleakGATTCharacteristic, int] = {}
 
-    def get_characteristic(
-        self, service_uuid: str, characteristic_uuid: str
+    async def get_characteristic(
+        self, service_uuid: str, characteristic_uuid: str, iid: int | None = None
     ) -> BleakGATTCharacteristic:
         """Get a characteristic from the cache or the BleakGATTServiceCollection.
 
@@ -89,14 +89,32 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
         if char := self._char_cache.get(cache_key):
             return char
         uuid_lower = service_uuid.lower()
+        possible_matching_chars = []
         service_matched = False
         for service in self.services.services.values():
             if service.uuid.lower() == uuid_lower:
                 service_matched = True
                 for char in service.characteristics:
                     if char.uuid.lower() == characteristic_uuid.lower():
-                        self._char_cache[cache_key] = char
-                        return char
+                        possible_matching_chars.append(char)
+        
+        if len(possible_matching_chars) == 1:
+            char = possible_matching_chars[0]
+            self._char_cache[cache_key] = char
+            return char
+
+        elif not possible_matching_chars and not iid:
+            raise ValueError(
+                f"The service {service_uuid} and {characteristic_uuid} "
+                "maps more more than one handle, iid must be provided to disambiguate."
+            )
+
+        for possible_matching_char in possible_matching_chars:
+            possible_matching_iid = await self.get_characteristic_iid(possible_matching_char)
+            if iid == possible_matching_iid:
+                self._char_cache[cache_key] = possible_matching_char
+                return possible_matching_char
+
         if not service_matched:
             available_services = [
                 service.uuid for service in self.services.services.values()
