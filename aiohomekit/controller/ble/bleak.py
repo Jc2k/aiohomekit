@@ -73,6 +73,10 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
     def __init__(self, address_or_ble_device: BLEDevice | str, **kwargs: Any) -> None:
         """Wrap bleak."""
         super().__init__(address_or_ble_device, **kwargs)
+        if isinstance(address_or_ble_device, BLEDevice):
+            self.__name = address_or_ble_device.name or address_or_ble_device.address
+        else:
+            self.__name = address_or_ble_device
         self._char_cache: dict[tuple[str, str], BleakGATTCharacteristic] = {}
         self._iid_cache: dict[BleakGATTCharacteristic, int] = {}
 
@@ -105,13 +109,14 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
 
         if possible_matching_chars:
             logger.debug(
-                "Service %s with characteristics %s is ambiguous",
+                "%s: Service %s with characteristics %s is ambiguous",
+                self.__name,
                 service_uuid,
                 characteristic_uuid,
             )
             if not iid:
                 raise ValueError(
-                    f"The service {service_uuid} and {characteristic_uuid} "
+                    f"{self.__name}: The service {service_uuid} and {characteristic_uuid} "
                     "maps more more than one handle, iid must be provided to disambiguate."
                 )
             for possible_matching_char in possible_matching_chars:
@@ -127,11 +132,11 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
                 service.uuid for service in self.services.services.values()
             ]
             raise ValueError(
-                f"Service {service_uuid} not found, available services: {available_services}"
+                f"{self.__name}: Service {service_uuid} not found, available services: {available_services}"
             )
         available_chars = [char.uuid for char in service.characteristics]
         raise ValueError(
-            f"Characteristic {characteristic_uuid} not found, available characteristics: {available_chars}"
+            f"{self.__name}: Characteristic {characteristic_uuid} not found, available characteristics: {available_chars}"
         )
 
     async def get_characteristic_iid(
