@@ -96,6 +96,7 @@ AVAILABILITY_INTERVAL = 86400 * 7  # 7 days
 
 NEVER_TIME = -AVAILABILITY_INTERVAL
 
+START_NOTIFY_DEBOUNCE = 1.0
 
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
 SERVICE_INSTANCE_ID_UUID = UUID(SERVICE_INSTANCE_ID)
@@ -241,6 +242,8 @@ class BlePairing(AbstractPairing):
         self._subscription_lock = asyncio.Lock()
         # Only process disconnected events once
         self._disconnected_events_lock = asyncio.Lock()
+
+        self._start_notify_timer: asyncio.TimerHandle | None = None
 
         self._tried_to_connect_once = False
         self._restore_pending = False
@@ -1061,18 +1064,25 @@ class BlePairing(AbstractPairing):
             self.rssi,
         )
         await self._async_subscribe_broadcast_events(subscriptions)
-        await self._async_start_notify_subscriptions(subscriptions)
         self._restore_pending = False
         # After we have restored subscriptions, we need to read
         # the state number again to make sure we are in sync
         protocol_param = await self._get_all_protocol_params()
         if protocol_param:
             self.description.state_num = protocol_param.state_number
+        self._async_schedule_start_notify_subscriptions()
 
-    async def _async_start_notify_subscriptions(
-        self, subscriptions: list[tuple[int, int]]
-    ) -> None:
-        """Start notifications for the given subscriptions."""
+    async def _async_start_notify_subscriptions(self) -> None:
+        """Start notifications for the given subscriptions.
+
+        If we have an error or are disconnected we do not want
+        to retry, as it usually means the accessory indented
+        to disconnect us and we are now using disconnected
+        events or encrypted broadcasts to get updates.
+        """
+        if not self.client or not self.client.is_connected:
+            return
+        subscriptions = list(self.subscriptions)
         for _, iid in subscriptions:
             if iid in self._notifications:
                 continue
@@ -1321,6 +1331,7 @@ class BlePairing(AbstractPairing):
         # handled by the retry logic or fallback to disconnected
         # events.
         async_create_task(self._async_subscribe(new_chars))
+        self._async_schedule_start_notify_subscriptions()
 
     @operation_lock
     @retry_bluetooth_connection_error()
@@ -1332,7 +1343,22 @@ class BlePairing(AbstractPairing):
         if not self._broadcast_decryption_key:
             await self._async_set_broadcast_encryption_key()
         await self._async_subscribe_broadcast_events(new_chars)
-        await self._async_start_notify_subscriptions(new_chars)
+
+    def _async_schedule_start_notify_subscriptions(self) -> None:
+        """Schedule start notify subscriptions."""
+        if self._start_notify_timer:
+            self._start_notify_timer.cancel()
+            self._start_notify_timer = None
+
+        def _async_start_notify_subscriptions() -> None:
+            """Start notify subscriptions."""
+            self._start_notify_timer = None
+            async_create_task(self._async_start_notify_subscriptions())
+
+        loop = asyncio.get_running_loop()
+        self._start_notify_timer = loop.call_later(
+            START_NOTIFY_DEBOUNCE, _async_start_notify_subscriptions
+        )
 
     async def unsubscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
         pass
