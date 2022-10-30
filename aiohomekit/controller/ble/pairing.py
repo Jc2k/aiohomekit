@@ -846,7 +846,9 @@ class BlePairing(AbstractPairing):
         for char in chars:
             result = results.get((BLE_AID, char.iid))
             if not result or "value" not in result:
-                logger.debug("%s: No value for %s", self.name, char)
+                logger.debug(
+                    "%s: No value for %s/%s", self.name, char.service.type, char.type
+                )
                 continue
             char.value = result["value"]
 
