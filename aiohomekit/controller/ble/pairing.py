@@ -23,7 +23,7 @@ import logging
 import random
 import struct
 import time
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Iterable, TypeVar, cast
 from uuid import UUID
 
 from bleak.backends.characteristic import BleakGATTCharacteristic
@@ -1288,14 +1288,24 @@ class BlePairing(AbstractPairing):
 
         return results
 
-    # No retry since disconnected events are ok as well
-    @operation_lock
-    async def subscribe(self, characteristics):
+    async def subscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
+        """Subscribe to characteristics."""
         new_chars = await super().subscribe(characteristics)
         if not new_chars or not self.client or not self.client.is_connected:
             # Don't force a new connection if we are not already
             # connected as we will get disconnected events.
             return
+        # We do not want to block setup of the accessory so we
+        # do not wait for the result as any failures will be
+        # handled by the retry logic or fallback to disconnected
+        # events.
+        async_create_task(self._async_subscribe(new_chars))
+
+    @operation_lock
+    @retry_bluetooth_connection_error()
+    @restore_connection_and_resume
+    async def _async_subscribe(self, new_chars: Iterable[tuple[int, int]]) -> None:
+        """Subscribe to new characteristics."""
         logger.debug("%s: subscribing to %s", self.name, new_chars)
         await self._populate_accessories_and_characteristics()
         if not self._broadcast_decryption_key:
@@ -1303,7 +1313,7 @@ class BlePairing(AbstractPairing):
         await self._async_subscribe_broadcast_events(new_chars)
         await self._async_start_notify_subscriptions(new_chars)
 
-    async def unsubscribe(self, characteristics):
+    async def unsubscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
         pass
 
     async def identify(self):
