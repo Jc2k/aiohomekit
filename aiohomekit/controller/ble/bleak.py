@@ -102,7 +102,8 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
             char = possible_matching_chars[0]
             self._char_cache[cache_key] = char
             return char
-        elif possible_matching_chars:
+
+        if possible_matching_chars:
             if not iid:
                 raise ValueError(
                     f"The service {service_uuid} and {characteristic_uuid} "
