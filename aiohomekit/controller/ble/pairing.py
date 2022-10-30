@@ -108,12 +108,15 @@ SKIP_SYNC_SERVICES = {
 }
 # These characteristics are not readable unless there has been a write
 WRITE_FIRST_REQUIRED_CHARACTERISTICS = {
-    "00000131-0000-1000-8000-0026BB765291",  # Setup Data Stream Transport
-    "00000117-0000-1000-8000-0026BB765291",  # Selected RTP Stream Configuration
-    "00000118-0000-1000-8000-0026BB765291",  # Setup Endpoints
+    CharacteristicsTypes.SETUP_DATA_STREAM_TRANSPORT,  # Setup Data Stream Transport
+    CharacteristicsTypes.SELECTED_RTP_STREAM_CONFIGURATION,  # Selected RTP Stream Configuration
+    CharacteristicsTypes.SETUP_ENDPOINTS,  # Setup Endpoints
     "00000138-0000-1000-8000-0026BB765291",  # Unknown write first characteristic
     "246912DC-8FA3-82ED-DEA4-9EB91D8FC2EE",  # Unknown Vendor char seen on Belkin Wemo Switch
 }
+IGNORE_READ_CHARACTERISTICS = {
+    CharacteristicsTypes.SERVICE_SIGNATURE
+} | WRITE_FIRST_REQUIRED_CHARACTERISTICS
 BLE_AID = 1  # The aid for BLE devices is always 1
 
 ENABLE_BROADCAST_PAYLOAD = TLV.encode_list(
@@ -825,7 +828,7 @@ class BlePairing(AbstractPairing):
             ):
                 continue
             for char in service.characteristics:
-                if char.type in WRITE_FIRST_REQUIRED_CHARACTERISTICS:
+                if char.type in IGNORE_READ_CHARACTERISTICS:
                     continue
                 if CharacteristicPermissions.paired_read not in char.perms:
                     continue
@@ -1169,9 +1172,9 @@ class BlePairing(AbstractPairing):
 
         async with self._ble_request_lock:
             for char in characteristics:
-                if char.type in WRITE_FIRST_REQUIRED_CHARACTERISTICS:
+                if char.type in IGNORE_READ_CHARACTERISTICS:
                     logger.debug(
-                        "%s: Ignoring write first only characteristic %s",
+                        "%s: Ignoring characteristic %s",
                         self.name,
                         char.iid,
                     )
