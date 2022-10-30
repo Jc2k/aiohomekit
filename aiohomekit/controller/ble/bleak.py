@@ -89,17 +89,18 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
         calls can raise BleakError if there are more than one matching service or characteristic
         and we want to match the service and characteristic together.
         """
-        cache_key = (service_uuid, characteristic_uuid)
+        cache_key = (service_uuid, characteristic_uuid, iid)
         if char := self._char_cache.get(cache_key):
             return char
-        uuid_lower = service_uuid.lower()
-        possible_matching_chars = []
+        service_uuid_lower = service_uuid.lower()
+        characteristic_uuid_lower = characteristic_uuid.lower()
+        possible_matching_chars: list[BleakGATTCharacteristic] = []
         service_matched = False
         for service in self.services.services.values():
-            if service.uuid.lower() == uuid_lower:
+            if service.uuid.lower() == service_uuid_lower:
                 service_matched = True
                 for char in service.characteristics:
-                    if char.uuid.lower() == characteristic_uuid.lower():
+                    if char.uuid.lower() == characteristic_uuid_lower:
                         possible_matching_chars.append(char)
 
         if len(possible_matching_chars) == 1:
@@ -122,6 +123,14 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
             for possible_matching_char in possible_matching_chars:
                 possible_matching_iid = await self.get_characteristic_iid(
                     possible_matching_char
+                )
+                logger.debug(
+                    "%s: iid for %s/%s with handle %s is %s",
+                    self.__name,
+                    service_uuid,
+                    characteristic_uuid,
+                    possible_matching_char.handle,
+                    possible_matching_iid,
                 )
                 if iid == possible_matching_iid:
                     self._char_cache[cache_key] = possible_matching_char
