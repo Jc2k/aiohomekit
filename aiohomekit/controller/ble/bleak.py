@@ -124,14 +124,6 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
                 possible_matching_iid = await self.get_characteristic_iid(
                     possible_matching_char
                 )
-                logger.debug(
-                    "%s: iid for %s/%s with handle %s is %s",
-                    self.__name,
-                    service_uuid,
-                    characteristic_uuid,
-                    possible_matching_char.handle,
-                    possible_matching_iid,
-                )
                 if iid == possible_matching_iid:
                     self._char_cache[cache_key] = possible_matching_char
                     return possible_matching_char
