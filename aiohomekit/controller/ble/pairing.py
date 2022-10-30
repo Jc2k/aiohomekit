@@ -1192,6 +1192,8 @@ class BlePairing(AbstractPairing):
                             char.type,
                         )
                         continue
+                    raise
+
                 decoded = dict(TLV.decode_bytes(data))[1]
 
                 logger.debug(
