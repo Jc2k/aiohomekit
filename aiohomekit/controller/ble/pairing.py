@@ -1222,7 +1222,7 @@ class BlePairing(AbstractPairing):
                     logger.debug(
                         "%s: Failed to decode characteristic for %s from %s: %s",
                         self.name,
-                        char,
+                        char.type,
                         decoded,
                         ex,
                     )
