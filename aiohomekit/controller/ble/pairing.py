@@ -542,7 +542,7 @@ class BlePairing(AbstractPairing):
 
     def _async_notification(self, data: HomeKitEncryptedNotification) -> None:
         """Receive a notification from the accessory."""
-        if not self._broadcast_decryption_key or not self.description:
+        if not self._broadcast_decryption_key:
             logger.debug(
                 "%s: Received notification before session is setup, "
                 "falling back processing as disconnected event: %s",
@@ -550,6 +550,13 @@ class BlePairing(AbstractPairing):
                 data,
             )
             async_create_task(self._process_disconnected_events())
+            return
+
+        if not self.description:
+            logger.error(
+                "%s: Received encrypted notification before advertisement.",
+                self.name,
+            )
             return
 
         start_state_num = self.description.state_num
