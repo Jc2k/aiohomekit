@@ -218,7 +218,7 @@ class ZeroconfController(AbstractController):
         self._browser.service_state_changed.register_handler(self._handle_service)
 
         infos = [
-            AsyncServiceInfo(self.hap_type, record.alias)
+            AsyncServiceInfo(self.hap_type, record.name)
             for record in zc.cache.get_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
         ]
 
