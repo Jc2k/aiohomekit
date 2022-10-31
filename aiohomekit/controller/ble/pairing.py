@@ -108,12 +108,15 @@ SKIP_SYNC_SERVICES = {
 }
 # These characteristics are not readable unless there has been a write
 WRITE_FIRST_REQUIRED_CHARACTERISTICS = {
-    "00000131-0000-1000-8000-0026BB765291",  # Setup Data Stream Transport
-    "00000117-0000-1000-8000-0026BB765291",  # Selected RTP Stream Configuration
-    "00000118-0000-1000-8000-0026BB765291",  # Setup Endpoints
+    CharacteristicsTypes.SETUP_DATA_STREAM_TRANSPORT,  # Setup Data Stream Transport
+    CharacteristicsTypes.SELECTED_RTP_STREAM_CONFIGURATION,  # Selected RTP Stream Configuration
+    CharacteristicsTypes.SETUP_ENDPOINTS,  # Setup Endpoints
     "00000138-0000-1000-8000-0026BB765291",  # Unknown write first characteristic
     "246912DC-8FA3-82ED-DEA4-9EB91D8FC2EE",  # Unknown Vendor char seen on Belkin Wemo Switch
 }
+IGNORE_READ_CHARACTERISTICS = {
+    CharacteristicsTypes.SERVICE_SIGNATURE
+} | WRITE_FIRST_REQUIRED_CHARACTERISTICS
 BLE_AID = 1  # The aid for BLE devices is always 1
 
 ENABLE_BROADCAST_PAYLOAD = TLV.encode_list(
@@ -337,10 +340,10 @@ class BlePairing(AbstractPairing):
             logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
             raise AccessoryDisconnectedError(f"{self.name} is not connected")
 
-        if char.handle:
-            endpoint = self.client.get_characteristic_by_handle(char.handle)
-        else:
-            endpoint = self.client.get_characteristic(char.service.type, char.type)
+        endpoint_iid = iid if iid is not None else char.iid
+        endpoint = await self.client.get_characteristic(
+            char.service.type, char.type, endpoint_iid
+        )
 
         pdu_status, result_data = await ble_request(
             self.client,
@@ -348,7 +351,7 @@ class BlePairing(AbstractPairing):
             self._decryption_key,
             opcode,
             endpoint,
-            iid if iid is not None else char.iid,
+            endpoint_iid,
             data,
         )
 
@@ -412,10 +415,9 @@ class BlePairing(AbstractPairing):
         char = self.accessories.aid(BLE_AID).characteristics.iid(iid)
 
         # Find the GATT Characteristic object for this iid
-        if char.handle:
-            endpoint = self.client.get_characteristic_by_handle(char.handle)
-        else:
-            endpoint = self.client.get_characteristic(char.service.type, char.type)
+        endpoint = await self.client.get_characteristic(
+            char.service.type, char.type, iid
+        )
 
         # We only want to allow one in flight read
         # and one pending read at a time since there
@@ -548,6 +550,13 @@ class BlePairing(AbstractPairing):
                 data,
             )
             async_create_task(self._process_disconnected_events())
+            return
+
+        if not self.description:
+            logger.error(
+                "%s: Received encrypted notification before advertisement.",
+                self.name,
+            )
             return
 
         start_state_num = self.description.state_num
@@ -828,7 +837,7 @@ class BlePairing(AbstractPairing):
             ):
                 continue
             for char in service.characteristics:
-                if char.type in WRITE_FIRST_REQUIRED_CHARACTERISTICS:
+                if char.type in IGNORE_READ_CHARACTERISTICS:
                     continue
                 if CharacteristicPermissions.paired_read not in char.perms:
                     continue
@@ -844,7 +853,9 @@ class BlePairing(AbstractPairing):
         for char in chars:
             result = results.get((BLE_AID, char.iid))
             if not result or "value" not in result:
-                logger.debug("%s: No value for %s", self.name, char)
+                logger.debug(
+                    "%s: No value for %s/%s", self.name, char.service.type, char.type
+                )
                 continue
             char.value = result["value"]
 
@@ -1172,9 +1183,9 @@ class BlePairing(AbstractPairing):
 
         async with self._ble_request_lock:
             for char in characteristics:
-                if char.type in WRITE_FIRST_REQUIRED_CHARACTERISTICS:
+                if char.type in IGNORE_READ_CHARACTERISTICS:
                     logger.debug(
-                        "%s: Ignoring write first only characteristic %s",
+                        "%s: Ignoring characteristic %s",
                         self.name,
                         char.iid,
                     )
@@ -1190,11 +1201,21 @@ class BlePairing(AbstractPairing):
                     # we need to skip in this case.
                     if ex.status == PDUStatus.INVALID_REQUEST:
                         logger.debug(
-                            "%s: Reading characteristic %s resulted in an invalid request (skipped)",
+                            "%s: Reading characteristic %s with iid %s resulted in an invalid request (skipped)",
                             self.name,
+                            char.iid,
                             char.type,
                         )
                         continue
+                    logger.exception(
+                        "%s: Reading characteristic %s with iid %s resulted in an error: %s",
+                        self.name,
+                        char.type,
+                        char.iid,
+                        ex,
+                    )
+                    continue
+
                 decoded = dict(TLV.decode_bytes(data))[1]
 
                 logger.debug(
@@ -1212,7 +1233,7 @@ class BlePairing(AbstractPairing):
                     logger.debug(
                         "%s: Failed to decode characteristic for %s from %s: %s",
                         self.name,
-                        char,
+                        char.type,
                         decoded,
                         ex,
                     )

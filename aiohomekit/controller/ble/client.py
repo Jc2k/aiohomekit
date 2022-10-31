@@ -221,7 +221,7 @@ async def drive_pairing_state_machine(
     characteristic: str,
     state_machine: Generator[tuple[list[tuple[TLV, bytes]], list[TLV]], Any, Any],
 ) -> Any:
-    char = client.get_characteristic(ServicesTypes.PAIRING, characteristic)
+    char = await client.get_characteristic(ServicesTypes.PAIRING, characteristic)
     iid = await client.get_characteristic_iid(char)
 
     request, expected = state_machine.send(None)
