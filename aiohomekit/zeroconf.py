@@ -99,8 +99,6 @@ class HomeKitService:
         if "id" not in props:
             raise ValueError("Invalid HomeKit Zeroconf record: Missing device ID")
 
-        logger.debug("%s: received new AsyncServiceInfo: %s", service.name, service)
-
         return cls(
             name=service.name.removesuffix(f".{service.type}"),
             id=props["id"].lower(),
