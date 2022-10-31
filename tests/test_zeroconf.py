@@ -278,3 +278,114 @@ def test_missing_id():
 
     with pytest.raises(ValueError):
         HomeKitService.from_service_info(info)
+
+
+def test_ignore_link_local():
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"11",
+        b"ci": b"5",
+        b"sf": b"0",
+        b"ff": b"1",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[socket.inet_aton("169.254.121.37"), socket.inet_aton("127.0.0.1")],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    svc = HomeKitService.from_service_info(info)
+
+    assert svc.name == "foo2"
+    assert svc.type == "_hap._tcp.local."
+    assert svc.id == "00:00:01:00:00:02"
+    assert svc.model == "unittest"
+    assert svc.config_num == 1
+    assert svc.state_num == 11
+    assert svc.status_flags == 0
+    assert svc.feature_flags == FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR
+    assert svc.category == Categories.LIGHTBULB
+    assert svc.address == "127.0.0.1"
+    assert svc.addresses == ["169.254.121.37", "127.0.0.1"]
+    assert svc.port == 1234
+
+
+def test_ignore_link_local_ipv6():
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"11",
+        b"ci": b"5",
+        b"sf": b"0",
+        b"ff": b"1",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[
+            socket.inet_aton("169.254.121.37"),
+            socket.inet_pton(socket.AF_INET6, "2a00:1450:4009:820::200e"),
+        ],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    svc = HomeKitService.from_service_info(info)
+
+    assert svc.name == "foo2"
+    assert svc.type == "_hap._tcp.local."
+    assert svc.id == "00:00:01:00:00:02"
+    assert svc.model == "unittest"
+    assert svc.config_num == 1
+    assert svc.state_num == 11
+    assert svc.status_flags == 0
+    assert svc.feature_flags == FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR
+    assert svc.category == Categories.LIGHTBULB
+    assert svc.address == "2a00:1450:4009:820::200e"
+    assert svc.addresses == ["169.254.121.37", "2a00:1450:4009:820::200e"]
+    assert svc.port == 1234
+
+
+def test_prefer_ipv4():
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"11",
+        b"ci": b"5",
+        b"sf": b"0",
+        b"ff": b"1",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[
+            socket.inet_pton(socket.AF_INET6, "2a00:1450:4009:820::200e"),
+            socket.inet_aton("127.0.0.1"),
+        ],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    svc = HomeKitService.from_service_info(info)
+
+    assert svc.name == "foo2"
+    assert svc.type == "_hap._tcp.local."
+    assert svc.id == "00:00:01:00:00:02"
+    assert svc.model == "unittest"
+    assert svc.config_num == 1
+    assert svc.state_num == 11
+    assert svc.status_flags == 0
+    assert svc.feature_flags == FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR
+    assert svc.category == Categories.LIGHTBULB
+    assert svc.address == "127.0.0.1"
+    assert svc.addresses == ["127.0.0.1", "2a00:1450:4009:820::200e"]
+    assert svc.port == 1234

@@ -21,6 +21,7 @@ from abc import abstractmethod
 import asyncio
 from collections.abc import AsyncIterable
 from dataclasses import dataclass
+from ipaddress import ip_address
 import logging
 
 import async_timeout
@@ -48,6 +49,22 @@ TYPE_PTR = 12
 _TIMEOUT_MS = 3000
 
 logger = logging.getLogger(__name__)
+
+
+def _first_non_link_local_address(
+    addresses: list[bytes] | list[str],
+) -> str | None:
+    """Return the first ipv6 or non-link local ipv4 address, preferring IPv4."""
+    for address in addresses:
+        ip_addr = ip_address(address)
+        if not ip_addr.is_link_local and ip_addr.version == 4:
+            return str(ip_addr)
+    # If we didn't find a good IPv4 address, check for IPv6 addresses.
+    for address in addresses:
+        ip_addr = ip_address(address)
+        if not ip_addr.is_link_local and ip_addr.version == 6:
+            return str(ip_addr)
+    return None
 
 
 @dataclass
@@ -93,7 +110,7 @@ class HomeKitService:
             category=Categories(int(props.get("ci", 1))),
             protocol_version=props.get("pv", "1.0"),
             type=service.type,
-            address=addresses[0],
+            address=_first_non_link_local_address(addresses),
             addresses=addresses,
             port=service.port,
         )
