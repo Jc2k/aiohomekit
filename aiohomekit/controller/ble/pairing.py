@@ -17,13 +17,13 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import timedelta
 import logging
 import random
 import struct
 import time
-from typing import TYPE_CHECKING, Any, Iterable, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 from uuid import UUID
 
 from bleak.backends.characteristic import BleakGATTCharacteristic
