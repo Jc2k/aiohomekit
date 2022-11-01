@@ -1187,6 +1187,7 @@ class BlePairing(AbstractPairing):
         characteristics: list[Characteristic],
         notify_listeners: bool = False,
     ) -> dict[tuple[int, int], dict[str, Any]]:
+        assert self._operation_lock.locked(), "_operation_lock should be locked"
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
                 "%s: Reading characteristics: %s; rssi=%s",
