@@ -640,7 +640,7 @@ class BlePairing(AbstractPairing):
 
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
-        assert self._operation_lock.locked(), "Should be called with operation lock"
+        assert self._operation_lock.locked(), "_operation_lock should be locked"
         logger.debug("%s: Setting broadcast encryption key", self.name)
         if self._ble_request_lock.locked():
             logger.debug(
