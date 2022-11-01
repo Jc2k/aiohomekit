@@ -1324,8 +1324,9 @@ class BlePairing(AbstractPairing):
                     }
                 # results only set on failure, no status is success
                 if not result:
-                    for listener in self.listeners:
-                        listener({result_key: {"value": value}})
+                    if CharacteristicPermissions.paired_read in char.perms:
+                        for listener in self.listeners:
+                            listener({result_key: {"value": value}})
                 else:
                     results[result_key] = result
 
