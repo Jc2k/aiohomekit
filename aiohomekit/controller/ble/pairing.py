@@ -415,6 +415,7 @@ class BlePairing(AbstractPairing):
             return True
 
     async def _async_start_notify(self, iid: int) -> None:
+        assert self._operation_lock.locked(), "_operation_lock should be locked"
         char = self.accessories.aid(BLE_AID).characteristics.iid(iid)
 
         # Find the GATT Characteristic object for this iid
@@ -436,21 +437,22 @@ class BlePairing(AbstractPairing):
                 if not self.client or not self.client.is_connected:
                     # Client disconnected
                     return
-                logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
-                await self._get_characteristics_without_retry(
-                    [(BLE_AID, iid)], notify_listeners=True
-                )
-                # After a char has changed we need to check if the
-                # GSN has changed as well so we don't reconnect
-                # to the accessory if we don't need to
-                if self._fetched_gsn_this_session:
-                    # The spec says we should only do this once per session
-                    # after a characteristic has changed
-                    return
-                protocol_param = await self._get_all_protocol_params()
-                if protocol_param:
-                    self.description.state_num = protocol_param.state_number
-                    self._fetched_gsn_this_session = True
+                async with self._operation_lock:
+                    logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
+                    await self._get_characteristics_while_connected(
+                        [char], notify_listeners=True
+                    )
+                    # After a char has changed we need to check if the
+                    # GSN has changed as well so we don't reconnect
+                    # to the accessory if we don't need to
+                    if self._fetched_gsn_this_session:
+                        # The spec says we should only do this once per session
+                        # after a characteristic has changed
+                        return
+                    protocol_param = await self._get_all_protocol_params()
+                    if protocol_param:
+                        self.description.state_num = protocol_param.state_number
+                        self._fetched_gsn_this_session = True
 
         def _callback(id: int, data: bytes) -> None:
             logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
@@ -638,6 +640,7 @@ class BlePairing(AbstractPairing):
 
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
+        assert self._operation_lock.locked(), "_operation_lock should be locked"
         logger.debug("%s: Setting broadcast encryption key", self.name)
         if self._ble_request_lock.locked():
             logger.debug(
@@ -867,6 +870,7 @@ class BlePairing(AbstractPairing):
 
     async def _get_all_protocol_params(self) -> ProtocolParams | None:
         """Get the current protocol params number."""
+        assert self._operation_lock.locked(), "_operation_lock should be locked"
         hap_char = self._async_get_service_signature_char()
         if not hap_char:
             return
@@ -1055,6 +1059,7 @@ class BlePairing(AbstractPairing):
             self._restore_pending = False
             return
 
+        assert self._operation_lock.locked(), "_operation_lock should be locked"
         await self._async_set_broadcast_encryption_key()
         subscriptions = list(self.subscriptions)
         logger.debug(
@@ -1072,6 +1077,7 @@ class BlePairing(AbstractPairing):
             self.description.state_num = protocol_param.state_number
         self._async_schedule_start_notify_subscriptions()
 
+    @operation_lock
     async def _async_start_notify_subscriptions(self) -> None:
         """Start notifications for the given subscriptions.
 
@@ -1181,6 +1187,7 @@ class BlePairing(AbstractPairing):
         characteristics: list[Characteristic],
         notify_listeners: bool = False,
     ) -> dict[tuple[int, int], dict[str, Any]]:
+        assert self._operation_lock.locked(), "_operation_lock should be locked"
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
                 "%s: Reading characteristics: %s; rssi=%s",
