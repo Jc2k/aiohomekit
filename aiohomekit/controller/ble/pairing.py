@@ -1059,9 +1059,7 @@ class BlePairing(AbstractPairing):
             self._restore_pending = False
             return
 
-        assert (
-            self._operation_lock.locked()
-        ), "_operation_lock should be locked"
+        assert self._operation_lock.locked(), "_operation_lock should be locked"
         await self._async_set_broadcast_encryption_key()
         subscriptions = list(self.subscriptions)
         logger.debug(
