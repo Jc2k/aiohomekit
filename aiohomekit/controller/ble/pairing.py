@@ -1295,7 +1295,7 @@ class BlePairing(AbstractPairing):
                     iid,
                     value,
                 )
-
+                result = {}
                 if CharacteristicPermissions.timed_write in char.perms:
                     payload_inner = TLV.encode_list(
                         [
@@ -1310,11 +1310,6 @@ class BlePairing(AbstractPairing):
                         OpCode.CHAR_TIMED_WRITE, char, payload
                     )
                     await self._async_request_under_lock(OpCode.CHAR_EXEC_WRITE, char)
-                    single_result = {
-                        "status": HapStatusCode.SUCCESS,
-                        "description": HapStatusCode.SUCCESS.description,
-                        "value": value,
-                    }
                 elif CharacteristicPermissions.paired_write in char.perms:
                     payload = TLV.encode_list(
                         [(HAP_TLV.kTLVHAPParamValue, to_bytes(char, value))]
@@ -1322,20 +1317,17 @@ class BlePairing(AbstractPairing):
                     await self._async_request_under_lock(
                         OpCode.CHAR_WRITE, char, payload
                     )
-                    single_result = {
-                        "status": HapStatusCode.SUCCESS,
-                        "description": HapStatusCode.SUCCESS.description,
-                        "value": value,
-                    }
                 else:
-                    single_result = {
+                    result = {
                         "status": HapStatusCode.CANT_WRITE_READ_ONLY,
                         "description": HapStatusCode.CANT_WRITE_READ_ONLY.description,
                     }
-                if single_result["status"] == HapStatusCode.SUCCESS:
+                # results only set on failure, no status is success
+                if not result:
                     for listener in self.listeners:
-                        listener({result_key: single_result})
-                results[result_key] = single_result
+                        listener({result_key: {"value": value}})
+                else:
+                    results[result_key] = result
 
         return results
 
