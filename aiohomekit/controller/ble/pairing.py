@@ -429,7 +429,6 @@ class BlePairing(AbstractPairing):
         # going to give us the latest value anyways
         max_callback_enforcer = asyncio.Semaphore(2)
 
-        @operation_lock
         async def _async_callback() -> None:
             if max_callback_enforcer.locked():
                 # Already one being read now, and one pending
@@ -438,21 +437,22 @@ class BlePairing(AbstractPairing):
                 if not self.client or not self.client.is_connected:
                     # Client disconnected
                     return
-                logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
-                await self._get_characteristics_while_connected(
-                    [char], notify_listeners=True
-                )
-                # After a char has changed we need to check if the
-                # GSN has changed as well so we don't reconnect
-                # to the accessory if we don't need to
-                if self._fetched_gsn_this_session:
-                    # The spec says we should only do this once per session
-                    # after a characteristic has changed
-                    return
-                protocol_param = await self._get_all_protocol_params()
-                if protocol_param:
-                    self.description.state_num = protocol_param.state_number
-                    self._fetched_gsn_this_session = True
+                async with self._operation_lock:
+                    logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
+                    await self._get_characteristics_while_connected(
+                        [char], notify_listeners=True
+                    )
+                    # After a char has changed we need to check if the
+                    # GSN has changed as well so we don't reconnect
+                    # to the accessory if we don't need to
+                    if self._fetched_gsn_this_session:
+                        # The spec says we should only do this once per session
+                        # after a characteristic has changed
+                        return
+                    protocol_param = await self._get_all_protocol_params()
+                    if protocol_param:
+                        self.description.state_num = protocol_param.state_number
+                        self._fetched_gsn_this_session = True
 
         def _callback(id: int, data: bytes) -> None:
             logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
