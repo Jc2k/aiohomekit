@@ -1334,7 +1334,7 @@ class BlePairing(AbstractPairing):
                     }
                 if single_result["status"] == HapStatusCode.SUCCESS:
                     for listener in self.listeners:
-                        listener(single_result)
+                        listener({result_key: single_result})
                 results[result_key] = single_result
 
         return results
