@@ -1061,7 +1061,7 @@ class BlePairing(AbstractPairing):
 
         assert (
             self._operation_lock.locked()
-        ), "Should be called under the operation lock"
+        ), "_operation_lock should be locked"
         await self._async_set_broadcast_encryption_key()
         subscriptions = list(self.subscriptions)
         logger.debug(
