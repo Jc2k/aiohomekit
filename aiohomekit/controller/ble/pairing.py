@@ -415,6 +415,7 @@ class BlePairing(AbstractPairing):
             return True
 
     async def _async_start_notify(self, iid: int) -> None:
+        assert self._operation_lock.locked(), "_operation_lock should be locked"
         char = self.accessories.aid(BLE_AID).characteristics.iid(iid)
 
         # Find the GATT Characteristic object for this iid
@@ -428,6 +429,7 @@ class BlePairing(AbstractPairing):
         # going to give us the latest value anyways
         max_callback_enforcer = asyncio.Semaphore(2)
 
+        @operation_lock
         async def _async_callback() -> None:
             if max_callback_enforcer.locked():
                 # Already one being read now, and one pending
@@ -437,8 +439,8 @@ class BlePairing(AbstractPairing):
                     # Client disconnected
                     return
                 logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
-                await self._get_characteristics_without_retry(
-                    [(BLE_AID, iid)], notify_listeners=True
+                await self._get_characteristics_while_connected(
+                    [char], notify_listeners=True
                 )
                 # After a char has changed we need to check if the
                 # GSN has changed as well so we don't reconnect
@@ -638,6 +640,7 @@ class BlePairing(AbstractPairing):
 
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
+        assert self._operation_lock.locked(), "Should be called with operation lock"
         logger.debug("%s: Setting broadcast encryption key", self.name)
         if self._ble_request_lock.locked():
             logger.debug(
@@ -867,6 +870,7 @@ class BlePairing(AbstractPairing):
 
     async def _get_all_protocol_params(self) -> ProtocolParams | None:
         """Get the current protocol params number."""
+        assert self._operation_lock.locked(), "_operation_lock should be locked"
         hap_char = self._async_get_service_signature_char()
         if not hap_char:
             return
@@ -1055,6 +1059,9 @@ class BlePairing(AbstractPairing):
             self._restore_pending = False
             return
 
+        assert (
+            self._operation_lock.locked()
+        ), "Should be called under the operation lock"
         await self._async_set_broadcast_encryption_key()
         subscriptions = list(self.subscriptions)
         logger.debug(
@@ -1072,6 +1079,7 @@ class BlePairing(AbstractPairing):
             self.description.state_num = protocol_param.state_number
         self._async_schedule_start_notify_subscriptions()
 
+    @operation_lock
     async def _async_start_notify_subscriptions(self) -> None:
         """Start notifications for the given subscriptions.
 
