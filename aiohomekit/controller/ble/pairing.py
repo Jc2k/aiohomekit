@@ -1288,13 +1288,14 @@ class BlePairing(AbstractPairing):
 
             for aid, iid, value in characteristics:
                 char = accessory_chars.iid(iid)
+                result_key = (aid, iid)
                 logger.debug(
                     "%s: Writing characteristics: iid=%s value=%s",
                     self.name,
                     iid,
                     value,
                 )
-
+                result = {}
                 if CharacteristicPermissions.timed_write in char.perms:
                     payload_inner = TLV.encode_list(
                         [
@@ -1309,7 +1310,6 @@ class BlePairing(AbstractPairing):
                         OpCode.CHAR_TIMED_WRITE, char, payload
                     )
                     await self._async_request_under_lock(OpCode.CHAR_EXEC_WRITE, char)
-
                 elif CharacteristicPermissions.paired_write in char.perms:
                     payload = TLV.encode_list(
                         [(HAP_TLV.kTLVHAPParamValue, to_bytes(char, value))]
@@ -1317,12 +1317,18 @@ class BlePairing(AbstractPairing):
                     await self._async_request_under_lock(
                         OpCode.CHAR_WRITE, char, payload
                     )
-
                 else:
-                    results[(aid, iid)] = {
+                    result = {
                         "status": HapStatusCode.CANT_WRITE_READ_ONLY,
                         "description": HapStatusCode.CANT_WRITE_READ_ONLY.description,
                     }
+                # results only set on failure, no status is success
+                if not result:
+                    if CharacteristicPermissions.paired_read in char.perms:
+                        for listener in self.listeners:
+                            listener({result_key: {"value": value}})
+                else:
+                    results[result_key] = result
 
         return results
 
