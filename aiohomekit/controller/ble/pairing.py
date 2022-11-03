@@ -618,8 +618,11 @@ class BlePairing(AbstractPairing):
             return
 
         logger.warning(
-            "%s: Received notification but could not decrypt: %s", self.name, data
+            "%s: Received notification but could not decrypt, falling back processing as disconnected event: %s",
+            self.name,
+            data,
         )
+        async_create_task(self._process_disconnected_events())
 
     def _async_get_service_signature_char(self) -> Characteristic | None:
         """Get the service signature characteristic."""
