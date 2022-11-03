@@ -226,9 +226,6 @@ class ZeroconfController(AbstractController):
             for record in self._async_get_ptr_records(zc)
         ]
 
-        logger.warning("details: %s", self._async_get_ptr_records(zc))
-#        logger.warning("Found %s %s devices: %s", len(infos), self.hap_type, infos)
-
         tasks = []
         for info in infos:
             if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
