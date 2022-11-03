@@ -25,7 +25,7 @@ from ipaddress import ip_address
 import logging
 
 import async_timeout
-from zeroconf import ServiceListener, ServiceStateChange, Zeroconf
+from zeroconf import ServiceListener, ServiceStateChange, Zeroconf, DNSPointer
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
@@ -207,6 +207,10 @@ class ZeroconfController(AbstractController):
         self._waiters: dict[str, list[asyncio.Future]] = {}
         self._debouncers: dict[str, Debouncer] = {}
 
+    def _async_get_ptr_records(self, zc: Zeroconf) -> list[DNSPointer]:
+        """Return all PTR records for the HAP type."""
+        return zc.cache.get_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
+
     async def async_start(self):
         zc = self._async_zeroconf_instance.zeroconf
         if not zc:
@@ -218,12 +222,11 @@ class ZeroconfController(AbstractController):
         self._browser.service_state_changed.register_handler(self._handle_service)
 
         infos = [
-            AsyncServiceInfo(self.hap_type, record.name)
-            for record in zc.cache.get_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
+            AsyncServiceInfo(self.hap_type, record.alias)
+            for record in self._async_get_ptr_records(zc)
         ]
 
-        logger.warning("zc_cache: %s", zc.cache.cache)
-        logger.warning("details: %s", zc.cache.get_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN))
+        logger.warning("details: %s", self._async_get_ptr_records(zc))
 #        logger.warning("Found %s %s devices: %s", len(infos), self.hap_type, infos)
 
         tasks = []
