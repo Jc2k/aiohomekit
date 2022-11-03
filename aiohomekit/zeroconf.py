@@ -222,6 +222,8 @@ class ZeroconfController(AbstractController):
             for record in zc.cache.get_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
         ]
 
+        logger.warning("Found %s %s devices: %s", len(infos), self.hap_type, infos)
+
         tasks = []
         for info in infos:
             if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
