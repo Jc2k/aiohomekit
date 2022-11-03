@@ -35,7 +35,7 @@ def _install_mock_service_info(mock_asynczeroconf) -> Iterable[AsyncServiceInfo]
     )
 
     mock_asynczeroconf.zeroconf.cache = MagicMock(
-        get_all_by_details=MagicMock(
+        async_all_by_details=MagicMock(
             return_value=[
                 MagicMock(alias="foo._hap._tcp.local."),
             ]
