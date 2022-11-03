@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 import contextlib
 import socket
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from zeroconf.asyncio import AsyncServiceInfo
