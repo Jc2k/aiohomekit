@@ -25,7 +25,7 @@ from ipaddress import ip_address
 import logging
 
 import async_timeout
-from zeroconf import ServiceListener, ServiceStateChange, Zeroconf, DNSPointer
+from zeroconf import DNSPointer, ServiceListener, ServiceStateChange, Zeroconf
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
