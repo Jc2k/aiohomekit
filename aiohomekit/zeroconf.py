@@ -209,7 +209,7 @@ class ZeroconfController(AbstractController):
 
     def _async_get_ptr_records(self, zc: Zeroconf) -> list[DNSPointer]:
         """Return all PTR records for the HAP type."""
-        return zc.cache.get_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
+        return zc.cache.async_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
 
     async def async_start(self):
         zc = self._async_zeroconf_instance.zeroconf
