@@ -25,7 +25,7 @@ from ipaddress import ip_address
 import logging
 
 import async_timeout
-from zeroconf import ServiceListener, ServiceStateChange, Zeroconf
+from zeroconf import DNSPointer, ServiceListener, ServiceStateChange, Zeroconf
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
@@ -216,12 +216,16 @@ class ZeroconfController(AbstractController):
             self._async_zeroconf_instance, self.hap_type
         )
         self._browser.service_state_changed.register_handler(self._handle_service)
+        await self._async_update_from_cache(zc)
 
+        return self
+
+    async def _async_update_from_cache(self, zc: Zeroconf) -> None:
+        """Load the records from the cache."""
         infos = [
-            AsyncServiceInfo(self.hap_type, record.name)
-            for record in zc.cache.get_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
+            AsyncServiceInfo(self.hap_type, record.alias)
+            for record in self._async_get_ptr_records(zc)
         ]
-
         tasks = []
         for info in infos:
             if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
@@ -232,7 +236,9 @@ class ZeroconfController(AbstractController):
         if tasks:
             await asyncio.gather(*tasks)
 
-        return self
+    def _async_get_ptr_records(self, zc: Zeroconf) -> list[DNSPointer]:
+        """Return all PTR records for the HAP type."""
+        return zc.cache.async_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
 
     def _handle_service(
         self,
