@@ -1,20 +1,18 @@
 from collections.abc import Iterable
 import contextlib
 import socket
+from typing import Optional
 from unittest.mock import patch
 
 import pytest
-from zeroconf.asyncio import AsyncServiceInfo
+from zeroconf import DNSQuestionType, Zeroconf
+from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheMemory
 from aiohomekit.controller.ip.controller import IpController
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.status_flags import StatusFlags
-from typing import Optional
-from zeroconf import DNSQuestionType, Zeroconf
-from zeroconf.asyncio import AsyncZeroconf
-
 
 HAP_TYPE_TCP = "_hap._tcp.local."
 HAP_TYPE_UDP = "_hap._udp.local."

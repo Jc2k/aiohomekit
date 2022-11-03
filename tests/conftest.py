@@ -10,7 +10,7 @@ from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from zeroconf import SignalRegistrationInterface, DNSCache
+from zeroconf import DNSCache, SignalRegistrationInterface
 
 from aiohomekit import Controller
 from aiohomekit.controller.ip import IpPairing
