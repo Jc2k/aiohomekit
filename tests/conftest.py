@@ -10,7 +10,7 @@ from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from zeroconf import SignalRegistrationInterface
+from zeroconf import SignalRegistrationInterface, DNSCache
 
 from aiohomekit import Controller
 from aiohomekit.controller.ip import IpPairing
@@ -70,6 +70,7 @@ def mock_asynczeroconf():
             zc.async_register_service = AsyncMock()
             zc.async_close = AsyncMock()
             zeroconf = MagicMock(name="zeroconf_mock")
+            zeroconf.cache = DNSCache()
             zeroconf.async_wait_for_start = AsyncMock()
             zeroconf.listeners = [AsyncServiceBrowserStub()]
             zc.zeroconf = zeroconf

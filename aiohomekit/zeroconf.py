@@ -211,21 +211,12 @@ class ZeroconfController(AbstractController):
         """Return all PTR records for the HAP type."""
         return zc.cache.async_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
 
-    async def async_start(self):
-        zc = self._async_zeroconf_instance.zeroconf
-        if not zc:
-            return self
-
-        self._browser = find_brower_for_hap_type(
-            self._async_zeroconf_instance, self.hap_type
-        )
-        self._browser.service_state_changed.register_handler(self._handle_service)
-
+    async def _async_load_from_cache(self, zc: Zeroconf) -> None:
+        """Load the records from the cache."""
         infos = [
             AsyncServiceInfo(self.hap_type, record.alias)
             for record in self._async_get_ptr_records(zc)
         ]
-
         tasks = []
         for info in infos:
             if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
@@ -235,6 +226,17 @@ class ZeroconfController(AbstractController):
 
         if tasks:
             await asyncio.gather(*tasks)
+
+    async def async_start(self):
+        zc = self._async_zeroconf_instance.zeroconf
+        if not zc:
+            return self
+
+        self._browser = find_brower_for_hap_type(
+            self._async_zeroconf_instance, self.hap_type
+        )
+        self._browser.service_state_changed.register_handler(self._handle_service)
+        await self._async_load_from_cache(zc)
 
         return self
 
