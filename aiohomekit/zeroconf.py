@@ -207,9 +207,18 @@ class ZeroconfController(AbstractController):
         self._waiters: dict[str, list[asyncio.Future]] = {}
         self._debouncers: dict[str, Debouncer] = {}
 
-    def _async_get_ptr_records(self, zc: Zeroconf) -> list[DNSPointer]:
-        """Return all PTR records for the HAP type."""
-        return zc.cache.async_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
+    async def async_start(self):
+        zc = self._async_zeroconf_instance.zeroconf
+        if not zc:
+            return self
+
+        self._browser = find_brower_for_hap_type(
+            self._async_zeroconf_instance, self.hap_type
+        )
+        self._browser.service_state_changed.register_handler(self._handle_service)
+        await self._async_update_from_cache(zc)
+
+        return self
 
     async def _async_update_from_cache(self, zc: Zeroconf) -> None:
         """Load the records from the cache."""
@@ -227,18 +236,9 @@ class ZeroconfController(AbstractController):
         if tasks:
             await asyncio.gather(*tasks)
 
-    async def async_start(self):
-        zc = self._async_zeroconf_instance.zeroconf
-        if not zc:
-            return self
-
-        self._browser = find_brower_for_hap_type(
-            self._async_zeroconf_instance, self.hap_type
-        )
-        self._browser.service_state_changed.register_handler(self._handle_service)
-        await self._async_update_from_cache(zc)
-
-        return self
+    def _async_get_ptr_records(self, zc: Zeroconf) -> list[DNSPointer]:
+        """Return all PTR records for the HAP type."""
+        return zc.cache.async_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
 
     def _handle_service(
         self,
