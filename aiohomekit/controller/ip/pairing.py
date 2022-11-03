@@ -276,7 +276,7 @@ class IpPairing(ZeroconfPairing):
             await self.list_accessories_and_characteristics()
 
         char_payload: list[dict[str, Any]] = []
-        listener_update = {tuple[int, int]: dict[str, Any]}
+        listener_update: dict[tuple[int, int], dict[str, Any]] = {}
         for characteristic in characteristics:
             aid, iid, value = characteristic
             char_payload.append({"aid": aid, "iid": iid, "value": value})
