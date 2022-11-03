@@ -75,7 +75,7 @@ async def test_discover_find_one(mock_asynczeroconf: AsyncZeroconf):
     with _install_mock_service_info(mock_asynczeroconf, _get_mock_service_info()):
         async with controller:
             result = await controller.async_find("00:00:01:00:00:02")
-        await controller._async_load_from_cache(mock_asynczeroconf.zeroconf)
+        await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
 
     assert result.description.id == "00:00:01:00:00:02"
     assert result.description.category == Categories.LIGHTBULB
@@ -97,7 +97,7 @@ async def test_discover_find_one_unpaired(mock_asynczeroconf: AsyncZeroconf):
     with _install_mock_service_info(mock_asynczeroconf, svc):
         async with controller:
             result = await controller.async_find("00:00:01:00:00:02")
-        await controller._async_load_from_cache(mock_asynczeroconf.zeroconf)
+        await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
 
     assert result.description.id == "00:00:01:00:00:02"
     assert result.description.status_flags == StatusFlags.UNPAIRED
@@ -125,7 +125,7 @@ async def test_find_device_id_case_lower(mock_asynczeroconf: AsyncZeroconf):
 
     with _install_mock_service_info(mock_asynczeroconf, svc_info_1):
         async with controller:
-            await controller._async_load_from_cache(mock_asynczeroconf.zeroconf)
+            await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
             res = await controller.async_find("AA:AA:AA:AA:AA:AA")
             assert res.description.id == "aa:aa:aa:aa:aa:aa"
 
@@ -137,7 +137,7 @@ async def test_find_device_id_case_lower(mock_asynczeroconf: AsyncZeroconf):
         svc_info_2.properties[b"id"] = b"aa:aa:aa:aa:aa:aa"
 
         async with controller:
-            await controller._async_load_from_cache(mock_asynczeroconf.zeroconf)
+            await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
             res = await controller.async_find("aa:aa:aa:aa:aa:aa")
             assert res.description.id == "aa:aa:aa:aa:aa:aa"
 
@@ -153,7 +153,7 @@ async def test_find_device_id_case_upper(mock_asynczeroconf: AsyncZeroconf):
 
     with _install_mock_service_info(mock_asynczeroconf, svc_info):
         async with controller:
-            await controller._async_load_from_cache(mock_asynczeroconf.zeroconf)
+            await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
             res = await controller.async_find("AA:AA:AA:AA:AA:AA")
             assert res.description.id == "aa:aa:aa:aa:aa:aa"
 
@@ -164,7 +164,7 @@ async def test_find_device_id_case_upper(mock_asynczeroconf: AsyncZeroconf):
     with _install_mock_service_info(mock_asynczeroconf, svc_info):
 
         async with controller:
-            await controller._async_load_from_cache(mock_asynczeroconf.zeroconf)
+            await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
             res = await controller.async_find("aa:aa:aa:aa:aa:aa")
             assert res.description.id == "aa:aa:aa:aa:aa:aa"
 
@@ -177,7 +177,7 @@ async def test_discover_discover_one(mock_asynczeroconf: AsyncZeroconf):
     srv_info = _get_mock_service_info()
     with _install_mock_service_info(mock_asynczeroconf, srv_info):
         async with controller:
-            await controller._async_load_from_cache(mock_asynczeroconf.zeroconf)
+            await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
             results = [d async for d in controller.async_discover()]
 
     assert results[0].description.id == "00:00:01:00:00:02"
@@ -209,7 +209,7 @@ async def test_discover_missing_csharp(mock_asynczeroconf: AsyncZeroconf):
 
     with _install_mock_service_info(mock_asynczeroconf, svc_info):
         async with controller:
-            await controller._async_load_from_cache(mock_asynczeroconf.zeroconf)
+            await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
             results = [d async for d in controller.async_discover()]
 
     assert results[0].description.id == "00:00:01:00:00:02"
@@ -228,7 +228,7 @@ async def test_discover_csharp_case(mock_asynczeroconf: AsyncZeroconf):
 
     with _install_mock_service_info(mock_asynczeroconf, svc_info):
         async with controller:
-            await controller._async_load_from_cache(mock_asynczeroconf.zeroconf)
+            await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
             results = [d async for d in controller.async_discover()]
 
     assert results[0].description.config_num == 1
@@ -246,7 +246,7 @@ async def test_discover_device_id_case_lower(mock_asynczeroconf: AsyncZeroconf):
     with _install_mock_service_info(mock_asynczeroconf, svc_info):
 
         async with controller:
-            await controller._async_load_from_cache(mock_asynczeroconf.zeroconf)
+            await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
 
             results = [d async for d in controller.async_discover()]
 
@@ -265,7 +265,7 @@ async def test_discover_device_id_case_upper(mock_asynczeroconf: AsyncZeroconf):
     with _install_mock_service_info(mock_asynczeroconf, svc_info):
 
         async with controller:
-            await controller._async_load_from_cache(mock_asynczeroconf.zeroconf)
+            await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
 
             results = [d async for d in controller.async_discover()]
 

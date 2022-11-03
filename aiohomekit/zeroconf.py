@@ -211,7 +211,7 @@ class ZeroconfController(AbstractController):
         """Return all PTR records for the HAP type."""
         return zc.cache.async_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN)
 
-    async def _async_load_from_cache(self, zc: Zeroconf) -> None:
+    async def _async_update_from_cache(self, zc: Zeroconf) -> None:
         """Load the records from the cache."""
         infos = [
             AsyncServiceInfo(self.hap_type, record.alias)
@@ -236,7 +236,7 @@ class ZeroconfController(AbstractController):
             self._async_zeroconf_instance, self.hap_type
         )
         self._browser.service_state_changed.register_handler(self._handle_service)
-        await self._async_load_from_cache(zc)
+        await self._async_update_from_cache(zc)
 
         return self
 
