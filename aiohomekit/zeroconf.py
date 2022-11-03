@@ -223,6 +223,7 @@ class ZeroconfController(AbstractController):
         ]
 
         logger.warning("zc_cache: %s", zc.cache.cache)
+        logger.warning("details: %s", zc.cache.get_all_by_details(self.hap_type, TYPE_PTR, CLASS_IN))
         logger.warning("Found %s %s devices: %s", len(infos), self.hap_type, infos)
 
         tasks = []
