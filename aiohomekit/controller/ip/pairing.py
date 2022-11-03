@@ -20,7 +20,7 @@ from datetime import timedelta
 from itertools import groupby
 import logging
 from operator import itemgetter
-from typing import Any
+from typing import Any, Iterable
 
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import (
@@ -37,7 +37,7 @@ from aiohomekit.http import HttpContentTypes
 from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.protocol import error_handler
-from aiohomekit.protocol.statuscodes import to_status_code
+from aiohomekit.protocol.statuscodes import HapStatusCode, to_status_code
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.uuid import normalize_uuid
 from aiohomekit.zeroconf import HomeKitService, ZeroconfPairing
@@ -113,13 +113,6 @@ class IpPairing(ZeroconfPairing):
 
     def event_received(self, event):
         self._callback_listeners(format_characteristic_list(event))
-
-    def _callback_listeners(self, event):
-        for listener in self.listeners:
-            try:
-                listener(event)
-            except Exception:
-                logger.exception("Unhandled error when processing event")
 
     async def connection_made(self, secure):
         if not secure:
@@ -263,7 +256,9 @@ class IpPairing(ZeroconfPairing):
 
         return format_characteristic_list(response)
 
-    async def put_characteristics(self, characteristics):
+    async def put_characteristics(
+        self, characteristics: Iterable[tuple[int, int, Any]]
+    ) -> dict[tuple[int, int], dict[str, Any]]:
         """
         Update the values of writable characteristics. The characteristics have to be identified by accessory id (aid),
         instance id (iid). If do_conversion is False (the default), the value must be of proper format for the
@@ -280,28 +275,33 @@ class IpPairing(ZeroconfPairing):
         if not self.accessories:
             await self.list_accessories_and_characteristics()
 
-        data = []
-        characteristics_set = set()
+        char_payload: list[dict[str, Any]] = []
+        listener_update = {tuple[int, int]: dict[str, Any]}
         for characteristic in characteristics:
-            aid = characteristic[0]
-            iid = characteristic[1]
-            value = characteristic[2]
-            characteristics_set.add(f"{aid}.{iid}")
-            data.append({"aid": aid, "iid": iid, "value": value})
-        data = {"characteristics": data}
+            aid, iid, value = characteristic
+            char_payload.append({"aid": aid, "iid": iid, "value": value})
+            listener_update[(aid, iid)] = {"value": value}
 
-        response = await self.connection.put_json("/characteristics", data)
+        response = await self.connection.put_json(
+            "/characteristics", {"characteristics": char_payload}
+        )
+        response_status: dict[tuple[int, int], dict[str, Any]] = {}
         if response:
-            data = {
-                (d["aid"], d["iid"]): {
-                    "status": d["status"],
-                    "description": to_status_code(d["status"]).description,
-                }
-                for d in response["characteristics"]
-            }
-            return data
+            # If there is a response it means something failed so
+            # we need to remove the listener update for the failed
+            # characteristics.
+            for characteristic in response:
+                aid, iid = characteristic["aid"], characteristic["iid"]
+                key = (aid, iid)
+                status = characteristic["status"]
+                status_code = to_status_code(status).description
+                if status_code != HapStatusCode.SUCCESS:
+                    listener_update.pop(key)
+                response_status[key] = {"status": status, "description": status_code}
 
-        return {}
+        if listener_update:
+            self._callback_listeners(listener_update)
+        return response_status
 
     async def subscribe(self, characteristics):
         await super().subscribe(set(characteristics))

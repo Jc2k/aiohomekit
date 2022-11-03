@@ -141,6 +141,14 @@ class AbstractPairing(metaclass=ABCMeta):
     async def _process_disconnected_events(self):
         """Process any disconnected events that are available."""
 
+    def _callback_listeners(self, event):
+        for listener in self.listeners:
+            try:
+                logger.debug("callback ev:%s", event)
+                listener(event)
+            except Exception:
+                logger.exception("Unhandled error when processing event")
+
     def _async_description_update(
         self, description: AbstractDescription | None
     ) -> None:
