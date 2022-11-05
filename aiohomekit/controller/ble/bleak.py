@@ -7,8 +7,9 @@ import uuid
 
 from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.backends.device import BLEDevice
-from bleak_retry_connector import BleakClientWithServiceCache
 from bleak.exc import BleakError
+from bleak_retry_connector import BleakClientWithServiceCache
+
 from .const import HAP_MIN_REQUIRED_MTU
 
 CHAR_DESCRIPTOR_ID = "DC46F0FE-81D2-4616-B5D9-6ABDD796939A"
@@ -20,6 +21,7 @@ ATT_HEADER_SIZE = 3
 
 class BleakCharacteristicMissing(BleakError):
     """Raised when a characteristic is missing from a service."""
+
 
 class BleakServiceMissing(BleakError):
     """Raised when a service is missing."""
