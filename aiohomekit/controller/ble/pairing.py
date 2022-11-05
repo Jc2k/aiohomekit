@@ -173,9 +173,9 @@ def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
     ) -> None:
         try:
             return await func(self, *args, **kwargs)
-        except (BleakServiceMissing, BleakCharacteristicMissing):
+        except (BleakServiceMissing, BleakCharacteristicMissing) as ex:
             logger.warning(
-                "%s: Missing service or characteristic, disconnecting to force refetch of GATT services",
+                "%s: Missing service or characteristic, disconnecting to force refetch of GATT services: %s",
                 self.name,
             )
             if self.client:
