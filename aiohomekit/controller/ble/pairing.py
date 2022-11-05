@@ -177,6 +177,7 @@ def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
             logger.warning(
                 "%s: Missing service or characteristic, disconnecting to force refetch of GATT services: %s",
                 self.name,
+                ex,
             )
             if self.client:
                 await self.client.disconnect()
