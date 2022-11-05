@@ -7,6 +7,7 @@ import uuid
 
 from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.backends.device import BLEDevice
+from bleak.exc import BleakError
 from bleak_retry_connector import BleakClientWithServiceCache
 
 from .const import HAP_MIN_REQUIRED_MTU
@@ -16,6 +17,14 @@ CHAR_DESCRIPTOR_UUID = uuid.UUID(CHAR_DESCRIPTOR_ID)
 
 logger = logging.getLogger(__name__)
 ATT_HEADER_SIZE = 3
+
+
+class BleakCharacteristicMissing(BleakError):
+    """Raised when a characteristic is missing from a service."""
+
+
+class BleakServiceMissing(BleakError):
+    """Raised when a service is missing."""
 
 
 @lru_cache(maxsize=64, typed=True)
@@ -132,11 +141,11 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
             available_services = [
                 service.uuid for service in self.services.services.values()
             ]
-            raise ValueError(
+            raise BleakServiceMissing(
                 f"{self.__name}: Service {service_uuid} not found, available services: {available_services}"
             )
         available_chars = [char.uuid for char in service.characteristics]
-        raise ValueError(
+        raise BleakCharacteristicMissing(
             f"{self.__name}: Characteristic {characteristic_uuid} not found, available characteristics: {available_chars}"
         )
 
