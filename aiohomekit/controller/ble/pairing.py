@@ -59,7 +59,7 @@ from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from ..abstract import AbstractPairing, AbstractPairingData
-from .bleak import AIOHomeKitBleakClient
+from .bleak import AIOHomeKitBleakClient, BleakCharacteristicMissing, BleakServiceMissing
 from .client import (
     PDUStatusError,
     ble_request,
@@ -155,6 +155,28 @@ def operation_lock(func: WrapFuncType) -> WrapFuncType:
             return await func(self, *args, **kwargs)
 
     return cast(WrapFuncType, _async_operation_lock_wrap)
+
+
+
+def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
+    """Define a wrapper to disconnect on missing services and characteristics.
+    
+    This must be placed after the retry_bluetooth_connection_error
+    decorator.
+    """
+
+    async def _async_disconnect_on_missing_services_wrap(
+        self: BlePairing, *args: Any, **kwargs: Any
+    ) -> None:
+        try:
+            return await func(self, *args, **kwargs)
+        except (BleakServiceMissing, BleakCharacteristicMissing):
+            logger.warning("%s: Missing service or characteristic, disconnecting to force refetch of GATT services", self.name)
+            if self.client:
+                await self.client.disconnect()
+            raise
+
+    return cast(WrapFuncType, _async_disconnect_on_missing_services_wrap)
 
 
 def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
@@ -527,6 +549,7 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @disconnect_on_missing_services
     @restore_connection_and_resume
     async def _process_disconnected_events_with_retry(
         self,
@@ -830,6 +853,7 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @disconnect_on_missing_services
     @restore_connection_and_resume
     async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         return self.accessories.serialize()
@@ -930,6 +954,7 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @disconnect_on_missing_services
     async def _async_populate_accessories_state(
         self, force_update: bool = False, attempts: int | None = None
     ) -> None:
@@ -1115,6 +1140,7 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @disconnect_on_missing_services
     async def _process_config_changed(self, config_num: int) -> None:
         """Process a config change.
 
@@ -1126,6 +1152,7 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @disconnect_on_missing_services
     @restore_connection_and_resume
     async def list_pairings(self):
         request_tlv = TLV.encode_list(
@@ -1167,6 +1194,7 @@ class BlePairing(AbstractPairing):
         return tmp
 
     @retry_bluetooth_connection_error()
+    @disconnect_on_missing_services
     async def get_characteristics(
         self,
         characteristics: list[tuple[int, int]],
@@ -1275,6 +1303,7 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @disconnect_on_missing_services
     @restore_connection_and_resume
     async def put_characteristics(
         self, characteristics: list[tuple[int, int, Any]]
@@ -1351,6 +1380,7 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @disconnect_on_missing_services
     @restore_connection_and_resume
     async def _async_subscribe(self, new_chars: Iterable[tuple[int, int]]) -> None:
         """Subscribe to new characteristics."""
@@ -1393,6 +1423,7 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @disconnect_on_missing_services
     @restore_connection_and_resume
     async def add_pairing(
         self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
@@ -1449,6 +1480,7 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error(attempts=10)
+    @disconnect_on_missing_services
     @restore_connection_and_resume
     async def remove_pairing(self, pairingId: str) -> bool:
         request_tlv = TLV.encode_list(
