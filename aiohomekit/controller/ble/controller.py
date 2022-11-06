@@ -73,6 +73,21 @@ class BleController(AbstractController):
             return
 
         if pairing := self.pairings.get(data.id):
+            if (old_description := pairing.description) and len(
+                old_description.name
+            ) > len(data.name):
+                #
+                # If we have a pairing and the name is longer than the one we
+                # just received, we assume the name is more accurate and
+                # update it.
+                #
+                # SHORTENED LOCAL NAME
+                # The Shortened Local Name data type defines a shortened version
+                # of the Local Name data type. The Shortened Local Name data type
+                # shall not be used to advertise a name that is longer than the
+                # Local Name data type.
+                #
+                data.name = old_description.name
             pairing._async_description_update(data)
             pairing._async_ble_update(device, advertisement_data)
 
