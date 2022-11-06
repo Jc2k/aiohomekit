@@ -146,6 +146,22 @@ GET_ALL_PARAMS_PAYLOAD = (
     bytes([HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV.GetAllParams]) + b"\x00"
 )
 
+# Higher priority means we will fetch these first
+CHAR_FETCH_PRIORITY = {
+    CharacteristicsTypes.ON: 100,
+    CharacteristicsTypes.ACTIVE: 100,
+    CharacteristicsTypes.BRIGHTNESS: 90,
+    CharacteristicsTypes.HUE: 90,
+    CharacteristicsTypes.SATURATION: 90,
+    CharacteristicsTypes.COLOR_TEMPERATURE: 90,
+    CharacteristicsTypes.VERSION: -50,
+    CharacteristicsTypes.NAME: -50,
+    CharacteristicsTypes.THREAD_CONTROL_POINT: -100,
+    CharacteristicsTypes.THREAD_STATUS: -100,
+    CharacteristicsTypes.THREAD_NODE_CAPABILITIES: -100,
+    CharacteristicsTypes.THREAD_OPENTHREAD_VERSION: -100,
+}
+
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 
@@ -1236,6 +1252,33 @@ class BlePairing(AbstractPairing):
     ) -> dict[tuple[int, int], dict[str, Any]]:
         return await self._get_characteristics_without_retry(characteristics)
 
+    def _sort_characteristics_by_fetch_order(
+        self, characteristics: list[Characteristic]
+    ) -> list[Characteristic]:
+        """Sort characteristics by fetch order.
+
+        Characteristics are sorted by what we expect to be the most
+        useful order to fetch them in. This is based on the following
+        assumptions:
+
+        The on/off state of the accessory is the most important
+        characteristic to fetch.
+
+        Color/Brightness/Color Temperature/etc are the next most important
+        characteristics to fetch.
+
+        The remaining characteristics are less important and can be
+        fetched in any order except for ones that are unlikely to change
+        frequently like the name, version, and thread status so they
+        are fetched last.
+        """
+        return sorted(
+            characteristics,
+            key=lambda char: CHAR_FETCH_PRIORITY.get(
+                char.type, -100 if char.description is None else 0
+            ),
+        )
+
     @operation_lock
     @restore_connection_and_resume
     async def _get_characteristics_without_retry(
@@ -1250,15 +1293,19 @@ class BlePairing(AbstractPairing):
 
     async def _get_characteristics_while_connected(
         self,
-        characteristics: list[Characteristic],
+        unordered_characteristics: list[Characteristic],
         notify_listeners: bool = False,
     ) -> dict[tuple[int, int], dict[str, Any]]:
         assert self._operation_lock.locked(), "_operation_lock should be locked"
-        if logger.isEnabledFor(logging.DEBUG):
+        characteristics = self._sort_characteristics_by_fetch_order(
+            unordered_characteristics
+        )
+
+        debug_enabled = logger.isEnabledFor(logging.DEBUG)
+        if debug_enabled:
             logger.debug(
-                "%s: Reading characteristics: %s; rssi=%s",
+                "%s: Reading characteristics with rssi: %s",
                 self.name,
-                [char.iid for char in characteristics],
                 self.rssi,
             )
 
@@ -1274,7 +1321,14 @@ class BlePairing(AbstractPairing):
                     )
                     continue
 
-                logger.debug("%s: Reading characteristic %s", self.name, char.type)
+                if debug_enabled:
+                    logger.debug(
+                        "%s: Reading characteristic %s (%s) with iid %s",
+                        self.name,
+                        char.description,
+                        char.type,
+                        char.iid,
+                    )
 
                 try:
                     data = await self._async_request_under_lock(OpCode.CHAR_READ, char)
@@ -1284,15 +1338,17 @@ class BlePairing(AbstractPairing):
                     # we need to skip in this case.
                     if ex.status == PDUStatus.INVALID_REQUEST:
                         logger.debug(
-                            "%s: Reading characteristic %s with iid %s resulted in an invalid request (skipped)",
+                            "%s: Reading characteristic %s (%s) with iid %s resulted in an invalid request (skipped)",
                             self.name,
-                            char.iid,
+                            char.description,
                             char.type,
+                            char.iid,
                         )
                         continue
                     logger.exception(
-                        "%s: Reading characteristic %s with iid %s resulted in an error: %s",
+                        "%s: Reading characteristic %s (%s) with iid %s resulted in an error: %s",
                         self.name,
+                        char.description,
                         char.type,
                         char.iid,
                         ex,
@@ -1302,9 +1358,11 @@ class BlePairing(AbstractPairing):
                 decoded = dict(TLV.decode_bytes(data))[1]
 
                 logger.debug(
-                    "%s: Read characteristic %s got data, expected format is %s: data=%s decoded=%s",
+                    "%s: Read characteristic %s (%s) with iid %s got data, expected format is %s: data=%s decoded=%s",
                     self.name,
+                    char.description,
                     char.type,
+                    char.iid,
                     char.format,
                     data,
                     decoded,
@@ -1314,9 +1372,11 @@ class BlePairing(AbstractPairing):
                     value = from_bytes(char, decoded)
                 except struct.error as ex:
                     logger.debug(
-                        "%s: Failed to decode characteristic for %s from %s: %s",
+                        "%s: Failed to decode characteristic %s (%s) with iid %s from %s: %s",
                         self.name,
+                        char.description,
                         char.type,
+                        char.iid,
                         decoded,
                         ex,
                     )
