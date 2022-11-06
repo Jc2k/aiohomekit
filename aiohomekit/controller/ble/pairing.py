@@ -865,6 +865,38 @@ class BlePairing(AbstractPairing):
     async def list_accessories_and_characteristics(self) -> list[dict[str, Any]]:
         return self.accessories.serialize()
 
+    async def get_primary_name(self) -> str:
+        """Return the primary name of the device.
+
+        This overrides the default implementation
+        to get name from the advertisement if the
+        accessories are not available which happens
+        frequently with the ESPHome proxies because
+        they cannot currently connect right away again
+        after disconnecting.
+
+        We want to avoid raising here if possible
+        since this is called right after pairing
+        and if we raise the pairing will fail but
+        the device will still be paired and the user
+        will have to un-pair it manually with a factory
+        reset.
+        """
+        if not self.accessories:
+            if self.description:
+                self._accessories_state = AccessoriesState(
+                    Accessories(), -1, self.broadcast_key
+                )
+                return self.description.name
+            parsed = await self.list_accessories_and_characteristics()
+        else:
+            parsed = self.accessories
+
+        accessory_info = parsed.aid(1).services.first(
+            service_type=ServicesTypes.ACCESSORY_INFORMATION
+        )
+        return accessory_info.value(CharacteristicsTypes.NAME, "")
+
     async def _populate_char_values(self, config_changed: bool) -> None:
         """Populate the values of all characteristics."""
         chars: list[Characteristic] = []
@@ -976,10 +1008,13 @@ class BlePairing(AbstractPairing):
         Older code did not save the handle, so if we have no handles
         we need to re-fetch the gatt database.
         """
-        for service in self.accessories.aid(BLE_AID).services:
-            for char in service.characteristics:
-                if char.handle is not None:
-                    return False
+        try:
+            for service in self.accessories.aid(BLE_AID).services:
+                for char in service.characteristics:
+                    if char.handle is not None:
+                        return False
+        except StopIteration:
+            return True
         return True
 
     async def _populate_accessories_and_characteristics(
