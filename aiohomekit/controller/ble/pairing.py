@@ -1275,9 +1275,10 @@ class BlePairing(AbstractPairing):
         return sorted(
             characteristics,
             key=lambda char: CHAR_FETCH_PRIORITY.get(
-                char.type, -100 if char.description is None else 0
+                char.type,
+                10 if char.broadcast_events or char.disconnected_events else 0,
             ),
-            reverse=True
+            reverse=True,
         )
 
     @operation_lock
