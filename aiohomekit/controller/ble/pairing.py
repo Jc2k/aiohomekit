@@ -148,10 +148,20 @@ GET_ALL_PARAMS_PAYLOAD = (
 
 # Higher priority means we will fetch these first
 CHAR_FETCH_PRIORITY = {
+    CharacteristicsTypes.MOTION_DETECTED: 100,
+    CharacteristicsTypes.CONTACT_STATE: 100,
+    CharacteristicsTypes.OCCUPANCY_DETECTED: 100,
+    CharacteristicsTypes.DOOR_STATE_CURRENT: 100,
+    CharacteristicsTypes.DOOR_STATE_TARGET: 100,
+    CharacteristicsTypes.INPUT_EVENT: 100,
     CharacteristicsTypes.ON: 100,
     CharacteristicsTypes.ACTIVE: 100,
     CharacteristicsTypes.LOCK_MECHANISM_CURRENT_STATE: 100,
     CharacteristicsTypes.LOCK_MECHANISM_TARGET_STATE: 100,
+    CharacteristicsTypes.LEAK_DETECTED: 90,
+    CharacteristicsTypes.SMOKE_DETECTED: 90,
+    CharacteristicsTypes.CARBON_MONOXIDE_DETECTED: 90,
+    CharacteristicsTypes.CARBON_DIOXIDE_DETECTED: 90,
     CharacteristicsTypes.BRIGHTNESS: 90,
     CharacteristicsTypes.HUE: 90,
     CharacteristicsTypes.SATURATION: 90,
