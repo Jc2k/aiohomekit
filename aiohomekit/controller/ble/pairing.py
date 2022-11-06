@@ -150,6 +150,8 @@ GET_ALL_PARAMS_PAYLOAD = (
 CHAR_FETCH_PRIORITY = {
     CharacteristicsTypes.ON: 100,
     CharacteristicsTypes.ACTIVE: 100,
+    CharacteristicsTypes.LOCK_MECHANISM_CURRENT_STATE: 100,
+    CharacteristicsTypes.LOCK_MECHANISM_TARGET_STATE: 100,
     CharacteristicsTypes.BRIGHTNESS: 90,
     CharacteristicsTypes.HUE: 90,
     CharacteristicsTypes.SATURATION: 90,
@@ -1272,6 +1274,8 @@ class BlePairing(AbstractPairing):
         frequently like the name, version, and thread status so they
         are fetched last.
         """
+        # If we ever fetch which service is the primary we should
+        # also sort by that.
         return sorted(
             characteristics,
             key=lambda char: CHAR_FETCH_PRIORITY.get(
