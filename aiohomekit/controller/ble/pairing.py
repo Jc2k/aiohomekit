@@ -882,20 +882,12 @@ class BlePairing(AbstractPairing):
         will have to un-pair it manually with a factory
         reset.
         """
-        if not self.accessories:
-            if self.description:
-                self._accessories_state = AccessoriesState(
-                    Accessories(), -1, self.broadcast_key
-                )
-                return self.description.name
-            parsed = await self.list_accessories_and_characteristics()
-        else:
-            parsed = self.accessories
-
-        accessory_info = parsed.aid(1).services.first(
-            service_type=ServicesTypes.ACCESSORY_INFORMATION
-        )
-        return accessory_info.value(CharacteristicsTypes.NAME, "")
+        if not self.accessories and self.description:
+            self._accessories_state = AccessoriesState(
+                Accessories(), -1, self.broadcast_key
+            )
+            return self.description.name
+        return await super().get_primary_name()
 
     async def _populate_char_values(self, config_changed: bool) -> None:
         """Populate the values of all characteristics."""
