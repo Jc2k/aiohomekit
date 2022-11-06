@@ -1277,6 +1277,7 @@ class BlePairing(AbstractPairing):
             key=lambda char: CHAR_FETCH_PRIORITY.get(
                 char.type, -100 if char.description is None else 0
             ),
+            reverse=True
         )
 
     @operation_lock
