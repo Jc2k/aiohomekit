@@ -898,6 +898,7 @@ class BlePairing(AbstractPairing):
             if (
                 not config_changed
                 and service.type == ServicesTypes.ACCESSORY_INFORMATION
+                and service.value(CharacteristicsTypes.NAME) is not None
             ):
                 continue
             for char in service.characteristics:
