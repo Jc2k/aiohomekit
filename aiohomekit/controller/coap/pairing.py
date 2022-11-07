@@ -219,6 +219,18 @@ class CoAPPairing(ZeroconfPairing):
 
         return response_status
 
+    async def thread_provision(
+        self,
+        network_name: str,
+        channel: int,
+        pan_id: str,
+        extended_pan_id: str,
+        network_key: str,
+        unknown: int,
+    ) -> None:
+        """Provision a device with Thread network credentials."""
+        return
+
     async def subscribe(self, characteristics):
         await self._ensure_connected()
         new_subs = await super().subscribe(set(characteristics))

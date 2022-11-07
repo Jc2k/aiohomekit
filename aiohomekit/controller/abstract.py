@@ -268,6 +268,18 @@ class AbstractPairing(metaclass=ABCMeta):
         return accessory_info.value(CharacteristicsTypes.NAME, "")
 
     @abstractmethod
+    async def thread_provision(
+        self,
+        network_name: str,
+        channel: int,
+        pan_id: str,
+        extended_pan_id: str,
+        network_key: str,
+        unknown: int,
+    ) -> None:
+        """Provision a device with Thread network credentials."""
+
+    @abstractmethod
     async def async_populate_accessories_state(
         self, force_update: bool = False, attempts: int | None = None
     ) -> None:

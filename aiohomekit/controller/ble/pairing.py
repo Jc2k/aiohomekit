@@ -1507,6 +1507,74 @@ class BlePairing(AbstractPairing):
 
         return results
 
+    @operation_lock
+    @restore_connection_and_resume
+    async def thread_provision(
+        self,
+        network_name: str,
+        channel: int,
+        pan_id: str,
+        extended_pan_id: str,
+        network_key: str,
+        unknown: int,
+    ) -> None:
+        """Provision a device with Thread network credentials."""
+        thread_service = self.accessories.aid(BLE_AID).services.first(
+            service_type=ServicesTypes.THREAD_TRANSPORT
+        )
+        thread_control = thread_service[CharacteristicsTypes.THREAD_CONTROL_POINT]
+
+        inner_request_tlv = TLV.encode_list(
+            [
+                (1, b"\x03"),
+            ]
+        )
+        request_tlv = TLV.encode_list(
+            [
+                (TLV.kTLVHAPParamParamReturnResponse, bytearray(b"\x01")),
+                (TLV.kTLVHAPParamValue, inner_request_tlv),
+            ]
+        )
+        resp = await self._async_request(OpCode.CHAR_WRITE, thread_control, request_tlv)
+        logger.debug("resp=%r" % (resp,))
+
+        thread_tlv = TLV.encode_list(
+            [
+                (1, bytes(network_name, encoding="ascii")),
+                (2, channel.to_bytes(1, byteorder="little")),
+                (3, int(pan_id, base=16).to_bytes(2, byteorder="little")),
+                (4, bytes.fromhex(extended_pan_id)),
+                (5, bytes.fromhex(network_key)),
+            ]
+        )
+        inner_request_tlv = TLV.encode_list(
+            [
+                # TLV 1 is some sort of write/provision OpCode
+                (1, b"\x01"),
+                # TLV 2 contains the Thread network details
+                (2, thread_tlv),
+                # TLV 3 seems to be a bitfield or identifier; iOS sends 0 & Android sends 1
+                (3, unknown.to_bytes(1, byteorder="little")),
+            ]
+        )
+        request_tlv = TLV.encode_list(
+            [
+                (TLV.kTLVHAPParamParamReturnResponse, bytearray(b"\x01")),
+                (TLV.kTLVHAPParamValue, inner_request_tlv),
+            ]
+        )
+
+        try:
+            resp = await self._async_request(
+                OpCode.CHAR_WRITE, thread_control, request_tlv
+            )
+            # we shouldn't get a response
+            logger.debug("resp=%r" % (resp,))
+        except Exception as e:
+            # this is the expected code flow
+            logger.debug("err=%r" % (e,))
+            await self.close()
+
     async def subscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
         """Subscribe to characteristics."""
         new_chars = await super().subscribe(characteristics)
