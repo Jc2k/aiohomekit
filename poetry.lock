@@ -1,6 +1,6 @@
 [[package]]
 name = "aiocoap"
-version = "0.4.3"
+version = "0.4.4"
 description = "Python CoAP library"
 category = "main"
 optional = false
@@ -96,7 +96,7 @@ python-versions = ">=3.5"
 dev = ["cloudpickle", "coverage[toml] (>=5.0.2)", "furo", "hypothesis", "mypy (>=0.900,!=0.940)", "pre-commit", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "sphinx", "sphinx-notfound-page", "zope.interface"]
 docs = ["furo", "sphinx", "sphinx-notfound-page", "zope.interface"]
 tests = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "zope.interface"]
-tests_no_zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins"]
+tests-no-zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins"]
 
 [[package]]
 name = "black"
@@ -211,7 +211,7 @@ optional = false
 python-versions = ">=3.6.0"
 
 [package.extras]
-unicode_backport = ["unicodedata2"]
+unicode-backport = ["unicodedata2"]
 
 [[package]]
 name = "click"
@@ -368,9 +368,9 @@ python-versions = ">=3.6.1,<4.0"
 
 [package.extras]
 colors = ["colorama (>=0.4.3,<0.5.0)"]
-pipfile_deprecated_finder = ["pipreqs", "requirementslib"]
+pipfile-deprecated-finder = ["pipreqs", "requirementslib"]
 plugins = ["setuptools"]
-requirements_deprecated_finder = ["pip-api", "pipreqs"]
+requirements-deprecated-finder = ["pip-api", "pipreqs"]
 
 [[package]]
 name = "lark-parser"
@@ -681,7 +681,7 @@ urllib3 = ">=1.21.1,<1.27"
 
 [package.extras]
 socks = ["PySocks (>=1.5.6,!=1.5.7)"]
-use_chardet_on_py3 = ["chardet (>=3.0.2,<6)"]
+use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "setuptools"
@@ -784,12 +784,12 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "7ce18fe238b8c1a0b2d704b59a591f68e75169805d83af44a02d8854262505a4"
+content-hash = "ca3062d0821f3670bc9fe66fd9866b00dfb57f004b9fffd6311c62ee76b2846f"
 
 [metadata.files]
 aiocoap = [
-    {file = "aiocoap-0.4.3-py3-none-any.whl", hash = "sha256:8d9ba6dd4f95b5b82bb7004584ce26a63ae31c9f36c1f135cc599d2f7868ff08"},
-    {file = "aiocoap-0.4.3.tar.gz", hash = "sha256:ac261b0a4425ddedc23deb4b5c8b5ad8a0911041d26bf567e33b459666adc1fc"},
+    {file = "aiocoap-0.4.4-py3-none-any.whl", hash = "sha256:d9ad3980290f212a6ca691b6906a0ffb0971facd9a3cc2911ecb56f9a759ab17"},
+    {file = "aiocoap-0.4.4.tar.gz", hash = "sha256:9d7c9626cbc4dc24a91c6b8694cbeb834e376ab7e20e4137609380f726a9540b"},
 ]
 aiohttp = [
     {file = "aiohttp-3.8.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:1ed0b6477896559f17b9eaeb6d38e07f7f9ffe40b9f0f9627ae8b9926ae260a8"},
