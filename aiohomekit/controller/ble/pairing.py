@@ -1029,13 +1029,12 @@ class BlePairing(AbstractPairing):
         Older code did not save the handle, so if we have no handles
         we need to re-fetch the gatt database.
         """
-        try:
-            for service in self.accessories.aid(BLE_AID).services:
-                for char in service.characteristics:
-                    if char.handle is not None:
-                        return False
-        except (KeyError, StopIteration):
+        if not self.accessories.accessories:
             return True
+        for service in self.accessories.aid(BLE_AID).services:
+            for char in service.characteristics:
+                if char.handle is not None:
+                    return False
         return True
 
     async def _populate_accessories_and_characteristics(
