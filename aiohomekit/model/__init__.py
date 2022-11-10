@@ -164,6 +164,11 @@ class Accessory:
         serial_number: str,
         firmware_revision: str,
     ) -> Accessory:
+        """Create an accessory with the required services for HomeKit.
+
+        This method should only be used for testing purposes as it assigns
+        the next available ids to the accessory and services.
+        """
         self = cls()
 
         accessory_info = self.add_service(ServicesTypes.ACCESSORY_INFORMATION)
