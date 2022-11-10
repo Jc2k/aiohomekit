@@ -20,7 +20,7 @@ from datetime import timedelta
 import logging
 from typing import Any, Iterable
 from aiohomekit.model.characteristics import CharacteristicPermissions
-
+from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Accessories, AccessoriesState, Transport
@@ -203,7 +203,8 @@ class CoAPPairing(ZeroconfPairing):
             accessory_chars = self.accessories.aid(aid).characteristics
             char = accessory_chars.iid(iid)
             if (
-                response_status.get((aid, iid), 0) == 0
+                response_status.get((aid, iid), HapStatusCode.SUCCESS)
+                == HapStatusCode.SUCCESS
                 and CharacteristicPermissions.paired_read in char.perms
             ):
                 listener_update[(aid, iid)] = {"value": value}
