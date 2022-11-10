@@ -792,8 +792,7 @@ class BlePairing(AbstractPairing):
                 service_iid_bytes,
                 service_iid,
             )
-            s = accessory.add_service(normalize_uuid(service.uuid))
-            s.iid = service_iid
+            s = accessory.add_service(normalize_uuid(service.uuid), iid=service_iid)
 
             service_signature_char = service.get_characteristic(SERVICE_SIGNATURE_UUID)
             if service_signature_char:
