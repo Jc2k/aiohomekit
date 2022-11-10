@@ -121,6 +121,22 @@ def test_get_by_characteristic_types():
     assert char.value == name
 
 
+def test_get_by_iid():
+    name = "Hue dimmer switch button 3"
+
+    bridge = Accessories.from_file("tests/fixtures/hue_bridge.json")
+    accessory = bridge.aid(6623462389072572)
+
+    char = accessory.characteristics.iid(588410716196)
+    assert char.value == name
+
+    service = accessory.services.first(
+        service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH,
+        characteristics={CharacteristicsTypes.NAME: name},
+    )
+    assert service.get_char_by_iid(588410716196) is char
+
+
 def test_get_by_vendor_characteristic_types():
     spray_level = 5
 
