@@ -826,10 +826,9 @@ class BlePairing(AbstractPairing):
                     # that presents identify as data.
                     decoded["format"] = "bool"
 
-                hap_char = s.add_char(normalized_uuid)
+                hap_char = s.add_char(normalized_uuid, iid=iid)
                 logger.debug("%s: char: %s decoded: %s", self.name, char, decoded)
-
-                hap_char.iid = iid
+                assert hap_char.iid == iid, "iid should be set"
                 hap_char.handle = char.handle
                 hap_char.perms = decoded["perms"]
                 # Some vendor characteristics have no format
@@ -1028,13 +1027,12 @@ class BlePairing(AbstractPairing):
         Older code did not save the handle, so if we have no handles
         we need to re-fetch the gatt database.
         """
-        try:
-            for service in self.accessories.aid(BLE_AID).services:
-                for char in service.characteristics:
-                    if char.handle is not None:
-                        return False
-        except StopIteration:
+        if not self.accessories.accessories:
             return True
+        for service in self.accessories.aid(BLE_AID).services:
+            for char in service.characteristics:
+                if char.handle is not None:
+                    return False
         return True
 
     async def _populate_accessories_and_characteristics(

@@ -32,11 +32,16 @@ class Characteristics:
 
     _characteristics: list[Characteristic]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._characteristics = []
+        self._iid_to_characteristic: dict[int, Characteristic] = {}
 
     def append(self, char: Characteristic) -> None:
         self._characteristics.append(char)
+        self._iid_to_characteristic[char.iid] = char
+
+    def get(self, iid: int) -> Characteristic:
+        return self._iid_to_characteristic.get(iid)
 
     def __iter__(self) -> Iterator[Characteristic]:
         return iter(self._characteristics)
@@ -70,11 +75,12 @@ class Service:
         service_type: str,
         name: str | None = None,
         add_required: bool = False,
+        iid: int | None = None,
     ):
         self.type = normalize_uuid(service_type)
 
         self.accessory = accessory
-        self.iid = accessory.get_next_id()
+        self.iid = iid or accessory.get_next_id()
         self.characteristics = Characteristics()
         self.characteristics_by_type = {}
         self.linked = []
@@ -104,11 +110,15 @@ class Service:
         key = normalize_uuid(key)
         return self.characteristics_by_type[key]
 
-    def add_char(self, char_type: str, **kwargs) -> Characteristic:
+    def add_char(self, char_type: str, **kwargs: Any) -> Characteristic:
         char = Characteristic(self, char_type, **kwargs)
         self.characteristics.append(char)
         self.characteristics_by_type[char.type] = char
         return char
+
+    def get_char_by_iid(self, iid: int) -> Characteristic | None:
+        """Get a characteristic by iid."""
+        return self.characteristics.get(iid)
 
     def add_linked_service(self, service: Service) -> None:
         self.linked.append(service)

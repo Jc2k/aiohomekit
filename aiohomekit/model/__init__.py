@@ -63,12 +63,20 @@ class Transport(Enum):
 class Services:
     def __init__(self):
         self._services: list[Service] = []
+        self._iid_to_service: dict[int, Service] = {}
 
     def __iter__(self) -> Iterator[Service]:
         return iter(self._services)
 
     def iid(self, iid: int) -> Service:
-        return next(filter(lambda service: service.iid == iid, self._services))
+        return self._iid_to_service[iid]
+
+    def get_char_by_iid(self, iid: int) -> Characteristic | None:
+        """Get a characteristic by iid."""
+        for service in self._services:
+            if char := service.get_char_by_iid(iid):
+                return char
+        return None
 
     def filter(
         self,
@@ -129,6 +137,7 @@ class Services:
 
     def append(self, service: Service):
         self._services.append(service)
+        self._iid_to_service[service.iid] = service
 
 
 class Characteristics:
@@ -136,11 +145,7 @@ class Characteristics:
         self._services = services
 
     def iid(self, iid: int) -> Characteristic | None:
-        for service in self._services:
-            for char in service.characteristics:
-                if char.iid == iid:
-                    return char
-        return None
+        return self._services.get_char_by_iid(iid)
 
 
 class Accessory:
@@ -159,6 +164,11 @@ class Accessory:
         serial_number: str,
         firmware_revision: str,
     ) -> Accessory:
+        """Create an accessory with the required services for HomeKit.
+
+        This method should only be used for testing purposes as it assigns
+        the next available ids to the accessory and services.
+        """
         self = cls()
 
         accessory_info = self.add_service(ServicesTypes.ACCESSORY_INFORMATION)
@@ -229,9 +239,9 @@ class Accessory:
         accessory.aid = data["aid"]
 
         for service_data in data["services"]:
-            service = accessory.add_service(service_data["type"], add_required=False)
-            service.iid = service_data["iid"]
-
+            service = accessory.add_service(
+                service_data["type"], iid=service_data["iid"], add_required=False
+            )
             for char_data in service_data["characteristics"]:
                 kwargs = {
                     "perms": char_data["perms"],
@@ -259,9 +269,9 @@ class Accessory:
                 if "disconnected_events" in char_data:
                     kwargs["disconnected_events"] = char_data["disconnected_events"]
 
-                char = service.add_char(char_data["type"], **kwargs)
-                char.iid = char_data["iid"]
-
+                char = service.add_char(
+                    char_data["type"], iid=char_data["iid"], **kwargs
+                )
                 if char_data.get("value") is not None:
                     char.set_value(char_data["value"])
 
@@ -278,9 +288,15 @@ class Accessory:
         return self._next_id
 
     def add_service(
-        self, service_type: str, name: str | None = None, add_required: bool = False
+        self,
+        service_type: str,
+        name: str | None = None,
+        add_required: bool = False,
+        iid: int | None = None,
     ) -> Service:
-        service = Service(self, service_type, name=name, add_required=add_required)
+        service = Service(
+            self, service_type, name=name, add_required=add_required, iid=iid
+        )
         self.services.append(service)
         return service
 
@@ -298,6 +314,7 @@ class Accessories:
 
     def __init__(self) -> None:
         self.accessories = []
+        self._aid_to_accessory: dict[int, Accessory] = {}
 
     def __iter__(self) -> Iterator[Accessory]:
         return iter(self.accessories)
@@ -319,6 +336,7 @@ class Accessories:
 
     def add_accessory(self, accessory: Accessory) -> None:
         self.accessories.append(accessory)
+        self._aid_to_accessory[accessory.aid] = accessory
 
     def serialize(self) -> entity_map.Accesories:
         accessories_list = []
@@ -330,8 +348,8 @@ class Accessories:
         d = {"accessories": self.serialize()}
         return hkjson.dumps(d)
 
-    def aid(self, aid) -> Accessory:
-        return next(filter(lambda accessory: accessory.aid == aid, self.accessories))
+    def aid(self, aid: int) -> Accessory:
+        return self._aid_to_accessory[aid]
 
     def process_changes(self, changes: dict[tuple[int, int], Any]) -> None:
         for ((aid, iid), value) in changes.items():
