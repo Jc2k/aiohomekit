@@ -93,7 +93,9 @@ class Characteristic:
 
     def __init__(self, service: Service, characteristic_type: str, **kwargs) -> None:
         self.service = service
-        self.iid = service.accessory.get_next_id()
+        self.iid = self._get_configuration(
+            kwargs, "iid", service.accessory.get_next_id()
+        )
         self.type = normalize_uuid(characteristic_type)
 
         self.perms = self._get_configuration(

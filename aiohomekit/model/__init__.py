@@ -234,9 +234,9 @@ class Accessory:
         accessory.aid = data["aid"]
 
         for service_data in data["services"]:
-            service = accessory.add_service(service_data["type"], add_required=False)
-            service.iid = service_data["iid"]
-
+            service = accessory.add_service(
+                service_data["type"], iid=service_data["iid"], add_required=False
+            )
             for char_data in service_data["characteristics"]:
                 kwargs = {
                     "perms": char_data["perms"],
@@ -264,9 +264,9 @@ class Accessory:
                 if "disconnected_events" in char_data:
                     kwargs["disconnected_events"] = char_data["disconnected_events"]
 
-                char = service.add_char(char_data["type"], **kwargs)
-                char.iid = char_data["iid"]
-
+                char = service.add_char(
+                    char_data["type"], iid=char_data["iid"], **kwargs
+                )
                 if char_data.get("value") is not None:
                     char.set_value(char_data["value"])
 
@@ -283,9 +283,15 @@ class Accessory:
         return self._next_id
 
     def add_service(
-        self, service_type: str, name: str | None = None, add_required: bool = False
+        self,
+        service_type: str,
+        name: str | None = None,
+        add_required: bool = False,
+        iid: int | None = None,
     ) -> Service:
-        service = Service(self, service_type, name=name, add_required=add_required)
+        service = Service(
+            self, service_type, name=name, add_required=add_required, iid=iid
+        )
         self.services.append(service)
         return service
 

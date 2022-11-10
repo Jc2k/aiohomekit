@@ -75,11 +75,12 @@ class Service:
         service_type: str,
         name: str | None = None,
         add_required: bool = False,
+        iid: int | None = None,
     ):
         self.type = normalize_uuid(service_type)
 
         self.accessory = accessory
-        self.iid = accessory.get_next_id()
+        self.iid = iid or accessory.get_next_id()
         self.characteristics = Characteristics()
         self.characteristics_by_type = {}
         self.linked = []
@@ -109,7 +110,7 @@ class Service:
         key = normalize_uuid(key)
         return self.characteristics_by_type[key]
 
-    def add_char(self, char_type: str, **kwargs) -> Characteristic:
+    def add_char(self, char_type: str, **kwargs: Any) -> Characteristic:
         char = Characteristic(self, char_type, **kwargs)
         self.characteristics.append(char)
         self.characteristics_by_type[char.type] = char
