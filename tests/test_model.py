@@ -129,7 +129,7 @@ def test_get_by_iid():
 
     char = accessory.characteristics.iid(588410716196)
     assert char.value == name
- 
+
     service = accessory.services.first(
         service_type=ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH,
         characteristics={CharacteristicsTypes.NAME: name},
