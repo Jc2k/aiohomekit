@@ -1034,7 +1034,7 @@ class BlePairing(AbstractPairing):
                 for char in service.characteristics:
                     if char.handle is not None:
                         return False
-        except StopIteration:
+        except (KeyError, StopIteration):
             return True
         return True
 
