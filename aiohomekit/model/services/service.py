@@ -77,6 +77,7 @@ class Service:
         self.iid = accessory.get_next_id()
         self.characteristics = Characteristics()
         self.characteristics_by_type = {}
+        self._iid_to_char: dict[int, Characteristic] = {}
         self.linked = []
 
         if name:
@@ -108,7 +109,12 @@ class Service:
         char = Characteristic(self, char_type, **kwargs)
         self.characteristics.append(char)
         self.characteristics_by_type[char.type] = char
+        self._iid_to_char[char.iid] = char
         return char
+
+    def get_char_by_iid(self, iid: int) -> Characteristic | None:
+        """Get a characteristic by iid."""
+        return self._iid_to_char.get(iid)
 
     def add_linked_service(self, service: Service) -> None:
         self.linked.append(service)

@@ -63,12 +63,20 @@ class Transport(Enum):
 class Services:
     def __init__(self):
         self._services: list[Service] = []
+        self._iid_to_service: dict[int, Service] = {}
 
     def __iter__(self) -> Iterator[Service]:
         return iter(self._services)
 
     def iid(self, iid: int) -> Service:
-        return next(filter(lambda service: service.iid == iid, self._services))
+        return self._iid_to_service[iid]
+
+    def get_char_by_iid(self, iid: int) -> Characteristic | None:
+        """Get a characteristic by iid."""
+        for service in self._services:
+            if char := service.get_char_by_iid(iid):
+                return char
+        return None
 
     def filter(
         self,
@@ -129,6 +137,7 @@ class Services:
 
     def append(self, service: Service):
         self._services.append(service)
+        self._iid_to_service[service.iid] = service
 
 
 class Characteristics:
@@ -136,11 +145,7 @@ class Characteristics:
         self._services = services
 
     def iid(self, iid: int) -> Characteristic | None:
-        for service in self._services:
-            for char in service.characteristics:
-                if char.iid == iid:
-                    return char
-        return None
+        return self._services.get_char_by_iid(iid)
 
 
 class Accessory:
@@ -298,6 +303,7 @@ class Accessories:
 
     def __init__(self) -> None:
         self.accessories = []
+        self._aid_to_accessory: dict[int, Accessory] = {}
 
     def __iter__(self) -> Iterator[Accessory]:
         return iter(self.accessories)
@@ -319,6 +325,7 @@ class Accessories:
 
     def add_accessory(self, accessory: Accessory) -> None:
         self.accessories.append(accessory)
+        self._aid_to_accessory[accessory.aid] = accessory
 
     def serialize(self) -> entity_map.Accesories:
         accessories_list = []
@@ -330,8 +337,8 @@ class Accessories:
         d = {"accessories": self.serialize()}
         return hkjson.dumps(d)
 
-    def aid(self, aid) -> Accessory:
-        return next(filter(lambda accessory: accessory.aid == aid, self.accessories))
+    def aid(self, aid: int) -> Accessory:
+        return self._aid_to_accessory[aid]
 
     def process_changes(self, changes: dict[tuple[int, int], Any]) -> None:
         for ((aid, iid), value) in changes.items():
