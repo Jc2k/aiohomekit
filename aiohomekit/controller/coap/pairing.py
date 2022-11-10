@@ -19,6 +19,7 @@ import asyncio
 from datetime import timedelta
 import logging
 from typing import Any, Iterable
+from aiohomekit.model.characteristics import CharacteristicPermissions
 
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import AccessoryDisconnectedError
@@ -199,7 +200,12 @@ class CoAPPairing(ZeroconfPairing):
         listener_update = {tuple[int, int]: dict[str, Any]}
         for characteristic in characteristics:
             aid, iid, value = characteristic
-            if response_status.get((aid, iid), 0) == 0:
+            accessory_chars = self.accessories.aid(aid).characteristics
+            char = accessory_chars.iid(iid)
+            if (
+                response_status.get((aid, iid), 0) == 0
+                and CharacteristicPermissions.paired_read in char.perms
+            ):
                 listener_update[(aid, iid)] = {"value": value}
 
         if listener_update:

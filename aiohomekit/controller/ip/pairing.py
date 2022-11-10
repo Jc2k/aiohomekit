@@ -21,6 +21,7 @@ from itertools import groupby
 import logging
 from operator import itemgetter
 from typing import Any, Iterable
+from aiohomekit.model.characteristics import CharacteristicPermissions
 
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import (
@@ -280,7 +281,10 @@ class IpPairing(ZeroconfPairing):
         for characteristic in characteristics:
             aid, iid, value = characteristic
             char_payload.append({"aid": aid, "iid": iid, "value": value})
-            listener_update[(aid, iid)] = {"value": value}
+            accessory_chars = self.accessories.aid(aid).characteristics
+            char = accessory_chars.iid(iid)
+            if CharacteristicPermissions.paired_read in char.perms:
+                listener_update[(aid, iid)] = {"value": value}
 
         response = await self.connection.put_json(
             "/characteristics", {"characteristics": char_payload}
