@@ -32,7 +32,7 @@ class Characteristics:
 
     _characteristics: list[Characteristic]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._characteristics = []
         self._iid_to_characteristic: dict[int, Characteristic] = {}
 
