@@ -125,7 +125,7 @@ async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_l
     with mock.patch.object(controller, "load_data", lambda x: None):
         with mock.patch("aiohomekit.__main__.Controller") as c:
             c.return_value = controller
-            yield controller
+            yield controller, available_port
 
     os.unlink(config_file.name)
 
