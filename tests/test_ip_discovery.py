@@ -1,8 +1,7 @@
+from aiohomekit import Controller
 from aiohomekit.controller.ip import IpDiscovery, IpPairing
 from aiohomekit.model.categories import Categories
 from aiohomekit.zeroconf import HomeKitService
-
-from aiohomekit import Controller
 
 
 async def test_pair(controller_and_unpaired_accessory: tuple[Controller, int]):
