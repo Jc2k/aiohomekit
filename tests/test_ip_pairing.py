@@ -1,5 +1,6 @@
 import asyncio
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -116,9 +117,29 @@ async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing: IpPairi
     assert characteristics[(1, 9)] == {"value": False}
 
 
-async def test_put_characteristics(pairing):
+async def test_put_characteristics(pairing: IpPairing):
     characteristics = await pairing.put_characteristics([(1, 9, True)])
 
+    assert characteristics == {}
+
+    characteristics = await pairing.get_characteristics([(1, 9)])
+
+    assert characteristics[(1, 9)] == {"value": True}
+
+
+async def test_put_characteristics_callbacks(pairing: IpPairing):
+    events = []
+
+    def process_new_events(
+        new_values_dict: dict[tuple[int, int], dict[str, Any]]
+    ) -> None:
+        events.append(new_values_dict)
+
+    pairing.dispatcher_connect(process_new_events)
+    assert events == []
+
+    characteristics = await pairing.put_characteristics([(1, 9, True)])
+    assert events == [{}, {(1, 9): {"value": True}}]
     assert characteristics == {}
 
     characteristics = await pairing.get_characteristics([(1, 9)])

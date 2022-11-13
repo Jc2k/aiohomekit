@@ -21,32 +21,37 @@ from aiohomekit.model.services import ServicesTypes
 from tests.accessoryserver import AccessoryServer
 
 
-def port_ready(port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def _get_test_socket() -> socket.socket:
+    """Create a socket to test binding ports."""
+    test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    test_socket.setblocking(False)
+    test_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    return test_socket
 
+
+def port_ready(port: int) -> bool:
     try:
-        s.bind(("127.0.0.1", port))
+        _get_test_socket().bind(("127.0.0.1", port))
     except OSError as e:
         if e.errno == errno.EADDRINUSE:
             return True
-    finally:
-        s.close()
 
     return False
 
 
-def wait_for_port_available(port: int):
-    for i in range(100):
+def next_available_port() -> int:
+    for port in range(51842, 53842):
         if not port_ready(port):
-            break
-        time.sleep(0.1)
+            return port
+
+    raise RuntimeError("No available ports")
 
 
-def wait_for_server_online(port: int):
+async def wait_for_server_online(port: int):
     for i in range(100):
         if port_ready(port):
             break
-        time.sleep(0.1)
+        await asyncio.sleep(0.025)
 
 
 class AsyncServiceBrowserStub:
@@ -79,6 +84,8 @@ def mock_asynczeroconf():
 
 @pytest.fixture
 async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_loop):
+    available_port = next_available_port()
+
     config_file = tempfile.NamedTemporaryFile(delete=False)
     config_file.write(
         b"""{
@@ -89,17 +96,17 @@ async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_l
         "c#": 1,
         "category": "Lightbulb",
         "host_ip": "127.0.0.1",
-        "host_port": 51842,
+        "host_port": %port%,
         "name": "unittestLight",
         "unsuccessful_tries": 0
-    }"""
+    }""".replace(
+            b"%port%", str(available_port).encode("utf-8")
+        )
     )
     config_file.close()
 
     # Make sure get_id() numbers are stable between tests
     model_mixin.id_counter = 0
-
-    wait_for_port_available(51842)
 
     httpd = AccessoryServer(config_file.name, None)
     accessory = Accessory.create_with_info(
@@ -112,7 +119,7 @@ async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_l
     t = threading.Thread(target=httpd.serve_forever)
     t.start()
 
-    wait_for_server_online(51842)
+    await wait_for_server_online(available_port)
 
     controller = Controller(async_zeroconf_instance=mock_asynczeroconf)
 
@@ -123,15 +130,20 @@ async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_l
 
     os.unlink(config_file.name)
 
-    httpd.shutdown()
-    t.join()
+    def _shutdown():
+        httpd.shutdown()
+        t.join()
+
+    loop = asyncio.get_running_loop()
+    asyncio.ensure_future(loop.run_in_executor(None, _shutdown))
 
 
 @pytest.fixture
 async def controller_and_paired_accessory(request, event_loop, mock_asynczeroconf):
+    available_port = next_available_port()
+
     config_file = tempfile.NamedTemporaryFile(delete=False)
-    config_file.write(
-        b"""{
+    data = b"""{
         "accessory_ltpk": "7986cf939de8986f428744e36ed72d86189bea46b4dcdc8d9d79a3e4fceb92b9",
         "accessory_ltsk": "3d99f3e959a1f93af4056966f858074b2a1fdec1c5fd84a51ea96f9fa004156a",
         "accessory_pairing_id": "12:34:56:00:01:0A",
@@ -139,7 +151,7 @@ async def controller_and_paired_accessory(request, event_loop, mock_asynczerocon
         "c#": 1,
         "category": "Lightbulb",
         "host_ip": "127.0.0.1",
-        "host_port": 51842,
+        "host_port": %port%,
         "name": "unittestLight",
         "peers": {
             "decc6fa3-de3e-41c9-adba-ef7409821bfc": {
@@ -148,14 +160,15 @@ async def controller_and_paired_accessory(request, event_loop, mock_asynczerocon
             }
         },
         "unsuccessful_tries": 0
-    }"""
+    }""".replace(
+        b"%port%", str(available_port).encode("utf-8")
     )
+
+    config_file.write(data)
     config_file.close()
 
     # Make sure get_id() numbers are stable between tests
     model_mixin.id_counter = 0
-
-    wait_for_port_available(51842)
 
     httpd = AccessoryServer(config_file.name, None)
     accessory = Accessory.create_with_info(
@@ -168,7 +181,7 @@ async def controller_and_paired_accessory(request, event_loop, mock_asynczerocon
     t = threading.Thread(target=httpd.serve_forever)
     t.start()
 
-    wait_for_server_online(51842)
+    await wait_for_server_online(available_port)
 
     controller_file = tempfile.NamedTemporaryFile(delete=False)
     controller_file.write(
@@ -179,11 +192,13 @@ async def controller_and_paired_accessory(request, event_loop, mock_asynczerocon
             "iOSPairingId": "decc6fa3-de3e-41c9-adba-ef7409821bfc",
             "AccessoryLTPK": "7986cf939de8986f428744e36ed72d86189bea46b4dcdc8d9d79a3e4fceb92b9",
             "AccessoryPairingID": "12:34:56:00:01:0A",
-            "AccessoryPort": 51842,
+            "AccessoryPort": %port%,
             "AccessoryIP": "127.0.0.1",
             "iOSDeviceLTSK": "fa45f082ef87efc6c8c8d043d74084a3ea923a2253e323a7eb9917b4090c2fcc"
         }
-    }"""
+    }""".replace(
+            b"%port%", str(available_port).encode("utf-8")
+        )
     )
     controller_file.close()
 
@@ -203,8 +218,12 @@ async def controller_and_paired_accessory(request, event_loop, mock_asynczerocon
     os.unlink(config_file.name)
     os.unlink(controller_file.name)
 
-    httpd.shutdown()
-    t.join()
+    def _shutdown():
+        httpd.shutdown()
+        t.join()
+
+    loop = asyncio.get_running_loop()
+    asyncio.ensure_future(loop.run_in_executor(None, _shutdown))
 
 
 @pytest.fixture

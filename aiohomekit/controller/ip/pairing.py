@@ -21,7 +21,6 @@ from itertools import groupby
 import logging
 from operator import itemgetter
 from typing import Any, Iterable
-from aiohomekit.model.characteristics import CharacteristicPermissions
 
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import (
@@ -36,7 +35,10 @@ from aiohomekit.exceptions import (
 import aiohomekit.hkjson as hkjson
 from aiohomekit.http import HttpContentTypes
 from aiohomekit.model import Accessories, AccessoriesState, Transport
-from aiohomekit.model.characteristics import CharacteristicsTypes
+from aiohomekit.model.characteristics import (
+    CharacteristicPermissions,
+    CharacteristicsTypes,
+)
 from aiohomekit.protocol import error_handler
 from aiohomekit.protocol.statuscodes import HapStatusCode, to_status_code
 from aiohomekit.protocol.tlv import TLV
@@ -305,6 +307,7 @@ class IpPairing(ZeroconfPairing):
 
         if listener_update:
             self._callback_listeners(listener_update)
+
         return response_status
 
     async def subscribe(self, characteristics):

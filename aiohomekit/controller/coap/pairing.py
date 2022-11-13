@@ -19,11 +19,12 @@ import asyncio
 from datetime import timedelta
 import logging
 from typing import Any, Iterable
-from aiohomekit.model.characteristics import CharacteristicPermissions
-from aiohomekit.protocol.statuscodes import HapStatusCode
+
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Accessories, AccessoriesState, Transport
+from aiohomekit.model.characteristics import CharacteristicPermissions
+from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 from aiohomekit.zeroconf import ZeroconfPairing
