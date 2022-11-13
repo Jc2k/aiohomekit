@@ -24,7 +24,6 @@ async def test_list_accessories(pairing: IpPairing):
     assert char["type"] == "00000014-0000-1000-8000-0026BB765291"
 
 
-
 async def test_get_characteristics(pairing: IpPairing):
     characteristics = await pairing.get_characteristics([(1, 9)])
 
@@ -205,8 +204,8 @@ async def test_receiving_events(pairings):
     This test is currently skipped because accessory server doesnt
     support events.
     """
-    left:IpPairing = pairings[0]
-    right:IpPairing = pairings[1]
+    left: IpPairing = pairings[0]
+    right: IpPairing = pairings[1]
 
     event_value = None
     ev = asyncio.Event()
