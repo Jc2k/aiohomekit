@@ -5,7 +5,6 @@ import os
 import socket
 import tempfile
 import threading
-import time
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
