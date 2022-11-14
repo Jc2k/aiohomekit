@@ -5,8 +5,9 @@ from collections.abc import Awaitable
 import enum
 import logging
 import re
-from typing import TypeVar
 import sys
+from typing import TypeVar
+
 from aiohomekit.const import COAP_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
 from aiohomekit.exceptions import MalformedPinError
 from aiohomekit.model.characteristics import Characteristic
@@ -20,6 +21,7 @@ if sys.version_info[:2] < (3, 11):
     from async_timeout import timeout as asyncio_timeout
 else:
     from asyncio import timeout as asyncio_timeout
+
 
 def async_create_task(coroutine: Awaitable[T], *, name=None) -> asyncio.Task[T]:
     """Wrapper for asyncio.create_task that logs errors."""

@@ -17,7 +17,6 @@
 import asyncio
 import logging
 from typing import TYPE_CHECKING
-from aiohomekit.utils import asyncio_timeout
 
 from aiohomekit.crypto.chacha20poly1305 import (
     ChaCha20Poly1305Decryptor,
@@ -37,7 +36,7 @@ from aiohomekit.http import HttpContentTypes
 from aiohomekit.http.response import HttpResponse
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
-from aiohomekit.utils import async_create_task
+from aiohomekit.utils import async_create_task, asyncio_timeout
 
 if TYPE_CHECKING:
     from .pairing import IpPairing

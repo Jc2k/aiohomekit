@@ -8,7 +8,7 @@ from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakDBusError, BleakError
-from aiohomekit.utils import asyncio_timeout
+
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.controller.ble.manufacturer_data import (
@@ -19,6 +19,7 @@ from aiohomekit.controller.ble.manufacturer_data import (
     HomeKitEncryptedNotification,
 )
 from aiohomekit.controller.ble.pairing import BlePairing
+from aiohomekit.utils import asyncio_timeout
 
 from .discovery import BleDiscovery
 

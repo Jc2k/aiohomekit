@@ -22,7 +22,6 @@ import random
 import struct
 from typing import Any
 import uuid
-from aiohomekit.utils import asyncio_timeout
 
 from aiocoap import Context, Message, resource
 from aiocoap.error import NetworkError
@@ -42,6 +41,7 @@ from aiohomekit.protocol import (
     perform_pair_setup_part2,
 )
 from aiohomekit.protocol.tlv import HAP_TLV, TLV
+from aiohomekit.utils import asyncio_timeout
 
 from .pdu import (
     OpCode,
