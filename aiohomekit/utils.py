@@ -18,9 +18,9 @@ _LOGGER = logging.getLogger(__name__)
 T = TypeVar("T")
 
 if sys.version_info[:2] < (3, 11):
-    from async_timeout import timeout as asyncio_timeout
+    from async_timeout import timeout as asyncio_timeout  # noqa: F401
 else:
-    from asyncio import timeout as asyncio_timeout
+    from asyncio import timeout as asyncio_timeout  # noqa: F401
 
 
 def async_create_task(coroutine: Awaitable[T], *, name=None) -> asyncio.Task[T]:
