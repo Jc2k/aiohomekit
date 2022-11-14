@@ -41,6 +41,7 @@ from aiohomekit.protocol import (
     perform_pair_setup_part2,
 )
 from aiohomekit.protocol.tlv import HAP_TLV, TLV
+from aiohomekit.utils import asyncio_timeout
 
 from .pdu import (
     OpCode,
@@ -164,9 +165,8 @@ class EncryptionContext:
 
             try:
                 request = Message(code=Code.POST, payload=payload, uri=self.uri)
-                response = await asyncio.wait_for(
-                    self.coap_ctx.request(request).response, timeout=timeout
-                )
+                async with asyncio_timeout(timeout):
+                    response = await self.coap_ctx.request(request).response
             except (NetworkError, asyncio.TimeoutError):
                 raise AccessoryDisconnectedError("Request timeout")
 
@@ -261,7 +261,8 @@ class CoAPHomeKitConnection:
         uri = "coap://%s/0" % (self.address)
 
         request = Message(code=Code.POST, payload=b"", uri=uri)
-        response = await asyncio.wait_for(client.request(request).response, timeout=4.0)
+        async with asyncio_timeout(4.0):
+            response = await client.request(request).response
 
         await client.shutdown()
         client = None
@@ -280,9 +281,8 @@ class CoAPHomeKitConnection:
                 payload = TLV.encode_list(request)
                 request = Message(code=Code.POST, payload=payload, uri=uri)
                 # some operations can take some time
-                response = await asyncio.wait_for(
-                    self.pair_setup_client.request(request).response, timeout=16.0
-                )
+                async with asyncio_timeout(16.0):
+                    response = await self.pair_setup_client.request(request).response
                 payload = TLV.decode_bytes(response.payload, expected=expected)
 
                 request, expected = state_machine.send(payload)
@@ -304,9 +304,9 @@ class CoAPHomeKitConnection:
             try:
                 payload = TLV.encode_list(request)
                 request = Message(code=Code.POST, payload=payload, uri=uri)
-                response = await asyncio.wait_for(
-                    self.pair_setup_client.request(request).response, timeout=16.0
-                )
+                async with asyncio_timeout(16.0):
+                    response = await self.pair_setup_client.request(request).response
+
                 payload = TLV.decode_bytes(response.payload, expected=expected)
 
                 request, expected = state_machine.send(payload)
@@ -342,9 +342,9 @@ class CoAPHomeKitConnection:
             try:
                 payload = TLV.encode_list(request)
                 request = Message(code=Code.POST, payload=payload, uri=uri)
-                response = await asyncio.wait_for(
-                    coap_client.request(request).response, timeout=8.0
-                )
+                async with asyncio_timeout(8.0):
+                    response = await coap_client.request(request).response
+
                 payload = TLV.decode_bytes(response.payload, expected=expected)
 
                 request, expected = state_machine.send(payload)

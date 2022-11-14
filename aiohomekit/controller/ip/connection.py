@@ -36,7 +36,7 @@ from aiohomekit.http import HttpContentTypes
 from aiohomekit.http.response import HttpResponse
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
-from aiohomekit.utils import async_create_task
+from aiohomekit.utils import async_create_task, asyncio_timeout
 
 if TYPE_CHECKING:
     from .pairing import IpPairing
@@ -77,7 +77,8 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
         self.result_cbs.append(result)
 
         try:
-            return await asyncio.wait_for(result, 30)
+            async with asyncio_timeout(30):
+                return await result
         except asyncio.TimeoutError:
             self.transport.write_eof()
             self.transport.close()
@@ -496,12 +497,10 @@ class HomeKitConnection:
         logger.debug("Attempting connection to %s:%s", self.host, self.port)
 
         try:
-            self.transport, self.protocol = await asyncio.wait_for(
-                loop.create_connection(
+            async with asyncio_timeout(10):
+                self.transport, self.protocol = await loop.create_connection(
                     lambda: InsecureHomeKitProtocol(self), self.host, self.port
-                ),
-                timeout=10,
-            )
+                )
 
         except asyncio.TimeoutError:
             raise TimeoutError("Timeout")
