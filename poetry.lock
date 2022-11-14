@@ -784,7 +784,7 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "23e81b66bc209dc708a8a81b4aa9e5dcbd931ecd1574762cf70c9d4107e25d75"
+content-hash = "ca3062d0821f3670bc9fe66fd9866b00dfb57f004b9fffd6311c62ee76b2846f"
 
 [metadata.files]
 aiocoap = [

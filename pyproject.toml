@@ -28,7 +28,7 @@ bleak = ">=0.19.0"
 chacha20poly1305-reuseable = ">=0.0.4"
 bleak-retry-connector = ">=2.3.0"
 orjson = ">=3.7.8"
-async-timeout = ">=3.0.1"
+async-timeout = "^4.0.2"
 chacha20poly1305 = "^0.0.3"
 
 [tool.poetry.dev-dependencies]
