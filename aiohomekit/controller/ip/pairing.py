@@ -42,6 +42,7 @@ from aiohomekit.model.characteristics import (
 from aiohomekit.protocol import error_handler
 from aiohomekit.protocol.statuscodes import HapStatusCode, to_status_code
 from aiohomekit.protocol.tlv import TLV
+from aiohomekit.utils import asyncio_timeout
 from aiohomekit.uuid import normalize_uuid
 from aiohomekit.zeroconf import HomeKitService, ZeroconfPairing
 
@@ -131,7 +132,8 @@ class IpPairing(ZeroconfPairing):
         if self._shutdown:
             return
         try:
-            await asyncio.wait_for(self.connection.ensure_connection(), 10)
+            async with asyncio_timeout(10):
+                await self.connection.ensure_connection()
         except asyncio.TimeoutError:
             raise AccessoryDisconnectedError(
                 f"Timeout while waiting for connection to device {self.connection.host}:{self.connection.port}"
