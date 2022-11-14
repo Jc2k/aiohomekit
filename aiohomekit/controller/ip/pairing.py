@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 from __future__ import annotations
-
+from aiohomekit.utils import asyncio_timeout
 import asyncio
 from datetime import timedelta
 from itertools import groupby
@@ -135,7 +135,8 @@ class IpPairing(ZeroconfPairing):
         if self._shutdown:
             return
         try:
-            await asyncio.wait_for(self.connection.ensure_connection(), 10)
+            async with asyncio_timeout(10):
+                await self.connection.ensure_connection()
         except asyncio.TimeoutError:
             raise AccessoryDisconnectedError(
                 f"Timeout while waiting for connection to device {self.connection.host}:{self.connection.port}"

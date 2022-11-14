@@ -8,7 +8,7 @@ from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakDBusError, BleakError
-
+from aiohomekit.utils import asyncio_timeout
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.controller.ble.manufacturer_data import (
@@ -153,7 +153,8 @@ class BleController(AbstractController):
         future = asyncio.Future()
         self._ble_futures_by_id.setdefault(device_id, []).append(future)
         try:
-            return await asyncio.wait_for(future, timeout=timeout)
+            async with asyncio_timeout(timeout):
+                return await future
         except asyncio.TimeoutError:
             logger.debug(
                 "Timed out after %s waiting for discovery with hkid %s",
@@ -189,7 +190,8 @@ class BleController(AbstractController):
         future = asyncio.Future()
         self._ble_futures.setdefault(address, []).append(future)
         try:
-            return await asyncio.wait_for(future, timeout=timeout)
+            async with asyncio_timeout(timeout):
+                return await future
         except asyncio.TimeoutError:
             logger.debug(
                 "Timed out after %s waiting for discovery with address %s",

@@ -17,6 +17,7 @@
 import asyncio
 import logging
 from typing import TYPE_CHECKING
+from aiohomekit.utils import asyncio_timeout
 
 from aiohomekit.crypto.chacha20poly1305 import (
     ChaCha20Poly1305Decryptor,
@@ -77,7 +78,8 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
         self.result_cbs.append(result)
 
         try:
-            return await asyncio.wait_for(result, 30)
+            async with asyncio_timeout(30):
+                return await result
         except asyncio.TimeoutError:
             self.transport.write_eof()
             self.transport.close()
@@ -496,12 +498,10 @@ class HomeKitConnection:
         logger.debug("Attempting connection to %s:%s", self.host, self.port)
 
         try:
-            self.transport, self.protocol = await asyncio.wait_for(
-                loop.create_connection(
+            async with asyncio_timeout(10):
+                self.transport, self.protocol = await loop.create_connection(
                     lambda: InsecureHomeKitProtocol(self), self.host, self.port
-                ),
-                timeout=10,
-            )
+                )
 
         except asyncio.TimeoutError:
             raise TimeoutError("Timeout")
