@@ -18,11 +18,13 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 import logging
-from typing import Any
+from typing import Any, Iterable
 
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Accessories, AccessoriesState, Transport
+from aiohomekit.model.characteristics import CharacteristicPermissions
+from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 from aiohomekit.zeroconf import ZeroconfPairing
@@ -133,14 +135,6 @@ class CoAPPairing(ZeroconfPairing):
     def event_received(self, event):
         self._callback_listeners(event)
 
-    def _callback_listeners(self, event):
-        for listener in self.listeners:
-            try:
-                logger.debug(f"callback ev:{event!r}")
-                listener(event)
-            except Exception:
-                logger.exception("Unhandled error when processing event")
-
     async def identify(self):
         await self._ensure_connected()
         return await self.connection.do_identify()
@@ -198,9 +192,28 @@ class CoAPPairing(ZeroconfPairing):
         await self._ensure_connected()
         return await self.connection.read_characteristics(characteristics)
 
-    async def put_characteristics(self, characteristics):
+    async def put_characteristics(
+        self, characteristics: Iterable[tuple[int, int, Any]]
+    ) -> dict[tuple[int, int], dict[str, Any]]:
         await self._ensure_connected()
-        return await self.connection.write_characteristics(characteristics)
+        response_status = await self.connection.write_characteristics(characteristics)
+
+        listener_update: dict[tuple[int, int], dict[str, Any]] = {}
+        for characteristic in characteristics:
+            aid, iid, value = characteristic
+            accessory_chars = self.accessories.aid(aid).characteristics
+            char = accessory_chars.iid(iid)
+            if (
+                response_status.get((aid, iid), HapStatusCode.SUCCESS)
+                == HapStatusCode.SUCCESS
+                and CharacteristicPermissions.paired_read in char.perms
+            ):
+                listener_update[(aid, iid)] = {"value": value}
+
+        if listener_update:
+            self._callback_listeners(listener_update)
+
+        return response_status
 
     async def subscribe(self, characteristics):
         await self._ensure_connected()

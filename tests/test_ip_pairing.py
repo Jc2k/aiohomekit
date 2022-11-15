@@ -1,5 +1,6 @@
 import asyncio
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -9,7 +10,7 @@ from aiohomekit.model import Transport
 from aiohomekit.protocol.statuscodes import HapStatusCode
 
 
-async def test_list_accessories(pairing):
+async def test_list_accessories(pairing: IpPairing):
     accessories = await pairing.list_accessories_and_characteristics()
     assert accessories[0]["aid"] == 1
     assert accessories[0]["services"][0]["iid"] == 1
@@ -23,7 +24,7 @@ async def test_list_accessories(pairing):
     assert char["type"] == "00000014-0000-1000-8000-0026BB765291"
 
 
-async def test_get_characteristics(pairing):
+async def test_get_characteristics(pairing: IpPairing):
     characteristics = await pairing.get_characteristics([(1, 9)])
 
     assert characteristics[(1, 9)] == {"value": False}
@@ -116,7 +117,7 @@ async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing: IpPairi
     assert characteristics[(1, 9)] == {"value": False}
 
 
-async def test_put_characteristics(pairing):
+async def test_put_characteristics(pairing: IpPairing):
     characteristics = await pairing.put_characteristics([(1, 9, True)])
 
     assert characteristics == {}
@@ -126,7 +127,31 @@ async def test_put_characteristics(pairing):
     assert characteristics[(1, 9)] == {"value": True}
 
 
-async def test_subscribe(pairing):
+async def test_put_characteristics_callbacks(pairing: IpPairing):
+    events = []
+
+    def process_new_events(
+        new_values_dict: dict[tuple[int, int], dict[str, Any]]
+    ) -> None:
+        events.append(new_values_dict)
+
+    pairing.dispatcher_connect(process_new_events)
+    assert events == []
+
+    characteristics = await pairing.put_characteristics([(1, 9, True)])
+    assert events == [{}, {(1, 9): {"value": True}}]
+    assert characteristics == {}
+
+    # Identify is a write only characteristic, so we should not get a callback
+    characteristics = await pairing.put_characteristics([(1, 2, True)])
+    assert events == [{}, {(1, 9): {"value": True}}]
+
+    characteristics = await pairing.get_characteristics([(1, 9)])
+
+    assert characteristics[(1, 9)] == {"value": True}
+
+
+async def test_subscribe(pairing: IpPairing):
     assert pairing.subscriptions == set()
 
     await pairing.subscribe([(1, 9)])
@@ -138,7 +163,7 @@ async def test_subscribe(pairing):
     assert characteristics == {(1, 9): {"value": False}}
 
 
-async def test_unsubscribe(pairing):
+async def test_unsubscribe(pairing: IpPairing):
     await pairing.subscribe([(1, 9)])
 
     assert pairing.subscriptions == {(1, 9)}
@@ -156,7 +181,7 @@ async def test_unsubscribe(pairing):
     assert characteristics == {(1, 9): {"value": False}}
 
 
-async def test_dispatcher_connect(pairing):
+async def test_dispatcher_connect(pairing: IpPairing):
     assert pairing.listeners == set()
 
     def callback(x):
@@ -179,7 +204,8 @@ async def test_receiving_events(pairings):
     This test is currently skipped because accessory server doesnt
     support events.
     """
-    left, right = pairings
+    left: IpPairing = pairings[0]
+    right: IpPairing = pairings[1]
 
     event_value = None
     ev = asyncio.Event()
@@ -205,7 +231,7 @@ async def test_receiving_events(pairings):
     assert event_value == {(1, 9): {"value": True}}
 
 
-async def test_subscribe_invalid_iid(pairing):
+async def test_subscribe_invalid_iid(pairing: IpPairing):
     """
     Test that can get an error when subscribing to an invalid iid.
     """
@@ -218,7 +244,7 @@ async def test_subscribe_invalid_iid(pairing):
     }
 
 
-async def test_list_pairings(pairing):
+async def test_list_pairings(pairing: IpPairing):
     pairings = await pairing.list_pairings()
     assert pairings == [
         {
@@ -230,7 +256,7 @@ async def test_list_pairings(pairing):
     ]
 
 
-async def test_add_pairings(pairing):
+async def test_add_pairings(pairing: IpPairing):
     await pairing.add_pairing(
         "decc6fa3-de3e-41c9-adba-ef7409821bfe",
         "d708df2fbf4a8779669f0ccd43f4962d6d49e4274f88b1292f822edc3bcf8ed7",
@@ -254,7 +280,7 @@ async def test_add_pairings(pairing):
     ]
 
 
-async def test_add_and_remove_pairings(pairing):
+async def test_add_and_remove_pairings(pairing: IpPairing):
     await pairing.add_pairing(
         "decc6fa3-de3e-41c9-adba-ef7409821bfe",
         "d708df2fbf4a8779669f0ccd43f4962d6d49e4274f88b1292f822edc3bcf8ed7",

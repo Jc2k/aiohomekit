@@ -1,11 +1,14 @@
+from aiohomekit import Controller
 from aiohomekit.controller.ip import IpDiscovery, IpPairing
 from aiohomekit.model.categories import Categories
 from aiohomekit.zeroconf import HomeKitService
 
 
-async def test_pair(controller_and_unpaired_accessory):
+async def test_pair(controller_and_unpaired_accessory: tuple[Controller, int]):
+    controller, port = controller_and_unpaired_accessory
+
     discovery = IpDiscovery(
-        controller_and_unpaired_accessory,
+        controller,
         HomeKitService(
             name="Test",
             id="00:01:02:03:04:05",
@@ -19,7 +22,7 @@ async def test_pair(controller_and_unpaired_accessory):
             type="_hap._tcp.local",
             address="127.0.0.1",
             addresses=["127.0.0.1"],
-            port=51842,
+            port=port,
         ),
     )
 
@@ -33,9 +36,11 @@ async def test_pair(controller_and_unpaired_accessory):
     }
 
 
-async def test_identify(controller_and_unpaired_accessory):
+async def test_identify(controller_and_unpaired_accessory: tuple[Controller, int]):
+    controller, port = controller_and_unpaired_accessory
+
     discovery = IpDiscovery(
-        controller_and_unpaired_accessory,
+        controller,
         HomeKitService(
             name="Test",
             id="00:01:02:03:04:05",
@@ -49,7 +54,7 @@ async def test_identify(controller_and_unpaired_accessory):
             type="_hap._tcp.local",
             address="127.0.0.1",
             addresses=["127.0.0.1"],
-            port=51842,
+            port=port,
         ),
     )
 

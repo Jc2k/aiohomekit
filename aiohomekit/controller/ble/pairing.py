@@ -671,8 +671,7 @@ class BlePairing(AbstractPairing):
             results = {(BLE_AID, iid): {"value": from_bytes(char, value)}}
             logger.debug("%s: Received notification: results = %s", self.name, results)
 
-            for listener in self.listeners:
-                listener(results)
+            self._callback_listeners(results)
             return
 
         logger.warning(
@@ -1404,8 +1403,7 @@ class BlePairing(AbstractPairing):
                     # we want to notify the listeners as soon as we have the
                     # value for each characteristic.
                     single_results = {result_key: result_value}
-                    for listener in self.listeners:
-                        listener(single_results)
+                    self._callback_listeners(single_results)
 
         return results
 
@@ -1414,8 +1412,8 @@ class BlePairing(AbstractPairing):
     @disconnect_on_missing_services
     @restore_connection_and_resume
     async def put_characteristics(
-        self, characteristics: list[tuple[int, int, Any]]
-    ) -> dict[tuple[int, int], Any]:
+        self, characteristics: Iterable[tuple[int, int, Any]]
+    ) -> dict[tuple[int, int], dict[str, Any]]:
         results: dict[tuple[int, int], Any] = {}
         logger.debug(
             "%s: Writing characteristics: %s; rssi=%s",
@@ -1465,8 +1463,7 @@ class BlePairing(AbstractPairing):
                 # results only set on failure, no status is success
                 if not result:
                     if CharacteristicPermissions.paired_read in char.perms:
-                        for listener in self.listeners:
-                            listener({result_key: {"value": value}})
+                        self._callback_listeners({result_key: {"value": value}})
                 else:
                     results[result_key] = result
 

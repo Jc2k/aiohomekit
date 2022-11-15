@@ -54,7 +54,7 @@ def coap_controller():
     return controller
 
 
-def test_write_characteristics(coap_controller):
+def test_write_characteristics(coap_controller: CoAPHomeKitConnection):
     values = [
         # On
         (1, 51, True),
@@ -79,7 +79,7 @@ def test_write_characteristics(coap_controller):
     assert len(results) == 0
 
 
-def test_read_characteristics(coap_controller):
+def test_read_characteristics(coap_controller: CoAPHomeKitConnection):
     ids = (
         # On
         (1, 51),
@@ -106,7 +106,7 @@ def test_read_characteristics(coap_controller):
     assert results[(1, 54)]["value"] == 100.0
 
 
-def test_subscribe_to(coap_controller):
+def test_subscribe_to(coap_controller: CoAPHomeKitConnection):
     ids = (
         # On
         (1, 51),
@@ -124,7 +124,7 @@ def test_subscribe_to(coap_controller):
     assert len(results) == 0
 
 
-def test_subscribe_to_single_failure(coap_controller):
+def test_subscribe_to_single_failure(coap_controller: CoAPHomeKitConnection):
     ids = (
         # On
         (1, 51),
@@ -137,7 +137,7 @@ def test_subscribe_to_single_failure(coap_controller):
     assert isinstance(results[(1, 51)], dict)
 
 
-def test_unsubscribe_from(coap_controller):
+def test_unsubscribe_from(coap_controller: CoAPHomeKitConnection):
     ids = (
         # On
         (1, 51),
@@ -155,7 +155,7 @@ def test_unsubscribe_from(coap_controller):
     assert len(results) == 0
 
 
-def test_unsubscribe_from_single_failure(coap_controller):
+def test_unsubscribe_from_single_failure(coap_controller: CoAPHomeKitConnection):
     ids = (
         # On
         (1, 51),
