@@ -150,7 +150,8 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
     @cached_property
     def mtu_size(self) -> int:
         """Return the mtu size of the client."""
-        # Avoid bluezdbus/client.py:561: UserWarning: Using default MTU value. Call _acquire_mtu() or set _mtu_size first to avoid this warning.
+        # Avoid bluezdbus/client.py:561: UserWarning: Using default MTU value. 
+        # Call _acquire_mtu() or set _mtu_size first to avoid this warning.
         if (
             (backend := getattr(self, "_backend", None))
             and hasattr(backend, "_mtu_size")
