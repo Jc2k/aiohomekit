@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cached_property, lru_cache
 import logging
 from typing import Any
 import uuid
@@ -27,7 +27,7 @@ class BleakServiceMissing(BleakError):
     """Raised when a service is missing."""
 
 
-@lru_cache(maxsize=64, typed=True)
+@lru_cache(maxsize=128, typed=True)
 def _determine_fragment_size(
     address: str,
     mtu_size: int,
@@ -35,10 +35,7 @@ def _determine_fragment_size(
     handle: BleakGATTCharacteristic,
 ) -> int:
     """Determine the fragment size for a characteristic based on the MTU."""
-    # Newer bleak, not currently released
-    if max_write_without_response_size := getattr(
-        handle, "max_write_without_response_size", None
-    ):
+    if max_write_without_response_size := handle.max_write_without_response_size:
         logger.debug(
             "%s: Bleak max_write_without_response_size: %s, mtu_size-3: %s",
             address,
@@ -46,19 +43,6 @@ def _determine_fragment_size(
             mtu_size - ATT_HEADER_SIZE,
         )
         fragment_size = max(max_write_without_response_size, mtu_size - ATT_HEADER_SIZE)
-    # Bleak 0.15.1 and below
-    elif (
-        (char_obj := getattr(handle, "obj", None))
-        and isinstance(char_obj, dict)
-        and (char_mtu := char_obj.get("MTU"))
-    ):
-        logger.debug(
-            "%s: Bleak obj MTU: %s, client.mtu_size: %s",
-            address,
-            char_mtu,
-            mtu_size,
-        )
-        fragment_size = max(char_mtu, mtu_size) - ATT_HEADER_SIZE
     else:
         logger.debug(
             "%s: No bleak obj MTU or max_write_without_response_size, using client.mtu_size-3: %s",
@@ -163,9 +147,17 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
         self._iid_cache[char] = iid
         return iid
 
-    @property
+    @cached_property
     def mtu_size(self) -> int:
         """Return the mtu size of the client."""
+        # Avoid bluezdbus/client.py:561: UserWarning: Using default MTU value.
+        # Call _acquire_mtu() or set _mtu_size first to avoid this warning.
+        if (
+            (backend := getattr(self, "_backend", None))
+            and hasattr(backend, "_mtu_size")
+            and getattr(backend, "_mtu_size", None) is None
+        ):
+            return HAP_MIN_REQUIRED_MTU
         return max(super().mtu_size, HAP_MIN_REQUIRED_MTU)
 
     def determine_fragment_size(
