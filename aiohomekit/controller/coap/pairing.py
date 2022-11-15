@@ -198,7 +198,7 @@ class CoAPPairing(ZeroconfPairing):
         await self._ensure_connected()
         response_status = await self.connection.write_characteristics(characteristics)
 
-        listener_update = {tuple[int, int]: dict[str, Any]}
+        listener_update: dict[tuple[int, int], dict[str, Any]] = {}
         for characteristic in characteristics:
             aid, iid, value = characteristic
             accessory_chars = self.accessories.aid(aid).characteristics
