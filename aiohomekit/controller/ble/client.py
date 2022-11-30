@@ -96,7 +96,9 @@ async def _write_pdu(
         writes.append(data)
 
     for write in writes:
-        await client.write_gatt_char(handle, write, True)
+        await client.write_gatt_char(
+            handle, write, "write-without-response" not in handle.properties
+        )
 
 
 async def _read_pdu(
