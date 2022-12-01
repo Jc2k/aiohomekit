@@ -255,6 +255,34 @@ class CoAPHomeKitConnection:
         self.pair_setup_client = None
         self._transport_tuning = TransportTuning()
 
+    def set_interval(self, interval: int) -> None:
+        """
+        Configure a connection's CoAP parameters based on how sleepy it is.
+
+        We don't expect the interval to change frequently at runtime, maybe it would on e.g. a firmware update.
+        We also don't expect a device to go from sleeping to not sleeping - if its battery powered its sleepy for a reason.
+        """
+        if not interval:
+            # Devicce is not sleepy, don't do anything
+            return
+
+        logger.debug("Setting CoAP parameters for sleep-interval of %d", interval)
+
+        self._transport_tuning.ACK_TIMEOUT = interval / 1000
+
+        # Recalculate these based on new interval
+        self._transport_tuning.MAX_TRANSMIT_SPAN = (
+            self._transport_tuning.ACK_TIMEOUT
+            * (2**self._transport_tuning.MAX_RETRANSMIT - 1)
+            * self._transport_tuning.ACK_RANDOM_FACTOR
+        )
+        self._transport_tuning.MAX_TRANSMIT_WAIT = (
+            self._transport_tuning.ACK_TIMEOUT
+            * (2 ** (self._transport_tuning.MAX_RETRANSMIT + 1) - 1)
+            * self._transport_tuning.ACK_RANDOM_FACTOR
+        )
+        self._transport_tuning.PROCESSING_DELAY = self._transport_tuning.ACK_TIMEOUT
+
     async def reconnect_soon(self):
         if not self.enc_ctx:
             return
