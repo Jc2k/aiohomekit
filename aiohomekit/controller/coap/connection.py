@@ -26,6 +26,7 @@ import uuid
 from aiocoap import Context, Message, resource
 from aiocoap.error import NetworkError
 from aiocoap.numbers.codes import Code
+from aiocoap.numbers.constants import TransportTuning
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
@@ -252,7 +253,7 @@ class CoAPHomeKitConnection:
         self.enc_ctx = None
         self.owner = owner
         self.pair_setup_client = None
-        self._transport_tuning = None
+        self._transport_tuning = TransportTuning()
 
     async def reconnect_soon(self):
         if not self.enc_ctx:
