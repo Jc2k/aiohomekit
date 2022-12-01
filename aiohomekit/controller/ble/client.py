@@ -222,9 +222,13 @@ async def drive_pairing_state_machine(
     client: AIOHomeKitBleakClient,
     characteristic: str,
     state_machine: Generator[tuple[list[tuple[TLV, bytes]], list[TLV]], Any, Any],
+    characteristic_iid: int | None = None,
 ) -> Any:
+    logger.debug("%s: Starting pairing state machine", client.address)
     char = await client.get_characteristic(ServicesTypes.PAIRING, characteristic)
-    iid = await client.get_characteristic_iid(char)
+    logger.debug("%s: Pairing characteristic: %s", client.address, char)
+    iid = characteristic_iid or await client.get_characteristic_iid(char)
+    logger.debug("%s: Pairing characteristic iid: %s", client.address, iid)
 
     request, expected = state_machine.send(None)
     while True:
