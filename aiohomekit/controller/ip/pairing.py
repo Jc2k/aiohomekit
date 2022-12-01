@@ -16,11 +16,12 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterable
 from datetime import timedelta
 from itertools import groupby
 import logging
 from operator import itemgetter
-from typing import Any, Iterable
+from typing import Any
 
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import (

@@ -16,9 +16,10 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterable
 from datetime import timedelta
 import logging
-from typing import Any, Iterable
+from typing import Any
 
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import AccessoryDisconnectedError
@@ -49,6 +50,8 @@ class CoAPPairing(ZeroconfPairing):
 
     def _async_endpoint_changed(self) -> None:
         """The IP/Port has changed, so close connection if active then reconnect."""
+        description = self.owner.description
+        self.connection.address = f"[{description.address}]:{description.port}"
         async_create_task(self.connection.reconnect_soon())
 
     @property
