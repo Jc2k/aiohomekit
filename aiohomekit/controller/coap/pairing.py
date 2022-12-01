@@ -54,7 +54,22 @@ class CoAPPairing(ZeroconfPairing):
 
     def _load_accessories_from_cache(self) -> None:
         super()._load_accessories_from_cache()
+        self._set_interval_from_accessory_state()
 
+    def restore_accessories_state(
+        self,
+        accessories: list[dict[str, Any]],
+        config_num: int,
+        broadcast_key: bytes | None,
+    ) -> None:
+        super().restore_accessories_state(accessories, config_num, broadcast_key)
+        self._set_interval_from_accessory_state()
+
+    def _set_interval_from_accessory_state(self):
+        """
+        Tune the CoAP connection based on metadata in the accessory
+        runtime information service.
+        """
         if service := self.accessories.aid(1).services.first(
             service_type=ServicesTypes.ACCESSORY_RUNTIME_INFORMATION
         ):
