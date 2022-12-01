@@ -224,11 +224,10 @@ async def drive_pairing_state_machine(
     state_machine: Generator[tuple[list[tuple[TLV, bytes]], list[TLV]], Any, Any],
     characteristic_iid: int | None = None,
 ) -> Any:
-    logger.debug("%s: Starting pairing state machine", client.address)
     char = await client.get_characteristic(ServicesTypes.PAIRING, characteristic)
-    logger.debug("%s: Pairing characteristic: %s", client.address, char)
+    # Reading the descriptor to get the iid is slow. If we already know the iid
+    # then we can skip this step which saves a lot of time.
     iid = characteristic_iid or await client.get_characteristic_iid(char)
-    logger.debug("%s: Pairing characteristic iid: %s", client.address, iid)
 
     request, expected = state_machine.send(None)
     while True:

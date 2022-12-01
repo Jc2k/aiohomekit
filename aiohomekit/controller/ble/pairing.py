@@ -527,9 +527,7 @@ class BlePairing(AbstractPairing):
         self._notifications.add(iid)
 
     async def _async_pair_verify(self) -> None:
-        logger.debug("%s: Pair verify waiting for lock", self.name)
         async with self._ble_request_lock:
-            logger.debug("%s: Pair verify has lock", self.name)
             # There is only one pair verify characteristic
             # per device so we can just use the first one
             # and avoid having to request the iid which speeds
@@ -553,7 +551,6 @@ class BlePairing(AbstractPairing):
                 get_session_keys(self.pairing_data, self._session_id, self._derive),
                 pair_verify_char.iid if pair_verify_char else None,
             )
-            logger.debug("%s: Pair verify finished", self.name)
 
             self._encryption_key = EncryptionKey(
                 derive(b"Control-Salt", b"Control-Write-Encryption-Key")
