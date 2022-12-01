@@ -534,16 +534,24 @@ class BlePairing(AbstractPairing):
             # per device so we can just use the first one
             # and avoid having to request the iid which speeds
             # up the pairing resume process
-            pair_verify_char = (
-                self.accessories.aid(BLE_AID)
-                .services.first(service_type=ServicesTypes.PAIRING)
-                .characteristics.first(CharacteristicsTypes.PAIR_VERIFY)
-            )
+            try:
+                pair_verify_char = (
+                    self.accessories.aid(BLE_AID)
+                    .services.first(service_type=ServicesTypes.PAIRING)
+                    .characteristics.first(
+                        char_types=[CharacteristicsTypes.PAIR_VERIFY]
+                    )
+                )
+            except StopIteration:
+                # If we don't have a pair verify characteristic yet
+                # it means we haven't fetched the services yet
+                pair_verify_char = None
+
             session_id, derive = await drive_pairing_state_machine(
                 self.client,
                 CharacteristicsTypes.PAIR_VERIFY,
                 get_session_keys(self.pairing_data, self._session_id, self._derive),
-                pair_verify_char.iid,
+                pair_verify_char.iid if pair_verify_char else None,
             )
             logger.debug("%s: Pair verify finished", self.name)
 
