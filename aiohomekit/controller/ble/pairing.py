@@ -101,6 +101,7 @@ AVAILABILITY_INTERVAL = 86400 * 7  # 7 days
 NEVER_TIME = -AVAILABILITY_INTERVAL
 
 START_NOTIFY_DEBOUNCE = 1.5
+MAX_GSN = 65535
 
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
 SERVICE_INSTANCE_ID_UUID = UUID(SERVICE_INSTANCE_ID)
@@ -305,6 +306,7 @@ class BlePairing(AbstractPairing):
         self._tried_to_connect_once = False
         self._restore_pending = False
         self._fetched_gsn_this_session = False
+        self._had_notify_this_session = False
 
     @property
     def address(self) -> str:
@@ -435,6 +437,7 @@ class BlePairing(AbstractPairing):
         self._broadcast_notifications = set()
         self._restore_pending = False
         self._fetched_gsn_this_session = False
+        self._had_notify_this_session = False
 
     async def _ensure_connected(self, attempts: int | None = None) -> bool | None:
         """Ensure that we are connected to the accessory.
@@ -499,17 +502,32 @@ class BlePairing(AbstractPairing):
                     await self._get_characteristics_while_connected(
                         [char], notify_listeners=True
                     )
-                    # After a char has changed we need to check if the
-                    # GSN has changed as well so we don't reconnect
-                    # to the accessory if we don't need to
-                    if self._fetched_gsn_this_session:
-                        # The spec says we should only do this once per session
-                        # after a characteristic has changed
-                        return
-                    protocol_param = await self._get_all_protocol_params()
-                    if protocol_param:
+                    # The GSN value is always the same per session.
+                    # It will never increment until the session is closed.
+                    #
+                    # If we haven't fetched the GSN this session, do it now.
+                    if not self._fetched_gsn_this_session and (
+                        protocol_param := await self._get_all_protocol_params()
+                    ):
                         self.description.state_num = protocol_param.state_number
-                        self._fetched_gsn_this_session = True
+
+                    if not self._had_notify_this_session:
+                        self._had_notify_this_session = True
+                        # 7.4.1.8 Global State Number (GSN)
+                        # The GSN is only increased once per session
+                        # so we only want to increase it if we have
+                        # not already done so this session.
+                        #
+                        # The fetched GSN from _get_all_protocol_params
+                        # is NOT increased when we get a notify so we need
+                        # to do it here.
+                        #
+                        self.description.state_num += 1
+                        if self.description.state_num >= MAX_GSN:
+                            self.description.state_num = 1
+                            # GSN rolled over which invalidates the broadcast
+                            # encryption key. We need to re-fetch it.
+                            await self._async_set_broadcast_encryption_key()
 
         def _callback(id: int, data: bytes) -> None:
             logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
@@ -1008,6 +1026,7 @@ class BlePairing(AbstractPairing):
             protocol_params.state_number,
             protocol_params.config_number,
         )
+        self._fetched_gsn_this_session = True
         return protocol_params
 
     async def async_populate_accessories_state(
