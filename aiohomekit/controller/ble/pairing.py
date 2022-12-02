@@ -437,6 +437,7 @@ class BlePairing(AbstractPairing):
         self._broadcast_notifications = set()
         self._restore_pending = False
         self._fetched_gsn_this_session = False
+        self._had_notify_this_session = False
 
     async def _ensure_connected(self, attempts: int | None = None) -> bool | None:
         """Ensure that we are connected to the accessory.
