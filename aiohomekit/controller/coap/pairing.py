@@ -50,8 +50,7 @@ class CoAPPairing(ZeroconfPairing):
 
     def _async_endpoint_changed(self) -> None:
         """The IP/Port has changed, so close connection if active then reconnect."""
-        description = self.owner.description
-        self.connection.address = f"[{description.address}]:{description.port}"
+        self.connection.address = f"[{self.description.address}]:{self.description.port}"
         async_create_task(self.connection.reconnect_soon())
 
     @property
