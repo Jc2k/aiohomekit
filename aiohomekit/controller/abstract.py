@@ -137,6 +137,13 @@ class AbstractPairing(metaclass=ABCMeta):
             return None
         return self._accessories_state.broadcast_key
 
+    @property
+    def state_num(self) -> bytes | None:
+        """Returns gsn that is saved between restarts."""
+        if not self._accessories_state:
+            return None
+        return self._accessories_state.state_num
+
     @abstractmethod
     async def _process_disconnected_events(self):
         """Process any disconnected events that are available."""
@@ -206,15 +213,20 @@ class AbstractPairing(metaclass=ABCMeta):
             )
             return
         config_num = cache.get("config_num", 0)
+        state_num = cache.get("state_num")
         broadcast_key_hex = cache.get("broadcast_key")
         accessories = Accessories.from_list(cache["accessories"])
         self._accessories_state = AccessoriesState(
-            accessories, config_num, deserialize_broadcast_key(broadcast_key_hex)
+            accessories,
+            config_num,
+            deserialize_broadcast_key(broadcast_key_hex),
+            state_num,
         )
         logger.debug(
-            "%s: Accessories cache loaded (c#: %d) (has broadcast_key: %s)",
+            "%s: Accessories cache loaded (c#: %d) (gsn: %d) (has broadcast_key: %s)",
             self.name,
             config_num,
+            state_num,
             bool(broadcast_key_hex),
         )
 
@@ -223,11 +235,12 @@ class AbstractPairing(metaclass=ABCMeta):
         accessories: list[dict[str, Any]],
         config_num: int,
         broadcast_key: bytes | None,
+        state_num: int | None = None,
     ) -> None:
         """Restore accessories from cache."""
         accessories = Accessories.from_list(accessories)
         self._accessories_state = AccessoriesState(
-            accessories, config_num, broadcast_key
+            accessories, config_num, broadcast_key, state_num
         )
         self._update_accessories_state_cache()
 
@@ -238,6 +251,7 @@ class AbstractPairing(metaclass=ABCMeta):
             self.config_num,
             self.accessories.serialize(),
             serialize_broadcast_key(self.broadcast_key),
+            self.state_num,
         )
 
     async def get_primary_name(self) -> str:

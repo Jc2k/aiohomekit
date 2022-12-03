@@ -373,3 +373,4 @@ class AccessoriesState:
     accessories: Accessories
     config_num: int
     broadcast_key: bytes | None = None
+    state_num: int | None = None
