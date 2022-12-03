@@ -270,7 +270,6 @@ class BlePairing(AbstractPairing):
 
         if not description and self.state_num:
             self.description = HomeKitAdvertisement.from_cache(
-                name=self.address,
                 address=self.address,
                 id=self.id,
                 config_num=self.config_num,
