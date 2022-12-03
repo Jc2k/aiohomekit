@@ -125,6 +125,9 @@ def test_get_by_iid():
     name = "Hue dimmer switch button 3"
 
     bridge = Accessories.from_file("tests/fixtures/hue_bridge.json")
+    assert bridge.has_aid(6623462389072572) is True
+    assert bridge.has_aid(9999) is False
+
     accessory = bridge.aid(6623462389072572)
 
     char = accessory.characteristics.iid(588410716196)
