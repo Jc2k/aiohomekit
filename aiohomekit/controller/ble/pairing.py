@@ -1223,8 +1223,7 @@ class BlePairing(AbstractPairing):
         # the state number again to make sure we are in sync
         protocol_param = await self._get_all_protocol_params()
         if protocol_param:
-            self.description.state_num = protocol_param.state_number
-            self._accessories_state.state_num = protocol_param.state_number
+            self._update_state_num(protocol_param.state_number)
         self._async_schedule_start_notify_subscriptions()
 
     @operation_lock
