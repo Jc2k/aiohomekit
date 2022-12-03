@@ -58,11 +58,11 @@ class HomeKitAdvertisement(AbstractDescription):
 
     @classmethod
     def from_cache(
-        cls, name: str, address: str, id: str, config_num: int, state_num: int
+        cls, address: str, id: str, config_num: int, state_num: int
     ) -> HomeKitAdvertisement:
         """Create a HomeKitAdvertisement from a cache entry."""
         return cls(
-            name=name,
+            name=address,
             id=id,
             category=Categories(0),
             status_flags=StatusFlags(0),
