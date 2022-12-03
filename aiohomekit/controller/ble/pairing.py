@@ -268,7 +268,7 @@ class BlePairing(AbstractPairing):
 
         self._last_seen = time.monotonic() if description else NEVER_TIME
 
-        if not self.description and self.state_num:
+        if not description and self.state_num:
             self.description = HomeKitAdvertisement.from_cache(
                 name=self.name,
                 address=self.address,
