@@ -74,9 +74,11 @@ class BleController(AbstractController):
             return
 
         if pairing := self.pairings.get(data.id):
-            if (old_description := pairing.description) and len(
-                old_description.name
-            ) > len(data.name):
+            if (
+                (old_description := pairing.description)
+                and old_description.name != old_description.address
+                and len(old_description.name) > len(data.name)
+            ):
                 #
                 # If we have a pairing and the name is longer than the one we
                 # just received, we assume the name is more accurate and

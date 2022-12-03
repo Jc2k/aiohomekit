@@ -268,6 +268,14 @@ class BlePairing(AbstractPairing):
 
         self._last_seen = time.monotonic() if description else NEVER_TIME
 
+        if not description and self.state_num:
+            self.description = HomeKitAdvertisement.from_cache(
+                address=self.address,
+                id=self.id,
+                config_num=self.config_num,
+                state_num=self.state_num,
+            )
+
         # Encryption
         self._derive = None
         self._session_id = None
@@ -355,6 +363,18 @@ class BlePairing(AbstractPairing):
         """The transport used for the connection."""
         return Transport.BLE
 
+    def _update_state_num(self, state_num: int) -> None:
+        """Update the state number."""
+        self.description.state_num = state_num
+        self._update_cached_state_num(state_num)
+
+    def _update_cached_state_num(self, state_num: int) -> None:
+        """Update the cached state number which is restored between restarts."""
+        old_state_num = self._accessories_state.state_num
+        self._accessories_state.state_num = state_num
+        if old_state_num != state_num:
+            self._update_accessories_state_cache()
+
     def _async_ble_update(
         self, device: BLEDevice, ble_advertisement: AdvertisementData
     ) -> None:
@@ -380,6 +400,7 @@ class BlePairing(AbstractPairing):
             )
 
         super()._async_description_update(description)
+        self._update_cached_state_num(description.state_num)
 
     async def _async_request(
         self,
@@ -510,7 +531,7 @@ class BlePairing(AbstractPairing):
                     if not self._fetched_gsn_this_session and (
                         protocol_param := await self._get_all_protocol_params()
                     ):
-                        self.description.state_num = protocol_param.state_number
+                        self._update_state_num(protocol_param.state_number)
 
                     if not self._had_notify_this_session:
                         self._had_notify_this_session = True
@@ -523,12 +544,13 @@ class BlePairing(AbstractPairing):
                         # is NOT increased when we get a notify so we need
                         # to do it here.
                         #
-                        self.description.state_num += 1
-                        if self.description.state_num >= MAX_GSN:
-                            self.description.state_num = 1
+                        new_state_num = self.description.state_num + 1
+                        if new_state_num >= MAX_GSN:
+                            new_state_num = 1
                             # GSN rolled over which invalidates the broadcast
                             # encryption key. We need to re-fetch it.
                             await self._async_set_broadcast_encryption_key()
+                        self._update_state_num(new_state_num)
 
         def _callback(id: int, data: bytes) -> None:
             logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
@@ -618,7 +640,7 @@ class BlePairing(AbstractPairing):
                 return
 
             if protocol_param:
-                self.description.state_num = protocol_param.state_number
+                self._update_state_num(protocol_param.state_number)
 
     @operation_lock
     @retry_bluetooth_connection_error()
@@ -947,7 +969,7 @@ class BlePairing(AbstractPairing):
         """
         if not self.accessories and self.description:
             self._accessories_state = AccessoriesState(
-                Accessories(), -1, self.broadcast_key
+                Accessories(), -1, self.broadcast_key, self.state_num
             )
             return self.description.name
         return await super().get_primary_name()
@@ -1200,7 +1222,7 @@ class BlePairing(AbstractPairing):
         # the state number again to make sure we are in sync
         protocol_param = await self._get_all_protocol_params()
         if protocol_param:
-            self.description.state_num = protocol_param.state_number
+            self._update_state_num(protocol_param.state_number)
         self._async_schedule_start_notify_subscriptions()
 
     @operation_lock

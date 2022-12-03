@@ -351,6 +351,9 @@ class Accessories:
     def aid(self, aid: int) -> Accessory:
         return self._aid_to_accessory[aid]
 
+    def has_aid(self, aid: int) -> bool:
+        return aid in self._aid_to_accessory
+
     def process_changes(self, changes: dict[tuple[int, int], Any]) -> None:
         for ((aid, iid), value) in changes.items():
             accessory = self.aid(aid)
@@ -373,3 +376,4 @@ class AccessoriesState:
     accessories: Accessories
     config_num: int
     broadcast_key: bytes | None = None
+    state_num: int | None = None
