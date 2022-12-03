@@ -223,10 +223,10 @@ class AbstractPairing(metaclass=ABCMeta):
             state_num,
         )
         logger.debug(
-            "%s: Accessories cache loaded (c#: %d) (gsn: %d) (has broadcast_key: %s)",
+            "%s: Accessories cache loaded (c#: %d) (gsn: %s) (has broadcast_key: %s)",
             self.name,
             config_num,
-            state_num,
+            state_num,  # May be None
             bool(broadcast_key_hex),
         )
 
