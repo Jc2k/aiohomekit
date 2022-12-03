@@ -209,6 +209,7 @@ def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
                 ex,
             )
             if self.client:
+                await self.client.clear_cache()
                 await self.client.disconnect()
             raise
 
