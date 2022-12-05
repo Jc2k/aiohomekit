@@ -222,12 +222,9 @@ async def drive_pairing_state_machine(
     client: AIOHomeKitBleakClient,
     characteristic: str,
     state_machine: Generator[tuple[list[tuple[TLV, bytes]], list[TLV]], Any, Any],
-    characteristic_iid: int | None = None,
 ) -> Any:
     char = await client.get_characteristic(ServicesTypes.PAIRING, characteristic)
-    # Reading the descriptor to get the iid is slow. If we already know the iid
-    # then we can skip this step which saves a lot of time.
-    iid = characteristic_iid or await client.get_characteristic_iid(char)
+    iid = await client.get_characteristic_iid(char)
 
     request, expected = state_machine.send(None)
     while True:
