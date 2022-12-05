@@ -569,30 +569,11 @@ class BlePairing(AbstractPairing):
 
     async def _async_pair_verify(self) -> None:
         async with self._ble_request_lock:
-            # There is only one pair verify characteristic
-            # per device so we can just use the first one
-            # and avoid having to request the iid which speeds
-            # up the pairing resume process
-            try:
-                pair_verify_char = (
-                    self.accessories.aid(BLE_AID)
-                    .services.first(service_type=ServicesTypes.PAIRING)
-                    .characteristics.first(
-                        char_types=[CharacteristicsTypes.PAIR_VERIFY]
-                    )
-                )
-            except StopIteration:
-                # If we don't have a pair verify characteristic yet
-                # it means we haven't fetched the services yet
-                pair_verify_char = None
-
             session_id, derive = await drive_pairing_state_machine(
                 self.client,
                 CharacteristicsTypes.PAIR_VERIFY,
                 get_session_keys(self.pairing_data, self._session_id, self._derive),
-                pair_verify_char.iid if pair_verify_char else None,
             )
-
             self._encryption_key = EncryptionKey(
                 derive(b"Control-Salt", b"Control-Write-Encryption-Key")
             )
