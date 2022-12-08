@@ -810,7 +810,7 @@ class BlePairing(AbstractPairing):
         accessory.aid = 1
         # Never use the cache when fetching the GATT database
         services_to_link: list[tuple[Service, list[int]]] = []
-        services = await self.client.get_services()
+        services = self.client.services
         for service in services:
             ble_service_char = service.get_characteristic(SERVICE_INSTANCE_ID_UUID)
             if not ble_service_char:
