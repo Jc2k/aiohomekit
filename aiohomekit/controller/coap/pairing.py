@@ -53,6 +53,8 @@ class CoAPPairing(ZeroconfPairing):
         self.connection.address = (
             f"[{self.description.address}]:{self.description.port}"
         )
+        self.connection.host = self.description.address
+        self.connection.port = self.description.port
         async_create_task(self.connection.reconnect_soon())
 
     @property

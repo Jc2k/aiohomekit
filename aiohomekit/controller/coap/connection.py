@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import socket
 import struct
 from typing import Any
 import uuid
@@ -244,8 +245,10 @@ class CoAPHomeKitConnection:
         self.address = f"[{host}]:{port}"
         self.connection_lock = asyncio.Lock()
         self.enc_ctx = None
+        self.host = host
         self.owner = owner
         self.pair_setup_client = None
+        self.port = port
 
     async def reconnect_soon(self):
         if not self.enc_ctx:
@@ -322,14 +325,29 @@ class CoAPHomeKitConnection:
 
         return pairing
 
+    def _get_local_ipv6_addr(self, remote):
+        s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        s.connect(remote)
+        addr = s.getsockname()[0]
+        s.close()
+        return addr
+
     async def do_pair_verify(self, pairing_data):
         if self.is_connected:
             logger.warning("Connecting to connected device?")
             await self.enc_ctx.coap_ctx.shutdown()
             self.enc_ctx = None
 
+        try:
+            local_address = self._get_local_ipv6_addr((self.host, self.port))
+        except Exception as e:
+            logger.warning(
+                f"Unable to get local IPv6 address to connect to {self.address}: {e}"
+            )
+            raise AccessoryDisconnectedError("Unable to get local IPv6 address") from e
+
         root = resource.Site()
-        coap_client = await Context.create_server_context(root, bind=("::", 0))
+        coap_client = await Context.create_server_context(root, bind=(local_address, 0))
         uri = "coap://%s/2" % (self.address)
         logger.debug(f"Pair verify uri={uri}")
 
