@@ -292,8 +292,15 @@ class CharacteristicsTypes:
 
     # HAA - Home Accessory Architect
     # https://github.com/RavenSystem/esp-homekit-devices
-    VENDOR_HAA_SETUP = "F0000102-0218-2017-81BF-AF2B7C833922"
+    # Same custom characteristic, different commands:
+    # Update -> #HAA@trcmd0
+    # Setup -> #HAA@trcmd1
+    # Reboot -> #HAA@trcmd2
+    # Wifi Reconnection -> #HAA@trcmd3
     VENDOR_HAA_UPDATE = "F0000101-0218-2017-81BF-AF2B7C833922"
+    VENDOR_HAA_SETUP = "F0000101-0218-2017-81BF-AF2B7C833922"
+    VENDOR_HAA_REBOOT = "F0000101-0218-2017-81BF-AF2B7C833922"
+    VENDOR_HAA_WIFI_RECONNECT = "F0000101-0218-2017-81BF-AF2B7C833922"
 
     # Koogeek
     # Watts
