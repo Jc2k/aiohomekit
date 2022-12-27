@@ -298,6 +298,7 @@ class CharacteristicsTypes:
     # Reboot -> #HAA@trcmd2
     # Wifi Reconnection -> #HAA@trcmd3
     VENDOR_HAA_UPDATE = "F0000101-0218-2017-81BF-AF2B7C833922"
+    VENDOR_HAA_SETUP = "F0000102-0218-2017-81BF-AF2B7C833922"
 
     # Koogeek
     # Watts
