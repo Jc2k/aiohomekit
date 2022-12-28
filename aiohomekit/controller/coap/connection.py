@@ -170,7 +170,12 @@ class EncryptionContext:
             except (NetworkError, asyncio.TimeoutError):
                 raise AccessoryDisconnectedError("Request timeout")
 
-            if response.code != Code.CHANGED:
+            if response.code == Code.NOT_FOUND:
+                # maybe the accessory lost power or was otherwise rebooted
+                logger.error("CoAP POST returned 404, our session is gone.")
+                await self.coap_ctx.shutdown()
+                self.coap_ctx = None
+            elif response.code != Code.CHANGED:
                 logger.warning(f"CoAP POST returned unexpected code {response}")
 
             return await self._decrypt_response(response)
