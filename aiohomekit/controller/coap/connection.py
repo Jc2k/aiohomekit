@@ -172,7 +172,7 @@ class EncryptionContext:
 
             if response.code == Code.NOT_FOUND:
                 # maybe the accessory lost power or was otherwise rebooted
-                logger.error("CoAP POST returned 404, our session is gone.")
+                logger.debug("CoAP POST returned 404, our session is gone.")
                 await self.coap_ctx.shutdown()
                 self.coap_ctx = None
             elif response.code != Code.CHANGED:
