@@ -290,6 +290,9 @@ class CharacteristicsTypes:
     VENDOR_EVE_DEGREE_AIR_PRESSURE = "E863F10F-079E-48FF-8F27-9C2605A29F52"
     VENDOR_EVE_DEGREE_ELEVATION = "E863F130-079E-48FF-8F27-9C2605A29F52"
 
+    # Valve position in %, r/o, uint8
+    VENDOR_EVE_THERMO_VALVE_POSITION = "E863F12E-079E-48FF-8F27-9C2605A29F52"
+
     # HAA - Home Accessory Architect
     # https://github.com/RavenSystem/esp-homekit-devices
     VENDOR_HAA_SETUP = "F0000102-0218-2017-81BF-AF2B7C833922"
