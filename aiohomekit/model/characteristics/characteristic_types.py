@@ -380,3 +380,6 @@ class CharacteristicsTypes:
 
     # https://github.com/home-assistant/core/issues/73360 (r/o, dB)
     VENDOR_NETATMO_NOISE = "B3BBFABC-D78C-5B8D-948C-5DAC1EE2CDE5"
+
+    # r/w, int - 1 for on, 0 for off
+    VENDOR_AIRVERSA_SLEEP_MODE = "00000006-5E50-11EC-B400-0A80FF2603DE"
