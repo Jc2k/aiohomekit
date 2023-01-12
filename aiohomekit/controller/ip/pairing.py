@@ -304,7 +304,7 @@ class IpPairing(ZeroconfPairing):
                 key = (aid, iid)
                 status = characteristic["status"]
                 status_code = to_status_code(status).description
-                if status_code != HapStatusCode.SUCCESS:
+                if status_code != HapStatusCode.SUCCESS and key in listener_update:
                     listener_update.pop(key)
                 response_status[key] = {"status": status, "description": status_code}
 
