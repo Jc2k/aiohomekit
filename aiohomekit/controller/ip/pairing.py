@@ -299,6 +299,8 @@ class IpPairing(ZeroconfPairing):
             # If there is a response it means something failed so
             # we need to remove the listener update for the failed
             # characteristics.
+            if isinstance(response, dict) and "characteristics" in response:
+                response = response["characteristics"]
             for characteristic in response:
                 aid, iid = characteristic["aid"], characteristic["iid"]
                 key = (aid, iid)
