@@ -299,13 +299,13 @@ class IpPairing(ZeroconfPairing):
             # If there is a response it means something failed so
             # we need to remove the listener update for the failed
             # characteristics.
-            for characteristic in response:
+            for characteristic in response["characteristics"]:
                 aid, iid = characteristic["aid"], characteristic["iid"]
                 key = (aid, iid)
                 status = characteristic["status"]
                 status_code = to_status_code(status).description
                 if status_code != HapStatusCode.SUCCESS:
-                    listener_update.pop(key)
+                    listener_update.pop(key, None)
                 response_status[key] = {"status": status, "description": status_code}
 
         if listener_update:
