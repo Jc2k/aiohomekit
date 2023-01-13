@@ -64,6 +64,7 @@ class Services:
     def __init__(self):
         self._services: list[Service] = []
         self._iid_to_service: dict[int, Service] = {}
+        self._type_to_service: dict[str, Service] = {}
 
     def __iter__(self) -> Iterator[Service]:
         return iter(self._services)
@@ -123,6 +124,14 @@ class Services:
         parent_service: Service = None,
         child_service: Service = None,
     ) -> Service:
+        if (
+            service_type is not None
+            and characteristics is None
+            and parent_service is None
+            and child_service is None
+        ):
+            return self._type_to_service.get(normalize_uuid(service_type))
+
         try:
             return next(
                 self.filter(
@@ -138,6 +147,8 @@ class Services:
     def append(self, service: Service):
         self._services.append(service)
         self._iid_to_service[service.iid] = service
+        if service.type not in self._type_to_service:
+            self._type_to_service[service.type] = service
 
 
 class Characteristics:
