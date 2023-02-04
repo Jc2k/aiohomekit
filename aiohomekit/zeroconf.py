@@ -25,7 +25,13 @@ from ipaddress import ip_address
 import logging
 
 import async_timeout
-from zeroconf import DNSPointer, ServiceListener, ServiceStateChange, Zeroconf
+from zeroconf import (
+    DNSPointer,
+    ServiceListener,
+    ServiceStateChange,
+    Zeroconf,
+    BadTypeInNameException,
+)
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
@@ -230,12 +236,15 @@ class ZeroconfController(AbstractController):
 
     async def _async_update_from_cache(self, zc: Zeroconf) -> None:
         """Load the records from the cache."""
-        infos = [
-            AsyncServiceInfo(self.hap_type, record.alias)
-            for record in self._async_get_ptr_records(zc)
-        ]
-        tasks = []
-        for info in infos:
+        tasks: list[asyncio.Task] = []
+        for record in self._async_get_ptr_records(zc):
+            try:
+                info = AsyncServiceInfo(self.hap_type, record.alias)
+            except BadTypeInNameException as ex:
+                logger.debug(
+                    "Ignoring record with bad type in name: %s: %s", record.alias, ex
+                )
+                continue
             if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
                 self._async_handle_loaded_service_info(info)
             else:
@@ -259,7 +268,11 @@ class ZeroconfController(AbstractController):
             return
 
         if not (debouncer := self._debouncers.get(name)):
-            info = AsyncServiceInfo(service_type, name)
+            try:
+                info = AsyncServiceInfo(service_type, name)
+            except BadTypeInNameException as ex:
+                logger.debug("Ignoring record with bad type in name: %s: %s", name, ex)
+                return
 
             async def _async_handle_service():
                 if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
