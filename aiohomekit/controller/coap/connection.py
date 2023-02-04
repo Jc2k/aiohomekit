@@ -155,8 +155,10 @@ class EncryptionContext:
                 "Failed flailing attempts to resynchronize, self-destructing in 3, 2, 1..."
             )
 
-            await self.coap_ctx.shutdown()
-            self.coap_ctx = None
+            if self.coap_ctx:
+                await self.coap_ctx.shutdown()
+                self.coap_ctx = None
+
             raise EncryptionError("Decryption of PDU POST response failed")
 
     async def post_bytes(self, payload: bytes, timeout: int = 16.0):
