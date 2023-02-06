@@ -81,6 +81,7 @@ class AbstractPairing(metaclass=ABCMeta):
         self._shutdown = False
 
         self.id = pairing_data["AccessoryPairingID"]
+        print("Pairing: %s: %r", self.id, pairing_data)
         self._pairing_data = pairing_data
         self._load_accessories_from_cache()
 

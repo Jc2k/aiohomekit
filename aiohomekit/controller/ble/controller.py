@@ -41,7 +41,6 @@ class BleController(AbstractController):
         super().__init__(char_cache=char_cache)
         self._scanner = bleak_scanner_instance
         self._ble_futures: dict[str, list[asyncio.Future[BLEDevice]]] = {}
-        self._ble_futures_by_id: dict[str, list[asyncio.Future[BLEDevice]]] = {}
 
     def _device_detected(
         self, device: BLEDevice, advertisement_data: AdvertisementData
@@ -94,16 +93,9 @@ class BleController(AbstractController):
             pairing._async_description_update(data)
             pairing._async_ble_update(device, advertisement_data)
 
-        if futures := self._ble_futures_by_id.get(data.id):
+        if futures := self._ble_futures.get(data.id):
             discovery = BleDiscovery(self, device, data, advertisement_data)
             logger.debug("BLE device for %s found, fulfilling futures", data.id)
-            for future in futures:
-                future.set_result(discovery)
-            futures.clear()
-
-        if futures := self._ble_futures.get(data.address):
-            discovery = BleDiscovery(self, device, data, advertisement_data)
-            logger.debug("BLE device for %s found, fulfilling futures", data.address)
             for future in futures:
                 future.set_result(discovery)
             futures.clear()
@@ -154,7 +146,6 @@ class BleController(AbstractController):
             timeout,
         )
         future = asyncio.Future()
-        self._ble_futures_by_id.setdefault(device_id, []).append(future)
         try:
             async with asyncio_timeout(timeout):
                 return await future
@@ -166,49 +157,16 @@ class BleController(AbstractController):
             )
             return None
         finally:
-            if device_id not in self._ble_futures_by_id:
+            if device_id not in self._ble_futures:
                 return
-            if future in self._ble_futures_by_id[device_id]:
-                self._ble_futures_by_id[device_id].remove(future)
-            if not self._ble_futures_by_id[device_id]:
-                del self._ble_futures_by_id[device_id]
+            if future in self._ble_futures[device_id]:
+                self._ble_futures[device_id].remove(future)
+            if not self._ble_futures[device_id]:
+                del self._ble_futures[device_id]
 
     async def async_discover(self) -> AsyncIterable[BleDiscovery]:
         for device in self.discoveries.values():
             yield device
-
-    async def async_get_discovery(
-        self, address: str, timeout: int
-    ) -> BleDiscovery | None:
-        """Get a discovery by address."""
-        if discovery := self.discoveries.get(address):
-            logger.debug("Discovery for %s already found", address)
-            return discovery
-
-        logger.debug(
-            "Discovery for address %s not found, waiting for advertisement with timeout: %s",
-            address,
-            timeout,
-        )
-        future = asyncio.Future()
-        self._ble_futures.setdefault(address, []).append(future)
-        try:
-            async with asyncio_timeout(timeout):
-                return await future
-        except asyncio.TimeoutError:
-            logger.debug(
-                "Timed out after %s waiting for discovery with address %s",
-                timeout,
-                address,
-            )
-            return None
-        finally:
-            if address not in self._ble_futures:
-                return
-            if future in self._ble_futures[address]:
-                self._ble_futures[address].remove(future)
-            if not self._ble_futures[address]:
-                del self._ble_futures[address]
 
     def load_pairing(
         self, alias: str, pairing_data: AbstractPairingData

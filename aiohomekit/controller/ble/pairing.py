@@ -475,8 +475,8 @@ class BlePairing(AbstractPairing):
             if self._shutdown or (self.client and self.client.is_connected):
                 return False
             if not self.device and (
-                discovery := await self.controller.async_get_discovery(
-                    self.address, DISCOVER_TIMEOUT
+                discovery := await self.controller.async_find(
+                    self.id, DISCOVER_TIMEOUT
                 )
             ):
                 self.device = discovery.device
@@ -484,7 +484,7 @@ class BlePairing(AbstractPairing):
                 self.description = discovery.description
             elif not self.device:
                 raise AccessoryNotFoundError(
-                    f"{self.name}: Could not find {self.address}"
+                    f"{self.name}: Could not find {self.id}"
                 )
             self.client = await establish_connection(
                 self.device,
