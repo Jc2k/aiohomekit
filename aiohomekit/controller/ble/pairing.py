@@ -1508,6 +1508,7 @@ class BlePairing(AbstractPairing):
         return results
 
     @operation_lock
+    @retry_bluetooth_connection_error()
     @restore_connection_and_resume
     async def thread_provision(
         self,
@@ -1573,7 +1574,7 @@ class BlePairing(AbstractPairing):
         except Exception as e:
             # this is the expected code flow
             logger.debug("err=%r" % (e,))
-            await self.close()
+            await self.shutdown()
 
     async def subscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
         """Subscribe to characteristics."""
