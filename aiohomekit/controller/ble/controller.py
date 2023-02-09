@@ -10,7 +10,11 @@ from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakDBusError, BleakError
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
-from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
+from aiohomekit.controller.abstract import (
+    AbstractController,
+    AbstractPairingData,
+    TransportType,
+)
 from aiohomekit.controller.ble.manufacturer_data import (
     APPLE_MANUFACTURER_ID,
     HOMEKIT_ADVERTISEMENT_TYPE,
@@ -30,6 +34,7 @@ class BleController(AbstractController):
     discoveries: dict[str, BleDiscovery]
     pairings: dict[str, BlePairing]
     aliases: dict[str, BlePairing]
+    transport_type = TransportType.BLE
 
     _scanner: BleakScanner | None
 

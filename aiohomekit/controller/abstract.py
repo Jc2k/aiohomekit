@@ -20,6 +20,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import AsyncIterable, Awaitable, Iterable
 from dataclasses import dataclass
 from datetime import timedelta
+from enum import Enum
 import logging
 from typing import Any, Callable, TypedDict, final
 
@@ -57,6 +58,13 @@ class AbstractDescription:
     status_flags: StatusFlags
     config_num: int
     category: Categories
+
+
+class TransportType(Enum):
+
+    IP = "ip"
+    COAP = "coap"
+    BLE = "ble"
 
 
 class AbstractPairing(metaclass=ABCMeta):
@@ -443,6 +451,10 @@ class AbstractController(metaclass=ABCMeta):
         self.discoveries = {}
 
         self._char_cache = char_cache
+
+    @property
+    def transport_type(self) -> TransportType:
+        raise NotImplementedError(self.transport_type)
 
     @final
     async def __aenter__(self):

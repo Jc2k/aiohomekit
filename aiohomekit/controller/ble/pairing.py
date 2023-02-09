@@ -1537,7 +1537,7 @@ class BlePairing(AbstractPairing):
             ]
         )
         resp = await self._async_request(OpCode.CHAR_WRITE, thread_control, request_tlv)
-        logger.debug("resp=%r" % (resp,))
+        logger.debug("resp=%r", resp)
 
         thread_tlv = TLV.encode_list(
             [
@@ -1570,11 +1570,12 @@ class BlePairing(AbstractPairing):
                 OpCode.CHAR_WRITE, thread_control, request_tlv
             )
             # we shouldn't get a response
-            logger.debug("resp=%r" % (resp,))
+            logger.debug("resp=%r", resp)
         except Exception as e:
             # this is the expected code flow
-            logger.debug("err=%r" % (e,))
-            await self.close()
+            logger.debug("err=%r", e)
+
+        await self.shutdown()
 
     async def subscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
         """Subscribe to characteristics."""
