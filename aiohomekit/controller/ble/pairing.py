@@ -1512,12 +1512,7 @@ class BlePairing(AbstractPairing):
     @restore_connection_and_resume
     async def thread_provision(
         self,
-        network_name: str,
-        channel: int,
-        pan_id: str,
-        extended_pan_id: str,
-        network_key: str,
-        unknown: int,
+        dataset: str,
     ) -> None:
         """Provision a device with Thread network credentials."""
         thread_service = self.accessories.aid(BLE_AID).services.first(
@@ -1539,22 +1534,15 @@ class BlePairing(AbstractPairing):
         resp = await self._async_request(OpCode.CHAR_WRITE, thread_control, request_tlv)
         logger.debug("resp=%r", resp)
 
-        thread_tlv = TLV.encode_list(
-            [
-                (1, bytes(network_name, encoding="ascii")),
-                (2, channel.to_bytes(1, byteorder="little")),
-                (3, int(pan_id, base=16).to_bytes(2, byteorder="little")),
-                (4, bytes.fromhex(extended_pan_id)),
-                (5, bytes.fromhex(network_key)),
-            ]
-        )
+        unknown = 1
         inner_request_tlv = TLV.encode_list(
             [
                 # TLV 1 is some sort of write/provision OpCode
                 (1, b"\x01"),
                 # TLV 2 contains the Thread network details
-                (2, thread_tlv),
+                (2, bytes.fromhex(dataset)),
                 # TLV 3 seems to be a bitfield or identifier; iOS sends 0 & Android sends 1
+                # 1 has worked in testing
                 (3, unknown.to_bytes(1, byteorder="little")),
             ]
         )
