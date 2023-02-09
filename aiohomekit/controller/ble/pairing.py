@@ -1574,7 +1574,7 @@ class BlePairing(AbstractPairing):
         except Exception as e:
             # this is the expected code flow
             logger.debug("err=%r" % (e,))
-            await self.shutdown()
+            await self.close()
 
     async def subscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
         """Subscribe to characteristics."""
