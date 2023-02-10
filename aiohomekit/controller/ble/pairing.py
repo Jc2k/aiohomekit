@@ -42,6 +42,7 @@ from aiohomekit.exceptions import (
     InvalidError,
     UnknownError,
 )
+from aiohomekit.meshcop import Meshcop
 from aiohomekit.model import (
     Accessories,
     AccessoriesState,
@@ -1514,7 +1515,11 @@ class BlePairing(AbstractPairing):
         self,
         dataset: str,
     ) -> None:
-        """Provision a device with Thread network credentials."""
+        """
+        Provision a device with Thread network credentials.
+
+        The credentials should be provided in the meshcop/thread operational dataset format.
+        """
         thread_service = self.accessories.aid(BLE_AID).services.first(
             service_type=ServicesTypes.THREAD_TRANSPORT
         )
@@ -1534,13 +1539,23 @@ class BlePairing(AbstractPairing):
         resp = await self._async_request(OpCode.CHAR_WRITE, thread_control, request_tlv)
         logger.debug("resp=%r", resp)
 
+        decoded = Meshcop.decode(bytes.fromhex(dataset))
+        thread_tlv = TLV.encode_list(
+            [
+                (1, decoded.networkname.encode("utf-8")),
+                (2, decoded.channel.to_bytes(1, byteorder="little")),
+                (3, int(decoded.pan_id, base=16).to_bytes(2, byteorder="little")),
+                (4, decoded.extpanid),
+                (5, decoded.networkkey),
+            ]
+        )
         unknown = 1
         inner_request_tlv = TLV.encode_list(
             [
                 # TLV 1 is some sort of write/provision OpCode
                 (1, b"\x01"),
                 # TLV 2 contains the Thread network details
-                (2, bytes.fromhex(dataset)),
+                (2, thread_tlv),
                 # TLV 3 seems to be a bitfield or identifier; iOS sends 0 & Android sends 1
                 # 1 has worked in testing
                 (3, unknown.to_bytes(1, byteorder="little")),
