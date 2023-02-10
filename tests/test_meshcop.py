@@ -13,7 +13,7 @@ def test_parse_tlv() -> None:
 
     assert struct.networkname == "OpenThreadDemo"
     assert struct.channel == 15
-    assert struct.panid == bytes.fromhex("1234")
+    assert struct.panid == 4660
     assert struct.extpanid == bytes.fromhex("1111111122222222")
     assert struct.pskc == bytes.fromhex("445f2b5ca6f2a93a55ce570a70efeecb")
     assert struct.networkkey == bytes.fromhex("00112233445566778899aabbccddeeff")
