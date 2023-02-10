@@ -1544,7 +1544,7 @@ class BlePairing(AbstractPairing):
             [
                 (1, decoded.networkname.encode("utf-8")),
                 (2, decoded.channel.to_bytes(1, byteorder="little")),
-                (3, int(decoded.panid, base=16).to_bytes(2, byteorder="little")),
+                (3, decoded.panid.to_bytes(2, byteorder="little")),
                 (4, decoded.extpanid),
                 (5, decoded.networkkey),
             ]

@@ -31,7 +31,7 @@ from aiohomekit.tlv8 import TLVStruct, bu16, tlv_entry
 class Meshcop(TLVStruct):
 
     channel: bu16 = tlv_entry(0)
-    panid: bytes = tlv_entry(1)
+    panid: bu16 = tlv_entry(1)
     extpanid: bytes = tlv_entry(2)
     networkname: str = tlv_entry(3)
     pskc: bytes = tlv_entry(4)
