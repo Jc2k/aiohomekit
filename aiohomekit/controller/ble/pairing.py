@@ -1588,10 +1588,10 @@ class BlePairing(AbstractPairing):
                 OpCode.CHAR_WRITE, thread_control, request_tlv
             )
             # we shouldn't get a response
-            logger.debug("resp=%r", resp)
+            logger.debug("Thread provision returned a success response: %r", resp)
         except Exception as e:
             # this is the expected code flow
-            logger.debug("err=%r", e)
+            logger.debug("Thread provision returned error (%r), this might not indicate a failure so ignoring.", e)
 
         await self.shutdown()
 
