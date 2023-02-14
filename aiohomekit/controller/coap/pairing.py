@@ -224,7 +224,6 @@ class CoAPPairing(ZeroconfPairing):
         dataset: str,
     ) -> None:
         """Provision a device with Thread network credentials."""
-        return
 
     async def subscribe(self, characteristics):
         await self._ensure_connected()

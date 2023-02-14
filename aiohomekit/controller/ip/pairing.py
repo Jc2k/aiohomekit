@@ -318,7 +318,6 @@ class IpPairing(ZeroconfPairing):
         dataset: str,
     ) -> None:
         """Provision a device with Thread network credentials."""
-        return
 
     async def subscribe(self, characteristics):
         await super().subscribe(set(characteristics))
