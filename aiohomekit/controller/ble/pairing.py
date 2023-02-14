@@ -242,6 +242,20 @@ def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
     return cast(WrapFuncType, _async_restore_and_resume)
 
 
+def force_fresh_connection(func: WrapFuncType) -> WrapFuncType:
+    """Define a wrapper to force a fresh connection."""
+
+    async def _async_force_fresh_connection(
+        self: BlePairing, *args: Any, **kwargs: Any
+    ) -> None:
+        """Force a fresh connection."""
+        if self.client:
+            await self.client.disconnect()
+        return await func(self, *args, **kwargs)
+
+    return cast(WrapFuncType, _async_force_fresh_connection)
+
+
 class BlePairing(AbstractPairing):
     """
     This represents a paired HomeKit IP accessory.
@@ -1510,6 +1524,7 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     @retry_bluetooth_connection_error()
+    @force_fresh_connection
     @restore_connection_and_resume
     async def thread_provision(
         self,
