@@ -666,9 +666,7 @@ class CoAPHomeKitConnection:
 
         m2_error = list(filter(lambda x: x[0] == TLV.kTLVType_Error, m2))
         if len(m2_error) != 0:
-            logger.debug(
-                f"Error from accessory during list pairings: {m2_error[0][1]}"
-            )
+            logger.debug(f"Error from accessory during list pairings: {m2_error[0][1]}")
             return
 
         id_list = [

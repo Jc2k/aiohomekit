@@ -1591,7 +1591,10 @@ class BlePairing(AbstractPairing):
             logger.debug("Thread provision returned a success response: %r", resp)
         except Exception as e:
             # this is the expected code flow
-            logger.debug("Thread provision returned error (%r), this might not indicate a failure so ignoring.", e)
+            logger.debug(
+                "Thread provision returned error (%r), this might not indicate a failure so ignoring.",
+                e,
+            )
 
         await self.shutdown()
 
