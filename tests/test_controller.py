@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from aiohomekit.controller import Controller, controller as controller_module
+from aiohomekit.controller.abstract import TransportType
 from aiohomekit.controller.ble.controller import BleController
 from aiohomekit.controller.ip.controller import IpController
 from aiohomekit.exceptions import AccessoryDisconnectedError
@@ -37,8 +38,8 @@ async def test_passing_in_bleak_to_controller():
         )
         await controller.async_start()
 
-    assert len(controller._transports) == 1
-    assert isinstance(controller._transports[0], BleController)
+    assert len(controller.transports) == 1
+    assert isinstance(controller.transports[TransportType.BLE], BleController)
 
 
 async def test_passing_in_async_zeroconf(mock_asynczeroconf):
@@ -54,5 +55,5 @@ async def test_passing_in_async_zeroconf(mock_asynczeroconf):
         controller = Controller(async_zeroconf_instance=mock_asynczeroconf)
         await controller.async_start()
 
-    assert len(controller._transports) == 1
-    assert isinstance(controller._transports[0], IpController)
+    assert len(controller.transports) == 1
+    assert isinstance(controller.transports[TransportType.IP], IpController)

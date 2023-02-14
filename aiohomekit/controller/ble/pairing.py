@@ -42,6 +42,7 @@ from aiohomekit.exceptions import (
     InvalidError,
     UnknownError,
 )
+from aiohomekit.meshcop import Meshcop
 from aiohomekit.model import (
     Accessories,
     AccessoriesState,
@@ -239,6 +240,20 @@ def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
                 await self._async_restore_subscriptions()
 
     return cast(WrapFuncType, _async_restore_and_resume)
+
+
+def force_fresh_connection(func: WrapFuncType) -> WrapFuncType:
+    """Define a wrapper to force a fresh connection."""
+
+    async def _async_force_fresh_connection(
+        self: BlePairing, *args: Any, **kwargs: Any
+    ) -> None:
+        """Force a fresh connection."""
+        if self.client:
+            await self.client.disconnect()
+        return await func(self, *args, **kwargs)
+
+    return cast(WrapFuncType, _async_force_fresh_connection)
 
 
 class BlePairing(AbstractPairing):
@@ -1506,6 +1521,82 @@ class BlePairing(AbstractPairing):
                     results[result_key] = result
 
         return results
+
+    @operation_lock
+    @retry_bluetooth_connection_error()
+    @force_fresh_connection
+    @restore_connection_and_resume
+    async def thread_provision(
+        self,
+        dataset: str,
+    ) -> None:
+        """
+        Provision a device with Thread network credentials.
+
+        The credentials should be provided in the meshcop/thread operational dataset format.
+        """
+        thread_service = self.accessories.aid(BLE_AID).services.first(
+            service_type=ServicesTypes.THREAD_TRANSPORT
+        )
+        thread_control = thread_service[CharacteristicsTypes.THREAD_CONTROL_POINT]
+
+        inner_request_tlv = TLV.encode_list(
+            [
+                (1, b"\x03"),
+            ]
+        )
+        request_tlv = TLV.encode_list(
+            [
+                (TLV.kTLVHAPParamParamReturnResponse, bytearray(b"\x01")),
+                (TLV.kTLVHAPParamValue, inner_request_tlv),
+            ]
+        )
+        resp = await self._async_request(OpCode.CHAR_WRITE, thread_control, request_tlv)
+        logger.debug("resp=%r", resp)
+
+        decoded = Meshcop.decode(bytes.fromhex(dataset))
+        thread_tlv = TLV.encode_list(
+            [
+                (1, decoded.networkname.encode("utf-8")),
+                (2, decoded.channel.to_bytes(1, byteorder="little")),
+                (3, decoded.panid.to_bytes(2, byteorder="little")),
+                (4, decoded.extpanid),
+                (5, decoded.networkkey),
+            ]
+        )
+        unknown = 1
+        inner_request_tlv = TLV.encode_list(
+            [
+                # TLV 1 is some sort of write/provision OpCode
+                (1, b"\x01"),
+                # TLV 2 contains the Thread network details
+                (2, thread_tlv),
+                # TLV 3 seems to be a bitfield or identifier; iOS sends 0 & Android sends 1
+                # 1 has worked in testing
+                (3, unknown.to_bytes(1, byteorder="little")),
+            ]
+        )
+        request_tlv = TLV.encode_list(
+            [
+                (TLV.kTLVHAPParamParamReturnResponse, bytearray(b"\x01")),
+                (TLV.kTLVHAPParamValue, inner_request_tlv),
+            ]
+        )
+
+        try:
+            resp = await self._async_request(
+                OpCode.CHAR_WRITE, thread_control, request_tlv
+            )
+            # we shouldn't get a response
+            logger.debug("Thread provision returned a success response: %r", resp)
+        except Exception as e:
+            # this is the expected code flow
+            logger.debug(
+                "Thread provision returned error (%r), this might not indicate a failure so ignoring.",
+                e,
+            )
+
+        await self.shutdown()
 
     async def subscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
         """Subscribe to characteristics."""

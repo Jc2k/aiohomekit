@@ -310,6 +310,17 @@ class FakePairing(AbstractPairing):
         self.testing.update_aid_iid(filtered)
         return results
 
+    async def thread_provision(
+        self,
+        network_name: str,
+        channel: int,
+        pan_id: str,
+        extended_pan_id: str,
+        network_key: str,
+        unknown: int,
+    ) -> None:
+        pass
+
     async def image(self, accessory: int, width: int, height: int) -> bytes:
         self._ensure_connected()
 

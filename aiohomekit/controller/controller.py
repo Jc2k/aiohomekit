@@ -42,7 +42,7 @@ from ..exceptions import (
     ConfigSavingError,
     TransportNotSupportedError,
 )
-from .abstract import AbstractController, AbstractPairing
+from .abstract import AbstractController, AbstractPairing, TransportType
 
 
 class Controller(AbstractController):
@@ -68,11 +68,13 @@ class Controller(AbstractController):
         self._async_zeroconf_instance = async_zeroconf_instance
         self._bleak_scanner_instance = bleak_scanner_instance
 
-        self._transports: list[AbstractController] = []
+        self.transports: dict[TransportType, AbstractController] = {}
         self._tasks = AsyncExitStack()
 
     async def _async_register_backend(self, controller: AbstractController) -> None:
-        self._transports.append(await self._tasks.enter_async_context(controller))
+        self.transports[
+            controller.transport_type
+        ] = await self._tasks.enter_async_context(controller)
 
     async def async_start(self) -> None:
         if IP_TRANSPORT_SUPPORTED or self._async_zeroconf_instance:
@@ -118,7 +120,7 @@ class Controller(AbstractController):
         self, device_id: str, timeout: float = 30.0
     ) -> AbstractDiscovery:
         pending = []
-        for transport in self._transports:
+        for transport in self.transports.values():
             pending.append(
                 asyncio.create_task(transport.async_find(device_id, timeout))
             )
@@ -144,7 +146,7 @@ class Controller(AbstractController):
         raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
 
     async def async_discover(self, timeout=10) -> AsyncIterable[AbstractDiscovery]:
-        for transport in self._transports:
+        for transport in self.transports.values():
             async for device in transport.async_discover():
                 yield device
 
@@ -155,7 +157,7 @@ class Controller(AbstractController):
         if "Connection" not in pairing_data:
             pairing_data["Connection"] = "IP"
 
-        for transport in self._transports:
+        for transport in self.transports.values():
             if pairing := transport.load_pairing(alias, pairing_data):
                 self.pairings[pairing_data["AccessoryPairingID"].lower()] = pairing
                 self.aliases[alias] = pairing

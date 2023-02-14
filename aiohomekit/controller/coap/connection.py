@@ -207,7 +207,7 @@ class EventResource(resource.Resource):
         try:
             payload = self.connection.enc_ctx.decrypt_event(request.payload)
         except InvalidTag:
-            logger.warning(
+            logger.debug(
                 "Event decryption failed, desynchronized? Counter=%d"
                 % (self.connection.enc_ctx.event_ctr,)
             )
@@ -295,7 +295,7 @@ class CoAPHomeKitConnection:
                 salt, srpB = result.value
                 return salt, srpB
             except Exception:
-                logger.warning("Pair setup 1/2 failed!")
+                logger.debug("Pair setup 1/2 failed!")
                 await self.pair_setup_client.shutdown()
                 raise
 
@@ -319,7 +319,7 @@ class CoAPHomeKitConnection:
                 pairing = result.value
                 break
             except Exception:
-                logger.warning("Pair setup 2/2 failed!")
+                logger.debug("Pair setup 2/2 failed!")
                 await self.pair_setup_client.shutdown()
                 raise
 
@@ -331,7 +331,7 @@ class CoAPHomeKitConnection:
 
     async def do_pair_verify(self, pairing_data):
         if self.is_connected:
-            logger.warning("Connecting to connected device?")
+            logger.debug("Connecting to connected device?")
             await self.enc_ctx.coap_ctx.shutdown()
             self.enc_ctx = None
 
@@ -390,10 +390,10 @@ class CoAPHomeKitConnection:
             try:
                 await self.do_pair_verify(pairing_data)
             except asyncio.TimeoutError:
-                logger.warning("Pair verify timed out")
+                logger.debug("Pair verify timed out")
                 raise AccessoryDisconnectedError("Pair verify timed out")
             except Exception as exc:
-                logger.warning("Pair verify failed", exc_info=exc)
+                logger.debug("Pair verify failed", exc_info=exc)
                 raise AccessoryDisconnectedError("Pair verify failed")
 
             # we need the info this provides to be able to read/write characteristics
@@ -661,14 +661,12 @@ class CoAPHomeKitConnection:
 
         m2_state = list(filter(lambda x: x[0] == TLV.kTLVType_State, m2))
         if len(m2_state) != 1 or m2_state[0][1] != TLV.M2:
-            logger.warning("Unexpected state in list pairings M2")
+            logger.debug("Unexpected state in list pairings M2")
             return
 
         m2_error = list(filter(lambda x: x[0] == TLV.kTLVType_Error, m2))
         if len(m2_error) != 0:
-            logger.warning(
-                f"Error from accessory during list pairings: {m2_error[0][1]}"
-            )
+            logger.debug(f"Error from accessory during list pairings: {m2_error[0][1]}")
             return
 
         id_list = [

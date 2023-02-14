@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
-__all__ = ["Controller"]
+__all__ = ["Controller", "TransportType"]
 
+from .abstract import TransportType
 from .controller import Controller

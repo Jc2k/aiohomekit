@@ -353,7 +353,8 @@ class ZeroconfController(AbstractController):
 
         if waiters := self._waiters.pop(description.id, None):
             for waiter in waiters:
-                waiter.set_result(discovery)
+                if not waiter.cancelled():
+                    waiter.set_result(discovery)
 
     @abstractmethod
     def _make_discovery(self, description: HomeKitService) -> AbstractDiscovery:
