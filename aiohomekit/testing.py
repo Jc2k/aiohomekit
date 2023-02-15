@@ -23,6 +23,7 @@ import logging
 
 from aiohomekit import exceptions
 from aiohomekit.characteristic_cache import CharacteristicCacheMemory
+from aiohomekit.controller import TransportType
 from aiohomekit.controller.abstract import (
     AbstractController,
     AbstractDiscovery,
@@ -312,12 +313,7 @@ class FakePairing(AbstractPairing):
 
     async def thread_provision(
         self,
-        network_name: str,
-        channel: int,
-        pan_id: str,
-        extended_pan_id: str,
-        network_key: str,
-        unknown: int,
+        dataset: str,
     ) -> None:
         pass
 
@@ -339,6 +335,8 @@ class FakeController(AbstractController):
     discoveries: dict[str, FakeDiscovery]
     pairings: dict[str, FakePairing]
     aliases: dict[str, FakePairing]
+
+    transport_type = TransportType.IP
 
     def __init__(
         self, async_zeroconf_instance=None, char_cache=None, bleak_scanner_instance=None
@@ -373,7 +371,7 @@ class FakeController(AbstractController):
         for discovery in self.discoveries.values():
             yield discovery
 
-    async def async_find(self, device_id, max_seconds=10) -> AbstractDiscovery:
+    async def async_find(self, device_id, timeout=10) -> AbstractDiscovery:
         try:
             return self.discoveries[device_id]
         except KeyError:
