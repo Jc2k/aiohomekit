@@ -99,6 +99,23 @@ class ActivationStateValues(enum.IntEnum):
     ACTIVE = 1
 
 
+class CurrentAirPurifierStateValues(enum.IntEnum):
+    """Possible values for the current state of an air purifier.
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluecurrentairpurifierstate"""
+
+    INACTIVE = 0
+    IDLE = 1
+    ACTIVE = 2
+
+
+class TargetAirPurifierStateValues(enum.IntEnum):
+    """Possible values for the target state  of an air purifier.
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluetargetairpurifierstate"""
+
+    MANUAL = 0
+    AUTOMATIC = 1
+
+
 class SwingModeValues(enum.IntEnum):
     """Possible values for fan movement.
     https://developer.apple.com/documentation/homekit/hmcharacteristicvalueswingmode"""
