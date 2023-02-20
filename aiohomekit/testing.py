@@ -225,7 +225,12 @@ class FakePairing(AbstractPairing):
 
     @property
     def transport(self) -> Transport:
-        return Transport.IP
+        transport_type = self.pairing_data.get("Connection", "IP")
+        return {
+            "BLE": Transport.BLE,
+            "CoAP": Transport.COAP,
+            "IP": Transport.IP,
+        }.get(transport_type, Transport.IP)
 
     @property
     def poll_interval(self) -> timedelta:
@@ -386,4 +391,6 @@ class FakeController(AbstractController):
     def load_pairing(self, alias: str, pairing_data):
         # This assumes a test has already preseed self.pairings with a fake via
         # add_paired_device
-        return self.aliases[alias]
+        pairing = self.aliases[alias]
+        pairing.pairing_data = pairing_data
+        return pairing
