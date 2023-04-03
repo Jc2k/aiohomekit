@@ -28,10 +28,10 @@ import async_timeout
 from zeroconf import (
     BadTypeInNameException,
     DNSPointer,
+    IPVersion,
     ServiceListener,
     ServiceStateChange,
     Zeroconf,
-    IPVersion,
 )
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
