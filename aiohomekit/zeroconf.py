@@ -21,7 +21,6 @@ from abc import abstractmethod
 import asyncio
 from collections.abc import AsyncIterable
 from dataclasses import dataclass
-from ipaddress import ip_address
 import logging
 
 import async_timeout
