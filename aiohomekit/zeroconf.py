@@ -21,13 +21,13 @@ from abc import abstractmethod
 import asyncio
 from collections.abc import AsyncIterable
 from dataclasses import dataclass
-from ipaddress import ip_address
 import logging
 
 import async_timeout
 from zeroconf import (
     BadTypeInNameException,
     DNSPointer,
+    IPVersion,
     ServiceListener,
     ServiceStateChange,
     Zeroconf,
@@ -57,33 +57,8 @@ _TIMEOUT_MS = 3000
 logger = logging.getLogger(__name__)
 
 
-def _first_non_link_local_address(
-    addresses: list[bytes] | list[str],
-) -> str | None:
-    """Return the first ipv6 or non-link local ipv4 address, preferring IPv4."""
-    for address in addresses:
-        ip_addr = ip_address(address)
-        if (
-            not ip_addr.is_link_local
-            and not ip_addr.is_unspecified
-            and ip_addr.version == 4
-        ):
-            return str(ip_addr)
-    # If we didn't find a good IPv4 address, check for IPv6 addresses.
-    for address in addresses:
-        ip_addr = ip_address(address)
-        if (
-            not ip_addr.is_link_local
-            and not ip_addr.is_unspecified
-            and ip_addr.version == 6
-        ):
-            return str(ip_addr)
-    return None
-
-
 @dataclass
 class HomeKitService:
-
     name: str
     id: str
     model: str
@@ -102,8 +77,25 @@ class HomeKitService:
 
     @classmethod
     def from_service_info(cls, service: AsyncServiceInfo) -> HomeKitService:
-        if not (addresses := service.parsed_addresses()):
+        if not (addresses := service.ip_addresses_by_version(IPVersion.All)):
             raise ValueError("Invalid HomeKit Zeroconf record: Missing address")
+
+        address: str | None = None
+        #
+        # Zeroconf addresses are guaranteed to be returned in LIFO (last in, first out)
+        # order with IPv4 addresses first and IPv6 addresses second.
+        #
+        # This means the first address will always be the most recently added
+        # address of the given IP version.
+        #
+        for ip_addr in addresses:
+            if not ip_addr.is_link_local and not ip_addr.is_unspecified:
+                address = str(ip_addr)
+                break
+        if not address:
+            raise ValueError(
+                "Invalid HomeKit Zeroconf record: Missing non-link-local or unspecified address"
+            )
 
         props: dict[str, str] = {
             k.decode("utf-8").lower(): v.decode("utf-8")
@@ -124,8 +116,8 @@ class HomeKitService:
             category=Categories(int(props.get("ci", 1))),
             protocol_version=props.get("pv", "1.0"),
             type=service.type,
-            address=_first_non_link_local_address(addresses),
-            addresses=addresses,
+            address=address,
+            addresses=[str(ip_addr) for ip_addr in addresses],
             port=service.port,
         )
 
@@ -155,7 +147,6 @@ def find_brower_for_hap_type(azc: AsyncZeroconf, hap_type: str) -> AsyncServiceB
 
 
 class ZeroconfDiscovery(AbstractDiscovery):
-
     description: HomeKitService
 
     def __init__(self, description: HomeKitService):
