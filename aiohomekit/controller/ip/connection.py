@@ -625,7 +625,8 @@ class SecureHomeKitConnection(HomeKitConnection):
                 if self.port != pairing.description.port:
                     logger.debug(
                         "%s: Port changed from %s to %s",
-                        pairing.name.self.port,
+                        pairing.name,
+                        self.port,
                         pairing.description.port,
                     )
                     self.port = pairing.description.port
