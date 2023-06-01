@@ -160,11 +160,13 @@ class Characteristics:
 
 
 class Accessory:
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize a new accessory."""
         self.aid = get_id()
         self._next_id = 0
         self.services = Services()
         self.characteristics = Characteristics(self.services)
+        self._accessory_information: Service | None = None
 
     @classmethod
     def create_with_info(
@@ -197,7 +199,11 @@ class Accessory:
     @property
     def accessory_information(self) -> Service:
         """Returns the ACCESSORY_INFORMATION service for this accessory."""
-        return self.services.first(service_type=ServicesTypes.ACCESSORY_INFORMATION)
+        if self._accessory_information is None:
+            self._accessory_information = self.services.first(
+                service_type=ServicesTypes.ACCESSORY_INFORMATION
+            )
+        return self._accessory_information
 
     @property
     def name(self) -> str:
