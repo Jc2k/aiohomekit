@@ -78,6 +78,7 @@ def strtobool(val):
 
 
 class Characteristic:
+
     type: str
     iid: int
     perms: list[str]

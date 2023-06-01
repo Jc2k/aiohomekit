@@ -18,5 +18,6 @@ import enum
 
 
 class FeatureFlags(enum.IntFlag):
+
     SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR = 1
     SUPPORTS_SOFTWARE_AUTHENTICATION = 2

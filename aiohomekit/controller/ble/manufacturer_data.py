@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class HomeKitAdvertisement(AbstractDescription):
+
     setup_hash: bytes
     address: str
     state_num: int
@@ -83,6 +84,7 @@ class HomeKitAdvertisement(AbstractDescription):
 
 @dataclass
 class HomeKitEncryptedNotification:
+
     name: str
     address: str
     id: str

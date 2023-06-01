@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 
 class Characteristics:
+
     _characteristics: list[Characteristic]
 
     def __init__(self) -> None:
@@ -59,6 +60,7 @@ class Characteristics:
 
 
 class Service:
+
     type: str
     iid: int
     linked: list[Service]

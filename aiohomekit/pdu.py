@@ -39,6 +39,7 @@ STRUCT_BB_UNPACK = struct.Struct("<BB").unpack
 
 
 class OpCode(Enum):
+
     CHAR_SIG_READ = 0x01
     CHAR_WRITE = 0x02
     CHAR_READ = 0x03
@@ -50,6 +51,7 @@ class OpCode(Enum):
 
 
 class PDUStatus(EnumWithDescription):
+
     SUCCESS = 0, "Success"
     UNSUPPORTED_PDU = 1, "Unsupported PDU"
     MAX_PROCEDURES = 2, "Max procedures"

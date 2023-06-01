@@ -93,8 +93,7 @@ class ValveTypeValues(enum.IntEnum):
 
 class ActivationStateValues(enum.IntEnum):
     """Possible values for the current status of an accessory.
-    https://developer.apple.com/documentation/homekit/hmcharacteristicvalueactivationstate
-    """
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvalueactivationstate"""
 
     INACTIVE = 0
     ACTIVE = 1
@@ -102,8 +101,7 @@ class ActivationStateValues(enum.IntEnum):
 
 class CurrentAirPurifierStateValues(enum.IntEnum):
     """Possible values for the current state of an air purifier.
-    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluecurrentairpurifierstate
-    """
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluecurrentairpurifierstate"""
 
     INACTIVE = 0
     IDLE = 1
@@ -112,8 +110,7 @@ class CurrentAirPurifierStateValues(enum.IntEnum):
 
 class TargetAirPurifierStateValues(enum.IntEnum):
     """Possible values for the target state  of an air purifier.
-    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluetargetairpurifierstate
-    """
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluetargetairpurifierstate"""
 
     MANUAL = 0
     AUTOMATIC = 1
@@ -129,8 +126,7 @@ class SwingModeValues(enum.IntEnum):
 
 class CurrentHeaterCoolerStateValues(enum.IntEnum):
     """Possible values for the current state of a device that heats or cools.
-    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluecurrentheatercoolerstate
-    """
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluecurrentheatercoolerstate"""
 
     INACTIVE = 0
     IDLE = 1
@@ -140,8 +136,7 @@ class CurrentHeaterCoolerStateValues(enum.IntEnum):
 
 class TargetHeaterCoolerStateValues(enum.IntEnum):
     """Possible values for the target state of a device that heats or cools.
-    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluetargetheatercoolerstate
-    """
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluetargetheatercoolerstate"""
 
     AUTOMATIC = 0
     HEAT = 1
@@ -167,6 +162,7 @@ class SessionControlCommandValues(enum.IntEnum):
 
 
 class VideoCodecTypeValues(enum.IntEnum):
+
     H264 = 0
 
 
@@ -203,6 +199,7 @@ class PacketizationModeValues(enum.IntEnum):
 
 
 class CVOEnabledValues(enum.IntEnum):
+
     NOT_SUPPORTED = 0
     SUPPORTED = 1
 
@@ -220,23 +217,27 @@ class AudioCodecValues(enum.IntEnum):
 
 
 class BitRateValues(enum.IntEnum):
+
     VARIABLE = 0
     CONSTANT = 1
 
 
 class SampleRateValues(enum.IntEnum):
+
     EIGHT_KHZ = 0
     SIXTEEN_KHZ = 1
     TWENTY_FOUR_KHZ = 2
 
 
 class SRTPCryptoSuiteValues(enum.IntEnum):
+
     AES_CM_128_HMAC_SHA1_80 = 0
     AES_256_CM_HMAC_SHA1_80 = 1
     DISABLED = 2
 
 
 class ThreadNodeCapabilities(enum.IntFlag):
+
     MINIMAL = 0x01
     SLEEPY = 0x02
     FULL = 0x04
@@ -245,6 +246,7 @@ class ThreadNodeCapabilities(enum.IntFlag):
 
 
 class ThreadStatus(enum.IntFlag):
+
     DISABLED = 0x01
     DETACHED = 0x02
     JOINING = 0x04

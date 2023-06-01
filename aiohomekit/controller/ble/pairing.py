@@ -1476,6 +1476,7 @@ class BlePairing(AbstractPairing):
         )
         accessory_chars = self.accessories.aid(BLE_AID).characteristics
         async with self._ble_request_lock:
+
             for aid, iid, value in characteristics:
                 char = accessory_chars.iid(iid)
                 result_key = (aid, iid)

@@ -66,6 +66,7 @@ def decode_list_pairings_response(buf):
 
 
 class EncryptionContext:
+
     coap_ctx: Context
     lock: asyncio.Lock
     uri: str
@@ -434,7 +435,7 @@ class CoAPHomeKitConnection:
                 # send the read requests
                 results = await self.enc_ctx.post_all(OpCode.CHAR_READ, iids, data)
 
-                for idx, result in enumerate(results):
+                for (idx, result) in enumerate(results):
                     if isinstance(result, bytes):
                         # success, let's convert the value
                         value = decode_pdu_03(result) if len(result) > 0 else b""
@@ -465,7 +466,7 @@ class CoAPHomeKitConnection:
         self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
     ) -> dict:
         results = dict()
-        for idx, result in enumerate(pdu_results):
+        for (idx, result) in enumerate(pdu_results):
             aid_iid = ids[idx]
             if isinstance(result, PDUStatus):
                 logger.debug(
@@ -513,7 +514,7 @@ class CoAPHomeKitConnection:
     ) -> list[bytearray]:
         # convert provided values to appropriate binary format for each characteristic
         tlv_values = list()
-        for _, aid_iid_value in enumerate(ids_values):
+        for (_, aid_iid_value) in enumerate(ids_values):
             # look up characteristic
             characteristic = self.info.find_characteristic_by_aid_iid(
                 int(aid_iid_value[0]), int(aid_iid_value[1])
@@ -537,7 +538,7 @@ class CoAPHomeKitConnection:
         # transform results
         # only error conditions are returned
         results = dict()
-        for idx, result in enumerate(pdu_results):
+        for (idx, result) in enumerate(pdu_results):
             aid_iid_value = ids_values[idx]
             key = (aid_iid_value[0], aid_iid_value[1])
             if isinstance(result, PDUStatus):
@@ -572,7 +573,7 @@ class CoAPHomeKitConnection:
         self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
     ) -> dict:
         results = dict()
-        for idx, result in enumerate(pdu_results):
+        for (idx, result) in enumerate(pdu_results):
             aid_iid = ids[idx]
             key = (aid_iid[0], aid_iid[1])
             if isinstance(result, PDUStatus):
@@ -601,7 +602,7 @@ class CoAPHomeKitConnection:
         self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
     ) -> dict:
         results = dict()
-        for idx, result in enumerate(pdu_results):
+        for (idx, result) in enumerate(pdu_results):
             aid_iid = ids[idx]
             key = (aid_iid[0], aid_iid[1])
             if isinstance(result, PDUStatus):
