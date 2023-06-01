@@ -54,7 +54,6 @@ NEEDS_POLLINGS_CHARS = {
 
 
 class Transport(Enum):
-
     BLE = "ble"
     COAP = "coap"
     IP = "ip"
@@ -320,7 +319,6 @@ class Accessory:
 
 
 class Accessories:
-
     accessories: list[Accessory]
 
     def __init__(self) -> None:
@@ -366,7 +364,7 @@ class Accessories:
         return aid in self._aid_to_accessory
 
     def process_changes(self, changes: dict[tuple[int, int], Any]) -> None:
-        for ((aid, iid), value) in changes.items():
+        for (aid, iid), value in changes.items():
             accessory = self.aid(aid)
             if not accessory:
                 continue
@@ -383,7 +381,6 @@ class Accessories:
 
 @dataclass
 class AccessoriesState:
-
     accessories: Accessories
     config_num: int
     broadcast_key: bytes | None = None

@@ -174,7 +174,6 @@ async def pair(args):
 
 async def get_accessories(args: Namespace) -> bool:
     async with get_controller(args) as controller:
-
         if args.alias not in controller.aliases:
             print(f'"{args.alias}" is no known alias')
             return False
@@ -210,7 +209,6 @@ async def get_accessories(args: Namespace) -> bool:
 
 async def get_characteristics(args: Namespace) -> bool:
     async with get_controller(args) as controller:
-
         if args.alias not in controller.aliases:
             print(f'"{args.alias}" is no known alias')
             return False
@@ -244,7 +242,6 @@ async def get_characteristics(args: Namespace) -> bool:
 
 async def put_characteristics(args: Namespace) -> bool:
     async with get_controller(args) as controller:
-
         if args.alias not in controller.aliases:
             print(f'"{args.alias}" is no known alias')
             return False

@@ -219,6 +219,13 @@ class HomeKitConnection:
         self._reconnect_wait_task = None
 
     @property
+    def name(self):
+        """Return the name of the connection."""
+        if self.owner:
+            return self.owner.name
+        return f"{self.host}:{self.port}"
+
+    @property
     def is_connected(self):
         return self.transport and self.protocol and not self.closed
 
@@ -424,7 +431,7 @@ class HomeKitConnection:
         buffer.append(f"Host: {self.host}")
 
         if headers:
-            for (header, value) in headers:
+            for header, value in headers:
                 buffer.append(f"{header}: {value}")
 
         buffer.append("")
@@ -527,6 +534,7 @@ class HomeKitConnection:
             interval = 0.5
 
             logger.debug("Starting reconnect loop to %s:%s", self.host, self.port)
+
             while not self.closing:
                 try:
                     return await self._connect_once()
@@ -540,14 +548,16 @@ class HomeKitConnection:
 
                 except HomeKitException as ex:
                     logger.debug(
-                        "Connecting to accessory failed: %s; Retrying in %i seconds",
+                        "%s: Connecting to accessory failed: %s; Retrying in %i seconds",
+                        self.name,
                         ex,
                         interval,
                     )
 
                 except Exception:
                     logger.exception(
-                        "Unexpected error whilst trying to connect to accessory. Will retry."
+                        "%s: Unexpected error whilst trying to connect to accessory. Will retry.",
+                        self.name,
                     )
 
                 interval = min(60, 1.5 * interval)
@@ -605,7 +615,8 @@ class SecureHomeKitConnection(HomeKitConnection):
             try:
                 if self.host != pairing.description.address:
                     logger.debug(
-                        "Host changed from %s to %s",
+                        "%s: Host changed from %s to %s",
+                        pairing.name,
                         self.host,
                         pairing.description.address,
                     )
@@ -613,8 +624,8 @@ class SecureHomeKitConnection(HomeKitConnection):
 
                 if self.port != pairing.description.port:
                     logger.debug(
-                        "Port changed from %s to %s",
-                        self.port,
+                        "%s: Port changed from %s to %s",
+                        pairing.name.self.port,
                         pairing.description.port,
                     )
                     self.port = pairing.description.port

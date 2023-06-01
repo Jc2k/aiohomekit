@@ -26,7 +26,6 @@ from .const import AdditionalParameterTypes
 
 @dataclass
 class ProtocolParams:
-
     state_number: int
     config_number: int
     advertising_id: bytes
