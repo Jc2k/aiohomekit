@@ -538,9 +538,10 @@ class HomeKitConnection:
                 except asyncio.CancelledError:
                     return
 
-                except HomeKitException:
+                except HomeKitException as ex:
                     logger.debug(
-                        "Connecting to accessory failed. Retrying in %i seconds",
+                        "Connecting to accessory failed: %s. Retrying in %i seconds",
+                        ex,
                         interval,
                     )
 
