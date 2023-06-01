@@ -18,6 +18,7 @@ from aiohomekit.enum import EnumWithDescription
 
 
 class HapStatusCode(EnumWithDescription):
+
     SUCCESS = 0, "This specifies a success for the request."
     INSUFFICIENT_PRIVILEGES = -70401, "Request denied due to insufficient privileges."
     UNABLE_TO_COMMUNICATE = (

@@ -35,6 +35,7 @@ from .const import (
 
 @dataclass
 class StreamingStatus(TLVStruct):
+
     status: StreamingStatusValues = tlv_entry(1)
 
 
@@ -62,6 +63,7 @@ class VideoCodecParameters(TLVStruct):
 
 @dataclass
 class AudioCodecParameters(TLVStruct):
+
     audio_channels: u8 = tlv_entry(1)
     bit_rate: BitRateValues = tlv_entry(2)
     sample_rate: SampleRateValues = tlv_entry(3)
@@ -104,6 +106,7 @@ class SelectedAudioParameters(TLVStruct):
 
 @dataclass
 class AudioCodecConfiguration(TLVStruct):
+
     codec: AudioCodecValues = tlv_entry(1)
     parameters: Sequence[AudioCodecParameters] = tlv_entry(2)
 
