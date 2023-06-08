@@ -322,7 +322,10 @@ class HomeKitConnection:
         return await self.request(
             method="PUT",
             target=target,
-            headers=[("Content-Length", len(body)), ("Content-Type", content_type)],
+            headers=[
+                ("Content-Length", len(body)),
+                ("Content-Type", content_type.value),
+            ],
             body=body,
         )
 
@@ -362,7 +365,10 @@ class HomeKitConnection:
         return await self.request(
             method="POST",
             target=target,
-            headers=[("Content-Length", len(body)), ("Content-Type", content_type)],
+            headers=[
+                ("Content-Length", len(body)),
+                ("Content-Type", content_type.value),
+            ],
             body=body,
         )
 
