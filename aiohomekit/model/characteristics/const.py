@@ -99,6 +99,18 @@ class ActivationStateValues(enum.IntEnum):
     ACTIVE = 1
 
 
+class AirQualityValues(enum.IntEnum):
+    """Possible values for the air quality.
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvalueairquality"""
+
+    UNKNOWN = 0
+    EXCELLENT = 1
+    GOOD = 2
+    FAIR = 3
+    INFERIOR = 4
+    POOR = 5
+
+
 class CurrentAirPurifierStateValues(enum.IntEnum):
     """Possible values for the current state of an air purifier.
     https://developer.apple.com/documentation/homekit/hmcharacteristicvaluecurrentairpurifierstate"""
