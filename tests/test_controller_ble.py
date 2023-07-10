@@ -68,8 +68,11 @@ def ble_controller(mock_bleak_scanner: MagicMock) -> BleController:
 def test_discovery_with_none_name(
     mock_bleak_scanner: MagicMock, ble_controller: BleController
 ) -> None:
+    ble_device_with_short_name = generate_ble_device(
+        name="Nam", address="00:00:00:00:00:00"
+    )
     ble_device_with_name = generate_ble_device(
-        name="Test Device", address="00:00:00:00:00:00"
+        name="Name in Full", address="00:00:00:00:00:00"
     )
     ble_device = generate_ble_device(
         name=None,
@@ -81,14 +84,24 @@ def test_discovery_with_none_name(
             76: b"\x061\x00\x80\xe7\x14j74\x06\x00\x9f!\x04\x02<\xb9\xeb\x0e"
         },
     )
-    ble_controller._device_detected(ble_device_with_name, adv)
+    ble_controller._device_detected(ble_device_with_short_name, adv)
     assert "80:e7:14:6a:37:34" in ble_controller.discoveries
     assert (
         ble_controller.discoveries["80:e7:14:6a:37:34"].name
-        == "Test Device (00:00:00:00:00:00)"
+        == "Nam (00:00:00:00:00:00)"
     )
     ble_controller._device_detected(ble_device, adv)
     assert (
         ble_controller.discoveries["80:e7:14:6a:37:34"].name
-        == "Test Device (00:00:00:00:00:00)"
+        == "Nam (00:00:00:00:00:00)"
+    )
+    ble_controller._device_detected(ble_device_with_name, adv)
+    assert (
+        ble_controller.discoveries["80:e7:14:6a:37:34"].name
+        == "Name in Full (00:00:00:00:00:00)"
+    )
+    ble_controller._device_detected(ble_device_with_short_name, adv)
+    assert (
+        ble_controller.discoveries["80:e7:14:6a:37:34"].name
+        == "Name in Full (00:00:00:00:00:00)"
     )
