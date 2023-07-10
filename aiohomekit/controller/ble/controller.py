@@ -77,13 +77,13 @@ class BleController(AbstractController):
         except ValueError:
             return
 
-        if pairing := self.pairings.get(data.id):
+        if old_discovery := self.discoveries.get(data.id):
             if (
-                (old_description := pairing.description)
+                (old_name := old_discovery.description.name)
                 and not (name := data.name)
                 or (
-                    old_description.name != old_description.address
-                    and len(old_description.name) > len(name)
+                    old_name != old_discovery.device.address
+                    and len(old_name) > len(name)
                 )
             ):
                 #
@@ -97,7 +97,9 @@ class BleController(AbstractController):
                 # shall not be used to advertise a name that is longer than the
                 # Local Name data type.
                 #
-                data.name = old_description.name
+                data.name = old_name
+
+        if pairing := self.pairings.get(data.id):
             pairing._async_description_update(data)
             pairing._async_ble_update(device, advertisement_data)
 
