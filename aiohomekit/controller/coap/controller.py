@@ -9,7 +9,6 @@ from aiohomekit.zeroconf import HAP_TYPE_UDP, ZeroconfController
 
 
 class CoAPController(ZeroconfController):
-
     hap_type = HAP_TYPE_UDP
     discoveries: dict[str, CoAPDiscovery]
     pairings: dict[str, CoAPPairing]

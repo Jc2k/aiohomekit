@@ -49,7 +49,6 @@ FAKE_CAMERA_IMAGE = (
 
 @dataclass
 class FakeDescription:
-
     name: str = "TestDevice"
     id: str = "00:00:00:00:00:00"
     model: str = "TestDevice"
@@ -60,7 +59,6 @@ class FakeDescription:
 
 
 class FakeDiscovery(AbstractDiscovery):
-
     description = FakeDescription()
 
     def __init__(
@@ -164,7 +162,7 @@ class PairingTester:
 
     def update_aid_iid(self, characteristics):
         changed = []
-        for (aid, iid, value) in characteristics:
+        for aid, iid, value in characteristics:
             self.characteristics[(aid, iid)].set_value(value)
             changed.append((aid, iid))
 
@@ -175,7 +173,7 @@ class PairingTester:
             return
 
         event = {}
-        for (aid, iid) in changed:
+        for aid, iid in changed:
             if (aid, iid) not in self.pairing.subscriptions:
                 continue
             event[(aid, iid)] = {"value": self.characteristics[(aid, iid)].get_value()}
@@ -306,7 +304,7 @@ class FakePairing(AbstractPairing):
 
         filtered = []
         results = {}
-        for (aid, cid, value) in characteristics:
+        for aid, cid, value in characteristics:
             accessory = self.accessories.aid(aid)
             char = accessory.characteristics.iid(cid)
             if char.status != HapStatusCode.SUCCESS:

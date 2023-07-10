@@ -40,7 +40,6 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractPairingData(TypedDict, total=False):
-
     AccessoryPairingID: str
     AccessoryLTPK: str
     iOSPairingId: str
@@ -52,7 +51,6 @@ class AbstractPairingData(TypedDict, total=False):
 
 @dataclass
 class AbstractDescription:
-
     name: str
     id: str
     status_flags: StatusFlags
@@ -61,14 +59,12 @@ class AbstractDescription:
 
 
 class TransportType(Enum):
-
     IP = "ip"
     COAP = "coap"
     BLE = "ble"
 
 
 class AbstractPairing(metaclass=ABCMeta):
-
     # The current discovery information for this pairing.
     # This can be used to detect address changes, s# changes, c# changes, etc
     description: AbstractDescription | None = None
@@ -417,7 +413,6 @@ FinishPairing = Callable[[str], Awaitable[AbstractPairing]]
 
 
 class AbstractDiscovery(metaclass=ABCMeta):
-
     description: AbstractDescription
 
     @final
@@ -435,7 +430,6 @@ class AbstractDiscovery(metaclass=ABCMeta):
 
 
 class AbstractController(metaclass=ABCMeta):
-
     discoveries: dict[str, AbstractDiscovery]
     pairings: dict[str, AbstractPairing]
     aliases: dict[str, AbstractPairing]

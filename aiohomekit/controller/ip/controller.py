@@ -9,7 +9,6 @@ from aiohomekit.zeroconf import HAP_TYPE_TCP, ZeroconfController
 
 
 class IpController(ZeroconfController):
-
     hap_type = HAP_TYPE_TCP
     discoveries: dict[str, IpDiscovery]
     pairings: dict[str, IpPairing]
