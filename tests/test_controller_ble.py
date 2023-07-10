@@ -1,11 +1,12 @@
-import pytest
-
-from aiohomekit.controller.ble.controller import BleController
-from aiohomekit.characteristic_cache import CharacteristicCacheMemory
-from bleak.backends.device import BLEDevice
-from bleak.backends.scanner import AdvertisementData
 from typing import Any
 from unittest.mock import MagicMock
+
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
+import pytest
+
+from aiohomekit.characteristic_cache import CharacteristicCacheMemory
+from aiohomekit.controller.ble.controller import BleController
 
 ADVERTISEMENT_DATA_DEFAULTS = {
     "local_name": "",
