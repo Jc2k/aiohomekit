@@ -113,9 +113,7 @@ class BleController(AbstractController):
         if old_discovery:
             # We need to make sure we update the device details
             # in case they changed
-            old_discovery._async_process_advertisement(
-                device, data, advertisement_data
-            )
+            old_discovery._async_process_advertisement(device, data, advertisement_data)
             return
 
         self.discoveries[data.id] = BleDiscovery(self, device, data, advertisement_data)
