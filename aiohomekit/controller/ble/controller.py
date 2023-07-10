@@ -110,10 +110,10 @@ class BleController(AbstractController):
                 future.set_result(discovery)
             futures.clear()
 
-        if data.id in self.discoveries:
+        if old_discovery:
             # We need to make sure we update the device details
             # in case they changed
-            self.discoveries[data.id]._async_process_advertisement(
+            old_discovery._async_process_advertisement(
                 device, data, advertisement_data
             )
             return
