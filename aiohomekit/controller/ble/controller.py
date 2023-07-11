@@ -78,9 +78,8 @@ class BleController(AbstractController):
             return
 
         if old_discovery := self.discoveries.get(data.id):
-            if (
-                (old_name := old_discovery.description.name)
-                and not (name := data.name)
+            if (old_name := old_discovery.description.name) and (
+                not (name := data.name)
                 or (
                     old_name != old_discovery.device.address
                     and len(old_name) > len(name)

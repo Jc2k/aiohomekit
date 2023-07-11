@@ -87,6 +87,8 @@ def test_discovery_with_none_name(
             76: b"\x061\x00\x80\xe7\x14j74\x06\x00\x9f!\x04\x02<\xb9\xeb\x0e"
         },
     )
+    ble_controller._device_detected(ble_device, adv)
+    assert "80:e7:14:6a:37:34" in ble_controller.discoveries
     ble_controller._device_detected(ble_device_with_short_name, adv)
     assert "80:e7:14:6a:37:34" in ble_controller.discoveries
     assert (
