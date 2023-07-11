@@ -77,11 +77,14 @@ class BleController(AbstractController):
         except ValueError:
             return
 
-        if pairing := self.pairings.get(data.id):
+        if old_discovery := self.discoveries.get(data.id):
             if (
-                (old_description := pairing.description)
-                and old_description.name != old_description.address
-                and len(old_description.name) > len(data.name)
+                (old_name := old_discovery.description.name)
+                and not (name := data.name)
+                or (
+                    old_name != old_discovery.device.address
+                    and len(old_name) > len(name)
+                )
             ):
                 #
                 # If we have a pairing and the name is longer than the one we
@@ -94,7 +97,9 @@ class BleController(AbstractController):
                 # shall not be used to advertise a name that is longer than the
                 # Local Name data type.
                 #
-                data.name = old_description.name
+                data.name = old_name
+
+        if pairing := self.pairings.get(data.id):
             pairing._async_description_update(data)
             pairing._async_ble_update(device, advertisement_data)
 
@@ -105,12 +110,10 @@ class BleController(AbstractController):
                 future.set_result(discovery)
             futures.clear()
 
-        if data.id in self.discoveries:
+        if old_discovery:
             # We need to make sure we update the device details
             # in case they changed
-            self.discoveries[data.id]._async_process_advertisement(
-                device, data, advertisement_data
-            )
+            old_discovery._async_process_advertisement(device, data, advertisement_data)
             return
 
         self.discoveries[data.id] = BleDiscovery(self, device, data, advertisement_data)
