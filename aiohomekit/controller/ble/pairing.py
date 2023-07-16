@@ -1073,20 +1073,6 @@ class BlePairing(AbstractPairing):
         if self._restore_pending:
             await self._async_restore_subscriptions()
 
-    def _all_handles_are_missing(self) -> bool:
-        """Check if any characteristic has a handle.
-
-        Older code did not save the handle, so if we have no handles
-        we need to re-fetch the gatt database.
-        """
-        if not self.accessories.accessories:
-            return True
-        for service in self.accessories.aid(BLE_AID).services:
-            for char in service.characteristics:
-                if char.handle is not None:
-                    return False
-        return True
-
     async def _populate_accessories_and_characteristics(
         self, force_update: bool = False, attempts: int | None = None
     ) -> None:
@@ -1121,11 +1107,7 @@ class BlePairing(AbstractPairing):
             if self.description:
                 config_changed = self.config_num != self.description.config_num
 
-            if (
-                not self.accessories
-                or config_changed
-                or self._all_handles_are_missing()
-            ):
+            if not self.accessories or config_changed:
                 logger.debug(
                     "%s: Fetching gatt database because, cached_config_num: %s, adv config_num: %s",
                     self.name,
