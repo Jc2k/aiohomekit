@@ -33,7 +33,12 @@ from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_par
 from aiohomekit.utils import check_pin_format, pair_with_auth
 
 from .bleak import AIOHomeKitBleakClient
-from .client import char_read, char_write, drive_pairing_state_machine
+from .client import (
+    char_read,
+    char_write,
+    disconnect_on_missing_services,
+    drive_pairing_state_machine,
+)
 from .connection import establish_connection
 from .manufacturer_data import HomeKitAdvertisement
 from .pairing import BlePairing
@@ -147,11 +152,13 @@ class BleDiscovery(AbstractDiscovery):
         )
 
     @retry_bluetooth_connection_error()
+    @disconnect_on_missing_services
     async def async_start_pairing(self, alias: str) -> FinishPairing:
         salt, pub_key = await self._async_start_pairing(alias)
         attempt = 0
 
         @retry_bluetooth_connection_error()
+        @disconnect_on_missing_services
         async def finish_pairing(pin: str) -> BlePairing:
             logger.debug("%s: finish pairing; rssi=%s", self.name, self.rssi)
 

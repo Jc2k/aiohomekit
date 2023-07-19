@@ -18,7 +18,7 @@ from __future__ import annotations
 from collections.abc import Generator
 import logging
 import random
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, cast
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
@@ -35,7 +35,11 @@ from aiohomekit.pdu import (
 )
 from aiohomekit.protocol.tlv import TLV
 
-from .bleak import AIOHomeKitBleakClient
+from .bleak import (
+    AIOHomeKitBleakClient,
+    BleakCharacteristicMissing,
+    BleakServiceMissing,
+)
 from .const import AdditionalParameterTypes
 from .structs import BleRequest
 
@@ -56,6 +60,32 @@ class PDUStatusError(Exception):
         """Initialize a PDUStatusError."""
         super().__init__(message)
         self.status = status
+
+
+def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
+    """Define a wrapper to disconnect on missing services and characteristics.
+
+    This must be placed after the retry_bluetooth_connection_error
+    decorator.
+    """
+
+    async def _async_disconnect_on_missing_services_wrap(
+        self, *args: Any, **kwargs: Any
+    ) -> None:
+        try:
+            return await func(self, *args, **kwargs)
+        except (BleakServiceMissing, BleakCharacteristicMissing) as ex:
+            logger.warning(
+                "%s: Missing service or characteristic, disconnecting to force refetch of GATT services: %s",
+                self.name,
+                ex,
+            )
+            if self.client:
+                await self.client.clear_cache()
+                await self.client.disconnect()
+            raise
+
+    return cast(WrapFuncType, _async_disconnect_on_missing_services_wrap)
 
 
 async def ble_request(
