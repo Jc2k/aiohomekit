@@ -60,9 +60,7 @@ from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from ..abstract import AbstractPairing, AbstractPairingData
-from .bleak import (
-    AIOHomeKitBleakClient,
-)
+from .bleak import AIOHomeKitBleakClient
 from .client import (
     PDUStatusError,
     ble_request,
