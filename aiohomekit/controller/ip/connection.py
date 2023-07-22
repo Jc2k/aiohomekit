@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 from aiohomekit.crypto.chacha20poly1305 import (
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,
+    PACK_NONCE,
     DecryptionError,
 )
 from aiohomekit.exceptions import (
@@ -140,7 +141,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             buffer.append(
                 self.encryptor.encrypt(
                     len_bytes,
-                    self.c2a_counter,
+                    PACK_NONCE(self.c2a_counter),
                     current,
                 )
             )
@@ -177,7 +178,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             try:
                 decrypted = self.decryptor.decrypt(
                     block_length_bytes,
-                    self.a2c_counter,
+                    PACK_NONCE(self.a2c_counter),
                     block_and_tag,
                 )
             except DecryptionError as err:
