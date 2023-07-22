@@ -273,6 +273,7 @@ class HomeKitConnection:
 
     @property
     def last_connector_error(self) -> Exception | None:
+        """Return the last error from the connector task."""
         return self._last_connector_error
 
     async def ensure_connection(self) -> None:
