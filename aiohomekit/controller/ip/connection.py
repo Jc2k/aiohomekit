@@ -15,6 +15,7 @@
 #
 from __future__ import annotations
 
+import contextlib
 import asyncio
 import logging
 from typing import TYPE_CHECKING
@@ -275,7 +276,20 @@ class HomeKitConnection:
         self._start_connector()
         return True
 
-    async def ensure_connection(self):
+    async def _wait_for_connector(self) -> None:
+        """Wait for the connector to finish."""
+        if self._connector:
+            # Wait for the connector but do not propagate the CancelledError
+            # since the connector will be canceled when the connection is closed.
+            #
+            # Cancellation of the connector will still happen but we won't
+            # propagate it higher in the stack.
+            try:
+                await self._connector
+            except asyncio.CancelledError:
+                pass
+
+    async def ensure_connection(self) -> None:
         """
         Waits for a connection to the device.
 
@@ -286,7 +300,7 @@ class HomeKitConnection:
         Otherwise, start a reconnection and wait for it.
         """
         if self._start_reconnecting():
-            await asyncio.shield(self._connector)
+            await self._wait_for_connector()
 
     async def _stop_connector(self):
         """
@@ -299,8 +313,9 @@ class HomeKitConnection:
         if not self._connector:
             return
         self._connector.cancel()
-        await self._connector
-        self._connector = None
+        await self._wait_for_connector()
+        # self._connector being set to None is the responsibility of the
+        # done_callback in _start_connector
 
     async def get(self, target):
         """
