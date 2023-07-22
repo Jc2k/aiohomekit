@@ -271,6 +271,10 @@ class HomeKitConnection:
         self._start_connector()
         return True
 
+    @property
+    def last_connector_error(self) -> Exception | None:
+        return self._last_connector_error
+
     async def ensure_connection(self) -> None:
         """
         Waits for a connection to the device.
@@ -285,11 +289,6 @@ class HomeKitConnection:
             # If we are running under a timeout, we still need to shield the
             # connector task so it continues to run if the timeout is hit.
             await asyncio.shield(self._connector)
-
-        if self._last_connector_error:
-            raise self._last_connector_error
-
-        return
 
     async def _stop_connector(self):
         """
