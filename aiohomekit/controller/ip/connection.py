@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+from __future__ import annotations
 import asyncio
 import logging
 from typing import TYPE_CHECKING
@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 from aiohomekit.crypto.chacha20poly1305 import (
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,
+    DecryptionError,
 )
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -42,8 +43,6 @@ if TYPE_CHECKING:
     from .pairing import IpPairing
 
 logger = logging.getLogger(__name__)
-
-NONCE_PADDING = bytes([0, 0, 0, 0])
 
 
 class InsecureHomeKitProtocol(asyncio.Protocol):
@@ -131,24 +130,21 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
         self.decryptor = ChaCha20Poly1305Decryptor(self.a2c_key)
 
     async def send_bytes(self, payload):
-        buffer = []
+        buffer: list[bytes] = []
 
         while len(payload) > 0:
             current = payload[:1024]
             payload = payload[1024:]
-
             len_bytes = len(current).to_bytes(2, byteorder="little")
-            cnt_bytes = self.c2a_counter.to_bytes(8, byteorder="little")
-            self.c2a_counter += 1
             buffer.append(len_bytes)
             buffer.append(
                 self.encryptor.encrypt(
                     len_bytes,
-                    cnt_bytes,
-                    NONCE_PADDING,
+                    self.c2a_counter,
                     current,
                 )
             )
+            self.c2a_counter += 1
 
         return await super().send_bytes(b"".join(buffer))
 
@@ -178,16 +174,14 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             # Drop the length, block, and tag from the buffer
             del self._incoming_buffer[: 2 + block_length + 16]
 
-            decrypted = self.decryptor.decrypt(
-                block_length_bytes,
-                self.a2c_counter.to_bytes(8, byteorder="little"),
-                NONCE_PADDING,
-                block_and_tag,
-            )
-
-            if decrypted is False:
-                # FIXME: Does raising here drop the connection or do we call close on transport ourselves
-                raise RuntimeError("Could not decrypt block")
+            try:
+                decrypted = self.decryptor.decrypt(
+                    block_length_bytes,
+                    self.a2c_counter,
+                    block_and_tag,
+                )
+            except DecryptionError as err:
+                raise RuntimeError("Could not decrypt block") from err
 
             self.a2c_counter += 1
 
