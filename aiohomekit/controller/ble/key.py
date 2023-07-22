@@ -21,9 +21,8 @@ from aiohomekit.crypto.chacha20poly1305 import (
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,
     ChaCha20Poly1305PartialTag,
-    DecryptionError,  # noqa: F401
 )
-
+from aiohomekit.crypto.chacha20poly1305 import DecryptionError  # noqa: F401
 
 class EncryptionKey:
     def __init__(self, key: bytes):
