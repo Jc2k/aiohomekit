@@ -34,7 +34,6 @@ from bleak_retry_connector import (
     BLEAK_RETRY_EXCEPTIONS as BLEAK_EXCEPTIONS,
     retry_bluetooth_connection_error,
 )
-from .client import disconnect_on_missing_services
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -69,6 +68,7 @@ from .bleak import (
 from .client import (
     PDUStatusError,
     ble_request,
+    disconnect_on_missing_services,
     drive_pairing_state_machine,
     raise_for_pdu_status,
 )
@@ -190,7 +190,6 @@ def operation_lock(func: WrapFuncType) -> WrapFuncType:
             return await func(self, *args, **kwargs)
 
     return cast(WrapFuncType, _async_operation_lock_wrap)
-
 
 
 def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
