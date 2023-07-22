@@ -139,6 +139,10 @@ class IpPairing(ZeroconfPairing):
             raise AccessoryDisconnectedError(
                 f"Timeout while waiting for connection to device {self.connection.host}:{self.connection.port}"
             )
+        except Exception as ex:
+            raise AccessoryDisconnectedError(
+                f"Error while connecting to device {self.connection.host}:{self.connection.port}: {ex}"
+            )
 
         if not self.connection.is_connected:
             raise AccessoryDisconnectedError(

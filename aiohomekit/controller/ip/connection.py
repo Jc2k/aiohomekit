@@ -220,6 +220,7 @@ class HomeKitConnection:
         self._loop = asyncio.get_running_loop()
         self._concurrency_limit = asyncio.Semaphore(concurrency_limit)
         self._reconnect_future: asyncio.Future[None] | None = None
+        self._last_connector_error: Exception | None = None
 
     @property
     def name(self):
@@ -281,18 +282,14 @@ class HomeKitConnection:
         Otherwise, start a reconnection and wait for it.
         """
         if self._start_reconnecting():
-            # Wait for the connector but do not propagate the CancelledError
-            # since the connector will be canceled when the connection is closed.
-            #
-            # Cancellation of the connector will still happen but we won't
-            # propagate it higher in the stack.
-            #
             # If we are running under a timeout, we still need to shield the
             # connector task so it continues to run if the timeout is hit.
-            try:
-                await asyncio.shield(self._connector)
-            except asyncio.CancelledError:
-                pass
+            await asyncio.shield(self._connector)
+
+        if self._last_connector_error:
+            raise self._last_connector_error
+
+        return
 
     async def _stop_connector(self):
         """
@@ -304,7 +301,7 @@ class HomeKitConnection:
         """
         if not self._connector:
             return
-        self._connector.cancel()
+        self._connector.cancel("Stop connector")
         # Wait for the connector but do not propagate the CancelledError
         # since the connector will be canceled when the connection is closed.
         #
@@ -559,14 +556,17 @@ class HomeKitConnection:
             logger.debug("Starting reconnect loop to %s:%s", self.host, self.port)
 
             while not self.closing:
+                self._last_connector_error = None
                 try:
                     return await self._connect_once()
 
-                except AuthenticationError:
+                except AuthenticationError as ex:
+                    self._last_connector_error = ex
                     # Authentication errors should bubble up because auto-reconnect is unlikely to help
                     raise
 
                 except HomeKitException as ex:
+                    self._last_connector_error = ex
                     logger.debug(
                         "%s: Connecting to accessory failed: %s; Retrying in %i seconds",
                         self.name,
@@ -575,6 +575,7 @@ class HomeKitConnection:
                     )
 
                 except Exception:
+                    self._last_connector_error = ex
                     logger.exception(
                         "%s: Unexpected error whilst trying to connect to accessory. Will retry.",
                         self.name,
