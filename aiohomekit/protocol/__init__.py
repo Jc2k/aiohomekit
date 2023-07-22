@@ -28,9 +28,9 @@ from aiohomekit.crypto import (
     NONCE_PADDING,
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,
+    DecryptionError,
     SrpClient,
     hkdf_derive,
-    DecryptionError,
 )
 from aiohomekit.exceptions import (
     AuthenticationError,
