@@ -307,7 +307,7 @@ def perform_pair_setup_part2(
     if decrypted_data is False:
         raise IllegalData("step 7")
 
-    response_tlv = TLV.decode_bytearray(decrypted_data)
+    response_tlv = TLV.decode_bytearray(bytearray(decrypted_data))
     response_tlv = dict(response_tlv)
 
     if TLV.kTLVType_Signature not in response_tlv:

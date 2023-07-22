@@ -1441,7 +1441,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 self.log_error("error in step #6 %s %s", d_res, self.server.sessions)
                 return
 
-            d_req_2 = TLV.decode_bytearray(decrypted_data)
+            d_req_2 = TLV.decode_bytearray(bytearray(decrypted_data))
 
             # 3) Derive ios_device_x
             shared_secret = self.server.sessions[self.session_id][
