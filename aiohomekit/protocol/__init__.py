@@ -28,6 +28,7 @@ from aiohomekit.crypto import (
     NONCE_PADDING,
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,
+    DecryptionError,
     SrpClient,
     hkdf_derive,
 )
@@ -142,13 +143,13 @@ def perform_pair_setup_part1(
 def validate_mfi(session_key, response_tlv):
     # If pairing method is PairSetupWithAuth there should be an EncryptedData TLV in M4
     # It should have a signature and a certificate from an Apple secure co-processor.
-    decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
-        b"",
-        NONCE_PADDING + b"PS-Msg04",
-        bytes(response_tlv[TLV.kTLVType_EncryptedData]),
-    )
-
-    if not decrypted:
+    try:
+        decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
+            b"",
+            NONCE_PADDING + b"PS-Msg04",
+            bytes(response_tlv[TLV.kTLVType_EncryptedData]),
+        )
+    except DecryptionError:
         logger.debug(
             "Device returned kTLVType_EncryptedData during M4 but could not decrypt"
         )
@@ -299,12 +300,13 @@ def perform_pair_setup_part2(
     if TLV.kTLVType_EncryptedData not in response_tlv:
         raise InvalidError("M6: Encrypted data not sent be accessory")
 
-    decrypted_data = ChaCha20Poly1305Decryptor(session_key).decrypt(
-        b"",
-        NONCE_PADDING + b"PS-Msg06",
-        bytes(response_tlv[TLV.kTLVType_EncryptedData]),
-    )
-    if decrypted_data is False:
+    try:
+        decrypted_data = ChaCha20Poly1305Decryptor(session_key).decrypt(
+            b"",
+            NONCE_PADDING + b"PS-Msg06",
+            bytes(response_tlv[TLV.kTLVType_EncryptedData]),
+        )
+    except DecryptionError:
         raise IllegalData("step 7")
 
     response_tlv = TLV.decode_bytearray(bytearray(decrypted_data))
@@ -407,11 +409,17 @@ def resume_m3(
     )
 
     key = ChaCha20Poly1305Decryptor(response_key)
-    plaintext = key.decrypt(
-        b"",
-        NONCE_PADDING + b"PR-Msg02",
-        bytes(auth_tag),
-    )
+    try:
+        plaintext = key.decrypt(
+            b"",
+            NONCE_PADDING + b"PR-Msg02",
+            bytes(auth_tag),
+        )
+    except DecryptionError:
+        logger.debug(
+            "M3: Failure to resume existing session: Could not decrypt kTLVType_EncryptedData"
+        )
+        return None
 
     if plaintext != b"":
         logger.debug(
@@ -505,10 +513,11 @@ def get_session_keys(
 
     # 3) verify auth tag on encrypted data and 4) decrypt
     encrypted = response_tlv[TLV.kTLVType_EncryptedData]
-    decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
-        b"", NONCE_PADDING + b"PV-Msg02", bytes(encrypted)
-    )
-    if type(decrypted) == bool and not decrypted:
+    try:
+        decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
+            b"", NONCE_PADDING + b"PV-Msg02", bytes(encrypted)
+        )
+    except DecryptionError:
         raise InvalidAuthTagError("step 3")
     d1 = dict(TLV.decode_bytes(decrypted))
 
