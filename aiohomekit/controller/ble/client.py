@@ -23,7 +23,7 @@ from typing import Any, Callable, TypeVar, cast
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
 
-from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
+from aiohomekit.controller.ble.key import DecryptionError, DecryptionKey, EncryptionKey
 from aiohomekit.exceptions import EncryptionError
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import (
@@ -119,16 +119,19 @@ async def _write_pdu(
     # Wrap data in one or more PDU's split at fragment_size
     # And write each one to the target characteristic handle
     writes = []
+    debug = logger.isEnabledFor(logging.DEBUG)
     for data in encode_pdu(opcode, tid, iid, data, fragment_size):
-        logger.debug("Queuing fragment for write: %s", data)
+        if debug:
+            logger.debug("Queuing fragment for write: %s", data)
         if encryption_key:
-            data = encryption_key.encrypt(data)
+            data = encryption_key.encrypt(bytes(data))
         writes.append(data)
 
+    response = "write-without-response" not in handle.properties
     for write in writes:
-        await client.write_gatt_char(
-            handle, write, "write-without-response" not in handle.properties
-        )
+        if debug:
+            logger.debug("Writing fragment: %s", write)
+        await client.write_gatt_char(handle, write, response)
 
 
 async def _read_pdu(
@@ -140,11 +143,14 @@ async def _read_pdu(
     """Read a PDU from a characteristic."""
     data = await client.read_gatt_char(handle)
     if decryption_key:
-        data = decryption_key.decrypt(data)
-        if data is False:
+        try:
+            data = decryption_key.decrypt(bytes(data))
+        except DecryptionError:
             raise EncryptionError("Decryption failed")
 
-    logger.debug("Read fragment: %s", data)
+    debug = logger.isEnabledFor(logging.DEBUG)
+    if debug:
+        logger.debug("Read fragment: %s", data)
 
     # Validate the PDU header
     status, expected_length, data = decode_pdu(tid, data)
@@ -158,10 +164,12 @@ async def _read_pdu(
     while len(data) < expected_length:
         next = await client.read_gatt_char(handle)
         if decryption_key:
-            next = decryption_key.decrypt(next)
-            if next is False:
+            try:
+                next = decryption_key.decrypt(bytes(next))
+            except DecryptionError:
                 raise EncryptionError("Decryption failed")
-        logger.debug("Read fragment: %s", next)
+        if debug:
+            logger.debug("Read fragment: %s", next)
 
         data += decode_pdu_continuation(tid, next)
 
@@ -214,7 +222,7 @@ async def _pairing_char_write(
 
     for _ in range(MAX_REASSEMBLY):
         data = await char_write(client, None, None, handle, iid, next_write)
-        decoded = dict(TLV.decode_bytearray(data))
+        decoded = dict(TLV.decode_bytearray(bytearray(data)))
         if TLV.kTLVType_FragmentLast in decoded:
             logger.debug("%s: Reassembling final fragment", client.address)
             buffer.extend(decoded[TLV.kTLVType_FragmentLast])

@@ -13,14 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import asyncio
 import logging
 from typing import TYPE_CHECKING
 
 from aiohomekit.crypto.chacha20poly1305 import (
+    PACK_NONCE,
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,
+    DecryptionError,
 )
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -58,7 +61,7 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
     def connection_lost(self, exception):
         self.connection._connection_lost(exception)
 
-    async def send_bytes(self, payload):
+    async def send_bytes(self, payload: bytes):
         if self.transport.is_closing():
             # FIXME: It would be nice to try and wait for the reconnect in future.
             # In that case we need to make sure we do it at a layer above send_bytes otherwise
@@ -117,7 +120,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
     def __init__(self, connection, a2c_key, c2a_key):
         super().__init__(connection)
 
-        self._incoming_buffer = bytearray()
+        self._incoming_buffer: bytearray = bytearray()
 
         self.c2a_counter = 0
         self.a2c_counter = 0
@@ -128,27 +131,24 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
         self.encryptor = ChaCha20Poly1305Encryptor(self.c2a_key)
         self.decryptor = ChaCha20Poly1305Decryptor(self.a2c_key)
 
-    async def send_bytes(self, payload):
-        buffer = b""
+    async def send_bytes(self, payload: bytes):
+        buffer: list[bytes] = []
 
         while len(payload) > 0:
             current = payload[:1024]
             payload = payload[1024:]
-
             len_bytes = len(current).to_bytes(2, byteorder="little")
-            cnt_bytes = self.c2a_counter.to_bytes(8, byteorder="little")
+            buffer.append(len_bytes)
+            buffer.append(
+                self.encryptor.encrypt(
+                    len_bytes,
+                    PACK_NONCE(self.c2a_counter),
+                    bytes(current),
+                )
+            )
             self.c2a_counter += 1
 
-            data = self.encryptor.encrypt(
-                len_bytes,
-                cnt_bytes,
-                bytes([0, 0, 0, 0]),
-                current,
-            )
-
-            buffer += len_bytes + data
-
-        return await super().send_bytes(buffer)
+        return await super().send_bytes(b"".join(buffer))
 
     def data_received(self, data):
         """
@@ -175,21 +175,17 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             # Drop the length from the top of the buffer as we have already parsed it
             del self._incoming_buffer[:2]
 
-            block = self._incoming_buffer[:block_length]
-            del self._incoming_buffer[:block_length]
-            tag = self._incoming_buffer[:16]
-            del self._incoming_buffer[:16]
+            block_and_tag = self._incoming_buffer[: block_length + 16]
+            del self._incoming_buffer[: block_length + 16]
 
-            decrypted = self.decryptor.decrypt(
-                block_length_bytes,
-                self.a2c_counter.to_bytes(8, byteorder="little"),
-                bytes([0, 0, 0, 0]),
-                block + tag,
-            )
-
-            if decrypted is False:
-                # FIXME: Does raising here drop the connection or do we call close on transport ourselves
-                raise RuntimeError("Could not decrypt block")
+            try:
+                decrypted = self.decryptor.decrypt(
+                    bytes(block_length_bytes),
+                    PACK_NONCE(self.a2c_counter),
+                    bytes(block_and_tag),
+                )
+            except DecryptionError as err:
+                raise RuntimeError("Could not decrypt block") from err
 
             self.a2c_counter += 1
 
