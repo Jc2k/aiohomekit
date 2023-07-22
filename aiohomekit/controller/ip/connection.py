@@ -572,7 +572,7 @@ class HomeKitConnection:
                         interval,
                     )
 
-                except Exception:
+                except Exception as ex:
                     self._last_connector_error = ex
                     logger.exception(
                         "%s: Unexpected error whilst trying to connect to accessory. Will retry.",
