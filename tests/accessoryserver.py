@@ -439,7 +439,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                     "accessory_to_controller_count"
                 ]
                 ciper_and_mac = ChaCha20Poly1305Encryptor(a2c_key).encrypt(
-                    len_bytes, PACK_NONCE(cnt), block
+                    len_bytes, PACK_NONCE(cnt), bytes(block)
                 )
                 self.server.sessions[self.session_id][
                     "accessory_to_controller_count"
@@ -943,7 +943,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             ).encrypt(
                 b"",
                 NONCE_PADDING + b"PV-Msg02",
-                sub_tlv_b,
+                bytes(sub_tlv_b),
             )
 
             # 8) construct result tlv
@@ -975,7 +975,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
                     b"",
                     NONCE_PADDING + b"PV-Msg03",
-                    encrypted,
+                    bytes(encrypted),
                 )
             except DecryptionError:
                 self.send_error_reply(TLV.M4, TLV.kTLVError_Authentication)
@@ -1421,7 +1421,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 ).decrypt(
                     b"",
                     NONCE_PADDING + b"PS-Msg05",
-                    encrypted_data,
+                    bytes(encrypted_data),
                 )
             except DecryptionError:
                 d_res.append(
@@ -1534,7 +1534,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             ).encrypt(
                 b"",
                 NONCE_PADDING + b"PS-Msg06",
-                sub_tlv_b,
+                bytes(sub_tlv_b),
             )
 
             # 7) send response
