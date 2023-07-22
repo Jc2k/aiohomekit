@@ -66,10 +66,7 @@ class ChaCha20Poly1305Encryptor:
         :param plaintext: arbitrary length plaintext of type bytes or bytearray
         :return: the cipher text and tag
         """
-        assert type(aad) is bytes, "aad is no instance of bytes"
-        assert type(plaintext) is bytes, "plaintext is no instance of bytes"
-        assert type(nonce) is bytes, "plaintext is no instance of bytes"
-        return self.chacha.encrypt(nonce, plaintext, bytes(aad))
+        return self.chacha.encrypt(nonce, plaintext, aad)
 
 
 class ChaCha20Poly1305Decryptor:
@@ -95,9 +92,6 @@ class ChaCha20Poly1305Decryptor:
         :param ciphertext: arbitrary length plaintext of type bytes or bytearray
         :return: False if the tag could not be verified or the plaintext as bytes
         """
-        assert type(aad) is bytes, "aad is no instance of bytes"
-        assert type(ciphertext) is bytes, "ciphertext is no instance of bytes"
-        assert type(nonce) is bytes, "nonce is no instance of bytes"
         return self.chacha.decrypt(nonce, ciphertext, aad)
 
 
