@@ -311,8 +311,6 @@ class HomeKitConnection:
             await self._connector
         except asyncio.CancelledError:
             pass
-        # self._connector being set to None is the responsibility of the
-        # done_callback in _start_connector
 
     async def get(self, target):
         """
