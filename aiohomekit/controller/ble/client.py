@@ -23,7 +23,7 @@ from typing import Any, Callable, TypeVar, cast
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
 
-from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey, DecryptionError
+from aiohomekit.controller.ble.key import DecryptionError, DecryptionKey, EncryptionKey
 from aiohomekit.exceptions import EncryptionError
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import (
