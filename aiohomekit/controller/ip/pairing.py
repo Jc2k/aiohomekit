@@ -144,9 +144,11 @@ class IpPairing(ZeroconfPairing):
                 raise AccessoryDisconnectedError(
                     f"Timeout while waiting for connection to device {self.connection.host}:{self.connection.port}"
                 )
+            # The exception name is included since otherwise the error message
+            # is not very helpful as it could be something like `step 3`
             raise AccessoryDisconnectedError(
                 f"Error while connecting to device {self.connection.host}:{self.connection.port}: "
-                f"{last_connector_error or type(last_connector_error)}"
+                f"{last_connector_error} ({type(last_connector_error).__name__})"
             )
 
         if not self.connection.is_connected:
