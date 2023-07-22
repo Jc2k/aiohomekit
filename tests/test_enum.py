@@ -2,7 +2,6 @@ from aiohomekit.enum import EnumWithDescription
 
 
 class EnumTest(EnumWithDescription):
-
     RED = 1, "The colour is red"
     BLUE = 2, "This colour is blue"
 
