@@ -23,7 +23,7 @@ from typing import Any, Callable, TypeVar, cast
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
 
-from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
+from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey, DecryptionError
 from aiohomekit.exceptions import EncryptionError
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import (
@@ -140,8 +140,9 @@ async def _read_pdu(
     """Read a PDU from a characteristic."""
     data = await client.read_gatt_char(handle)
     if decryption_key:
-        data = decryption_key.decrypt(data)
-        if data is False:
+        try:
+            data = decryption_key.decrypt(bytes(data))
+        except DecryptionError:
             raise EncryptionError("Decryption failed")
 
     logger.debug("Read fragment: %s", data)
@@ -158,8 +159,9 @@ async def _read_pdu(
     while len(data) < expected_length:
         next = await client.read_gatt_char(handle)
         if decryption_key:
-            next = decryption_key.decrypt(next)
-            if next is False:
+            try:
+                next = decryption_key.decrypt(bytes(next))
+            except DecryptionError:
                 raise EncryptionError("Decryption failed")
         logger.debug("Read fragment: %s", next)
 
