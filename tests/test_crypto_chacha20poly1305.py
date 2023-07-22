@@ -19,7 +19,9 @@ from aiohomekit.crypto.chacha20poly1305 import (
     ChaCha20Poly1305Encryptor,
     PACK_NONCE,
     NONCE_PADDING,
+    DecryptionError,
 )
+import pytest
 
 
 def test_example2_8_2():
@@ -182,7 +184,5 @@ def test_example2_8_2():
     plain_text_ = ChaCha20Poly1305Decryptor(key).decrypt(aad, nonce, r)
     assert plain_text == plain_text_
 
-    assert (
+    with pytest.raises(DecryptionError):
         ChaCha20Poly1305Decryptor(key).decrypt(aad, nonce, r + bytes([0, 1, 2, 3]))
-        is False
-    )
