@@ -23,7 +23,8 @@ from __future__ import annotations
 
 import logging
 import struct
-
+from functools import partial
+from struct import Struct
 from chacha20poly1305 import (
     ChaCha,
     ChaCha20Poly1305 as ChaCha20Poly1305PurePython,
@@ -31,6 +32,12 @@ from chacha20poly1305 import (
 )
 from chacha20poly1305_reuseable import ChaCha20Poly1305Reusable
 from cryptography.exceptions import InvalidTag
+
+DecryptionError = InvalidTag
+
+NONCE_PADDING = bytes([0, 0, 0, 0])
+PACK_NONCE = partial(Struct("<LQ").pack, 0)
+
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +54,7 @@ class ChaCha20Poly1305Encryptor:
         assert len(key) == 32
         self.chacha = ChaCha20Poly1305Reusable(key)
 
-    def encrypt(
-        self, aad: bytes, iv: bytes, constant: bytes, plaintext: bytes
-    ) -> tuple[bytearray, bytes]:
+    def encrypt(self, aad: bytes, nonce: bytes, plaintext: bytes) -> bytes:
         """
         The encrypt method for chacha20 aead as required by the Apple specification. The 96-bit nonce from RFC7539 is
         formed from the constant and the initialisation vector.
@@ -60,12 +65,10 @@ class ChaCha20Poly1305Encryptor:
         :param plaintext: arbitrary length plaintext of type bytes or bytearray
         :return: the cipher text and tag
         """
-        assert type(plaintext) in [
-            bytes,
-            bytearray,
-        ], "plaintext is no instance of bytes: %s" % str(type(plaintext))
-        nonce = constant + iv
-        return self.chacha.encrypt(bytes(nonce), bytes(plaintext), bytes(aad))
+        assert type(aad) is bytes, "aad is no instance of bytes"
+        assert type(plaintext) is bytes, "plaintext is no instance of bytes"
+        assert type(nonce) is bytes, "plaintext is no instance of bytes"
+        return self.chacha.encrypt(nonce, plaintext, bytes(aad))
 
 
 class ChaCha20Poly1305Decryptor:
@@ -80,9 +83,7 @@ class ChaCha20Poly1305Decryptor:
         assert len(key) == 32
         self.chacha = ChaCha20Poly1305Reusable(key)
 
-    def decrypt(
-        self, aad: bytes, iv: bytes, constant: bytes, ciphertext: bytes
-    ) -> bool | bytearray:
+    def decrypt(self, aad: bytes, nonce: bytes, ciphertext: bytes) -> bytes:
         """
         The decrypt method for chacha20 aead as required by the Apple specification. The 96-bit nonce from RFC7539 is
         formed from the constant and the initialisation vector.
@@ -93,16 +94,10 @@ class ChaCha20Poly1305Decryptor:
         :param ciphertext: arbitrary length plaintext of type bytes or bytearray
         :return: False if the tag could not be verified or the plaintext as bytes
         """
-        assert type(ciphertext) in [
-            bytes,
-            bytearray,
-        ], "ciphertext is no instance of bytes: %s" % str(type(ciphertext))
-        nonce = constant + iv
-        try:
-            return bytearray(self.chacha.decrypt(nonce, bytes(ciphertext), bytes(aad)))
-        except InvalidTag:
-            # This should raise rather than the callees having to test for False
-            return False
+        assert type(aad) is bytes, "aad is no instance of bytes"
+        assert type(ciphertext) is bytes, "ciphertext is no instance of bytes"
+        assert type(nonce) is bytes, "nonce is no instance of bytes"
+        return self.chacha.decrypt(nonce, ciphertext, aad)
 
 
 class ChaCha20Poly1305PartialTag(ChaCha20Poly1305PurePython):
