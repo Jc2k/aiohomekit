@@ -122,7 +122,7 @@ async def _write_pdu(
     for data in encode_pdu(opcode, tid, iid, data, fragment_size):
         logger.debug("Queuing fragment for write: %s", data)
         if encryption_key:
-            data = encryption_key.encrypt(data)
+            data = encryption_key.encrypt(bytes(data))
         writes.append(data)
 
     for write in writes:
