@@ -62,8 +62,6 @@ from aiohomekit.uuid import normalize_uuid
 from ..abstract import AbstractPairing, AbstractPairingData
 from .bleak import (
     AIOHomeKitBleakClient,
-    BleakCharacteristicMissing,
-    BleakServiceMissing,
 )
 from .client import (
     PDUStatusError,
