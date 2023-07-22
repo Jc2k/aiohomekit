@@ -276,19 +276,6 @@ class HomeKitConnection:
         self._start_connector()
         return True
 
-    async def _wait_for_connector(self) -> None:
-        """Wait for the connector to finish."""
-        if self._connector:
-            # Wait for the connector but do not propagate the CancelledError
-            # since the connector will be canceled when the connection is closed.
-            #
-            # Cancellation of the connector will still happen but we won't
-            # propagate it higher in the stack.
-            try:
-                await self._connector
-            except asyncio.CancelledError:
-                pass
-
     async def ensure_connection(self) -> None:
         """
         Waits for a connection to the device.
@@ -300,6 +287,18 @@ class HomeKitConnection:
         Otherwise, start a reconnection and wait for it.
         """
         if self._start_reconnecting():
+            # Wait for the connector but do not propagate the CancelledError
+            # since the connector will be canceled when the connection is closed.
+            #
+            # Cancellation of the connector will still happen but we won't
+            # propagate it higher in the stack.
+            #
+            # If we are running under a timeout, we still need to shield the
+            # connector task so it continues to run if the timeout is hit.
+            try:
+                await asyncio.shield(self._connector)
+            except asyncio.CancelledError:
+                pass
             await self._wait_for_connector()
 
     async def _stop_connector(self):
@@ -313,7 +312,15 @@ class HomeKitConnection:
         if not self._connector:
             return
         self._connector.cancel()
-        await self._wait_for_connector()
+        # Wait for the connector but do not propagate the CancelledError
+        # since the connector will be canceled when the connection is closed.
+        #
+        # Cancellation of the connector will still happen but we won't
+        # propagate it higher in the stack.
+        try:
+            await self._connector
+        except asyncio.CancelledError:
+            pass
         # self._connector being set to None is the responsibility of the
         # done_callback in _start_connector
 
