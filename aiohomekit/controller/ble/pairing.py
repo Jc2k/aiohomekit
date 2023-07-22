@@ -652,7 +652,7 @@ class BlePairing(AbstractPairing):
         for state_num in (
             start_state_num + 1,
             start_state_num,
-            *range(start_state_num + 2, start_state_num + 30),
+            *range(start_state_num + 2, start_state_num + 100),
         ):
             logger.debug(
                 "%s: Trying state_num %s for encrypted notification: %s",

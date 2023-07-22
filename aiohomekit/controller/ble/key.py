@@ -17,10 +17,12 @@
 from __future__ import annotations
 
 from aiohomekit.crypto.chacha20poly1305 import (
+    PACK_NONCE,
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,
     ChaCha20Poly1305PartialTag,
 )
+from aiohomekit.crypto.chacha20poly1305 import DecryptionError  # noqa: F401
 
 
 class EncryptionKey:
@@ -28,9 +30,8 @@ class EncryptionKey:
         self.key = ChaCha20Poly1305Encryptor(key)
         self.counter = 0
 
-    def encrypt(self, data: bytes | bytearray):
-        cnt_bytes = self.counter.to_bytes(8, byteorder="little")
-        data = self.key.encrypt(b"", cnt_bytes, bytes([0, 0, 0, 0]), data)
+    def encrypt(self, data: bytes) -> bytes:
+        data = self.key.encrypt(b"", PACK_NONCE(self.counter), data)
         self.counter += 1
         return data
 
@@ -40,10 +41,8 @@ class DecryptionKey:
         self.key = ChaCha20Poly1305Decryptor(key)
         self.counter = 0
 
-    def decrypt(self, data: bytes | bytearray):
-        counter = self.counter.to_bytes(8, byteorder="little")
-
-        data = self.key.decrypt(b"", counter, bytes([0, 0, 0, 0]), data)
+    def decrypt(self, data: bytes) -> bytes:
+        data = self.key.decrypt(b"", PACK_NONCE(self.counter), data)
         self.counter += 1
         return data
 
@@ -55,5 +54,4 @@ class BroadcastDecryptionKey:
     def decrypt(
         self, data: bytes | bytearray, gsn: int, advertising_identifier: bytes
     ) -> bytes | bool:
-        gsn_bytes = b"\x00\x00\x00\x00" + gsn.to_bytes(8, byteorder="little")
-        return self.key.open(gsn_bytes, data, advertising_identifier)
+        return self.key.open(PACK_NONCE(gsn), data, advertising_identifier)

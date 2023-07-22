@@ -9,28 +9,24 @@ from aiohomekit.controller.coap.pdu import (
 
 
 def test_encode_without_data():
-
     req_pdu = encode_pdu(OpCode.CHAR_READ, 0x10, 0x2022, b"")
 
     assert req_pdu == b"\x00\x03\x10\x22\x20\x00\x00"
 
 
 def test_encode_with_data():
-
     req_pdu = encode_pdu(OpCode.CHAR_WRITE, 0x20, 0x1234, b"\x01\x02\x03\x04")
 
     assert req_pdu == b"\x00\x02\x20\x34\x12\x04\x00\x01\x02\x03\x04"
 
 
 def test_encode_all_without_data():
-
     req_pdu = encode_all_pdus(OpCode.CHAR_READ, [0x10, 0x11], [b"", b""])
 
     assert req_pdu == b"\x00\x03\x00\x10\x00\x00\x00" + b"\x00\x03\x01\x11\x00\x00\x00"
 
 
 def test_encode_all_with_data():
-
     req_pdu = encode_all_pdus(
         OpCode.CHAR_WRITE, [0x12, 0x13], [b"\x88\x88", b"\x99\x99\x99\x99"]
     )
@@ -43,7 +39,6 @@ def test_encode_all_with_data():
 
 
 def test_decode_without_data():
-
     res_pdu = b"\x02\x40\x00\x00\x00"
     res_len, res_val = decode_pdu(0x40, res_pdu)
 
@@ -52,7 +47,6 @@ def test_decode_without_data():
 
 
 def test_decode_with_data():
-
     res_pdu = b"\x02\x50\x00\x06\x00\x01\x01\x01\x02\x01\x00"
     res_len, res_val = decode_pdu(0x50, res_pdu)
 
@@ -61,7 +55,6 @@ def test_decode_with_data():
 
 
 def test_decode_all_without_data():
-
     res_pdu = b"\x02\x20\x00\x00\x00" + b"\x02\x21\x00\x00\x00"
     res = decode_all_pdus(0x20, res_pdu)
 
@@ -73,7 +66,6 @@ def test_decode_all_without_data():
 
 
 def test_decode_all_with_data():
-
     res_pdu = b"\x02\x30\x00\x02\x00\x01\x00" + b"\x02\x31\x00\x02\x00\x02\x00"
     res = decode_all_pdus(0x30, res_pdu)
 
@@ -85,7 +77,6 @@ def test_decode_all_with_data():
 
 
 def test_decode_all_with_single_bad_tid():
-
     res_pdu = (
         b"\x02\x40\x00\x02\x00\x03\x00"
         + b"\x02\x99\x00\x02\x00\x04\x00"
@@ -103,7 +94,6 @@ def test_decode_all_with_single_bad_tid():
 
 
 def test_decode_all_with_single_status_error():
-
     res_pdu = (
         b"\x02\x50\x00\x00\x00"
         + b"\x02\x51\x06\x00\x00"
@@ -121,7 +111,6 @@ def test_decode_all_with_single_status_error():
 
 
 def test_decode_all_with_single_bad_control():
-
     res_pdu = (
         b"\x02\x50\x00\x00\x00"
         + b"\x08\x51\x00\x00\x00"
@@ -139,7 +128,6 @@ def test_decode_all_with_single_bad_control():
 
 
 def test_decode_with_bad_tid():
-
     res_pdu = b"\x02\x99\x00\x00\x00"
     res_len, res_val = decode_pdu(0x60, res_pdu)
 
@@ -148,7 +136,6 @@ def test_decode_with_bad_tid():
 
 
 def test_decode_with_status_error():
-
     res_pdu = b"\x02\x99\x06\x00\x00"
     res_len, res_val = decode_pdu(0x99, res_pdu)
 
@@ -158,7 +145,6 @@ def test_decode_with_status_error():
 
 
 def test_decode_with_bad_control():
-
     res_pdu = b"\xCC\x99\x00\x00\x00"
     res_len, res_val = decode_pdu(0x99, res_pdu)
 

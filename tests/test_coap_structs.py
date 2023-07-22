@@ -54,7 +54,6 @@ c3ba40437fac1188ab340a0250000c07190000270100000000131505020a\
 
 
 def test_coap_pdu09_encode_1():
-
     c_identity = Pdu09CharacteristicContainer(
         Pdu09Characteristic(
             0x14, 2, 0x0200, b"\x01\x00\x00\x27\x01\x00\x00", None, None, None, None

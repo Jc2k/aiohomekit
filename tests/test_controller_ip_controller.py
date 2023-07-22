@@ -162,7 +162,6 @@ async def test_find_device_id_case_upper(mock_asynczeroconf: AsyncZeroconf):
     svc_info._set_properties(svc_info.properties)
 
     with _install_mock_service_info(mock_asynczeroconf, svc_info):
-
         async with controller:
             await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
             res = await controller.async_find("aa:aa:aa:aa:aa:aa")
@@ -244,7 +243,6 @@ async def test_discover_device_id_case_lower(mock_asynczeroconf: AsyncZeroconf):
     svc_info._set_properties(svc_info.properties)
 
     with _install_mock_service_info(mock_asynczeroconf, svc_info):
-
         async with controller:
             await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
 
@@ -263,7 +261,6 @@ async def test_discover_device_id_case_upper(mock_asynczeroconf: AsyncZeroconf):
     svc_info._set_properties(svc_info.properties)
 
     with _install_mock_service_info(mock_asynczeroconf, svc_info):
-
         async with controller:
             await controller._async_update_from_cache(mock_asynczeroconf.zeroconf)
 
