@@ -299,7 +299,6 @@ class HomeKitConnection:
                 await asyncio.shield(self._connector)
             except asyncio.CancelledError:
                 pass
-            await self._wait_for_connector()
 
     async def _stop_connector(self):
         """
