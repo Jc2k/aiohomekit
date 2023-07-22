@@ -119,16 +119,21 @@ async def _write_pdu(
     # Wrap data in one or more PDU's split at fragment_size
     # And write each one to the target characteristic handle
     writes = []
+    debug = logger.isEnabledFor(logging.DEBUG)
     for data in encode_pdu(opcode, tid, iid, data, fragment_size):
-        logger.debug("Queuing fragment for write: %s", data)
+        if debug:
+            logger.debug("Queuing fragment for write: %s", data)
         if encryption_key:
             data = encryption_key.encrypt(bytes(data))
+            if debug:
+                logger.debug("Encrypted fragment: %s", data)
         writes.append(data)
 
+    response = "write-without-response" not in handle.properties
     for write in writes:
-        await client.write_gatt_char(
-            handle, write, "write-without-response" not in handle.properties
-        )
+        if debug:
+            logger.debug("Writing fragment: %s", write)
+        await client.write_gatt_char(handle, write, response)
 
 
 async def _read_pdu(
