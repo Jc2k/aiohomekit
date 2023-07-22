@@ -243,14 +243,9 @@ class HomeKitConnection:
         This function **will not** start another reconnect thread if one is already
         running. Or if it is already connected.
         """
-        if self._connector or self.is_connected:
+        if (self._connector and not self._connector.done()) or self.is_connected:
             return
-
-        def done_callback(result):
-            self._connector = None
-
         self._connector = async_create_task(self._reconnect())
-        self._connector.add_done_callback(done_callback)
 
     def reconnect_soon(self) -> None:
         """Reconnect to the device if disconnected.
