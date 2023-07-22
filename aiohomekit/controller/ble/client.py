@@ -125,8 +125,6 @@ async def _write_pdu(
             logger.debug("Queuing fragment for write: %s", data)
         if encryption_key:
             data = encryption_key.encrypt(bytes(data))
-            if debug:
-                logger.debug("Encrypted fragment: %s", data)
         writes.append(data)
 
     response = "write-without-response" not in handle.properties
@@ -150,7 +148,9 @@ async def _read_pdu(
         except DecryptionError:
             raise EncryptionError("Decryption failed")
 
-    logger.debug("Read fragment: %s", data)
+    debug = logger.isEnabledFor(logging.DEBUG)
+    if debug:
+        logger.debug("Read fragment: %s", data)
 
     # Validate the PDU header
     status, expected_length, data = decode_pdu(tid, data)
@@ -168,7 +168,8 @@ async def _read_pdu(
                 next = decryption_key.decrypt(bytes(next))
             except DecryptionError:
                 raise EncryptionError("Decryption failed")
-        logger.debug("Read fragment: %s", next)
+        if debug:
+            logger.debug("Read fragment: %s", next)
 
         data += decode_pdu_continuation(tid, next)
 
