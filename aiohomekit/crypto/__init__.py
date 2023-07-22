@@ -20,8 +20,17 @@ __all__ = [
     "hkdf_derive",
     "SrpClient",
     "SrpServer",
+    "DecryptionError",
+    "PACK_NONCE",
+    "NONCE_PADDING",
 ]
 
-from .chacha20poly1305 import ChaCha20Poly1305Decryptor, ChaCha20Poly1305Encryptor
+from .chacha20poly1305 import (
+    ChaCha20Poly1305Decryptor,
+    ChaCha20Poly1305Encryptor,
+    DecryptionError,
+    PACK_NONCE,
+    NONCE_PADDING,
+)
 from .hkdf import hkdf_derive
 from .srp import SrpClient, SrpServer
