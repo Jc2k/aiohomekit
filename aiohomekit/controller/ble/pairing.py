@@ -34,7 +34,6 @@ from bleak_retry_connector import (
     BLEAK_RETRY_EXCEPTIONS as BLEAK_EXCEPTIONS,
     retry_bluetooth_connection_error,
 )
-from .client import disconnect_on_missing_services
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -191,6 +190,31 @@ def operation_lock(func: WrapFuncType) -> WrapFuncType:
 
     return cast(WrapFuncType, _async_operation_lock_wrap)
 
+
+def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
+    """Define a wrapper to disconnect on missing services and characteristics.
+
+    This must be placed after the retry_bluetooth_connection_error
+    decorator.
+    """
+
+    async def _async_disconnect_on_missing_services_wrap(
+        self: BlePairing, *args: Any, **kwargs: Any
+    ) -> None:
+        try:
+            return await func(self, *args, **kwargs)
+        except (BleakServiceMissing, BleakCharacteristicMissing) as ex:
+            logger.warning(
+                "%s: Missing service or characteristic, disconnecting to force refetch of GATT services: %s",
+                self.name,
+                ex,
+            )
+            if self.client:
+                await self.client.clear_cache()
+                await self.client.disconnect()
+            raise
+
+    return cast(WrapFuncType, _async_disconnect_on_missing_services_wrap)
 
 
 def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
@@ -657,7 +681,7 @@ class BlePairing(AbstractPairing):
         for state_num in (
             start_state_num + 1,
             start_state_num,
-            *range(start_state_num + 2, start_state_num + 50),
+            *range(start_state_num + 2, start_state_num + 30),
         ):
             logger.debug(
                 "%s: Trying state_num %s for encrypted notification: %s",
