@@ -19,6 +19,8 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING
 
+from async_interrupt import interrupt
+
 from aiohomekit.crypto.chacha20poly1305 import (
     PACK_NONCE,
     ChaCha20Poly1305Decryptor,
@@ -45,6 +47,10 @@ if TYPE_CHECKING:
     from .pairing import IpPairing
 
 logger = logging.getLogger(__name__)
+
+
+class ConnectionReady(Exception):
+    """Raised when a connection is ready to be retried."""
 
 
 class InsecureHomeKitProtocol(asyncio.Protocol):
@@ -211,8 +217,9 @@ class HomeKitConnection:
 
         self._connect_lock = asyncio.Lock()
 
+        self._loop = asyncio.get_running_loop()
         self._concurrency_limit = asyncio.Semaphore(concurrency_limit)
-        self._reconnect_wait_task = None
+        self._reconnect_future: asyncio.Future[None] | None = None
 
     @property
     def name(self):
@@ -253,11 +260,10 @@ class HomeKitConnection:
 
         If a reconnect is not a progress, the connect loop is started.
         """
-        if self._reconnect_wait_task:
+        if self._reconnect_future and not self._reconnect_future.done():
             # If a reconnect wait is running, cancel it so the reconnect
             # tries right away
-            self._reconnect_wait_task.cancel()
-            self._reconnect_wait_task = None
+            self._reconnect_future.set_result(None)
             return
         self._start_reconnecting()
 
@@ -545,9 +551,6 @@ class HomeKitConnection:
                     # Authentication errors should bubble up because auto-reconnect is unlikely to help
                     raise
 
-                except asyncio.CancelledError:
-                    return
-
                 except HomeKitException as ex:
                     logger.debug(
                         "%s: Connecting to accessory failed: %s; Retrying in %i seconds",
@@ -563,16 +566,14 @@ class HomeKitConnection:
                     )
 
                 interval = min(60, 1.5 * interval)
-                self._reconnect_wait_task = asyncio.ensure_future(
-                    asyncio.sleep(interval)
-                )
-
+                self._reconnect_future = self._loop.create_future()
                 try:
-                    await self._reconnect_wait_task
-                except asyncio.CancelledError:
+                    async with interrupt(self._reconnect_future, ConnectionReady, None):
+                        await asyncio.sleep(interval)
+                except ConnectionReady:
                     pass
                 finally:
-                    self._reconnect_wait_task = None
+                    self._reconnect_future = None
 
     def event_received(self, event):
         if not self.owner:
