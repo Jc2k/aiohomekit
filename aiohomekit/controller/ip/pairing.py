@@ -132,12 +132,23 @@ class IpPairing(ZeroconfPairing):
     async def _ensure_connected(self):
         if self._shutdown:
             return
+        connection = self.connection
         try:
             async with asyncio_timeout(10):
-                await self.connection.ensure_connection()
+                await connection.ensure_connection()
         except asyncio.TimeoutError:
+            last_connector_error = connection.last_connector_error
+            if not last_connector_error or isinstance(
+                last_connector_error, asyncio.TimeoutError
+            ):
+                raise AccessoryDisconnectedError(
+                    f"Timeout while waiting for connection to device {self.connection.host}:{self.connection.port}"
+                )
+            # The exception name is included since otherwise the error message
+            # is not very helpful as it could be something like `step 3`
             raise AccessoryDisconnectedError(
-                f"Timeout while waiting for connection to device {self.connection.host}:{self.connection.port}"
+                f"Error while connecting to device {self.connection.host}:{self.connection.port}: "
+                f"{last_connector_error} ({type(last_connector_error).__name__})"
             )
 
         if not self.connection.is_connected:

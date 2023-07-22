@@ -19,6 +19,8 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING
 
+from async_interrupt import interrupt
+
 from aiohomekit.crypto.chacha20poly1305 import (
     PACK_NONCE,
     ChaCha20Poly1305Decryptor,
@@ -45,6 +47,10 @@ if TYPE_CHECKING:
     from .pairing import IpPairing
 
 logger = logging.getLogger(__name__)
+
+
+class ConnectionReady(Exception):
+    """Raised when a connection is ready to be retried."""
 
 
 class InsecureHomeKitProtocol(asyncio.Protocol):
@@ -211,8 +217,10 @@ class HomeKitConnection:
 
         self._connect_lock = asyncio.Lock()
 
+        self._loop = asyncio.get_running_loop()
         self._concurrency_limit = asyncio.Semaphore(concurrency_limit)
-        self._reconnect_wait_task = None
+        self._reconnect_future: asyncio.Future[None] | None = None
+        self._last_connector_error: Exception | None = None
 
     @property
     def name(self):
@@ -236,14 +244,9 @@ class HomeKitConnection:
         This function **will not** start another reconnect thread if one is already
         running. Or if it is already connected.
         """
-        if self._connector or self.is_connected:
+        if (self._connector and not self._connector.done()) or self.is_connected:
             return
-
-        def done_callback(result):
-            self._connector = None
-
         self._connector = async_create_task(self._reconnect())
-        self._connector.add_done_callback(done_callback)
 
     def reconnect_soon(self) -> None:
         """Reconnect to the device if disconnected.
@@ -253,11 +256,10 @@ class HomeKitConnection:
 
         If a reconnect is not a progress, the connect loop is started.
         """
-        if self._reconnect_wait_task:
+        if self._reconnect_future and not self._reconnect_future.done():
             # If a reconnect wait is running, cancel it so the reconnect
             # tries right away
-            self._reconnect_wait_task.cancel()
-            self._reconnect_wait_task = None
+            self._reconnect_future.set_result(None)
             return
         self._start_reconnecting()
 
@@ -269,7 +271,12 @@ class HomeKitConnection:
         self._start_connector()
         return True
 
-    async def ensure_connection(self):
+    @property
+    def last_connector_error(self) -> Exception | None:
+        """Return the last error from the connector task."""
+        return self._last_connector_error
+
+    async def ensure_connection(self) -> None:
         """
         Waits for a connection to the device.
 
@@ -280,6 +287,8 @@ class HomeKitConnection:
         Otherwise, start a reconnection and wait for it.
         """
         if self._start_reconnecting():
+            # If we are running under a timeout, we still need to shield the
+            # connector task so it continues to run if the timeout is hit.
             await asyncio.shield(self._connector)
 
     async def _stop_connector(self):
@@ -292,9 +301,16 @@ class HomeKitConnection:
         """
         if not self._connector:
             return
-        self._connector.cancel()
-        await self._connector
-        self._connector = None
+        self._connector.cancel("Stop connector")
+        # Wait for the connector but do not propagate the CancelledError
+        # since the connector will be canceled when the connection is closed.
+        #
+        # Cancellation of the connector will still happen but we won't
+        # propagate it higher in the stack.
+        try:
+            await self._connector
+        except asyncio.CancelledError:
+            pass
 
     async def get(self, target):
         """
@@ -538,17 +554,17 @@ class HomeKitConnection:
             logger.debug("Starting reconnect loop to %s:%s", self.host, self.port)
 
             while not self.closing:
+                self._last_connector_error = None
                 try:
                     return await self._connect_once()
 
-                except AuthenticationError:
+                except AuthenticationError as ex:
+                    self._last_connector_error = ex
                     # Authentication errors should bubble up because auto-reconnect is unlikely to help
                     raise
 
-                except asyncio.CancelledError:
-                    return
-
                 except HomeKitException as ex:
+                    self._last_connector_error = ex
                     logger.debug(
                         "%s: Connecting to accessory failed: %s; Retrying in %i seconds",
                         self.name,
@@ -556,23 +572,22 @@ class HomeKitConnection:
                         interval,
                     )
 
-                except Exception:
+                except Exception as ex:
+                    self._last_connector_error = ex
                     logger.exception(
                         "%s: Unexpected error whilst trying to connect to accessory. Will retry.",
                         self.name,
                     )
 
                 interval = min(60, 1.5 * interval)
-                self._reconnect_wait_task = asyncio.ensure_future(
-                    asyncio.sleep(interval)
-                )
-
+                self._reconnect_future = self._loop.create_future()
                 try:
-                    await self._reconnect_wait_task
-                except asyncio.CancelledError:
+                    async with interrupt(self._reconnect_future, ConnectionReady, None):
+                        await asyncio.sleep(interval)
+                except ConnectionReady:
                     pass
                 finally:
-                    self._reconnect_wait_task = None
+                    self._reconnect_future = None
 
     def event_received(self, event):
         if not self.owner:
