@@ -60,14 +60,11 @@ from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from ..abstract import AbstractPairing, AbstractPairingData
-from .bleak import (
-    AIOHomeKitBleakClient,
-    BleakCharacteristicMissing,
-    BleakServiceMissing,
-)
+from .bleak import AIOHomeKitBleakClient
 from .client import (
     PDUStatusError,
     ble_request,
+    disconnect_on_missing_services,
     drive_pairing_state_machine,
     raise_for_pdu_status,
 )
@@ -189,32 +186,6 @@ def operation_lock(func: WrapFuncType) -> WrapFuncType:
             return await func(self, *args, **kwargs)
 
     return cast(WrapFuncType, _async_operation_lock_wrap)
-
-
-def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
-    """Define a wrapper to disconnect on missing services and characteristics.
-
-    This must be placed after the retry_bluetooth_connection_error
-    decorator.
-    """
-
-    async def _async_disconnect_on_missing_services_wrap(
-        self: BlePairing, *args: Any, **kwargs: Any
-    ) -> None:
-        try:
-            return await func(self, *args, **kwargs)
-        except (BleakServiceMissing, BleakCharacteristicMissing) as ex:
-            logger.warning(
-                "%s: Missing service or characteristic, disconnecting to force refetch of GATT services: %s",
-                self.name,
-                ex,
-            )
-            if self.client:
-                await self.client.clear_cache()
-                await self.client.disconnect()
-            raise
-
-    return cast(WrapFuncType, _async_disconnect_on_missing_services_wrap)
 
 
 def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
