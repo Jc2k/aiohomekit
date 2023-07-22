@@ -20,6 +20,7 @@ from aiohomekit.crypto.chacha20poly1305 import (
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,
     ChaCha20Poly1305PartialTag,
+    PACK_NONCE,
 )
 
 
@@ -28,9 +29,8 @@ class EncryptionKey:
         self.key = ChaCha20Poly1305Encryptor(key)
         self.counter = 0
 
-    def encrypt(self, data: bytes | bytearray):
-        cnt_bytes = self.counter.to_bytes(8, byteorder="little")
-        data = self.key.encrypt(b"", cnt_bytes, bytes([0, 0, 0, 0]), data)
+    def encrypt(self, data: bytes) -> bytes:
+        data = self.key.encrypt(b"", PACK_NONCE(self.counter), data)
         self.counter += 1
         return data
 
@@ -40,10 +40,8 @@ class DecryptionKey:
         self.key = ChaCha20Poly1305Decryptor(key)
         self.counter = 0
 
-    def decrypt(self, data: bytes | bytearray):
-        counter = self.counter.to_bytes(8, byteorder="little")
-
-        data = self.key.decrypt(b"", counter, bytes([0, 0, 0, 0]), data)
+    def decrypt(self, data: bytes) -> bytes:
+        data = self.key.decrypt(b"", PACK_NONCE(self.counter), data)
         self.counter += 1
         return data
 
