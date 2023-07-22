@@ -178,7 +178,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
 
             try:
                 decrypted = self.decryptor.decrypt(
-                    block_length_bytes,
+                    bytes(block_length_bytes),
                     PACK_NONCE(self.a2c_counter),
                     bytes(block_and_tag),
                 )
