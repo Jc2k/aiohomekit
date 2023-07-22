@@ -43,6 +43,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+NONCE_PADDING = bytes([0, 0, 0, 0])
+
 
 class InsecureHomeKitProtocol(asyncio.Protocol):
     def __init__(self, connection):
@@ -129,7 +131,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
         self.decryptor = ChaCha20Poly1305Decryptor(self.a2c_key)
 
     async def send_bytes(self, payload):
-        buffer = b""
+        buffer = []
 
         while len(payload) > 0:
             current = payload[:1024]
@@ -138,17 +140,17 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             len_bytes = len(current).to_bytes(2, byteorder="little")
             cnt_bytes = self.c2a_counter.to_bytes(8, byteorder="little")
             self.c2a_counter += 1
-
-            data = self.encryptor.encrypt(
-                len_bytes,
-                cnt_bytes,
-                bytes([0, 0, 0, 0]),
-                current,
+            buffer.append(len_bytes)
+            buffer.append(
+                self.encryptor.encrypt(
+                    len_bytes,
+                    cnt_bytes,
+                    NONCE_PADDING,
+                    current,
+                )
             )
 
-            buffer += len_bytes + data
-
-        return await super().send_bytes(buffer)
+        return await super().send_bytes(b"".join(buffer))
 
     def data_received(self, data):
         """
@@ -172,19 +174,15 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
                 # Not enough data yet
                 return
 
-            # Drop the length from the top of the buffer as we have already parsed it
-            del self._incoming_buffer[:2]
-
-            block = self._incoming_buffer[:block_length]
-            del self._incoming_buffer[:block_length]
-            tag = self._incoming_buffer[:16]
-            del self._incoming_buffer[:16]
+            block_and_tag = self._incoming_buffer[2 : block_length + 16]
+            # Drop the length, block, and tag from the buffer
+            del self._incoming_buffer[: 2 + block_length + 16]
 
             decrypted = self.decryptor.decrypt(
                 block_length_bytes,
                 self.a2c_counter.to_bytes(8, byteorder="little"),
-                bytes([0, 0, 0, 0]),
-                block + tag,
+                NONCE_PADDING,
+                block_and_tag,
             )
 
             if decrypted is False:
