@@ -214,7 +214,7 @@ async def _pairing_char_write(
 
     for _ in range(MAX_REASSEMBLY):
         data = await char_write(client, None, None, handle, iid, next_write)
-        decoded = dict(TLV.decode_bytearray(data))
+        decoded = dict(TLV.decode_bytearray(bytearray(data)))
         if TLV.kTLVType_FragmentLast in decoded:
             logger.debug("%s: Reassembling final fragment", client.address)
             buffer.extend(decoded[TLV.kTLVType_FragmentLast])
