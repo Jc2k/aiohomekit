@@ -275,7 +275,7 @@ def perform_pair_setup_part2(
     # https://github.com/KhaosT/HAP-NodeJS/blob/2ea9d761d9bd7593dd1949fec621ab085af5e567/lib/HAPServer.js
     # function handlePairStepFive calling encryption.encryptAndSeal
     encrypted_data_with_auth_tag = ChaCha20Poly1305Encryptor(session_key).encrypt(
-        b"", NONCE_PADDING + b"PS-Msg05", sub_tlv_b
+        b"", NONCE_PADDING + b"PS-Msg05", bytes(sub_tlv_b)
     )
 
     response_tlv = [
@@ -568,7 +568,7 @@ def get_session_keys(
 
     # 10) encrypt and sign
     encrypted_data_with_auth_tag = ChaCha20Poly1305Encryptor(session_key).encrypt(
-        b"", NONCE_PADDING + b"PV-Msg03", sub_tlv
+        b"", NONCE_PADDING + b"PV-Msg03", bytes(sub_tlv)
     )
 
     # 11) create tlv
