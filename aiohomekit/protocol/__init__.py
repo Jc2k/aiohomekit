@@ -145,7 +145,7 @@ def validate_mfi(session_key, response_tlv):
     decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
         b"",
         NONCE_PADDING + b"PS-Msg04",
-        response_tlv[TLV.kTLVType_EncryptedData],
+        bytes(response_tlv[TLV.kTLVType_EncryptedData]),
     )
 
     if not decrypted:
@@ -302,7 +302,7 @@ def perform_pair_setup_part2(
     decrypted_data = ChaCha20Poly1305Decryptor(session_key).decrypt(
         b"",
         NONCE_PADDING + b"PS-Msg06",
-        response_tlv[TLV.kTLVType_EncryptedData],
+        bytes(response_tlv[TLV.kTLVType_EncryptedData]),
     )
     if decrypted_data is False:
         raise IllegalData("step 7")
@@ -410,7 +410,7 @@ def resume_m3(
     plaintext = key.decrypt(
         b"",
         NONCE_PADDING + b"PR-Msg02",
-        auth_tag,
+        bytes(auth_tag),
     )
 
     if plaintext != b"":
@@ -506,7 +506,7 @@ def get_session_keys(
     # 3) verify auth tag on encrypted data and 4) decrypt
     encrypted = response_tlv[TLV.kTLVType_EncryptedData]
     decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
-        b"", NONCE_PADDING + b"PV-Msg02", encrypted
+        b"", NONCE_PADDING + b"PV-Msg02", bytes(encrypted)
     )
     if type(decrypted) == bool and not decrypted:
         raise InvalidAuthTagError("step 3")

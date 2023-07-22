@@ -143,7 +143,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
                 self.encryptor.encrypt(
                     len_bytes,
                     PACK_NONCE(self.c2a_counter),
-                    current,
+                    bytes(current),
                 )
             )
             self.c2a_counter += 1
