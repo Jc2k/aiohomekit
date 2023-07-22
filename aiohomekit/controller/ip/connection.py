@@ -172,9 +172,11 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
                 # Not enough data yet
                 return
 
-            block_and_tag = self._incoming_buffer[2 : block_length + 16]
-            # Drop the length, block, and tag from the buffer
-            del self._incoming_buffer[: 2 + block_length + 16]
+            # Drop the length from the top of the buffer as we have already parsed it
+            del self._incoming_buffer[:2]
+
+            block_and_tag = self._incoming_buffer[:block_length+16]
+            del self._incoming_buffer[:block_length+16]
 
             try:
                 decrypted = self.decryptor.decrypt(
