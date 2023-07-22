@@ -61,7 +61,7 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
     def connection_lost(self, exception):
         self.connection._connection_lost(exception)
 
-    async def send_bytes(self, payload):
+    async def send_bytes(self, payload: bytes):
         if self.transport.is_closing():
             # FIXME: It would be nice to try and wait for the reconnect in future.
             # In that case we need to make sure we do it at a layer above send_bytes otherwise
@@ -120,7 +120,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
     def __init__(self, connection, a2c_key, c2a_key):
         super().__init__(connection)
 
-        self._incoming_buffer = bytearray()
+        self._incoming_buffer: bytearray = bytearray()
 
         self.c2a_counter = 0
         self.a2c_counter = 0
@@ -131,7 +131,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
         self.encryptor = ChaCha20Poly1305Encryptor(self.c2a_key)
         self.decryptor = ChaCha20Poly1305Decryptor(self.a2c_key)
 
-    async def send_bytes(self, payload):
+    async def send_bytes(self, payload: bytes):
         buffer: list[bytes] = []
 
         while len(payload) > 0:
@@ -180,7 +180,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
                 decrypted = self.decryptor.decrypt(
                     block_length_bytes,
                     PACK_NONCE(self.a2c_counter),
-                    block_and_tag,
+                    bytes(block_and_tag),
                 )
             except DecryptionError as err:
                 raise RuntimeError("Could not decrypt block") from err
