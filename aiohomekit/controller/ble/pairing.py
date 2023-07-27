@@ -650,8 +650,8 @@ class BlePairing(AbstractPairing):
         # state number so the first pass is optimistic to reduce the number of
         # of decrypts we do.
         for state_num in (
-            start_state_num + 1,  # This is the wrong we expect so try it first
-            start_state_num,  # This is the state number we expect to get sometimes
+            start_state_num + 1,  # This is the state number we are expecting (next one)
+            start_state_num,  # This is the old state number (already used)
             *range(
                 start_state_num + 2, start_state_num + 100
             ),  # If bluetooth was offline for a while we try a few more
