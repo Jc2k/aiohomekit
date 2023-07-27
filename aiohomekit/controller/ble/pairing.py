@@ -119,7 +119,11 @@ WRITE_FIRST_REQUIRED_CHARACTERISTICS = {
     "246912DC-8FA3-82ED-DEA4-9EB91D8FC2EE",  # Unknown Vendor char seen on Belkin Wemo Switch
 }
 IGNORE_READ_CHARACTERISTICS = {
-    CharacteristicsTypes.SERVICE_SIGNATURE
+    CharacteristicsTypes.SERVICE_SIGNATURE,
+    # These are marked as [pr,ev] but make no sense to poll
+    # Doing so can cause phantom triggers.
+    CharacteristicsTypes.INPUT_EVENT,
+    CharacteristicsTypes.BUTTON_EVENT,
 } | WRITE_FIRST_REQUIRED_CHARACTERISTICS
 BLE_AID = 1  # The aid for BLE devices is always 1
 
