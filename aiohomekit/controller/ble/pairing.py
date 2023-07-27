@@ -665,9 +665,11 @@ class BlePairing(AbstractPairing):
         # state number so the first pass is optimistic to reduce the number of
         # of decrypts we do.
         for state_num in (
-            start_state_num + 1,
-            start_state_num,
-            *range(start_state_num + 2, start_state_num + 100),
+            start_state_num + 1,  # This is the state number we are expecting (next one)
+            start_state_num,  # This is the old state number (already used)
+            *range(
+                start_state_num + 2, start_state_num + 100
+            ),  # If bluetooth was offline for a while we try a few more
         ):
             logger.debug(
                 "%s: Trying state_num %s for encrypted notification: %s",
@@ -682,6 +684,14 @@ class BlePairing(AbstractPairing):
             )
             if decrypted is None:
                 continue
+            if state_num == start_state_num:
+                logger.debug(
+                    "%s: Encrypted notification with stale state_num %s ignored: %s",
+                    self.name,
+                    state_num,
+                    data,
+                )
+                return
             gsn = int.from_bytes(decrypted[0:2], "little")
             if gsn != state_num:
                 logger.debug(
