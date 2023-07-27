@@ -649,11 +649,7 @@ class BlePairing(AbstractPairing):
         # Usually we increment by one, but sometimes we get multiple with the same
         # state number so the first pass is optimistic to reduce the number of
         # of decrypts we do.
-        for state_num in (
-            start_state_num + 1,
-            start_state_num,
-            *range(start_state_num + 2, start_state_num + 100),
-        ):
+        for state_num in range(start_state_num, start_state_num + 100):
             logger.debug(
                 "%s: Trying state_num %s for encrypted notification: %s",
                 self.name,
@@ -667,6 +663,14 @@ class BlePairing(AbstractPairing):
             )
             if decrypted is None:
                 continue
+            if state_num == start_state_num:
+                logger.debug(
+                    "%s: Encrypted notification with stale state_num %s ignored: %s",
+                    self.name,
+                    state_num,
+                    data,
+                )
+                return
             gsn = int.from_bytes(decrypted[0:2], "little")
             if gsn != state_num:
                 logger.debug(
