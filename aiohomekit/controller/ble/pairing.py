@@ -118,13 +118,22 @@ WRITE_FIRST_REQUIRED_CHARACTERISTICS = {
     "00000138-0000-1000-8000-0026BB765291",  # Unknown write first characteristic
     "246912DC-8FA3-82ED-DEA4-9EB91D8FC2EE",  # Unknown Vendor char seen on Belkin Wemo Switch
 }
-IGNORE_READ_CHARACTERISTICS = {
-    CharacteristicsTypes.SERVICE_SIGNATURE,
+
+EVENT_CHARACTERISTICS = {
     # These are marked as [pr,ev] but make no sense to poll
     # Doing so can cause phantom triggers.
     CharacteristicsTypes.INPUT_EVENT,
     CharacteristicsTypes.BUTTON_EVENT,
+}
+
+IGNORE_READ_CHARACTERISTICS = {
+    CharacteristicsTypes.SERVICE_SIGNATURE
 } | WRITE_FIRST_REQUIRED_CHARACTERISTICS
+# IGNORE_READ_CHARACTERISTICS is used for notification
+
+IGNORE_POLL_CHARACTERISTICS = IGNORE_READ_CHARACTERISTICS | EVENT_CHARACTERISTICS
+# IGNORE_POLL_CHARACTERISTICS is used for polling
+
 BLE_AID = 1  # The aid for BLE devices is always 1
 
 ENABLE_BROADCAST_PAYLOAD = TLV.encode_list(
@@ -508,7 +517,9 @@ class BlePairing(AbstractPairing):
                 async with self._operation_lock:
                     logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
                     await self._get_characteristics_while_connected(
-                        [char], notify_listeners=True
+                        [char],
+                        notify_listeners=True,
+                        skip_characteristics=IGNORE_READ_CHARACTERISTICS,
                     )
                     # The GSN value is always the same per session.
                     # It will never increment until the session is closed.
@@ -954,7 +965,7 @@ class BlePairing(AbstractPairing):
             ):
                 continue
             for char in service.characteristics:
-                if char.type in IGNORE_READ_CHARACTERISTICS:
+                if char.type in IGNORE_POLL_CHARACTERISTICS:
                     continue
                 if CharacteristicPermissions.paired_read not in char.perms:
                     continue
@@ -1317,11 +1328,14 @@ class BlePairing(AbstractPairing):
         self,
         unordered_characteristics: list[Characteristic],
         notify_listeners: bool = False,
+        skip_characteristics: set[str] | None = None,
     ) -> dict[tuple[int, int], dict[str, Any]]:
         assert self._operation_lock.locked(), "_operation_lock should be locked"
         characteristics = self._sort_characteristics_by_fetch_order(
             unordered_characteristics
         )
+        if skip_characteristics is None:
+            skip_characteristics = IGNORE_POLL_CHARACTERISTICS
 
         debug_enabled = logger.isEnabledFor(logging.DEBUG)
         if debug_enabled:
@@ -1335,7 +1349,7 @@ class BlePairing(AbstractPairing):
 
         async with self._ble_request_lock:
             for char in characteristics:
-                if char.type in IGNORE_READ_CHARACTERISTICS:
+                if char.type in skip_characteristics:
                     logger.debug(
                         "%s: Ignoring characteristic %s",
                         self.name,
