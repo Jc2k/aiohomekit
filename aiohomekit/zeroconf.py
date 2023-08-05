@@ -31,7 +31,7 @@ from zeroconf import (
     ServiceListener,
     ServiceStateChange,
     Zeroconf,
-    current_time_millis
+    current_time_millis,
 )
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
