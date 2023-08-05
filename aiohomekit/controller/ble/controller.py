@@ -8,6 +8,7 @@ from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakDBusError, BleakError
+from aiohomekit.exceptions import AccessoryNotFoundError
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import (
@@ -152,7 +153,7 @@ class BleController(AbstractController):
             device_id,
             timeout,
         )
-        future = asyncio.Future()
+        future = asyncio.get_running_loop().create_future()
         try:
             async with asyncio_timeout(timeout):
                 return await future
@@ -162,7 +163,9 @@ class BleController(AbstractController):
                 timeout,
                 device_id,
             )
-            return None
+            raise AccessoryNotFoundError(
+                f"Accessory with device id {device_id} not found"
+            )
         finally:
             if device_id not in self._ble_futures:
                 return
