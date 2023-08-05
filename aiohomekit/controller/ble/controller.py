@@ -23,6 +23,7 @@ from aiohomekit.controller.ble.manufacturer_data import (
     HomeKitEncryptedNotification,
 )
 from aiohomekit.controller.ble.pairing import BlePairing
+from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.utils import asyncio_timeout
 
 from .discovery import BleDiscovery
@@ -152,7 +153,7 @@ class BleController(AbstractController):
             device_id,
             timeout,
         )
-        future = asyncio.Future()
+        future = asyncio.get_running_loop().create_future()
         try:
             async with asyncio_timeout(timeout):
                 return await future
@@ -162,7 +163,9 @@ class BleController(AbstractController):
                 timeout,
                 device_id,
             )
-            return None
+            raise AccessoryNotFoundError(
+                f"Accessory with device id {device_id} not found"
+            )
         finally:
             if device_id not in self._ble_futures:
                 return
