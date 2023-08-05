@@ -31,6 +31,7 @@ from zeroconf import (
     ServiceListener,
     ServiceStateChange,
     Zeroconf,
+    current_time_millis
 )
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
@@ -228,6 +229,7 @@ class ZeroconfController(AbstractController):
     async def _async_update_from_cache(self, zc: Zeroconf) -> None:
         """Load the records from the cache."""
         tasks: list[asyncio.Task] = []
+        now = current_time_millis()
         for record in self._async_get_ptr_records(zc):
             try:
                 info = AsyncServiceInfo(self.hap_type, record.alias)
@@ -236,7 +238,7 @@ class ZeroconfController(AbstractController):
                     "Ignoring record with bad type in name: %s: %s", record.alias, ex
                 )
                 continue
-            if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
+            if info.load_from_cache(zc, now):
                 self._async_handle_loaded_service_info(info)
             else:
                 tasks.append(self._async_handle_service(info))
@@ -254,7 +256,7 @@ class ZeroconfController(AbstractController):
         service_type: str,
         name: str,
         state_change: ServiceStateChange,
-    ):
+    ) -> None:
         if service_type != self.hap_type:
             return
 
@@ -295,7 +297,7 @@ class ZeroconfController(AbstractController):
             return discovery
 
         waiters = self._waiters.setdefault(device_id, [])
-        waiter = asyncio.Future()
+        waiter = asyncio.get_running_loop().create_future()
         waiters.append(waiter)
 
         try:
