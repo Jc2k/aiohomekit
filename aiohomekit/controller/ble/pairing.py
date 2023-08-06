@@ -50,7 +50,11 @@ from aiohomekit.model import (
     CharacteristicsTypes,
     Transport,
 )
-from aiohomekit.model.characteristics import Characteristic, CharacteristicPermissions
+from aiohomekit.model.characteristics import (
+    EVENT_CHARACTERISTICS,
+    Characteristic,
+    CharacteristicPermissions,
+)
 from aiohomekit.model.services import Service, ServicesTypes
 from aiohomekit.pdu import OpCode, PDUStatus, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
@@ -119,12 +123,6 @@ WRITE_FIRST_REQUIRED_CHARACTERISTICS = {
     "246912DC-8FA3-82ED-DEA4-9EB91D8FC2EE",  # Unknown Vendor char seen on Belkin Wemo Switch
 }
 
-EVENT_CHARACTERISTICS = {
-    # These are marked as [pr,ev] but make no sense to poll
-    # Doing so can cause phantom triggers.
-    CharacteristicsTypes.INPUT_EVENT,
-    CharacteristicsTypes.BUTTON_EVENT,
-}
 
 IGNORE_READ_CHARACTERISTICS = {
     CharacteristicsTypes.SERVICE_SIGNATURE
