@@ -37,7 +37,6 @@ from .permissions import CharacteristicPermissions
 from .types import CharacteristicShortUUID, CharacteristicUUID
 from .units import CharacteristicUnits
 
-
 EVENT_CHARACTERISTICS = {
     CharacteristicsTypes.INPUT_EVENT,
     CharacteristicsTypes.BUTTON_EVENT,

@@ -51,9 +51,9 @@ from aiohomekit.model import (
     Transport,
 )
 from aiohomekit.model.characteristics import (
+    EVENT_CHARACTERISTICS,
     Characteristic,
     CharacteristicPermissions,
-    EVENT_CHARACTERISTICS,
 )
 from aiohomekit.model.services import Service, ServicesTypes
 from aiohomekit.pdu import OpCode, PDUStatus, decode_pdu, encode_pdu
