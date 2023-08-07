@@ -875,7 +875,9 @@ class BlePairing(AbstractPairing):
                 logger.debug("%s: char: %s decoded: %s", self.name, char, decoded)
                 assert hap_char.iid == iid, "iid should be set"
                 hap_char.handle = char.handle
-                hap_char.perms = decoded["perms"]
+                # Some vendor characteristics have no perms
+                # See https://github.com/home-assistant/core/issues/91686
+                hap_char.perms = decoded.get("perms", [])
                 # Some vendor characteristics have no format
                 # See https://github.com/home-assistant/core/issues/76104
                 if "format" in decoded:
