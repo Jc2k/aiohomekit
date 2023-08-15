@@ -859,7 +859,7 @@ class BlePairing(AbstractPairing):
                     continue
 
                 iid = await self.client.get_characteristic_iid(char)
-                if iid is None:
+                if not iid: # None or 0 are both invalid
                     logger.debug("%s: No iid for %s", self.name, char.uuid)
                     continue
 
