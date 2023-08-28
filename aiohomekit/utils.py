@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-from asyncio import timeout as asyncio_timeout  # noqa: F401
 from collections.abc import Awaitable
 import enum
 import logging
 import re
+import sys
 from typing import TypeVar
 
 from aiohomekit.const import COAP_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
@@ -16,6 +16,11 @@ from aiohomekit.model.feature_flags import FeatureFlags
 _LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+if sys.version_info[:2] < (3, 11):
+    from async_timeout import timeout as asyncio_timeout  # noqa: F401
+else:
+    from asyncio import timeout as asyncio_timeout  # noqa: F401
 
 
 def async_create_task(coroutine: Awaitable[T], *, name=None) -> asyncio.Task[T]:

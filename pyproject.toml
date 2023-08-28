@@ -13,12 +13,13 @@ classifiers = [
     "Topic :: Home Automation",
     "Intended Audience :: Developers",
     "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11"
 ]
 include = ["aiohomekit/py.typed"]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 cryptography = ">=2.9.2"
 zeroconf = ">=0.73.0"
 commentjson = "^0.9.0"
