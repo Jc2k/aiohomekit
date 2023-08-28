@@ -21,9 +21,7 @@ from abc import abstractmethod
 import asyncio
 from collections.abc import AsyncIterable
 from dataclasses import dataclass
-from functools import partial
 import logging
-import sys
 
 import async_timeout
 from zeroconf import (
@@ -59,13 +57,8 @@ _TIMEOUT_MS = 3000
 
 logger = logging.getLogger(__name__)
 
-if sys.version_info[:2] < (3, 10):
-    _dataclass_decorator = dataclass
-else:
-    _dataclass_decorator = partial(dataclass, slots=True)
 
-
-@_dataclass_decorator
+@dataclass(slots=True)
 class HomeKitService:
     name: str
     id: str
