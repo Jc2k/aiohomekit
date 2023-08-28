@@ -22,11 +22,15 @@ if sys.version_info[:2] < (3, 11):
 else:
     from asyncio import timeout as asyncio_timeout  # noqa: F401
 
+_BACKGROUND_TASKS = set()
+
 
 def async_create_task(coroutine: Awaitable[T], *, name=None) -> asyncio.Task[T]:
     """Wrapper for asyncio.create_task that logs errors."""
     task = asyncio.create_task(coroutine, name=name)
+    _BACKGROUND_TASKS.add(task)
     task.add_done_callback(_handle_task_result)
+    task.add_done_callback(_BACKGROUND_TASKS.discard)
     return task
 
 
