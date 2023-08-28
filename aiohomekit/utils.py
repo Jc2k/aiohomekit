@@ -98,9 +98,6 @@ def domain_to_name(domain: str) -> str:
     Fooo._hap._tcp.local. -> Fooo
     Baaar._hap._tcp.local. -> Baar
     """
-    if "." not in domain:
-        return domain
-
     return domain.partition(".")[0]
 
 
