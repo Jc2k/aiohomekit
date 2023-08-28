@@ -11,12 +11,11 @@ from aiohomekit.const import COAP_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
 from aiohomekit.exceptions import MalformedPinError
 from aiohomekit.model.characteristics import Characteristic
 from aiohomekit.model.feature_flags import FeatureFlags
+from asyncio import timeout as asyncio_timeout  # noqa: F401
 
 _LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T")
-
-from asyncio import timeout as asyncio_timeout  # noqa: F401
 
 
 def async_create_task(coroutine: Awaitable[T], *, name=None) -> asyncio.Task[T]:
