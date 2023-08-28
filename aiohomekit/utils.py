@@ -22,15 +22,20 @@ if sys.version_info[:2] < (3, 11):
 else:
     from asyncio import timeout as asyncio_timeout  # noqa: F401
 
+_BACKGROUND_TASKS = set()
+
 
 def async_create_task(coroutine: Awaitable[T], *, name=None) -> asyncio.Task[T]:
     """Wrapper for asyncio.create_task that logs errors."""
     task = asyncio.create_task(coroutine, name=name)
+    _BACKGROUND_TASKS.add(task)
     task.add_done_callback(_handle_task_result)
+    task.add_done_callback(_BACKGROUND_TASKS.discard)
     return task
 
 
 def _handle_task_result(task: asyncio.Task) -> None:
+    """Handle the result of a task."""
     try:
         task.result()
     except asyncio.CancelledError:
@@ -40,7 +45,9 @@ def _handle_task_result(task: asyncio.Task) -> None:
         _LOGGER.exception("Failure running background task: %s", task.get_name())
 
 
-def clamp_enum_to_char(all_valid_values: enum.EnumMeta, char: Characteristic):
+def clamp_enum_to_char(
+    all_valid_values: enum.EnumMeta, char: Characteristic
+) -> set[enum.EnumMeta]:
     """Clamp possible values of an enum to restrictions imposed by a manufacturer."""
     valid_values = set(all_valid_values)
 
@@ -87,7 +94,7 @@ def pair_with_auth(ff: FeatureFlags) -> bool:
     return False
 
 
-def domain_to_name(domain) -> str:
+def domain_to_name(domain: str) -> str:
     """
     Given a Bonjour domain name, return a human readable name.
 
@@ -95,13 +102,10 @@ def domain_to_name(domain) -> str:
     Fooo._hap._tcp.local. -> Fooo
     Baaar._hap._tcp.local. -> Baar
     """
-    if "." not in domain:
-        return domain
-
-    return domain.split(".")[0]
+    return domain.partition(".")[0]
 
 
-def domain_supported(domain) -> bool:
+def domain_supported(domain: str) -> bool:
     if domain.endswith("._hap._tcp.local.") and IP_TRANSPORT_SUPPORTED:
         return True
     if domain.endswith("._hap._udp.local.") and COAP_TRANSPORT_SUPPORTED:
