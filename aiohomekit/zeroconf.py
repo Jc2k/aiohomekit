@@ -58,7 +58,7 @@ _TIMEOUT_MS = 3000
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(slots=True)
 class HomeKitService:
     name: str
     id: str
