@@ -5,7 +5,6 @@ from collections.abc import Awaitable
 import enum
 import logging
 import re
-import sys
 from typing import TypeVar
 
 from aiohomekit.const import COAP_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
