@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from asyncio import timeout as asyncio_timeout  # noqa: F401
 from collections.abc import Awaitable
 import enum
 import logging
@@ -11,7 +12,6 @@ from aiohomekit.const import COAP_TRANSPORT_SUPPORTED, IP_TRANSPORT_SUPPORTED
 from aiohomekit.exceptions import MalformedPinError
 from aiohomekit.model.characteristics import Characteristic
 from aiohomekit.model.feature_flags import FeatureFlags
-from asyncio import timeout as asyncio_timeout  # noqa: F401
 
 _LOGGER = logging.getLogger(__name__)
 
