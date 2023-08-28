@@ -16,6 +16,7 @@ from aiohomekit.model.feature_flags import FeatureFlags
 _LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T")
+T_EnumMeta = TypeVar("T_EnumMeta", enum.EnumMeta)
 
 if sys.version_info[:2] < (3, 11):
     from async_timeout import timeout as asyncio_timeout  # noqa: F401
@@ -46,8 +47,8 @@ def _handle_task_result(task: asyncio.Task) -> None:
 
 
 def clamp_enum_to_char(
-    all_valid_values: enum.EnumMeta, char: Characteristic
-) -> set[enum.EnumMeta]:
+    all_valid_values: T_EnumMeta, char: Characteristic
+) -> set[T_EnumMeta]:
     """Clamp possible values of an enum to restrictions imposed by a manufacturer."""
     valid_values = set(all_valid_values)
 
