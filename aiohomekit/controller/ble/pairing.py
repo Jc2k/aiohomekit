@@ -847,8 +847,10 @@ class BlePairing(AbstractPairing):
                     service_iid,
                     ServiceTLV,
                 )
-                if linked_iid := decoded_service.get("linked"):
-                    services_to_link.append((s, linked_iid))
+                if (linked_iids := decoded_service.get("linked")) and isinstance(
+                    linked_iids, list
+                ):
+                    services_to_link.append((s, [iid for iid in linked_iids if iid]))
                 logger.debug(
                     "%s: service: %s decoded: %s", self.name, service, decoded_service
                 )
