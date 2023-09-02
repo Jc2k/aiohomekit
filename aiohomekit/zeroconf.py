@@ -212,6 +212,7 @@ class ZeroconfController(AbstractController):
         self._waiters: dict[str, list[asyncio.Future]] = {}
         self._resolve_later: dict[str, asyncio.TimerHandle] = {}
         self._loop = asyncio.get_running_loop()
+        self._running = True
 
     async def async_start(self):
         zc = self._async_zeroconf_instance.zeroconf
@@ -282,6 +283,9 @@ class ZeroconfController(AbstractController):
             # again if needed which ensures the TTL is respected.
             self._resolve_later.pop(name, None)
 
+            if not self._running:
+                return
+
             if info.load_from_cache(zeroconf):
                 self._async_handle_loaded_service_info(info)
             else:
@@ -292,6 +296,7 @@ class ZeroconfController(AbstractController):
         )
 
     async def async_stop(self):
+        self._running = False
         self._browser.service_state_changed.unregister_handler(self._handle_service)
 
     async def async_find(
