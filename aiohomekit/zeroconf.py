@@ -298,7 +298,11 @@ class ZeroconfController(AbstractController):
             async_create_task(self._async_handle_service(info))
 
     async def async_stop(self):
+        """Stop the controller."""
         self._running = False
+        while self._resolve_later:
+            _, cancel = self._resolve_later.popitem()
+            cancel.cancel()
         self._browser.service_state_changed.unregister_handler(self._handle_service)
 
     async def async_find(
