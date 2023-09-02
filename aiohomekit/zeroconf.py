@@ -45,6 +45,7 @@ from aiohomekit.exceptions import AccessoryNotFoundError, TransportNotSupportedE
 from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
+
 from .utils import async_create_task
 
 HAP_TYPE_TCP = "_hap._tcp.local."
