@@ -46,7 +46,7 @@ from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
 
-from .debounce import Debouncer
+from .utils import async_create_task
 
 HAP_TYPE_TCP = "_hap._tcp.local."
 HAP_TYPE_UDP = "_hap._udp.local."
@@ -211,7 +211,9 @@ class ZeroconfController(AbstractController):
         super().__init__(char_cache)
         self._async_zeroconf_instance = zeroconf_instance
         self._waiters: dict[str, list[asyncio.Future]] = {}
-        self._debouncers: dict[str, Debouncer] = {}
+        self._resolve_later: dict[str, asyncio.TimerHandle] = {}
+        self._loop = asyncio.get_running_loop()
+        self._running = True
 
     async def async_start(self):
         zc = self._async_zeroconf_instance.zeroconf
@@ -260,33 +262,48 @@ class ZeroconfController(AbstractController):
         if service_type != self.hap_type:
             return
 
-        if not (debouncer := self._debouncers.get(name)):
-            try:
-                info = AsyncServiceInfo(service_type, name)
-            except BadTypeInNameException as ex:
-                logger.debug("Ignoring record with bad type in name: %s: %s", name, ex)
-                return
-
-            async def _async_handle_service():
-                if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
-                    self._async_handle_loaded_service_info(info)
-                else:
-                    await self._async_handle_service(info)
-
-            debouncer = self._debouncers[name] = Debouncer(
-                logger,
-                cooldown=0.5,
-                immediate=False,
-                function=_async_handle_service,
-            )
-
-        debouncer.async_trigger()
-
         if state_change == ServiceStateChange.Removed:
-            self._debouncers.pop(name, None)
+            if cancel := self._resolve_later.pop(name, None):
+                cancel.cancel()
+            return
+
+        if name in self._resolve_later:
+            # We already have a timer to resolve this service, so ignore this
+            # callback.
+            return
+
+        try:
+            info = AsyncServiceInfo(service_type, name)
+        except BadTypeInNameException as ex:
+            logger.debug("Ignoring record with bad type in name: %s: %s", name, ex)
+            return
+
+        self._resolve_later[name] = self._loop.call_at(
+            self._loop.time() + 0.5, self._async_resolve_later, name, info
+        )
+
+    def _async_resolve_later(self, name: str, info: AsyncServiceInfo) -> None:
+        """Resolve a host later."""
+        # As soon as we get a callback, we can remove the _resolve_later
+        # so the next time we get a callback, we can resolve the service
+        # again if needed which ensures the TTL is respected.
+        self._resolve_later.pop(name, None)
+
+        if not self._running:
+            return
+
+        if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
+            self._async_handle_loaded_service_info(info)
+        else:
+            async_create_task(self._async_handle_service(info))
 
     async def async_stop(self):
+        """Stop the controller."""
+        self._running = False
         self._browser.service_state_changed.unregister_handler(self._handle_service)
+        while self._resolve_later:
+            _, cancel = self._resolve_later.popitem()
+            cancel.cancel()
 
     async def async_find(
         self, device_id: str, timeout: float = 10.0
