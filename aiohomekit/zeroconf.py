@@ -277,23 +277,24 @@ class ZeroconfController(AbstractController):
             logger.debug("Ignoring record with bad type in name: %s: %s", name, ex)
             return
 
-        def _async_handle_service():
-            # As soon as we get a callback, we can remove the _resolve_later
-            # so the next time we get a callback, we can resolve the service
-            # again if needed which ensures the TTL is respected.
-            self._resolve_later.pop(name, None)
-
-            if not self._running:
-                return
-
-            if info.load_from_cache(zeroconf):
-                self._async_handle_loaded_service_info(info)
-            else:
-                async_create_task(self._async_handle_service(info))
-
         self._resolve_later[name] = self._loop.call_at(
-            self._loop.time() + 0.5, _async_handle_service
+            self._loop.time() + 0.5, self._async_resolve_later, name, info
         )
+
+    def _async_resolve_later(self, name: str, info: AsyncServiceInfo) -> None:
+        """Resolve a host later."""
+        # As soon as we get a callback, we can remove the _resolve_later
+        # so the next time we get a callback, we can resolve the service
+        # again if needed which ensures the TTL is respected.
+        self._resolve_later.pop(name, None)
+
+        if not self._running:
+            return
+
+        if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
+            self._async_handle_loaded_service_info(info)
+        else:
+            async_create_task(self._async_handle_service(info))
 
     async def async_stop(self):
         self._running = False
