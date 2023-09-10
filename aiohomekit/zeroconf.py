@@ -23,7 +23,6 @@ from collections.abc import AsyncIterable
 from dataclasses import dataclass
 import logging
 
-import async_timeout
 from zeroconf import (
     BadTypeInNameException,
     DNSPointer,
@@ -46,7 +45,7 @@ from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
 
-from .utils import async_create_task
+from .utils import async_create_task, asyncio_timeout
 
 HAP_TYPE_TCP = "_hap._tcp.local."
 HAP_TYPE_UDP = "_hap._udp.local."
@@ -318,7 +317,7 @@ class ZeroconfController(AbstractController):
         waiters.append(waiter)
 
         try:
-            async with async_timeout.timeout(timeout):
+            async with asyncio_timeout(timeout):
                 if discovery := await waiter:
                     return discovery
         except asyncio.TimeoutError:
