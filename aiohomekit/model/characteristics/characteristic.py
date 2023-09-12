@@ -360,7 +360,7 @@ def check_convert_value(val: str, char: Characteristic) -> Any:
         # Honeywell T6 Pro cannot handle arbritary precision, the values we send
         # *must* respect minStep
         # See https://github.com/home-assistant/core/issues/37083
-        if char.minStep is not None:
+        if char.minStep:
             with localcontext() as ctx:
                 ctx.prec = 6
 
