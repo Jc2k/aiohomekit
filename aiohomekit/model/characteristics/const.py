@@ -264,3 +264,9 @@ class ThreadStatus(enum.IntFlag):
     ROUTER = 0x10
     LEADER = 0x20
     BORDER_ROUTER = 0x40
+
+
+class TemperatureDisplayUnits(enum.IntEnum):
+
+    CELSIUS = 0
+    FAHRENHEIT = 1
