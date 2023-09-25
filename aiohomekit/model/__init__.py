@@ -293,9 +293,12 @@ class Accessory:
 
         for service_data in data["services"]:
             for linked_service in service_data.get("linked", []):
-                accessory.services.iid(service_data["iid"]).add_linked_service(
-                    accessory.services.iid(linked_service)
-                )
+                # https://github.com/home-assistant/core/issues/100160
+                # The Schlage Encode Plus can contain a 0 in this list which we have to ignore
+                if linked_service:
+                    accessory.services.iid(service_data["iid"]).add_linked_service(
+                        accessory.services.iid(linked_service)
+                    )
 
         return accessory
 

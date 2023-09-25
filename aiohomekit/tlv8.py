@@ -74,6 +74,12 @@ def tlv_iterator(encoded_struct: bytes) -> Iterable:
         # Iterate until the type changes
         while length == 255:
             peek_offset = offset + 2 + length
+            if peek_offset >= len(encoded_struct):
+                # https://github.com/home-assistant/core/issues/100160
+                # Schlage Encode Plus seems to incorrectly serialize "linked services"
+                # Recover as gracefully as possible
+                # If we break here, we'll have all the value that we received, but length might be wrong.
+                break
             if encoded_struct[peek_offset] != type:
                 break
             offset = peek_offset
