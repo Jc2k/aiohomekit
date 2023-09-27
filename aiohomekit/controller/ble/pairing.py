@@ -309,7 +309,7 @@ class BlePairing(AbstractPairing):
 
         self._start_notify_timer: asyncio.TimerHandle | None = None
 
-        self._tried_to_connect_once = False
+        self._did_first_sync = False
         self._restore_pending = False
         self._fetched_gsn_this_session = False
         self._had_notify_this_session = False
@@ -581,9 +581,9 @@ class BlePairing(AbstractPairing):
 
     async def _process_disconnected_events(self) -> None:
         """Handle disconnected events seen from the advertisement."""
-        if not self._tried_to_connect_once:
-            # We never tried connected to the accessory, so we don't need to
-            # process the disconnected events
+        if not self._did_first_sync:
+            # We never did a first sync, so we don't know what the state number is
+            # so we can't process disconnected events
             logger.debug(
                 "%s: Skipping disconnected events because we have not yet connected.",
                 self.name,
@@ -636,6 +636,11 @@ class BlePairing(AbstractPairing):
             await self._get_characteristics_while_connected(
                 chars_to_update,
                 notify_listeners=True,
+                # Still read the event characteristics on disconnected events
+                # since the default is to skip IGNORE_POLL_CHARACTERISTICS and
+                # EVENT_CHARACTERISTICS is a subset of IGNORE_POLL_CHARACTERISTICS
+                # so we explicitly only skip IGNORE_READ_CHARACTERISTICS
+                skip_characteristics=IGNORE_READ_CHARACTERISTICS,
             )
         return protocol_param
 
@@ -1079,14 +1084,7 @@ class BlePairing(AbstractPairing):
             if self._shutdown:
                 return
 
-            try:
-                made_connection = await self._ensure_connected(attempts)
-            finally:
-                # Only set _tried_to_connect_once after the connection
-                # attempt is complete so we don't try to process disconnected
-                # events while we are still trying to connect.
-                self._tried_to_connect_once = True
-
+            made_connection = await self._ensure_connected(attempts)
             logger.debug(
                 "%s: Populating accessories and characteristics: made_connection=%s restore_pending=%s",
                 self.name,
@@ -1128,6 +1126,8 @@ class BlePairing(AbstractPairing):
 
             if config_changed:
                 self._callback_and_save_config_changed(self.config_num)
+
+            self._did_first_sync = True
 
     async def _async_subscribe_broadcast_events(
         self, subscriptions: list[tuple[int, int]]
