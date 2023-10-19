@@ -348,7 +348,7 @@ class HomeKitConnection:
         return hkjson.loads(response.body)
 
     async def put(
-        self, target: str, body: bytes | None, content_type=HttpContentTypes.JSON
+        self, target: str, body: bytes, content_type=HttpContentTypes.JSON
     ) -> HttpResponse:
         """
         Sends a HTTP POST request to the current transport and returns an awaitable
@@ -364,7 +364,7 @@ class HomeKitConnection:
             body=body,
         )
 
-    async def put_json(self, target: str, body: bytes | None) -> dict[str, Any]:
+    async def put_json(self, target: str, body: Any) -> dict[str, Any]:
         response = await self.put(
             target,
             hkjson.dump_bytes(body),
@@ -393,7 +393,7 @@ class HomeKitConnection:
         return parsed
 
     async def post(
-        self, target: str, body: bytes | None, content_type=HttpContentTypes.TLV
+        self, target: str, body: bytes, content_type=HttpContentTypes.TLV
     ) -> HttpResponse:
         """
         Sends a HTTP POST request to the current transport and returns an awaitable
@@ -409,7 +409,7 @@ class HomeKitConnection:
             body=body,
         )
 
-    async def post_json(self, target: str, body: bytes | None) -> dict[str, Any]:
+    async def post_json(self, target: str, body: Any) -> dict[str, Any]:
         response = await self.post(
             target,
             hkjson.dump_bytes(body),
@@ -436,7 +436,7 @@ class HomeKitConnection:
 
         return parsed
 
-    async def post_tlv(self, target: str, body: bytes | None, expected=None) -> list:
+    async def post_tlv(self, target: str, body: list, expected=None) -> list:
         try:
             response = await self.post(
                 target,
