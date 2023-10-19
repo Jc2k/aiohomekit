@@ -450,7 +450,11 @@ class HomeKitConnection:
         return body
 
     async def request(
-        self, method: str, target: str, headers=None, body: bytes | None = None
+        self,
+        method: str,
+        target: str,
+        headers: list[tuple[str, str]] | None = None,
+        body: bytes | None = None,
     ) -> HttpResponse:
         """
         Sends a HTTP request to the current transport and returns an awaitable
