@@ -267,6 +267,5 @@ class ThreadStatus(enum.IntFlag):
 
 
 class TemperatureDisplayUnits(enum.IntEnum):
-
     CELSIUS = 0
     FAHRENHEIT = 1
