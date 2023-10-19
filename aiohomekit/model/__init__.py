@@ -407,14 +407,10 @@ class Accessories:
         """Return True if the given aid exists."""
         return aid in self._aid_to_accessory
 
-    def process_changes(self, changes: dict[tuple[int, int], Any]) -> None:
+    def process_changes(self, changes: dict[tuple[int, int], dict[str, Any]]) -> None:
+        """Process changes from a HomeKit controller."""
         for (aid, iid), value in changes.items():
-            accessory = self.aid(aid)
-            if not accessory:
-                continue
-
-            char = accessory.characteristics.iid(iid)
-            if not char:
+            if not (char := self.aid(aid).characteristics.iid(iid)):
                 continue
 
             if "value" in value:
