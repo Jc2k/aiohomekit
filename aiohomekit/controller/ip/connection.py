@@ -217,21 +217,23 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
 
 
 class HomeKitConnection:
-    def __init__(self, owner: IpPairing, host: str, port, concurrency_limit=1) -> None:
+    def __init__(
+        self, owner: IpPairing, host: str, port: int, concurrency_limit: int = 1
+    ) -> None:
         self.owner = owner
         self.host = host
         self.port = port
 
-        self.closing = False
-        self.closed = False
+        self.closing: bool = False
+        self.closed: bool = False
         self._retry_interval = 0.5
 
-        self.transport = None
-        self.protocol = None
+        self.transport: asyncio.Transport | None = None
+        self.protocol: InsecureHomeKitProtocol | SecureHomeKitProtocol | None = None
 
-        self._connector = None
+        self._connector: asyncio.Task[None] | None = None
 
-        self.is_secure = False
+        self.is_secure: bool | None = False
 
         self._connect_lock = asyncio.Lock()
 
@@ -249,6 +251,7 @@ class HomeKitConnection:
 
     @property
     def is_connected(self) -> bool:
+        """Return if the connection is active."""
         return self.transport and self.protocol and not self.closed
 
     def _start_connector(self) -> None:
@@ -345,7 +348,7 @@ class HomeKitConnection:
         return hkjson.loads(response.body)
 
     async def put(
-        self, target: str, body: Any, content_type=HttpContentTypes.JSON
+        self, target: str, body: bytes | None, content_type=HttpContentTypes.JSON
     ) -> HttpResponse:
         """
         Sends a HTTP POST request to the current transport and returns an awaitable
@@ -361,7 +364,7 @@ class HomeKitConnection:
             body=body,
         )
 
-    async def put_json(self, target: str, body: Any) -> dict[str, Any]:
+    async def put_json(self, target: str, body: bytes | None) -> dict[str, Any]:
         response = await self.put(
             target,
             hkjson.dump_bytes(body),
@@ -390,7 +393,7 @@ class HomeKitConnection:
         return parsed
 
     async def post(
-        self, target: str, body: Any, content_type=HttpContentTypes.TLV
+        self, target: str, body: bytes | None, content_type=HttpContentTypes.TLV
     ) -> HttpResponse:
         """
         Sends a HTTP POST request to the current transport and returns an awaitable
@@ -406,7 +409,7 @@ class HomeKitConnection:
             body=body,
         )
 
-    async def post_json(self, target: str, body: Any) -> dict[str, Any]:
+    async def post_json(self, target: str, body: bytes | None) -> dict[str, Any]:
         response = await self.post(
             target,
             hkjson.dump_bytes(body),
@@ -433,7 +436,7 @@ class HomeKitConnection:
 
         return parsed
 
-    async def post_tlv(self, target: str, body: Any, expected=None) -> list:
+    async def post_tlv(self, target: str, body: bytes | None, expected=None) -> list:
         try:
             response = await self.post(
                 target,
@@ -447,7 +450,7 @@ class HomeKitConnection:
         return body
 
     async def request(
-        self, method: str, target: str, headers=None, body: Any | None = None
+        self, method: str, target: str, headers=None, body: bytes | None = None
     ) -> HttpResponse:
         """
         Sends a HTTP request to the current transport and returns an awaitable
