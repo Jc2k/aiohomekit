@@ -70,7 +70,7 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
     def connection_lost(self, exception):
         self.connection._connection_lost(exception)
 
-    def _handle_timeout(self, fut: asyncio.Future[None]) -> None:
+    def _handle_timeout(self, fut: asyncio.Future[Any]) -> None:
         """Handle a timeout."""
         if not fut.done():
             fut.set_exception(asyncio.TimeoutError)
