@@ -126,7 +126,9 @@ def test_get_by_iid():
 
     bridge = Accessories.from_file("tests/fixtures/hue_bridge.json")
     assert bridge.has_aid(6623462389072572) is True
+    assert bridge.aid_or_none(6623462389072572) is not None
     assert bridge.has_aid(9999) is False
+    assert bridge.aid_or_none(9999) is None
 
     accessory = bridge.aid(6623462389072572)
 
@@ -138,6 +140,8 @@ def test_get_by_iid():
         characteristics={CharacteristicsTypes.NAME: name},
     )
     assert service.get_char_by_iid(588410716196) is char
+    assert accessory.services.iid_or_none(service.iid) is service
+    assert accessory.services.iid_or_none(9999) is None
 
 
 def test_get_by_vendor_characteristic_types():

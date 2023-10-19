@@ -15,7 +15,7 @@
 #
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -60,16 +60,25 @@ class Transport(Enum):
 
 
 class Services:
+    """Represents a list of HomeKit services."""
+
     def __init__(self):
+        """Initialize a new list of services."""
         self._services: list[Service] = []
         self._iid_to_service: dict[int, Service] = {}
         self._type_to_service: dict[str, Service] = {}
 
     def __iter__(self) -> Iterator[Service]:
+        """Iterate over all services."""
         return iter(self._services)
 
     def iid(self, iid: int) -> Service:
+        """Return the service with the given iid, raising KeyError if it does not exist."""
         return self._iid_to_service[iid]
+
+    def iid_or_none(self, iid: int) -> Service | None:
+        """Return the service with the given iid or None if it does not exist."""
+        return self._iid_to_service.get(iid)
 
     def get_char_by_iid(self, iid: int) -> Characteristic | None:
         """Get a characteristic by iid."""
@@ -86,7 +95,8 @@ class Services:
         parent_service: Service = None,
         child_service: Service = None,
         order_by: list[str] | None = None,
-    ) -> Iterable[Service]:
+    ) -> Iterator[Service]:
+        """Filter services by type and characteristics."""
         matches = iter(self._services)
 
         if service_type:
@@ -122,7 +132,8 @@ class Services:
         characteristics: dict[str, str] = None,
         parent_service: Service = None,
         child_service: Service = None,
-    ) -> Service:
+    ) -> Service | None:
+        """Get the first service."""
         if (
             service_type is not None
             and characteristics is None
@@ -143,7 +154,8 @@ class Services:
         except StopIteration:
             return None
 
-    def append(self, service: Service):
+    def append(self, service: Service) -> None:
+        """Add a service to the list of services."""
         self._services.append(service)
         self._iid_to_service[service.iid] = service
         if service.type not in self._type_to_service:
@@ -151,14 +163,20 @@ class Services:
 
 
 class Characteristics:
+    """Represents a list of HomeKit characteristics."""
+
     def __init__(self, services: Services) -> None:
+        """Initialize a new list of characteristics."""
         self._services = services
 
     def iid(self, iid: int) -> Characteristic | None:
+        """Return the characteristic with the given iid, return None if it does not exist."""
         return self._services.get_char_by_iid(iid)
 
 
 class Accessory:
+    """Represents a HomeKit accessory."""
+
     def __init__(self) -> None:
         """Initialize a new accessory."""
         self.aid = get_id()
@@ -206,34 +224,41 @@ class Accessory:
 
     @property
     def name(self) -> str:
+        """Return the name of the accessory."""
         return self.accessory_information.value(CharacteristicsTypes.NAME, "")
 
     @property
     def manufacturer(self) -> str:
+        """Return the manufacturer of the accessory."""
         return self.accessory_information.value(CharacteristicsTypes.MANUFACTURER, "")
 
     @property
     def model(self) -> str | None:
+        """Return the model of the accessory."""
         return self.accessory_information.value(CharacteristicsTypes.MODEL, "")
 
     @property
     def serial_number(self) -> str:
+        """Return the serial number of the accessory."""
         return self.accessory_information.value(CharacteristicsTypes.SERIAL_NUMBER, "")
 
     @property
     def firmware_revision(self) -> str:
+        """Return the firmware revision of the accessory."""
         return self.accessory_information.value(
             CharacteristicsTypes.FIRMWARE_REVISION, ""
         )
 
     @property
     def hardware_revision(self) -> str:
+        """Return the hardware revision of the accessory."""
         return self.accessory_information.value(
             CharacteristicsTypes.HARDWARE_REVISION, ""
         )
 
     @property
     def available(self) -> bool:
+        """Return True if the accessory is available."""
         return all(s.available for s in self.services)
 
     @property
@@ -251,6 +276,7 @@ class Accessory:
 
     @classmethod
     def create_from_dict(cls, data: dict[str, Any]) -> Accessory:
+        """Create an accessory from a dict."""
         accessory = cls()
         accessory.aid = data["aid"]
 
@@ -303,6 +329,7 @@ class Accessory:
         return accessory
 
     def get_next_id(self) -> int:
+        """Return the next available id for a service."""
         self._next_id += 1
         return self._next_id
 
@@ -313,31 +340,35 @@ class Accessory:
         add_required: bool = False,
         iid: int | None = None,
     ) -> Service:
+        """Add a service to the accessory."""
         service = Service(
             self, service_type, name=name, add_required=add_required, iid=iid
         )
         self.services.append(service)
         return service
 
-    def to_accessory_and_service_list(self):
-        services_list = []
-        for s in self.services:
-            services_list.append(s.to_accessory_and_service_list())
-        d = {"aid": self.aid, "services": services_list}
-        return d
+    def to_accessory_and_service_list(self) -> dict[str, Any]:
+        """Serialize the accessory to a dict."""
+        return {
+            "aid": self.aid,
+            "services": [s.to_accessory_and_service_list() for s in self.services],
+        }
 
 
 class Accessories:
+    """Represents a list of HomeKit accessories."""
+
     accessories: list[Accessory]
 
     def __init__(self) -> None:
+        """Initialize a new list of accessories."""
         self.accessories = []
         self._aid_to_accessory: dict[int, Accessory] = {}
 
     def __iter__(self) -> Iterator[Accessory]:
         return iter(self.accessories)
 
-    def __getitem__(self, idx) -> Accessory:
+    def __getitem__(self, idx: int) -> Accessory:
         return self.accessories[idx]
 
     @classmethod
@@ -353,33 +384,33 @@ class Accessories:
         return self
 
     def add_accessory(self, accessory: Accessory) -> None:
+        """Add an accessory to the list of accessories."""
         self.accessories.append(accessory)
         self._aid_to_accessory[accessory.aid] = accessory
 
     def serialize(self) -> entity_map.Accesories:
-        accessories_list = []
-        for a in self.accessories:
-            accessories_list.append(a.to_accessory_and_service_list())
-        return accessories_list
+        """Serialize the accessories to a list of dicts."""
+        return [a.to_accessory_and_service_list() for a in self.accessories]
 
     def to_accessory_and_service_list(self) -> dict[str, entity_map.Accesories]:
-        d = {"accessories": self.serialize()}
-        return hkjson.dumps(d)
+        return hkjson.dumps({"accessories": self.serialize()})
 
     def aid(self, aid: int) -> Accessory:
+        """Return the accessory with the given aid, raising KeyError if it does not exist."""
         return self._aid_to_accessory[aid]
 
+    def aid_or_none(self, aid: int) -> Accessory | None:
+        """Return the accessory with the given aid or None if it does not exist."""
+        return self._aid_to_accessory.get(aid)
+
     def has_aid(self, aid: int) -> bool:
+        """Return True if the given aid exists."""
         return aid in self._aid_to_accessory
 
-    def process_changes(self, changes: dict[tuple[int, int], Any]) -> None:
+    def process_changes(self, changes: dict[tuple[int, int], dict[str, Any]]) -> None:
+        """Process changes from a HomeKit controller."""
         for (aid, iid), value in changes.items():
-            accessory = self.aid(aid)
-            if not accessory:
-                continue
-
-            char = accessory.characteristics.iid(iid)
-            if not char:
+            if not (char := self.aid(aid).characteristics.iid(iid)):
                 continue
 
             if "value" in value:
