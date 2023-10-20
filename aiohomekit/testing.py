@@ -165,6 +165,21 @@ class PairingTester:
     def update_aid_iid(self, characteristics):
         self._send_events(characteristics)
 
+    def set_aid_iid_status(self, aid_iid_statuses: list[tuple[int, int, int]]):
+        """Set status for an aid iid pair."""
+        event = {
+            (aid, iid): {"status": status} for aid, iid, status in aid_iid_statuses
+        }
+
+        if not event:
+            return
+
+        for listener in self.pairing.listeners:
+            try:
+                listener(event)
+            except Exception:
+                _LOGGER.exception("Unhandled error when processing event")
+
     def _send_events(self, characteristics):
         if not self.events_enabled:
             return
