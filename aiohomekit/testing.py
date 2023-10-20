@@ -34,7 +34,10 @@ from aiohomekit.controller.abstract import (
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.categories import Categories
-from aiohomekit.model.characteristics import CharacteristicsTypes
+from aiohomekit.model.characteristics import Characteristic, CharacteristicsTypes
+from aiohomekit.model.characteristics.characteristic_formats import (
+    CharacteristicFormats,
+)
 from aiohomekit.model.status_flags import StatusFlags
 from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.uuid import normalize_uuid
@@ -154,29 +157,24 @@ class PairingTester:
                     f"Unexpected characteristic {uuid!r} applied to service {name!r}"
                 )
 
-            char = service[uuid]
-            char.set_value(value)
-            changed.append((char.service.accessory.aid, char.iid))
+            char: Characteristic = service[uuid]
+            changed.append((char.service.accessory.aid, char.iid, value))
 
         self._send_events(changed)
 
     def update_aid_iid(self, characteristics):
-        changed = []
-        for aid, iid, value in characteristics:
-            self.characteristics[(aid, iid)].set_value(value)
-            changed.append((aid, iid))
+        self._send_events(characteristics)
 
-        self._send_events(changed)
-
-    def _send_events(self, changed):
+    def _send_events(self, characteristics):
         if not self.events_enabled:
             return
 
         event = {}
-        for aid, iid in changed:
-            if (aid, iid) not in self.pairing.subscriptions:
-                continue
-            event[(aid, iid)] = {"value": self.characteristics[(aid, iid)].get_value()}
+        for aid, iid, value in characteristics:
+            char: Characteristic = self.characteristics[(aid, iid)]
+            if char.format == CharacteristicFormats.bool:
+                value = bool(value)
+            event[(aid, iid)] = {"value": value}
 
         if not event:
             return
