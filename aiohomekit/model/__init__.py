@@ -27,6 +27,7 @@ from aiohomekit.uuid import normalize_uuid
 from . import entity_map
 from .categories import Categories
 from .characteristics import (
+    EVENT_CHARACTERISTICS,
     Characteristic,
     CharacteristicFormats,
     CharacteristicPermissions,
@@ -421,7 +422,7 @@ class Accessories:
                 continue
 
             if "value" in value:
-                if char.set_value(value["value"]):
+                if char.set_value(value["value"]) or char.type in EVENT_CHARACTERISTICS:
                     changed.add(aid_iid)
 
             previous_status = char.status
