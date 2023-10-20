@@ -215,7 +215,11 @@ def test_process_changes():
     on_char = accessories.aid(1).characteristics.iid(8)
     assert on_char.value is False
 
-    accessories.process_changes({(1, 8): {"value": True}})
+    changed = accessories.process_changes({(1, 8): {"value": True}})
+    assert changed == {(1, 8)}
+
+    changed = accessories.process_changes({(1, 8): {"value": True}})
+    assert changed == set()
 
     assert on_char.value is True
 
@@ -227,14 +231,16 @@ def test_process_changes_error():
     assert on_char.value is False
     assert on_char.status == HapStatusCode.SUCCESS
 
-    accessories.process_changes(
+    changed = accessories.process_changes(
         {(1, 8): {"status": HapStatusCode.UNABLE_TO_COMMUNICATE.value}}
     )
 
     assert on_char.value is False
     assert on_char.status == HapStatusCode.UNABLE_TO_COMMUNICATE
+    assert changed == {(1, 8)}
 
-    accessories.process_changes({(1, 8): {"value": True}})
+    changed = accessories.process_changes({(1, 8): {"value": True}})
+    assert changed == {(1, 8)}
     assert on_char.value is True
     assert on_char.status == HapStatusCode.SUCCESS
 
@@ -248,15 +254,17 @@ def test_process_changes_availability():
     assert on_char.service.available is True
     assert on_char.service.accessory.available is True
 
-    accessories.process_changes(
+    changed = accessories.process_changes(
         {(1, 8): {"status": HapStatusCode.UNABLE_TO_COMMUNICATE.value}}
     )
+    assert changed == {(1, 8)}
 
     assert on_char.available is False
     assert on_char.service.available is False
     assert on_char.service.accessory.available is False
 
-    accessories.process_changes({(1, 8): {"value": True}})
+    changed = accessories.process_changes({(1, 8): {"value": True}})
+    assert changed == {(1, 8)}
     assert on_char.available is True
     assert on_char.service.available is True
     assert on_char.service.accessory.available is True

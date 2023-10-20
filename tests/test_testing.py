@@ -29,6 +29,8 @@ async def test_get_and_set():
     finish_pairing = await discovery.async_start_pairing("alias")
     pairing = await finish_pairing("111-22-333")
 
+    pairing.dispatcher_connect(accessories.process_changes)
+
     chars = await pairing.get_characteristics([(1, 10)])
     assert chars == {(1, 10): {"value": 0}}
 
@@ -78,14 +80,13 @@ async def test_update_named_service_events():
     controller = FakeController()
     pairing = await controller.add_paired_device(accessories, "alias")
 
-    callback = mock.Mock()
     await pairing.subscribe([(1, 8)])
-    pairing.dispatcher_connect(callback)
+    pairing.dispatcher_connect(accessories.process_changes)
 
     # Simulate that the state was changed on the device itself.
     pairing.testing.update_named_service("Light Strip", {CharacteristicsTypes.ON: True})
 
-    assert callback.call_args_list == [mock.call({(1, 8): {"value": 1}})]
+    assert accessories.aid(1).characteristics.iid(8).value == 1
 
 
 async def test_update_named_service_events_manual_accessory():
@@ -166,14 +167,13 @@ async def test_events_are_filtered():
     controller = FakeController()
     pairing = await controller.add_paired_device(accessories, "alias")
 
-    callback = mock.Mock()
     await pairing.subscribe([(1, 10)])
-    pairing.dispatcher_connect(callback)
+    pairing.dispatcher_connect(accessories.process_changes)
 
     # Simulate that the state was changed on the device itself.
     pairing.testing.update_named_service("Light Strip", {CharacteristicsTypes.ON: True})
 
-    assert callback.call_args_list == []
+    assert accessories.aid(1).characteristics.iid(8).value == 1
 
 
 async def test_camera():

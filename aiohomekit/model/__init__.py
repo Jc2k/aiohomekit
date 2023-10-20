@@ -27,6 +27,7 @@ from aiohomekit.uuid import normalize_uuid
 from . import entity_map
 from .categories import Categories
 from .characteristics import (
+    EVENT_CHARACTERISTICS,
     Characteristic,
     CharacteristicFormats,
     CharacteristicPermissions,
@@ -407,16 +408,29 @@ class Accessories:
         """Return True if the given aid exists."""
         return aid in self._aid_to_accessory
 
-    def process_changes(self, changes: dict[tuple[int, int], dict[str, Any]]) -> None:
-        """Process changes from a HomeKit controller."""
-        for (aid, iid), value in changes.items():
+    def process_changes(
+        self, changes: dict[tuple[int, int], dict[str, Any]]
+    ) -> set[tuple[int, int]]:
+        """Process changes from a HomeKit controller.
+
+        Returns a set of the changes that were applied.
+        """
+        changed: set[tuple[int, int]] = set()
+        for aid_iid, value in changes.items():
+            (aid, iid) = aid_iid
             if not (char := self.aid(aid).characteristics.iid(iid)):
                 continue
 
             if "value" in value:
-                char.set_value(value["value"])
+                if char.set_value(value["value"]) or char.type in EVENT_CHARACTERISTICS:
+                    changed.add(aid_iid)
 
+            previous_status = char.status
             char.status = to_status_code(value.get("status", 0))
+            if previous_status != char.status:
+                changed.add(aid_iid)
+
+        return changed
 
 
 @dataclass
