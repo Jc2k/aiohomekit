@@ -99,7 +99,8 @@ class HomeKitService:
 
         props: dict[str, str] = {
             k.decode("utf-8").lower(): v.decode("utf-8")
-            for (k, v) in service.properties.items() if v
+            for (k, v) in service.properties.items()
+            if v is not None
         }
 
         if "id" not in props:
