@@ -1289,7 +1289,7 @@ class BlePairing(AbstractPairing):
     @disconnect_on_missing_services
     async def get_characteristics(
         self,
-        characteristics: list[tuple[int, int]],
+        characteristics: Iterable[tuple[int, int]],
     ) -> dict[tuple[int, int], dict[str, Any]]:
         return await self._get_characteristics_without_retry(characteristics)
 
@@ -1328,7 +1328,7 @@ class BlePairing(AbstractPairing):
     @restore_connection_and_resume
     async def _get_characteristics_without_retry(
         self,
-        characteristics: list[tuple[int, int]],
+        characteristics: Iterable[tuple[int, int]],
         notify_listeners: bool = False,
     ) -> dict[tuple[int, int], dict[str, Any]]:
         accessory_chars = self.accessories.aid(BLE_AID).characteristics

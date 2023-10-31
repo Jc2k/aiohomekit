@@ -20,7 +20,7 @@ import asyncio
 import logging
 import random
 import struct
-from typing import Any
+from typing import Any, Iterable
 import uuid
 
 from aiocoap import Context, Message, resource
@@ -502,8 +502,15 @@ class CoAPHomeKitConnection:
         logger.debug(f"Read characteristics: {results!r}")
         return results
 
-    async def read_characteristics(self, ids: list[tuple[int, int]]):
-        iids = [int(aid_iid[1]) for aid_iid in ids]
+    async def read_characteristics(
+        self, characteristics: Iterable[tuple[int, int]]
+    ) -> dict[tuple[int, int], dict[str, Any]]:
+        """Read characteristics from the accessory."""
+        # _read_characteristics_exit expects a list of tuples
+        # as it does an ordered read so we need to convert
+        # to a list to preserve the order
+        ids = list(characteristics)
+        iids = [int(aid_iid[1]) for aid_iid in characteristics]
         data = [b""] * len(iids)
         pdu_results = await self.enc_ctx.post_all(OpCode.CHAR_READ, iids, data)
         return self._read_characteristics_exit(ids, pdu_results)

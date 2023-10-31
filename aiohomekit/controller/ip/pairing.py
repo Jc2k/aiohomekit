@@ -243,8 +243,8 @@ class IpPairing(ZeroconfPairing):
 
     async def get_characteristics(
         self,
-        characteristics,
-    ):
+        characteristics: Iterable[tuple[int, int]],
+    ) -> dict[tuple[int, int], dict[str, Any]]:
         """
         This method is used to get the current readouts of any characteristic of the accessory.
 
@@ -266,8 +266,13 @@ class IpPairing(ZeroconfPairing):
         if not self.accessories:
             await self.list_accessories_and_characteristics()
 
+        if isinstance(characteristics, set):
+            characteristics_set = characteristics
+        else:
+            characteristics_set = set(characteristics)
+
         url = "/characteristics?id=" + ",".join(
-            str(x[0]) + "." + str(x[1]) for x in set(characteristics)
+            f"{aid}.{iid}" for aid, iid in characteristics_set
         )
 
         response = await self.connection.get_json(url)
