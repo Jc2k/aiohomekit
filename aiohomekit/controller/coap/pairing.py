@@ -191,8 +191,8 @@ class CoAPPairing(ZeroconfPairing):
 
     async def get_characteristics(
         self,
-        characteristics,
-    ):
+        characteristics: Iterable[tuple[int, int]],
+    ) -> dict[tuple[int, int], dict[str, Any]]:
         await self._ensure_connected()
         return await self.connection.read_characteristics(characteristics)
 
