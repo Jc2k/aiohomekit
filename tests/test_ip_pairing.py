@@ -150,6 +150,10 @@ async def test_put_characteristics_callbacks(pairing: IpPairing):
 
     assert characteristics[(1, 9)] == {"value": True}
 
+    characteristics = await pairing.get_characteristics({(1, 9)})
+
+    assert characteristics[(1, 9)] == {"value": True}
+
 
 async def test_subscribe(pairing: IpPairing):
     assert pairing.subscriptions == set()
