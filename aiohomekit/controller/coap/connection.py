@@ -17,10 +17,11 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterable
 import logging
 import random
 import struct
-from typing import Any, Iterable
+from typing import Any
 import uuid
 
 from aiocoap import Context, Message, resource
