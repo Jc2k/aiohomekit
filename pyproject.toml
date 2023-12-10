@@ -31,6 +31,7 @@ orjson = ">=3.7.8"
 async-timeout = {version = ">=4.0.2", python = "<3.11"}
 chacha20poly1305 = "^0.0.3"
 async-interrupt = ">=1.1.1"
+aiohappyeyeballs = ">=2.0.0"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.10.1"

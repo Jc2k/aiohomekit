@@ -92,6 +92,7 @@ class IpDiscovery(ZeroconfDiscovery):
                     break
 
             pairing["AccessoryIP"] = self.description.address
+            pairing["AccessoryIPs"] = self.description.addresses
             pairing["AccessoryPort"] = self.description.port
             pairing["Connection"] = "IP"
 

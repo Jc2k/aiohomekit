@@ -158,6 +158,9 @@ class ZeroconfDiscovery(AbstractDiscovery):
 
 
 class ZeroconfPairing(AbstractPairing):
+
+    description: HomeKitService
+
     def _async_endpoint_changed(self) -> None:
         """The IP and/or port of the accessory has changed."""
         pass
