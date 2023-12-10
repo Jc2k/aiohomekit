@@ -1619,13 +1619,13 @@ multidict = ">=4.0"
 
 [[package]]
 name = "zeroconf"
-version = "0.128.3"
+version = "0.128.4"
 description = "A pure python implementation of multicast DNS service discovery"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "zeroconf-0.128.3-cp310-cp310-manylinux_2_31_x86_64.whl", hash = "sha256:f29de2b169e2978e3c03aa8f41b59875c334b92a89fa8d7cdf261396bcb890cd"},
-    {file = "zeroconf-0.128.3.tar.gz", hash = "sha256:0eee9f729f9a3c66e8b458b20d32635c69765586e75f05ad2e9d2c420477e718"},
+    {file = "zeroconf-0.128.4-cp310-cp310-manylinux_2_31_x86_64.whl", hash = "sha256:d930fd774baeb161f9262f45f50df058ad47675a7943452fa2e45ba4e4b033fd"},
+    {file = "zeroconf-0.128.4.tar.gz", hash = "sha256:57590a48e36897a04ea4b1a41ba6bbf833637b99ac6fa9530a2f70783d916c39"},
 ]
 
 [package.dependencies]
@@ -1635,4 +1635,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "e032934ebe3f8da7339024cfe09370382249afbc763dc5b76d90f6392ac595b6"
+content-hash = "5af59e5cdbe5c5e018b51c43afd5ff5c3b7c73ff082fa5187fe4b9488f921800"
