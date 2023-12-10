@@ -462,3 +462,31 @@ def test_ignore_unspecified_ipv6():
     assert svc.address == "2a00:1450:4009:820::200e"
     assert svc.addresses == ["2a00:1450:4009:820::200e"]
     assert svc.port == 1234
+
+
+def test_no_valid_addresses():
+    desc = {
+        b"c#": b"1",
+        b"id": b"00:00:01:00:00:02",
+        b"md": b"unittest",
+        b"s#": b"11",
+        b"ci": b"5",
+        b"sf": b"0",
+        b"ff": b"1",
+    }
+    info = AsyncServiceInfo(
+        "_hap._tcp.local.",
+        "foo2._hap._tcp.local.",
+        addresses=[
+            socket.inet_aton("0.0.0.0"),
+        ],
+        port=1234,
+        properties=desc,
+        weight=0,
+        priority=0,
+    )
+    with pytest.raises(
+        ValueError,
+        match="Invalid HomeKit Zeroconf record: Missing non-link-local or unspecified address",
+    ):
+        HomeKitService.from_service_info(info)

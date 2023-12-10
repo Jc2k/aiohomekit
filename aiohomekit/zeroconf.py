@@ -129,13 +129,13 @@ class ZeroconfServiceListener(ServiceListener):
     """An empty service listener."""
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        pass
+        """A service has been added."""
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        pass
+        """A service has been removed."""
 
     def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        pass
+        """A service has been updated."""
 
 
 def find_brower_for_hap_type(azc: AsyncZeroconf, hap_type: str) -> AsyncServiceBrowser:
