@@ -1353,6 +1353,20 @@ pytest = ">=4.6"
 testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtualenv"]
 
 [[package]]
+name = "pytest-timeout"
+version = "2.2.0"
+description = "pytest plugin to abort hanging tests"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pytest-timeout-2.2.0.tar.gz", hash = "sha256:3b0b95dabf3cb50bac9ef5ca912fa0cfc286526af17afc806824df20c2f72c90"},
+    {file = "pytest_timeout-2.2.0-py3-none-any.whl", hash = "sha256:bde531e096466f49398a59f2dde76fa78429a09a12411466f88a07213e220de2"},
+]
+
+[package.dependencies]
+pytest = ">=5.0.0"
+
+[[package]]
 name = "pyupgrade"
 version = "2.38.4"
 description = "A tool to automatically upgrade syntax for newer versions."
@@ -1668,4 +1682,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "02ca9d97e9944114e083a0bc705735ae8634699de6f6b198267c12e620ebd1a4"
+content-hash = "5776ec92d8675e3f447f331cd1af5bad937b6f2f5744bb62086d7ba8d12fb8a8"
