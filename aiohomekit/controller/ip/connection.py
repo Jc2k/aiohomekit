@@ -15,12 +15,12 @@
 #
 from __future__ import annotations
 
-import socket
-import aiohappyeyeballs
 import asyncio
 import logging
+import socket
 from typing import TYPE_CHECKING, Any
 
+import aiohappyeyeballs
 from async_interrupt import interrupt
 
 from aiohomekit.crypto.chacha20poly1305 import (
@@ -50,6 +50,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
 def _convert_hosts_to_addr_infos(
     hosts: list[str], port: int
 ) -> list[aiohappyeyeballs.AddrInfoType]:
@@ -62,10 +63,9 @@ def _convert_hosts_to_addr_infos(
         is_ipv6 = ":" in host
         family = socket.AF_INET6 if is_ipv6 else socket.AF_INET
         addr = (host, port, 0, 0) if is_ipv6 else (host, port)
-        addr_infos.append(
-            (family, socket.SOCK_STREAM, socket.IPPROTO_TCP, host, addr)
-        )
+        addr_infos.append((family, socket.SOCK_STREAM, socket.IPPROTO_TCP, host, addr))
     return addr_infos
+
 
 class ConnectionReady(Exception):
     """Raised when a connection is ready to be retried."""
@@ -564,8 +564,6 @@ class HomeKitConnection:
         self.transport = None
         self.protocol = None
 
-
-
     async def _connect_once(self) -> None:
         """_connect_once must only ever be called from _reconnect to ensure its done with a lock."""
         loop = asyncio.get_event_loop()
@@ -750,7 +748,9 @@ class SecureHomeKitConnection(HomeKitConnection):
 
         self.is_secure = True
 
-        logger.debug("Secure connection to %s:%s established", self.connected_host, self.port)
+        logger.debug(
+            "Secure connection to %s:%s established", self.connected_host, self.port
+        )
 
         if self.owner:
             await self.owner.connection_made(True)
