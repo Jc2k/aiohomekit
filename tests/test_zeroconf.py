@@ -311,7 +311,7 @@ def test_ignore_link_local():
     assert svc.feature_flags == FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR
     assert svc.category == Categories.LIGHTBULB
     assert svc.address == "127.0.0.1"
-    assert svc.addresses == ["169.254.121.37", "127.0.0.1"]
+    assert svc.addresses == ["127.0.0.1"]
     assert svc.port == 1234
 
 
@@ -349,7 +349,7 @@ def test_ignore_link_local_ipv6():
     assert svc.feature_flags == FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR
     assert svc.category == Categories.LIGHTBULB
     assert svc.address == "2a00:1450:4009:820::200e"
-    assert svc.addresses == ["169.254.121.37", "2a00:1450:4009:820::200e"]
+    assert svc.addresses == ["2a00:1450:4009:820::200e"]
     assert svc.port == 1234
 
 
@@ -422,7 +422,7 @@ def test_ignore_unspecified():
     assert svc.feature_flags == FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR
     assert svc.category == Categories.LIGHTBULB
     assert svc.address == "127.0.0.1"
-    assert svc.addresses == ["0.0.0.0", "127.0.0.1"]
+    assert svc.addresses == ["127.0.0.1"]
     assert svc.port == 1234
 
 
@@ -460,5 +460,5 @@ def test_ignore_unspecified_ipv6():
     assert svc.feature_flags == FeatureFlags.SUPPORTS_APPLE_AUTHENTICATION_COPROCESSOR
     assert svc.category == Categories.LIGHTBULB
     assert svc.address == "2a00:1450:4009:820::200e"
-    assert svc.addresses == ["0.0.0.0", "2a00:1450:4009:820::200e"]
+    assert svc.addresses == ["2a00:1450:4009:820::200e"]
     assert svc.port == 1234

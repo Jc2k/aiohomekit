@@ -112,9 +112,11 @@ class IpPairing(ZeroconfPairing):
     @property
     def name(self) -> str:
         """Return the name of the pairing with the address."""
+        connection = self.connection
+        host = connection.connected_host or connection.hosts
         if self.description:
-            return f"{self.description.name} [{self.connection.host}:{self.connection.port}] (id={self.id})"
-        return f"[{self.connection.host}:{self.connection.port}] (id={self.id})"
+            return f"{self.description.name} [{host}:{connection.port}] (id={self.id})"
+        return f"[{host}:{connection.port}] (id={self.id})"
 
     def event_received(self, event):
         self._callback_listeners(format_characteristic_list(event))
