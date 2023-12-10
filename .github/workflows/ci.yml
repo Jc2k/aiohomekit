@@ -130,6 +130,6 @@ jobs:
 
     - name: Run pytest
       shell: bash
-      run: poetry run python -m pytest --cov=. --cov-report=xml --timeout=60
+      run: poetry run python -m pytest -vvvs --cov=. --cov-report=xml --timeout=60
 
     - uses: codecov/codecov-action@v3
