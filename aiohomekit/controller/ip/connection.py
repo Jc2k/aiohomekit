@@ -491,13 +491,9 @@ class HomeKitConnection:
                 "Connection lost before request could be sent"
             )
 
-
         # WARNING: It is vital that a Host: header is present or some devices
         # will reject the request.
-        buffer = [
-            f"{method.upper()} {target} HTTP/1.1",
-            self.host_header
-        ]
+        buffer = [f"{method.upper()} {target} HTTP/1.1", self.host_header]
 
         if headers:
             for header, value in headers:
