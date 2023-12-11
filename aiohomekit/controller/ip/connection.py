@@ -259,6 +259,7 @@ class HomeKitConnection:
         self._reconnect_future: asyncio.Future[None] | None = None
         self._last_connector_error: Exception | None = None
         self.connected_host: str | None = None
+        self.host_header: str | None = None
 
     @property
     def name(self) -> str:
@@ -490,12 +491,13 @@ class HomeKitConnection:
                 "Connection lost before request could be sent"
             )
 
-        buffer = []
-        buffer.append(f"{method.upper()} {target} HTTP/1.1")
 
         # WARNING: It is vital that a Host: header is present or some devices
         # will reject the request.
-        buffer.append(f"Host: {self.connected_host or self.hosts}:{self.port}")
+        buffer = [
+            f"{method.upper()} {target} HTTP/1.1",
+            self.host_header
+        ]
 
         if headers:
             for header, value in headers:
@@ -597,7 +599,12 @@ class HomeKitConnection:
         self.transport, self.protocol = await loop.create_connection(
             lambda: InsecureHomeKitProtocol(self), sock=sock
         )
-        self.connected_host = sock.getpeername()[0]
+        connected_host = sock.getpeername()[0]
+        self.connected_host = connected_host
+        if ":" in connected_host:
+            self.host_header = f"Host: [{connected_host}]:{self.port}"
+        else:
+            self.host_header = f"Host: {connected_host}:{self.port}"
         if self.owner:
             await self.owner.connection_made(False)
 
