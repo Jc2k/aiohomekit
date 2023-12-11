@@ -32,13 +32,13 @@ files = [
 
 [[package]]
 name = "aiohappyeyeballs"
-version = "2.0.0"
+version = "2.1.0"
 description = "Happy Eyeballs"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "aiohappyeyeballs-2.0.0-py3-none-any.whl", hash = "sha256:7d2ad650ecc77f7a82b63aea8460b52ecf3760c5bcd79bebfb0ba2ccc0cc0ae7"},
-    {file = "aiohappyeyeballs-2.0.0.tar.gz", hash = "sha256:017d118c6c6d1ea3a91f1129a234a4f663efdd159bb05c45ca9256bb583dc960"},
+    {file = "aiohappyeyeballs-2.1.0-py3-none-any.whl", hash = "sha256:0cfb6957905f363ad97b5782d24e3b375d627d14a27c5f35144a40acc3d29c87"},
+    {file = "aiohappyeyeballs-2.1.0.tar.gz", hash = "sha256:c488b0620296af00f0553b23239c28578f7139733dcce0a1771b91ed1f50c9b5"},
 ]
 
 [[package]]
@@ -1621,4 +1621,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "ac9d8d993418a84dccf616112ab57ea4c5b8a320e9e62ac77338b8e6cf5ee1f4"
+content-hash = "cf3634afe107c8964eccbd52f1338ef5254c57a3415878f6985f4f7b573e4b2b"
