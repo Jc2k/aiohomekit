@@ -705,7 +705,7 @@ class SecureHomeKitConnection(HomeKitConnection):
                         "%s: Host changed from %s to %s",
                         pairing.name,
                         self.hosts,
-                        pairing.description.address,
+                        pairing.description.addresses,
                     )
                     self.hosts = pairing.description.addresses
 
