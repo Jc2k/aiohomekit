@@ -17,8 +17,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import socket
 from typing import TYPE_CHECKING, Any
 
+import aiohappyeyeballs
 from async_interrupt import interrupt
 
 from aiohomekit.crypto.chacha20poly1305 import (
@@ -49,6 +51,22 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _convert_hosts_to_addr_infos(
+    hosts: list[str], port: int
+) -> list[aiohappyeyeballs.AddrInfoType]:
+    """Converts the list of hosts to a list of addr_infos.
+    The list of hosts is the result of a DNS lookup. The list of
+    addr_infos is the result of a call to `socket.getaddrinfo()`.
+    """
+    addr_infos: list[aiohappyeyeballs.AddrInfoType] = []
+    for host in hosts:
+        is_ipv6 = ":" in host
+        family = socket.AF_INET6 if is_ipv6 else socket.AF_INET
+        addr = (host, port, 0, 0) if is_ipv6 else (host, port)
+        addr_infos.append((family, socket.SOCK_STREAM, socket.IPPROTO_TCP, host, addr))
+    return addr_infos
+
+
 class ConnectionReady(Exception):
     """Raised when a connection is ready to be retried."""
 
@@ -58,7 +76,6 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
 
     def __init__(self, connection: HomeKitConnection) -> None:
         self.connection = connection
-        self.host = ":".join((connection.host, str(connection.port)))
         self.result_cbs: list[asyncio.Future[HttpResponse]] = []
         self.current_response = HttpResponse()
         self.loop = asyncio.get_running_loop()
@@ -218,10 +235,10 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
 
 class HomeKitConnection:
     def __init__(
-        self, owner: IpPairing, host: str, port: int, concurrency_limit: int = 1
+        self, owner: IpPairing, hosts: list[str], port: int, concurrency_limit: int = 1
     ) -> None:
         self.owner = owner
-        self.host = host
+        self.hosts = hosts
         self.port = port
 
         self.closing: bool = False
@@ -241,13 +258,15 @@ class HomeKitConnection:
         self._concurrency_limit = asyncio.Semaphore(concurrency_limit)
         self._reconnect_future: asyncio.Future[None] | None = None
         self._last_connector_error: Exception | None = None
+        self.connected_host: str | None = None
+        self.host_header: str | None = None
 
     @property
     def name(self) -> str:
         """Return the name of the connection."""
         if self.owner:
             return self.owner.name
-        return f"{self.host}:{self.port}"
+        return f"{self.connected_host or self.hosts}:{self.port}"
 
     @property
     def is_connected(self) -> bool:
@@ -472,12 +491,9 @@ class HomeKitConnection:
                 "Connection lost before request could be sent"
             )
 
-        buffer = []
-        buffer.append(f"{method.upper()} {target} HTTP/1.1")
-
         # WARNING: It is vital that a Host: header is present or some devices
         # will reject the request.
-        buffer.append(f"Host: {self.host}")
+        buffer = [f"{method.upper()} {target} HTTP/1.1", self.host_header]
 
         if headers:
             for header, value in headers:
@@ -502,7 +518,7 @@ class HomeKitConnection:
         async with self._concurrency_limit:
             if not self.protocol:
                 raise AccessoryDisconnectedError("Tried to send while not connected")
-            logger.debug("%s: raw request: %r", self.host, request_bytes)
+            logger.debug("%s: raw request: %r", self.connected_host, request_bytes)
             resp = await self.protocol.send_bytes(request_bytes)
 
         if resp.code >= 400 and resp.code <= 499:
@@ -512,7 +528,7 @@ class HomeKitConnection:
                 response=resp,
             )
 
-        logger.debug("%s: raw response: %r", self.host, resp.body)
+        logger.debug("%s: raw response: %r", self.connected_host, resp.body)
 
         return resp
 
@@ -550,20 +566,41 @@ class HomeKitConnection:
         """_connect_once must only ever be called from _reconnect to ensure its done with a lock."""
         loop = asyncio.get_event_loop()
 
-        logger.debug("Attempting connection to %s:%s", self.host, self.port)
+        logger.debug("Attempting connection to %s:%s", self.hosts, self.port)
 
-        try:
-            async with asyncio_timeout(10):
-                self.transport, self.protocol = await loop.create_connection(
-                    lambda: InsecureHomeKitProtocol(self), self.host, self.port
-                )
+        addr_infos = _convert_hosts_to_addr_infos(self.hosts, self.port)
 
-        except asyncio.TimeoutError:
-            raise TimeoutError("Timeout")
+        last_exception: Exception | None = None
+        sock: socket.socket | None = None
+        interleave = 1
+        while addr_infos:
+            try:
+                async with asyncio_timeout(10):
+                    sock = await aiohappyeyeballs.start_connection(
+                        addr_infos,
+                        happy_eyeballs_delay=0.25,
+                        interleave=interleave,
+                        loop=self._loop,
+                    )
+                    break
+            except (OSError, asyncio.TimeoutError) as err:
+                last_exception = err
+                aiohappyeyeballs.pop_addr_infos_interleave(addr_infos, interleave)
 
-        except OSError as e:
-            raise ConnectionError(str(e))
+        if sock is None:
+            if isinstance(last_exception, asyncio.TimeoutError):
+                raise TimeoutError("Timeout") from last_exception
+            raise ConnectionError(str(last_exception)) from last_exception
 
+        self.transport, self.protocol = await loop.create_connection(
+            lambda: InsecureHomeKitProtocol(self), sock=sock
+        )
+        connected_host = sock.getpeername()[0]
+        self.connected_host = connected_host
+        if ":" in connected_host:
+            self.host_header = f"Host: [{connected_host}]:{self.port}"
+        else:
+            self.host_header = f"Host: {connected_host}:{self.port}"
         if self.owner:
             await self.owner.connection_made(False)
 
@@ -582,7 +619,7 @@ class HomeKitConnection:
         async with self._connect_lock:
             interval = 0.5
 
-            logger.debug("Starting reconnect loop to %s:%s", self.host, self.port)
+            logger.debug("Starting reconnect loop to %s:%s", self.hosts, self.port)
 
             while not self.closing:
                 self._last_connector_error = None
@@ -638,7 +675,7 @@ class HomeKitConnection:
         self.owner.event_received(parsed)
 
     def __repr__(self) -> str:
-        return f"HomeKitConnection(host={self.host!r}, port={self.port!r})"
+        return f"HomeKitConnection(host={(self.connected_host or self.hosts)!r}, port={self.port!r})"
 
 
 class SecureHomeKitConnection(HomeKitConnection):
@@ -647,7 +684,7 @@ class SecureHomeKitConnection(HomeKitConnection):
     def __init__(self, owner: IpPairing, pairing_data: dict[str, Any]) -> None:
         super().__init__(
             owner,
-            pairing_data["AccessoryIP"],
+            pairing_data.get("AccessoryIPs", [pairing_data["AccessoryIP"]]),
             pairing_data["AccessoryPort"],
         )
         self.pairing_data = pairing_data
@@ -663,14 +700,14 @@ class SecureHomeKitConnection(HomeKitConnection):
         if self.owner and self.owner.description:
             pairing = self.owner
             try:
-                if self.host != pairing.description.address:
+                if set(self.hosts) != set(pairing.description.addresses):
                     logger.debug(
                         "%s: Host changed from %s to %s",
                         pairing.name,
-                        self.host,
-                        pairing.description.address,
+                        self.hosts,
+                        pairing.description.addresses,
                     )
-                    self.host = pairing.description.address
+                    self.hosts = pairing.description.addresses
 
                 if self.port != pairing.description.port:
                     logger.debug(
@@ -714,7 +751,9 @@ class SecureHomeKitConnection(HomeKitConnection):
 
         self.is_secure = True
 
-        logger.debug("Secure connection to %s:%s established", self.host, self.port)
+        logger.debug(
+            "Secure connection to %s:%s established", self.connected_host, self.port
+        )
 
         if self.owner:
             await self.owner.connection_made(True)

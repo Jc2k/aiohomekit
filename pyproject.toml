@@ -21,7 +21,7 @@ include = ["aiohomekit/py.typed"]
 [tool.poetry.dependencies]
 python = "^3.10"
 cryptography = ">=2.9.2"
-zeroconf = ">=0.73.0"
+zeroconf = ">=0.128.4"
 commentjson = "^0.9.0"
 aiocoap = ">=0.4.5"
 bleak = ">=0.19.0"
@@ -31,6 +31,7 @@ orjson = ">=3.7.8"
 async-timeout = {version = ">=4.0.2", python = "<3.11"}
 chacha20poly1305 = "^0.0.3"
 async-interrupt = ">=1.1.1"
+aiohappyeyeballs = ">=2.3.0"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.10.1"

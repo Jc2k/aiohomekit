@@ -88,14 +88,16 @@ class HomeKitService:
         # This means the first address will always be the most recently added
         # address of the given IP version.
         #
-        for ip_addr in addresses:
-            if not ip_addr.is_link_local and not ip_addr.is_unspecified:
-                address = str(ip_addr)
-                break
-        if not address:
+        valid_addresses = [
+            str(ip_addr)
+            for ip_addr in addresses
+            if not ip_addr.is_link_local and not ip_addr.is_unspecified
+        ]
+        if not valid_addresses:
             raise ValueError(
                 "Invalid HomeKit Zeroconf record: Missing non-link-local or unspecified address"
             )
+        address = valid_addresses[0]
 
         props: dict[str, str] = {
             k.decode("utf-8").lower(): v.decode("utf-8")
@@ -118,7 +120,7 @@ class HomeKitService:
             protocol_version=props.get("pv", "1.0"),
             type=service.type,
             address=address,
-            addresses=[str(ip_addr) for ip_addr in addresses],
+            addresses=valid_addresses,
             port=service.port,
         )
 
@@ -127,13 +129,13 @@ class ZeroconfServiceListener(ServiceListener):
     """An empty service listener."""
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        pass
+        """A service has been added."""
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        pass
+        """A service has been removed."""
 
     def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        pass
+        """A service has been updated."""
 
 
 def find_brower_for_hap_type(azc: AsyncZeroconf, hap_type: str) -> AsyncServiceBrowser:
@@ -158,6 +160,8 @@ class ZeroconfDiscovery(AbstractDiscovery):
 
 
 class ZeroconfPairing(AbstractPairing):
+    description: HomeKitService
+
     def _async_endpoint_changed(self) -> None:
         """The IP and/or port of the accessory has changed."""
         pass
