@@ -146,18 +146,18 @@ class IpPairing(ZeroconfPairing):
                 last_connector_error, asyncio.TimeoutError
             ):
                 raise AccessoryDisconnectedError(
-                    f"Timeout while waiting for connection to device {connection.host}:{connection.port}"
+                    f"Timeout while waiting for connection to device {connection.hosts}:{connection.port}"
                 )
             # The exception name is included since otherwise the error message
             # is not very helpful as it could be something like `step 3`
             raise AccessoryDisconnectedError(
-                f"Error while connecting to device {connection.host}:{connection.port}: "
+                f"Error while connecting to device {connection.hosts}:{connection.port}: "
                 f"{last_connector_error} ({type(last_connector_error).__name__})"
             )
 
         if not connection.is_connected:
             raise AccessoryDisconnectedError(
-                f"Ensure connection returned but still not connected: {connection.host}:{connection.port}"
+                f"Ensure connection returned but still not connected: {connection.connected_host}:{connection.port}"
             )
 
         self._callback_availability_changed(True)
