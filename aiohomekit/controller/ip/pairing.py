@@ -157,7 +157,7 @@ class IpPairing(ZeroconfPairing):
 
         if not connection.is_connected:
             raise AccessoryDisconnectedError(
-                f"Ensure connection returned but still not connected: {connection.connected_host}:{connection.port}"
+                f"Ensure connection returned but still not connected: {connection.hosts}:{connection.port}"
             )
 
         self._callback_availability_changed(True)
