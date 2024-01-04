@@ -597,10 +597,17 @@ class HomeKitConnection:
         )
         connected_host = sock.getpeername()[0]
         self.connected_host = connected_host
+        # The port is not included in the Host header for compatibility
+        # reasons. It may be safe to include it in the future if its
+        # not port 80, but currently we don't know of any devices that
+        # require it.
+        #
+        # We don't use the mdns name because that can trigger buffer
+        # overflows in some devices.
         if ":" in connected_host:
-            self.host_header = f"Host: [{connected_host}]:{self.port}"
+            self.host_header = f"Host: [{connected_host}]"
         else:
-            self.host_header = f"Host: {connected_host}:{self.port}"
+            self.host_header = f"Host: {connected_host}"
         if self.owner:
             await self.owner.connection_made(False)
 
