@@ -103,8 +103,6 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
             # queued writes can happy.
             raise AccessoryDisconnectedError("Transport is closed")
 
-        self.transport.write(payload)
-
         # We return a future so that our caller can block on a reply
         # We can send many requests and dispatch the results in order
         # Should mean we don't need locking around request/reply cycles
@@ -114,8 +112,13 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
         timeout_handle = loop.call_at(loop.time() + 30, self._handle_timeout, result)
         timeout_expired = False
         try:
+            self.transport.write(payload)
             return await result
         except (asyncio.TimeoutError, BaseException) as ex:
+            # If we get a timeout or any other exception then we need to
+            # close the connection as we are now out of sync with the device
+            # and any future requests will fail since the encryption counters
+            # will be out of sync.
             self.transport.write_eof()
             self.transport.close()
             if isinstance(ex, asyncio.TimeoutError):
