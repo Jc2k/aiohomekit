@@ -69,6 +69,7 @@ def decode_list_pairings_response(buf):
 class EncryptionContext:
     coap_ctx: Context
     lock: asyncio.Lock
+    timeouts: int
     uri: str
 
     event_ctr: int
@@ -88,6 +89,7 @@ class EncryptionContext:
 
         self.coap_ctx = coap_ctx
         self.lock = asyncio.Lock()
+        self.timeouts = 0
         self.uri = uri
 
     def decrypt(self, enc_data: bytes) -> bytes:
@@ -169,7 +171,10 @@ class EncryptionContext:
                 request = Message(code=Code.POST, payload=payload, uri=self.uri)
                 async with asyncio_timeout(timeout):
                     response = await self.coap_ctx.request(request).response
-            except (NetworkError, asyncio.TimeoutError):
+            except (NetworkError, asyncio.TimeoutError) as e:
+                self.send_ctr -= 1
+                self.timeouts += 1
+                logger.debug(f"Network error or timeout: {e}")
                 raise AccessoryDisconnectedError("Request timeout")
 
             if response.code == Code.NOT_FOUND:
@@ -179,6 +184,8 @@ class EncryptionContext:
                 self.coap_ctx = None
             elif response.code != Code.CHANGED:
                 logger.warning(f"CoAP POST returned unexpected code {response}")
+
+            self.timeouts = 0
 
             return await self._decrypt_response(response)
 
@@ -403,7 +410,11 @@ class CoAPHomeKitConnection:
 
     @property
     def is_connected(self):
-        return self.enc_ctx is not None and self.enc_ctx.coap_ctx is not None
+        return (
+            self.enc_ctx is not None
+            and self.enc_ctx.coap_ctx is not None
+            and self.enc_ctx.timeouts < 3
+        )
 
     async def get_accessory_info(self):
         _, body = await self.enc_ctx.post(OpCode.UNK_09_READ_GATT, 0x0000, b"")
