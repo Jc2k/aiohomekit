@@ -115,11 +115,13 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
         timeout_expired = False
         try:
             return await result
-        except asyncio.TimeoutError:
-            timeout_expired = True
+        except (asyncio.TimeoutError, BaseException) as ex:
             self.transport.write_eof()
             self.transport.close()
-            raise AccessoryDisconnectedError("Timeout while waiting for response")
+            if isinstance(ex, asyncio.TimeoutError):
+                timeout_expired = True
+                raise AccessoryDisconnectedError("Timeout while waiting for response")
+            raise
         finally:
             if not timeout_expired:
                 timeout_handle.cancel()
