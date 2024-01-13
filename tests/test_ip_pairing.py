@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 
 from aiohomekit.controller.ip.pairing import IpPairing
+from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Transport
 from aiohomekit.protocol.statuscodes import HapStatusCode
 
@@ -124,6 +125,34 @@ async def test_put_characteristics(pairing: IpPairing):
 
     characteristics = await pairing.get_characteristics([(1, 9)])
 
+    assert characteristics[(1, 9)] == {"value": True}
+
+
+async def test_put_characteristics_cancelled(pairing: IpPairing):
+    characteristics = await pairing.put_characteristics([(1, 9, True)])
+    characteristics = await pairing.get_characteristics([(1, 9)])
+
+    with mock.patch.object(pairing.connection.transport, "write"):
+        task = asyncio.create_task(pairing.put_characteristics([(1, 9, False)]))
+        await asyncio.sleep(0)
+        for future in pairing.connection.protocol.result_cbs:
+            future.cancel()
+        await asyncio.sleep(0)
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    # We should wait a few seconds to see if the
+    # connection can be re-established and the write can be
+    # completed. But this is not currently possible because
+    # we do not wait for the connection to be re-established
+    # before we try to write the data. When we implement
+    # reconnection we should remove this pytest.raises
+    # and the sleep below.
+    with pytest.raises(AccessoryDisconnectedError):
+        await pairing.get_characteristics([(1, 9)])
+
+    await asyncio.sleep(0)
+    characteristics = await pairing.get_characteristics([(1, 9)])
     assert characteristics[(1, 9)] == {"value": True}
 
 
