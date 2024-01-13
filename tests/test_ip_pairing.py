@@ -6,10 +6,11 @@ from unittest import mock
 import pytest
 
 from aiohomekit.controller.ip.pairing import IpPairing
+from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Transport
 from aiohomekit.protocol.statuscodes import HapStatusCode
 
-from aiohomekit.exceptions import AccessoryDisconnectedError
+
 async def test_list_accessories(pairing: IpPairing):
     accessories = await pairing.list_accessories_and_characteristics()
     assert accessories[0]["aid"] == 1
@@ -127,7 +128,6 @@ async def test_put_characteristics(pairing: IpPairing):
     assert characteristics[(1, 9)] == {"value": True}
 
 
-
 async def test_put_characteristics_cancelled(pairing: IpPairing):
     characteristics = await pairing.put_characteristics([(1, 9, True)])
     characteristics = await pairing.get_characteristics([(1, 9)])
@@ -141,7 +141,7 @@ async def test_put_characteristics_cancelled(pairing: IpPairing):
         with pytest.raises(asyncio.CancelledError):
             await task
 
-    # We should wait a few seconds to see if the 
+    # We should wait a few seconds to see if the
     # connection can be re-established and the write can be
     # completed. But this is not currently possible because
     # we do not wait for the connection to be re-established
