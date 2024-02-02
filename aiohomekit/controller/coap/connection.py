@@ -170,6 +170,10 @@ class EncryptionContext:
                 async with asyncio_timeout(timeout):
                     response = await self.coap_ctx.request(request).response
             except (NetworkError, asyncio.TimeoutError):
+                logger.debug("%s: Did not receive a reply; end of session.", self.uri)
+                if self.coap_ctx:
+                    await self.coap_ctx.shutdown()
+                    self.coap_ctx = None
                 raise AccessoryDisconnectedError("Request timeout")
 
             if response.code == Code.NOT_FOUND:
