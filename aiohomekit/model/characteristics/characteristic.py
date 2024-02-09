@@ -175,16 +175,20 @@ class Characteristic:
     def set_events(self, new_val: Any) -> None:
         self.ev = new_val
 
-    def set_value(self, new_val: Any) -> None:
+    def set_value(self, new_val: Any) -> bool:
         """
         This function sets the value of this characteristic.
+
+        Returns True if the value has changed, False otherwise.
         """
 
         if self.format == CharacteristicFormats.bool:
             # Device might return 1 or 0, so lets case to True/False
             new_val = bool(new_val)
 
+        changed = self._value != new_val
         self._value = new_val
+        return changed
 
     @property
     def value(self) -> Any:

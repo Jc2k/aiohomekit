@@ -112,9 +112,11 @@ class IpPairing(ZeroconfPairing):
     @property
     def name(self) -> str:
         """Return the name of the pairing with the address."""
+        connection = self.connection
+        host = connection.connected_host or connection.hosts
         if self.description:
-            return f"{self.description.name} [{self.connection.host}:{self.connection.port}] (id={self.id})"
-        return f"[{self.connection.host}:{self.connection.port}] (id={self.id})"
+            return f"{self.description.name} [{host}:{connection.port}] (id={self.id})"
+        return f"[{host}:{connection.port}] (id={self.id})"
 
     def event_received(self, event):
         self._callback_listeners(format_characteristic_list(event))
@@ -130,9 +132,11 @@ class IpPairing(ZeroconfPairing):
             await self.subscribe(self.subscriptions)
 
     async def _ensure_connected(self):
-        if self._shutdown:
-            return
+        """Ensure we are connected to the device."""
         connection = self.connection
+        if self._shutdown or connection.is_connected:
+            return
+
         try:
             async with asyncio_timeout(10):
                 await connection.ensure_connection()
@@ -142,22 +146,21 @@ class IpPairing(ZeroconfPairing):
                 last_connector_error, asyncio.TimeoutError
             ):
                 raise AccessoryDisconnectedError(
-                    f"Timeout while waiting for connection to device {self.connection.host}:{self.connection.port}"
+                    f"Timeout while waiting for connection to device {connection.hosts}:{connection.port}"
                 )
             # The exception name is included since otherwise the error message
             # is not very helpful as it could be something like `step 3`
             raise AccessoryDisconnectedError(
-                f"Error while connecting to device {self.connection.host}:{self.connection.port}: "
+                f"Error while connecting to device {connection.hosts}:{connection.port}: "
                 f"{last_connector_error} ({type(last_connector_error).__name__})"
             )
 
-        if not self.connection.is_connected:
+        if not connection.is_connected:
             raise AccessoryDisconnectedError(
-                f"Ensure connection returned but still not connected: {self.connection.host}:{self.connection.port}"
+                f"Ensure connection returned but still not connected: {connection.hosts}:{connection.port}"
             )
 
-        else:
-            self._callback_availability_changed(True)
+        self._callback_availability_changed(True)
 
     async def close(self) -> None:
         """
@@ -242,8 +245,8 @@ class IpPairing(ZeroconfPairing):
 
     async def get_characteristics(
         self,
-        characteristics,
-    ):
+        characteristics: Iterable[tuple[int, int]],
+    ) -> dict[tuple[int, int], dict[str, Any]]:
         """
         This method is used to get the current readouts of any characteristic of the accessory.
 
@@ -265,8 +268,13 @@ class IpPairing(ZeroconfPairing):
         if not self.accessories:
             await self.list_accessories_and_characteristics()
 
+        if isinstance(characteristics, set):
+            characteristics_set = characteristics
+        else:
+            characteristics_set = set(characteristics)
+
         url = "/characteristics?id=" + ",".join(
-            str(x[0]) + "." + str(x[1]) for x in set(characteristics)
+            f"{aid}.{iid}" for aid, iid in characteristics_set
         )
 
         response = await self.connection.get_json(url)

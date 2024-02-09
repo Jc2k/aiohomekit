@@ -36,7 +36,9 @@ class IpDiscovery(ZeroconfDiscovery):
     def __init__(self, controller, description: HomeKitService):
         super().__init__(description)
         self.controller = controller
-        self.connection = HomeKitConnection(None, description.address, description.port)
+        self.connection = HomeKitConnection(
+            None, description.addresses, description.port
+        )
 
     def __repr__(self):
         return f"IPDiscovery(host={self.description.address}, port={self.description.port})"
@@ -92,6 +94,7 @@ class IpDiscovery(ZeroconfDiscovery):
                     break
 
             pairing["AccessoryIP"] = self.description.address
+            pairing["AccessoryIPs"] = self.description.addresses
             pairing["AccessoryPort"] = self.description.port
             pairing["Connection"] = "IP"
 

@@ -29,39 +29,51 @@ if TYPE_CHECKING:
 
 
 class Characteristics:
+    """Represents a collection of characteristics."""
+
     _characteristics: list[Characteristic]
 
     def __init__(self) -> None:
+        """Initialise a collection of characteristics."""
         self._characteristics = []
         self._iid_to_characteristic: dict[int, Characteristic] = {}
 
     def append(self, char: Characteristic) -> None:
+        """Add a characteristic."""
         self._characteristics.append(char)
         self._iid_to_characteristic[char.iid] = char
 
     def get(self, iid: int) -> Characteristic:
+        """Get a characteristic by iid."""
         return self._iid_to_characteristic.get(iid)
 
     def __iter__(self) -> Iterator[Characteristic]:
+        """Iterate over characteristics."""
         return iter(self._characteristics)
 
-    def filter(self, char_types=None) -> Iterable[Characteristic]:
+    def filter(
+        self, char_types: Iterable[str] | None = None
+    ) -> Iterator[Characteristic]:
+        """Filter characteristics by type."""
         matches = iter(self)
 
         if char_types:
-            char_types = [normalize_uuid(c) for c in char_types]
+            char_types = {normalize_uuid(c) for c in char_types}
             matches = filter(lambda char: char.type in char_types, matches)
 
         return matches
 
-    def first(self, char_types=None) -> Characteristic:
+    def first(self, char_types: Iterable[str] | None = None) -> Characteristic:
+        """Get the first characteristic."""
         return next(self.filter(char_types=char_types))
 
 
 class Service:
+    """Represents a service on an accessory."""
+
     type: str
     iid: int
-    linked: list[Service]
+    linked: set[Service]
 
     characteristics: Characteristics
     characteristics_by_type: dict[str, Characteristic]
@@ -74,14 +86,15 @@ class Service:
         name: str | None = None,
         add_required: bool = False,
         iid: int | None = None,
-    ):
+    ) -> None:
+        """Initialise a service."""
         self.type = normalize_uuid(service_type)
 
         self.accessory = accessory
         self.iid = iid or accessory.get_next_id()
         self.characteristics = Characteristics()
-        self.characteristics_by_type = {}
-        self.linked = []
+        self.characteristics_by_type: dict[str, Characteristic] = {}
+        self.linked: list[Service] = []
 
         if name:
             char = self.add_char(CharacteristicsTypes.NAME)
@@ -92,11 +105,12 @@ class Service:
                 if required not in self.characteristics_by_type:
                     self.add_char(required)
 
-    def has(self, char_type) -> bool:
-        char_type = normalize_uuid(char_type)
-        return char_type in self.characteristics_by_type
+    def has(self, char_type: str) -> bool:
+        """Return True if the service has a characteristic."""
+        return normalize_uuid(char_type) in self.characteristics_by_type
 
-    def value(self, char_type, default_value=None) -> Any:
+    def value(self, char_type: str, default_value: Any | None = None) -> Any:
+        """Return the value of a characteristic."""
         char_type = normalize_uuid(char_type)
 
         if char_type not in self.characteristics_by_type:
@@ -105,10 +119,11 @@ class Service:
         return self.characteristics_by_type[char_type].value
 
     def __getitem__(self, key) -> Characteristic:
-        key = normalize_uuid(key)
-        return self.characteristics_by_type[key]
+        """Get a characteristic by type."""
+        return self.characteristics_by_type[normalize_uuid(key)]
 
     def add_char(self, char_type: str, **kwargs: Any) -> Characteristic:
+        """Add a characteristic to the service."""
         char = Characteristic(self, char_type, **kwargs)
         self.characteristics.append(char)
         self.characteristics_by_type[char.type] = char
@@ -119,6 +134,7 @@ class Service:
         return self.characteristics.get(iid)
 
     def add_linked_service(self, service: Service) -> None:
+        """Add a linked service."""
         self.linked.append(service)
 
     def build_update(self, payload: dict[str, Any]) -> list[tuple[int, int, Any]]:
@@ -135,22 +151,22 @@ class Service:
 
         return result
 
-    def to_accessory_and_service_list(self):
+    def to_accessory_and_service_list(self) -> dict[str, Any]:
+        """Return the service as a dictionary."""
         characteristics_list = []
         for c in self.characteristics:
             characteristics_list.append(c.to_accessory_and_service_list())
+
         d = {
             "iid": self.iid,
             "type": self.type,
             "characteristics": characteristics_list,
         }
-
-        linked = [service.iid for service in self.linked]
-        if linked:
+        if linked := [service.iid for service in self.linked]:
             d["linked"] = linked
-
         return d
 
     @property
     def available(self) -> bool:
+        """Return True if all characteristics are available."""
         return all(c.available for c in self.characteristics)

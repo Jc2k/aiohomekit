@@ -303,12 +303,12 @@ class AbstractPairing(metaclass=ABCMeta):
     @abstractmethod
     async def get_characteristics(
         self,
-        characteristics,
-        include_meta=False,
-        include_perms=False,
-        include_type=False,
-        include_events=False,
-    ):
+        characteristics: Iterable[tuple[int, int]],
+        include_meta: bool = False,
+        include_perms: bool = False,
+        include_type: bool = False,
+        include_events: bool = False,
+    ) -> dict[tuple[int, int], dict[str, Any]]:
         """Get characteristics."""
 
     @abstractmethod

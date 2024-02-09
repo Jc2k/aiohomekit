@@ -41,8 +41,7 @@ class HapStatusCode(EnumWithDescription):
 
 def to_status_code(status_code: int) -> HapStatusCode:
     # Some HAP implementations return positive values for error code (myq)
-    status_code = abs(status_code) * -1
-    return HapStatusCode(status_code)
+    return HapStatusCode(abs(status_code) * -1)
 
 
 class _HapBleStatusCodes:

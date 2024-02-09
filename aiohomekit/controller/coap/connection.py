@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterable
 import logging
 import random
 import struct
@@ -176,6 +177,10 @@ class EncryptionContext:
                 async with asyncio_timeout(timeout):
                     response = await self.coap_ctx.request(request).response
             except (NetworkError, asyncio.TimeoutError):
+                logger.debug("%s: Did not receive a reply; end of session.", self.uri)
+                if self.coap_ctx:
+                    await self.coap_ctx.shutdown()
+                    self.coap_ctx = None
                 raise AccessoryDisconnectedError("Request timeout")
 
             if response.code == Code.NOT_FOUND:
@@ -558,8 +563,15 @@ class CoAPHomeKitConnection:
         logger.debug(f"Read characteristics: {results!r}")
         return results
 
-    async def read_characteristics(self, ids: list[tuple[int, int]]):
-        iids = [int(aid_iid[1]) for aid_iid in ids]
+    async def read_characteristics(
+        self, characteristics: Iterable[tuple[int, int]]
+    ) -> dict[tuple[int, int], dict[str, Any]]:
+        """Read characteristics from the accessory."""
+        # _read_characteristics_exit expects a list of tuples
+        # as it does an ordered read so we need to convert
+        # to a list to preserve the order
+        ids = list(characteristics)
+        iids = [int(aid_iid[1]) for aid_iid in characteristics]
         data = [b""] * len(iids)
         pdu_results = await self.enc_ctx.post_all(OpCode.CHAR_READ, iids, data)
         return self._read_characteristics_exit(ids, pdu_results)

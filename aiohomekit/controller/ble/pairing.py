@@ -426,15 +426,31 @@ class BlePairing(AbstractPairing):
             char.service.type, char.type, endpoint_iid
         )
 
-        pdu_status, result_data = await ble_request(
-            self.client,
-            self._encryption_key,
-            self._decryption_key,
-            opcode,
-            endpoint,
-            endpoint_iid,
-            data,
-        )
+        try:
+            pdu_status, result_data = await ble_request(
+                self.client,
+                self._encryption_key,
+                self._decryption_key,
+                opcode,
+                endpoint,
+                endpoint_iid,
+                data,
+            )
+        except BaseException as ex:
+            # If the request fails for any reason (especially
+            # cancellation), we need to close the connection
+            # otherwise the encryption counters will be out of sync
+            try:
+                await self._close_while_locked()
+            except Exception as exc:
+                logger.debug(
+                    "%s: Failed to close connection after exception: %s",
+                    self.name,
+                    exc,
+                )
+            # Make sure we propagate the exception to the caller
+            # especially if it was a cancellation
+            raise ex
 
         if not self.client or not self.client.is_connected:
             logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
@@ -1289,7 +1305,7 @@ class BlePairing(AbstractPairing):
     @disconnect_on_missing_services
     async def get_characteristics(
         self,
-        characteristics: list[tuple[int, int]],
+        characteristics: Iterable[tuple[int, int]],
     ) -> dict[tuple[int, int], dict[str, Any]]:
         return await self._get_characteristics_without_retry(characteristics)
 
@@ -1328,7 +1344,7 @@ class BlePairing(AbstractPairing):
     @restore_connection_and_resume
     async def _get_characteristics_without_retry(
         self,
-        characteristics: list[tuple[int, int]],
+        characteristics: Iterable[tuple[int, int]],
         notify_listeners: bool = False,
     ) -> dict[tuple[int, int], dict[str, Any]]:
         accessory_chars = self.accessories.aid(BLE_AID).characteristics
