@@ -76,7 +76,7 @@ class CoAPPairing(ZeroconfPairing):
             if interval := service.characteristics.first(
                 CharacteristicsTypes.SLEEP_INTERVAL
             ):
-                self.connection.set_interval(interval.value)
+                self.connection.set_interval(interval.value + 1)
 
     def _async_endpoint_changed(self) -> None:
         """The IP/Port has changed, so close connection if active then reconnect."""
