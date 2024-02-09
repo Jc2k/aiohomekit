@@ -290,6 +290,9 @@ class CharacteristicsTypes:
     VENDOR_EVE_DEGREE_AIR_PRESSURE = "E863F10F-079E-48FF-8F27-9C2605A29F52"
     VENDOR_EVE_DEGREE_ELEVATION = "E863F130-079E-48FF-8F27-9C2605A29F52"
 
+    # Valve position in %, r/o, uint8
+    VENDOR_EVE_THERMO_VALVE_POSITION = "E863F12E-079E-48FF-8F27-9C2605A29F52"
+
     # HAA - Home Accessory Architect
     # https://github.com/RavenSystem/esp-homekit-devices
     VENDOR_HAA_SETUP = "F0000102-0218-2017-81BF-AF2B7C833922"
@@ -377,3 +380,6 @@ class CharacteristicsTypes:
 
     # https://github.com/home-assistant/core/issues/73360 (r/o, dB)
     VENDOR_NETATMO_NOISE = "B3BBFABC-D78C-5B8D-948C-5DAC1EE2CDE5"
+
+    # r/w, int - 1 for on, 0 for off
+    VENDOR_AIRVERSA_SLEEP_MODE = "00000006-5E50-11EC-B400-0A80FF2603DE"

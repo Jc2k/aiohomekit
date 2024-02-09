@@ -13,14 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import asyncio
 import logging
 from typing import TYPE_CHECKING
 
+from async_interrupt import interrupt
+
 from aiohomekit.crypto.chacha20poly1305 import (
+    PACK_NONCE,
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,
+    DecryptionError,
 )
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -44,12 +49,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class ConnectionReady(Exception):
+    """Raised when a connection is ready to be retried."""
+
+
 class InsecureHomeKitProtocol(asyncio.Protocol):
     def __init__(self, connection):
         self.connection = connection
         self.host = ":".join((connection.host, str(connection.port)))
         self.result_cbs = []
         self.current_response = HttpResponse()
+        self.loop = asyncio.get_running_loop()
 
     def connection_made(self, transport):
         super().connection_made(transport)
@@ -58,7 +68,7 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
     def connection_lost(self, exception):
         self.connection._connection_lost(exception)
 
-    async def send_bytes(self, payload):
+    async def send_bytes(self, payload: bytes):
         if self.transport.is_closing():
             # FIXME: It would be nice to try and wait for the reconnect in future.
             # In that case we need to make sure we do it at a layer above send_bytes otherwise
@@ -73,7 +83,7 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
         # We return a future so that our caller can block on a reply
         # We can send many requests and dispatch the results in order
         # Should mean we don't need locking around request/reply cycles
-        result = asyncio.Future()
+        result = self.loop.create_future()
         self.result_cbs.append(result)
 
         try:
@@ -117,7 +127,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
     def __init__(self, connection, a2c_key, c2a_key):
         super().__init__(connection)
 
-        self._incoming_buffer = bytearray()
+        self._incoming_buffer: bytearray = bytearray()
 
         self.c2a_counter = 0
         self.a2c_counter = 0
@@ -128,27 +138,24 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
         self.encryptor = ChaCha20Poly1305Encryptor(self.c2a_key)
         self.decryptor = ChaCha20Poly1305Decryptor(self.a2c_key)
 
-    async def send_bytes(self, payload):
-        buffer = b""
+    async def send_bytes(self, payload: bytes):
+        buffer: list[bytes] = []
 
         while len(payload) > 0:
             current = payload[:1024]
             payload = payload[1024:]
-
             len_bytes = len(current).to_bytes(2, byteorder="little")
-            cnt_bytes = self.c2a_counter.to_bytes(8, byteorder="little")
+            buffer.append(len_bytes)
+            buffer.append(
+                self.encryptor.encrypt(
+                    len_bytes,
+                    PACK_NONCE(self.c2a_counter),
+                    bytes(current),
+                )
+            )
             self.c2a_counter += 1
 
-            data = self.encryptor.encrypt(
-                len_bytes,
-                cnt_bytes,
-                bytes([0, 0, 0, 0]),
-                current,
-            )
-
-            buffer += len_bytes + data
-
-        return await super().send_bytes(buffer)
+        return await super().send_bytes(b"".join(buffer))
 
     def data_received(self, data):
         """
@@ -175,21 +182,17 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             # Drop the length from the top of the buffer as we have already parsed it
             del self._incoming_buffer[:2]
 
-            block = self._incoming_buffer[:block_length]
-            del self._incoming_buffer[:block_length]
-            tag = self._incoming_buffer[:16]
-            del self._incoming_buffer[:16]
+            block_and_tag = self._incoming_buffer[: block_length + 16]
+            del self._incoming_buffer[: block_length + 16]
 
-            decrypted = self.decryptor.decrypt(
-                block_length_bytes,
-                self.a2c_counter.to_bytes(8, byteorder="little"),
-                bytes([0, 0, 0, 0]),
-                block + tag,
-            )
-
-            if decrypted is False:
-                # FIXME: Does raising here drop the connection or do we call close on transport ourselves
-                raise RuntimeError("Could not decrypt block")
+            try:
+                decrypted = self.decryptor.decrypt(
+                    bytes(block_length_bytes),
+                    PACK_NONCE(self.a2c_counter),
+                    bytes(block_and_tag),
+                )
+            except DecryptionError as err:
+                raise RuntimeError("Could not decrypt block") from err
 
             self.a2c_counter += 1
 
@@ -215,8 +218,17 @@ class HomeKitConnection:
 
         self._connect_lock = asyncio.Lock()
 
+        self._loop = asyncio.get_running_loop()
         self._concurrency_limit = asyncio.Semaphore(concurrency_limit)
-        self._reconnect_wait_task = None
+        self._reconnect_future: asyncio.Future[None] | None = None
+        self._last_connector_error: Exception | None = None
+
+    @property
+    def name(self):
+        """Return the name of the connection."""
+        if self.owner:
+            return self.owner.name
+        return f"{self.host}:{self.port}"
 
     @property
     def is_connected(self):
@@ -233,14 +245,9 @@ class HomeKitConnection:
         This function **will not** start another reconnect thread if one is already
         running. Or if it is already connected.
         """
-        if self._connector or self.is_connected:
+        if (self._connector and not self._connector.done()) or self.is_connected:
             return
-
-        def done_callback(result):
-            self._connector = None
-
         self._connector = async_create_task(self._reconnect())
-        self._connector.add_done_callback(done_callback)
 
     def reconnect_soon(self) -> None:
         """Reconnect to the device if disconnected.
@@ -250,11 +257,10 @@ class HomeKitConnection:
 
         If a reconnect is not a progress, the connect loop is started.
         """
-        if self._reconnect_wait_task:
+        if self._reconnect_future and not self._reconnect_future.done():
             # If a reconnect wait is running, cancel it so the reconnect
             # tries right away
-            self._reconnect_wait_task.cancel()
-            self._reconnect_wait_task = None
+            self._reconnect_future.set_result(None)
             return
         self._start_reconnecting()
 
@@ -266,7 +272,12 @@ class HomeKitConnection:
         self._start_connector()
         return True
 
-    async def ensure_connection(self):
+    @property
+    def last_connector_error(self) -> Exception | None:
+        """Return the last error from the connector task."""
+        return self._last_connector_error
+
+    async def ensure_connection(self) -> None:
         """
         Waits for a connection to the device.
 
@@ -277,6 +288,8 @@ class HomeKitConnection:
         Otherwise, start a reconnection and wait for it.
         """
         if self._start_reconnecting():
+            # If we are running under a timeout, we still need to shield the
+            # connector task so it continues to run if the timeout is hit.
             await asyncio.shield(self._connector)
 
     async def _stop_connector(self):
@@ -289,9 +302,16 @@ class HomeKitConnection:
         """
         if not self._connector:
             return
-        self._connector.cancel()
-        await self._connector
-        self._connector = None
+        self._connector.cancel("Stop connector")
+        # Wait for the connector but do not propagate the CancelledError
+        # since the connector will be canceled when the connection is closed.
+        #
+        # Cancellation of the connector will still happen but we won't
+        # propagate it higher in the stack.
+        try:
+            await self._connector
+        except asyncio.CancelledError:
+            pass
 
     async def get(self, target):
         """
@@ -315,7 +335,10 @@ class HomeKitConnection:
         return await self.request(
             method="PUT",
             target=target,
-            headers=[("Content-Length", len(body)), ("Content-Type", content_type)],
+            headers=[
+                ("Content-Length", len(body)),
+                ("Content-Type", content_type.value),
+            ],
             body=body,
         )
 
@@ -355,7 +378,10 @@ class HomeKitConnection:
         return await self.request(
             method="POST",
             target=target,
-            headers=[("Content-Length", len(body)), ("Content-Type", content_type)],
+            headers=[
+                ("Content-Length", len(body)),
+                ("Content-Type", content_type.value),
+            ],
             body=body,
         )
 
@@ -424,7 +450,7 @@ class HomeKitConnection:
         buffer.append(f"Host: {self.host}")
 
         if headers:
-            for (header, value) in headers:
+            for header, value in headers:
                 buffer.append(f"{header}: {value}")
 
         buffer.append("")
@@ -527,39 +553,42 @@ class HomeKitConnection:
             interval = 0.5
 
             logger.debug("Starting reconnect loop to %s:%s", self.host, self.port)
+
             while not self.closing:
+                self._last_connector_error = None
                 try:
                     return await self._connect_once()
 
-                except AuthenticationError:
+                except AuthenticationError as ex:
+                    self._last_connector_error = ex
                     # Authentication errors should bubble up because auto-reconnect is unlikely to help
                     raise
 
-                except asyncio.CancelledError:
-                    return
-
-                except HomeKitException:
+                except HomeKitException as ex:
+                    self._last_connector_error = ex
                     logger.debug(
-                        "Connecting to accessory failed. Retrying in %i seconds",
+                        "%s: Connecting to accessory failed: %s; Retrying in %i seconds",
+                        self.name,
+                        ex,
                         interval,
                     )
 
-                except Exception:
+                except Exception as ex:
+                    self._last_connector_error = ex
                     logger.exception(
-                        "Unexpected error whilst trying to connect to accessory. Will retry."
+                        "%s: Unexpected error whilst trying to connect to accessory. Will retry.",
+                        self.name,
                     )
 
                 interval = min(60, 1.5 * interval)
-                self._reconnect_wait_task = asyncio.ensure_future(
-                    asyncio.sleep(interval)
-                )
-
+                self._reconnect_future = self._loop.create_future()
                 try:
-                    await self._reconnect_wait_task
-                except asyncio.CancelledError:
+                    async with interrupt(self._reconnect_future, ConnectionReady, None):
+                        await asyncio.sleep(interval)
+                except ConnectionReady:
                     pass
                 finally:
-                    self._reconnect_wait_task = None
+                    self._reconnect_future = None
 
     def event_received(self, event):
         if not self.owner:
@@ -604,7 +633,8 @@ class SecureHomeKitConnection(HomeKitConnection):
             try:
                 if self.host != pairing.description.address:
                     logger.debug(
-                        "Host changed from %s to %s",
+                        "%s: Host changed from %s to %s",
+                        pairing.name,
                         self.host,
                         pairing.description.address,
                     )
@@ -612,7 +642,8 @@ class SecureHomeKitConnection(HomeKitConnection):
 
                 if self.port != pairing.description.port:
                     logger.debug(
-                        "Port changed from %s to %s",
+                        "%s: Port changed from %s to %s",
+                        pairing.name,
                         self.port,
                         pairing.description.port,
                     )

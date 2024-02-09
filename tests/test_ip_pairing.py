@@ -327,3 +327,12 @@ async def test_transport_property(pairing: IpPairing):
 
 async def test_polling_property(pairing: IpPairing):
     assert pairing.poll_interval == timedelta(seconds=60)
+
+
+async def test_put_characteristics_invalid_value(pairing: IpPairing):
+    aid, iid = (1, 2)
+    characteristics = [(aid, iid, 100)]
+    status_code = await pairing.put_characteristics(characteristics)
+    assert status_code is not None
+    assert status_code[(aid, iid)] is not None
+    assert status_code[(aid, iid)]["status"] == HapStatusCode.INVALID_VALUE.value

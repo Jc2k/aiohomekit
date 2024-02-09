@@ -14,9 +14,12 @@
 # limitations under the License.
 #
 
+import pytest
+
 from aiohomekit.crypto.chacha20poly1305 import (
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,
+    DecryptionError,
 )
 
 
@@ -172,15 +175,13 @@ def test_example2_8_2():
             ]
         ),
     )
-
-    r = ChaCha20Poly1305Encryptor(key).encrypt(aad, iv, fixed, plain_text)
+    nonce = fixed + iv
+    r = ChaCha20Poly1305Encryptor(key).encrypt(aad, nonce, plain_text)
     assert r[:-16] == r_[0], "ciphertext"
     assert r[-16:] == r_[1], "tag"
 
-    plain_text_ = ChaCha20Poly1305Decryptor(key).decrypt(aad, iv, fixed, r)
+    plain_text_ = ChaCha20Poly1305Decryptor(key).decrypt(aad, nonce, r)
     assert plain_text == plain_text_
 
-    assert (
-        ChaCha20Poly1305Decryptor(key).decrypt(aad, iv, fixed, r + bytes([0, 1, 2, 3]))
-        is False
-    )
+    with pytest.raises(DecryptionError):
+        ChaCha20Poly1305Decryptor(key).decrypt(aad, nonce, r + bytes([0, 1, 2, 3]))

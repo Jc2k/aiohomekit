@@ -42,6 +42,7 @@ from aiohomekit.exceptions import (
     InvalidError,
     UnknownError,
 )
+from aiohomekit.meshcop import Meshcop
 from aiohomekit.model import (
     Accessories,
     AccessoriesState,
@@ -49,7 +50,11 @@ from aiohomekit.model import (
     CharacteristicsTypes,
     Transport,
 )
-from aiohomekit.model.characteristics import Characteristic, CharacteristicPermissions
+from aiohomekit.model.characteristics import (
+    EVENT_CHARACTERISTICS,
+    Characteristic,
+    CharacteristicPermissions,
+)
 from aiohomekit.model.services import Service, ServicesTypes
 from aiohomekit.pdu import OpCode, PDUStatus, decode_pdu, encode_pdu
 from aiohomekit.protocol import get_session_keys
@@ -59,14 +64,11 @@ from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 
 from ..abstract import AbstractPairing, AbstractPairingData
-from .bleak import (
-    AIOHomeKitBleakClient,
-    BleakCharacteristicMissing,
-    BleakServiceMissing,
-)
+from .bleak import AIOHomeKitBleakClient
 from .client import (
     PDUStatusError,
     ble_request,
+    disconnect_on_missing_services,
     drive_pairing_state_machine,
     raise_for_pdu_status,
 )
@@ -101,6 +103,7 @@ AVAILABILITY_INTERVAL = 86400 * 7  # 7 days
 NEVER_TIME = -AVAILABILITY_INTERVAL
 
 START_NOTIFY_DEBOUNCE = 1.5
+MAX_GSN = 65535
 
 SERVICE_INSTANCE_ID = "E604E95D-A759-4817-87D3-AA005083A0D1"
 SERVICE_INSTANCE_ID_UUID = UUID(SERVICE_INSTANCE_ID)
@@ -119,9 +122,16 @@ WRITE_FIRST_REQUIRED_CHARACTERISTICS = {
     "00000138-0000-1000-8000-0026BB765291",  # Unknown write first characteristic
     "246912DC-8FA3-82ED-DEA4-9EB91D8FC2EE",  # Unknown Vendor char seen on Belkin Wemo Switch
 }
+
+
 IGNORE_READ_CHARACTERISTICS = {
     CharacteristicsTypes.SERVICE_SIGNATURE
 } | WRITE_FIRST_REQUIRED_CHARACTERISTICS
+# IGNORE_READ_CHARACTERISTICS is used for notification
+
+IGNORE_POLL_CHARACTERISTICS = IGNORE_READ_CHARACTERISTICS | EVENT_CHARACTERISTICS
+# IGNORE_POLL_CHARACTERISTICS is used for polling
+
 BLE_AID = 1  # The aid for BLE devices is always 1
 
 ENABLE_BROADCAST_PAYLOAD = TLV.encode_list(
@@ -189,31 +199,6 @@ def operation_lock(func: WrapFuncType) -> WrapFuncType:
     return cast(WrapFuncType, _async_operation_lock_wrap)
 
 
-def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
-    """Define a wrapper to disconnect on missing services and characteristics.
-
-    This must be placed after the retry_bluetooth_connection_error
-    decorator.
-    """
-
-    async def _async_disconnect_on_missing_services_wrap(
-        self: BlePairing, *args: Any, **kwargs: Any
-    ) -> None:
-        try:
-            return await func(self, *args, **kwargs)
-        except (BleakServiceMissing, BleakCharacteristicMissing) as ex:
-            logger.warning(
-                "%s: Missing service or characteristic, disconnecting to force refetch of GATT services: %s",
-                self.name,
-                ex,
-            )
-            if self.client:
-                await self.client.disconnect()
-            raise
-
-    return cast(WrapFuncType, _async_disconnect_on_missing_services_wrap)
-
-
 def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper restore connection, populate data, and then resume when the operation completes."""
 
@@ -237,6 +222,20 @@ def restore_connection_and_resume(func: WrapFuncType) -> WrapFuncType:
                 await self._async_restore_subscriptions()
 
     return cast(WrapFuncType, _async_restore_and_resume)
+
+
+def force_fresh_connection(func: WrapFuncType) -> WrapFuncType:
+    """Define a wrapper to force a fresh connection."""
+
+    async def _async_force_fresh_connection(
+        self: BlePairing, *args: Any, **kwargs: Any
+    ) -> None:
+        """Force a fresh connection."""
+        if self.client:
+            await self.client.disconnect()
+        return await func(self, *args, **kwargs)
+
+    return cast(WrapFuncType, _async_force_fresh_connection)
 
 
 class BlePairing(AbstractPairing):
@@ -265,6 +264,14 @@ class BlePairing(AbstractPairing):
         super().__init__(controller, pairing_data)
 
         self._last_seen = time.monotonic() if description else NEVER_TIME
+
+        if not description and self.state_num:
+            self.description = HomeKitAdvertisement.from_cache(
+                address=self.address,
+                id=self.id,
+                config_num=self.config_num,
+                state_num=self.state_num,
+            )
 
         # Encryption
         self._derive = None
@@ -305,6 +312,7 @@ class BlePairing(AbstractPairing):
         self._tried_to_connect_once = False
         self._restore_pending = False
         self._fetched_gsn_this_session = False
+        self._had_notify_this_session = False
 
     @property
     def address(self) -> str:
@@ -352,6 +360,18 @@ class BlePairing(AbstractPairing):
         """The transport used for the connection."""
         return Transport.BLE
 
+    def _update_state_num(self, state_num: int) -> None:
+        """Update the state number."""
+        self.description.state_num = state_num
+        self._update_cached_state_num(state_num)
+
+    def _update_cached_state_num(self, state_num: int) -> None:
+        """Update the cached state number which is restored between restarts."""
+        old_state_num = self._accessories_state.state_num
+        self._accessories_state.state_num = state_num
+        if old_state_num != state_num:
+            self._update_accessories_state_cache()
+
     def _async_ble_update(
         self, device: BLEDevice, ble_advertisement: AdvertisementData
     ) -> None:
@@ -377,6 +397,7 @@ class BlePairing(AbstractPairing):
             )
 
         super()._async_description_update(description)
+        self._update_cached_state_num(description.state_num)
 
     async def _async_request(
         self,
@@ -435,6 +456,7 @@ class BlePairing(AbstractPairing):
         self._broadcast_notifications = set()
         self._restore_pending = False
         self._fetched_gsn_this_session = False
+        self._had_notify_this_session = False
 
     async def _ensure_connected(self, attempts: int | None = None) -> bool | None:
         """Ensure that we are connected to the accessory.
@@ -450,17 +472,13 @@ class BlePairing(AbstractPairing):
             if self._shutdown or (self.client and self.client.is_connected):
                 return False
             if not self.device and (
-                discovery := await self.controller.async_get_discovery(
-                    self.address, DISCOVER_TIMEOUT
-                )
+                discovery := await self.controller.async_find(self.id, DISCOVER_TIMEOUT)
             ):
                 self.device = discovery.device
                 self.ble_advertisement = discovery.ble_advertisement
                 self.description = discovery.description
             elif not self.device:
-                raise AccessoryNotFoundError(
-                    f"{self.name}: Could not find {self.address}"
-                )
+                raise AccessoryNotFoundError(f"{self.name}: Could not find {self.id}")
             self.client = await establish_connection(
                 self.device,
                 self.name,
@@ -497,19 +515,37 @@ class BlePairing(AbstractPairing):
                 async with self._operation_lock:
                     logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
                     await self._get_characteristics_while_connected(
-                        [char], notify_listeners=True
+                        [char],
+                        notify_listeners=True,
+                        skip_characteristics=IGNORE_READ_CHARACTERISTICS,
                     )
-                    # After a char has changed we need to check if the
-                    # GSN has changed as well so we don't reconnect
-                    # to the accessory if we don't need to
-                    if self._fetched_gsn_this_session:
-                        # The spec says we should only do this once per session
-                        # after a characteristic has changed
-                        return
-                    protocol_param = await self._get_all_protocol_params()
-                    if protocol_param:
-                        self.description.state_num = protocol_param.state_number
-                        self._fetched_gsn_this_session = True
+                    # The GSN value is always the same per session.
+                    # It will never increment until the session is closed.
+                    #
+                    # If we haven't fetched the GSN this session, do it now.
+                    if not self._fetched_gsn_this_session and (
+                        protocol_param := await self._get_all_protocol_params()
+                    ):
+                        self._update_state_num(protocol_param.state_number)
+
+                    if not self._had_notify_this_session:
+                        self._had_notify_this_session = True
+                        # 7.4.1.8 Global State Number (GSN)
+                        # The GSN is only increased once per session
+                        # so we only want to increase it if we have
+                        # not already done so this session.
+                        #
+                        # The fetched GSN from _get_all_protocol_params
+                        # is NOT increased when we get a notify so we need
+                        # to do it here.
+                        #
+                        new_state_num = self.description.state_num + 1
+                        if new_state_num >= MAX_GSN:
+                            new_state_num = 1
+                            # GSN rolled over which invalidates the broadcast
+                            # encryption key. We need to re-fetch it.
+                            await self._async_set_broadcast_encryption_key()
+                        self._update_state_num(new_state_num)
 
         def _callback(id: int, data: bytes) -> None:
             logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
@@ -580,7 +616,7 @@ class BlePairing(AbstractPairing):
                 return
 
             if protocol_param:
-                self.description.state_num = protocol_param.state_number
+                self._update_state_num(protocol_param.state_number)
 
     @operation_lock
     @retry_bluetooth_connection_error()
@@ -627,9 +663,11 @@ class BlePairing(AbstractPairing):
         # state number so the first pass is optimistic to reduce the number of
         # of decrypts we do.
         for state_num in (
-            start_state_num + 1,
-            start_state_num,
-            *range(start_state_num + 2, start_state_num + 30),
+            start_state_num + 1,  # This is the state number we are expecting (next one)
+            start_state_num,  # This is the old state number (already used)
+            *range(
+                start_state_num + 2, start_state_num + 100
+            ),  # If bluetooth was offline for a while we try a few more
         ):
             logger.debug(
                 "%s: Trying state_num %s for encrypted notification: %s",
@@ -644,6 +682,14 @@ class BlePairing(AbstractPairing):
             )
             if decrypted is None:
                 continue
+            if state_num == start_state_num:
+                logger.debug(
+                    "%s: Encrypted notification with stale state_num %s ignored: %s",
+                    self.name,
+                    state_num,
+                    data,
+                )
+                return
             gsn = int.from_bytes(decrypted[0:2], "little")
             if gsn != state_num:
                 logger.debug(
@@ -769,7 +815,7 @@ class BlePairing(AbstractPairing):
         accessory.aid = 1
         # Never use the cache when fetching the GATT database
         services_to_link: list[tuple[Service, list[int]]] = []
-        services = await self.client.get_services()
+        services = self.client.services
         for service in services:
             ble_service_char = service.get_characteristic(SERVICE_INSTANCE_ID_UUID)
             if not ble_service_char:
@@ -801,8 +847,10 @@ class BlePairing(AbstractPairing):
                     service_iid,
                     ServiceTLV,
                 )
-                if "linked" in decoded_service:
-                    services_to_link.append((s, decoded_service["linked"]))
+                if (linked_iids := decoded_service.get("linked")) and isinstance(
+                    linked_iids, list
+                ):
+                    services_to_link.append((s, [iid for iid in linked_iids if iid]))
                 logger.debug(
                     "%s: service: %s decoded: %s", self.name, service, decoded_service
                 )
@@ -813,7 +861,7 @@ class BlePairing(AbstractPairing):
                     continue
 
                 iid = await self.client.get_characteristic_iid(char)
-                if iid is None:
+                if not iid:  # None or 0 are both invalid
                     logger.debug("%s: No iid for %s", self.name, char.uuid)
                     continue
 
@@ -829,7 +877,9 @@ class BlePairing(AbstractPairing):
                 logger.debug("%s: char: %s decoded: %s", self.name, char, decoded)
                 assert hap_char.iid == iid, "iid should be set"
                 hap_char.handle = char.handle
-                hap_char.perms = decoded["perms"]
+                # Some vendor characteristics have no perms
+                # See https://github.com/home-assistant/core/issues/91686
+                hap_char.perms = decoded.get("perms", [])
                 # Some vendor characteristics have no format
                 # See https://github.com/home-assistant/core/issues/76104
                 if "format" in decoded:
@@ -909,7 +959,7 @@ class BlePairing(AbstractPairing):
         """
         if not self.accessories and self.description:
             self._accessories_state = AccessoriesState(
-                Accessories(), -1, self.broadcast_key
+                Accessories(), -1, self.broadcast_key, self.state_num
             )
             return self.description.name
         return await super().get_primary_name()
@@ -927,7 +977,7 @@ class BlePairing(AbstractPairing):
             ):
                 continue
             for char in service.characteristics:
-                if char.type in IGNORE_READ_CHARACTERISTICS:
+                if char.type in IGNORE_POLL_CHARACTERISTICS:
                     continue
                 if CharacteristicPermissions.paired_read not in char.perms:
                     continue
@@ -989,6 +1039,7 @@ class BlePairing(AbstractPairing):
             protocol_params.state_number,
             protocol_params.config_number,
         )
+        self._fetched_gsn_this_session = True
         return protocol_params
 
     async def async_populate_accessories_state(
@@ -1019,20 +1070,6 @@ class BlePairing(AbstractPairing):
         await self._populate_accessories_and_characteristics(force_update, attempts)
         if self._restore_pending:
             await self._async_restore_subscriptions()
-
-    def _all_handles_are_missing(self) -> bool:
-        """Check if any characteristic has a handle.
-
-        Older code did not save the handle, so if we have no handles
-        we need to re-fetch the gatt database.
-        """
-        if not self.accessories.accessories:
-            return True
-        for service in self.accessories.aid(BLE_AID).services:
-            for char in service.characteristics:
-                if char.handle is not None:
-                    return False
-        return True
 
     async def _populate_accessories_and_characteristics(
         self, force_update: bool = False, attempts: int | None = None
@@ -1068,11 +1105,7 @@ class BlePairing(AbstractPairing):
             if self.description:
                 config_changed = self.config_num != self.description.config_num
 
-            if (
-                not self.accessories
-                or config_changed
-                or self._all_handles_are_missing()
-            ):
+            if not self.accessories or config_changed:
                 logger.debug(
                     "%s: Fetching gatt database because, cached_config_num: %s, adv config_num: %s",
                     self.name,
@@ -1161,7 +1194,7 @@ class BlePairing(AbstractPairing):
         # the state number again to make sure we are in sync
         protocol_param = await self._get_all_protocol_params()
         if protocol_param:
-            self.description.state_num = protocol_param.state_number
+            self._update_state_num(protocol_param.state_number)
         self._async_schedule_start_notify_subscriptions()
 
     @operation_lock
@@ -1307,11 +1340,14 @@ class BlePairing(AbstractPairing):
         self,
         unordered_characteristics: list[Characteristic],
         notify_listeners: bool = False,
+        skip_characteristics: set[str] | None = None,
     ) -> dict[tuple[int, int], dict[str, Any]]:
         assert self._operation_lock.locked(), "_operation_lock should be locked"
         characteristics = self._sort_characteristics_by_fetch_order(
             unordered_characteristics
         )
+        if skip_characteristics is None:
+            skip_characteristics = IGNORE_POLL_CHARACTERISTICS
 
         debug_enabled = logger.isEnabledFor(logging.DEBUG)
         if debug_enabled:
@@ -1325,7 +1361,7 @@ class BlePairing(AbstractPairing):
 
         async with self._ble_request_lock:
             for char in characteristics:
-                if char.type in IGNORE_READ_CHARACTERISTICS:
+                if char.type in skip_characteristics:
                     logger.debug(
                         "%s: Ignoring characteristic %s",
                         self.name,
@@ -1423,7 +1459,6 @@ class BlePairing(AbstractPairing):
         )
         accessory_chars = self.accessories.aid(BLE_AID).characteristics
         async with self._ble_request_lock:
-
             for aid, iid, value in characteristics:
                 char = accessory_chars.iid(iid)
                 result_key = (aid, iid)
@@ -1468,6 +1503,82 @@ class BlePairing(AbstractPairing):
                     results[result_key] = result
 
         return results
+
+    @operation_lock
+    @retry_bluetooth_connection_error()
+    @force_fresh_connection
+    @restore_connection_and_resume
+    async def thread_provision(
+        self,
+        dataset: str,
+    ) -> None:
+        """
+        Provision a device with Thread network credentials.
+
+        The credentials should be provided in the meshcop/thread operational dataset format.
+        """
+        thread_service = self.accessories.aid(BLE_AID).services.first(
+            service_type=ServicesTypes.THREAD_TRANSPORT
+        )
+        thread_control = thread_service[CharacteristicsTypes.THREAD_CONTROL_POINT]
+
+        inner_request_tlv = TLV.encode_list(
+            [
+                (1, b"\x03"),
+            ]
+        )
+        request_tlv = TLV.encode_list(
+            [
+                (TLV.kTLVHAPParamParamReturnResponse, bytearray(b"\x01")),
+                (TLV.kTLVHAPParamValue, inner_request_tlv),
+            ]
+        )
+        resp = await self._async_request(OpCode.CHAR_WRITE, thread_control, request_tlv)
+        logger.debug("resp=%r", resp)
+
+        decoded = Meshcop.decode(bytes.fromhex(dataset))
+        thread_tlv = TLV.encode_list(
+            [
+                (1, decoded.networkname.encode("utf-8")),
+                (2, decoded.channel.to_bytes(1, byteorder="little")),
+                (3, decoded.panid.to_bytes(2, byteorder="little")),
+                (4, decoded.extpanid),
+                (5, decoded.networkkey),
+            ]
+        )
+        unknown = 1
+        inner_request_tlv = TLV.encode_list(
+            [
+                # TLV 1 is some sort of write/provision OpCode
+                (1, b"\x01"),
+                # TLV 2 contains the Thread network details
+                (2, thread_tlv),
+                # TLV 3 seems to be a bitfield or identifier; iOS sends 0 & Android sends 1
+                # 1 has worked in testing
+                (3, unknown.to_bytes(1, byteorder="little")),
+            ]
+        )
+        request_tlv = TLV.encode_list(
+            [
+                (TLV.kTLVHAPParamParamReturnResponse, bytearray(b"\x01")),
+                (TLV.kTLVHAPParamValue, inner_request_tlv),
+            ]
+        )
+
+        try:
+            resp = await self._async_request(
+                OpCode.CHAR_WRITE, thread_control, request_tlv
+            )
+            # we shouldn't get a response
+            logger.debug("Thread provision returned a success response: %r", resp)
+        except Exception as e:
+            # this is the expected code flow
+            logger.debug(
+                "Thread provision returned error (%r), this might not indicate a failure so ignoring.",
+                e,
+            )
+
+        await self.shutdown()
 
     async def subscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
         """Subscribe to characteristics."""

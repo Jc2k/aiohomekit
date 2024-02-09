@@ -19,7 +19,6 @@ from enum import IntFlag
 
 
 class StatusFlags(IntFlag):
-
     UNPAIRED = 0x01
     WIFI_UNCONFIGURED = 0x02
     PROBLEM_DETECTED = 0x04

@@ -29,7 +29,6 @@ if TYPE_CHECKING:
 
 
 class Characteristics:
-
     _characteristics: list[Characteristic]
 
     def __init__(self) -> None:
@@ -60,7 +59,6 @@ class Characteristics:
 
 
 class Service:
-
     type: str
     iid: int
     linked: list[Service]
@@ -123,7 +121,7 @@ class Service:
     def add_linked_service(self, service: Service) -> None:
         self.linked.append(service)
 
-    def build_update(self, payload: dict[str, Any]) -> list[int, int, Any]:
+    def build_update(self, payload: dict[str, Any]) -> list[tuple[int, int, Any]]:
         """
         Given a payload in the form of {CHAR_TYPE: value}, render in a form suitable to pass
         to put_characteristics using aid and iid.

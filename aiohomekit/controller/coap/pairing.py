@@ -80,8 +80,9 @@ class CoAPPairing(ZeroconfPairing):
 
     def _async_endpoint_changed(self) -> None:
         """The IP/Port has changed, so close connection if active then reconnect."""
-        description = self.owner.description
-        self.connection.address = f"[{description.address}]:{description.port}"
+        self.connection.address = (
+            f"[{self.description.address}]:{self.description.port}"
+        )
         async_create_task(self.connection.reconnect_soon())
 
     @property
@@ -247,6 +248,12 @@ class CoAPPairing(ZeroconfPairing):
             self._callback_listeners(listener_update)
 
         return response_status
+
+    async def thread_provision(
+        self,
+        dataset: str,
+    ) -> None:
+        """Provision a device with Thread network credentials."""
 
     async def subscribe(self, characteristics):
         await self._ensure_connected()

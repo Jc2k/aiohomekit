@@ -21,6 +21,10 @@ class u16(int):
     pass
 
 
+class bu16(int):
+    pass
+
+
 class u32(int):
     pass
 
@@ -103,6 +107,10 @@ def deserialize_u16(value_type: type, value: bytes) -> int:
     return int.from_bytes(value, "little")
 
 
+def deserialize_bu16(value_type: type, value: bytes) -> int:
+    return int.from_bytes(value, "big")
+
+
 def deserialize_u32(value_type: type, value: bytes) -> int:
     return int.from_bytes(value, "little")
 
@@ -149,6 +157,10 @@ def serialize_u8(value_type: type, value: int) -> bytes:
 
 def serialize_u16(value_type: type, value: int) -> bytes:
     return struct.pack("H", value)
+
+
+def serialize_bu16(value_type: type, value: int) -> bytes:
+    return struct.pack(">H", value)
 
 
 def serialize_u32(value_type: type, value: int) -> bytes:
@@ -289,6 +301,7 @@ class TLVStruct:
 
 
 DESERIALIZERS: dict[type, DeserializerCallback] = {
+    bu16: deserialize_bu16,
     u8: deserialize_u8,
     u16: deserialize_u16,
     u32: deserialize_u32,
@@ -302,6 +315,7 @@ DESERIALIZERS: dict[type, DeserializerCallback] = {
 }
 
 SERIALIZERS: dict[type, SerializerCallback] = {
+    bu16: serialize_bu16,
     u8: serialize_u8,
     u16: serialize_u16,
     u32: serialize_u32,

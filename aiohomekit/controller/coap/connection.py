@@ -67,7 +67,6 @@ def decode_list_pairings_response(buf):
 
 
 class EncryptionContext:
-
     coap_ctx: Context
     lock: asyncio.Lock
     uri: str
@@ -157,8 +156,10 @@ class EncryptionContext:
                 "Failed flailing attempts to resynchronize, self-destructing in 3, 2, 1..."
             )
 
-            await self.coap_ctx.shutdown()
-            self.coap_ctx = None
+            if self.coap_ctx:
+                await self.coap_ctx.shutdown()
+                self.coap_ctx = None
+
             raise EncryptionError("Decryption of PDU POST response failed")
 
     async def post_bytes(self, payload: bytes, timeout: int = 16.0):
@@ -177,7 +178,12 @@ class EncryptionContext:
             except (NetworkError, asyncio.TimeoutError):
                 raise AccessoryDisconnectedError("Request timeout")
 
-            if response.code != Code.CHANGED:
+            if response.code == Code.NOT_FOUND:
+                # maybe the accessory lost power or was otherwise rebooted
+                logger.debug("CoAP POST returned 404, our session is gone.")
+                await self.coap_ctx.shutdown()
+                self.coap_ctx = None
+            elif response.code != Code.CHANGED:
                 logger.warning(f"CoAP POST returned unexpected code {response}")
 
             return await self._decrypt_response(response)
@@ -207,7 +213,7 @@ class EventResource(resource.Resource):
         try:
             payload = self.connection.enc_ctx.decrypt_event(request.payload)
         except InvalidTag:
-            logger.warning(
+            logger.debug(
                 "Event decryption failed, desynchronized? Counter=%d"
                 % (self.connection.enc_ctx.event_ctr,)
             )
@@ -334,7 +340,7 @@ class CoAPHomeKitConnection:
                 salt, srpB = result.value
                 return salt, srpB
             except Exception:
-                logger.warning("Pair setup 1/2 failed!")
+                logger.debug("Pair setup 1/2 failed!")
                 await self.pair_setup_client.shutdown()
                 raise
 
@@ -363,7 +369,7 @@ class CoAPHomeKitConnection:
                 pairing = result.value
                 break
             except Exception:
-                logger.warning("Pair setup 2/2 failed!")
+                logger.debug("Pair setup 2/2 failed!")
                 await self.pair_setup_client.shutdown()
                 raise
 
@@ -375,7 +381,7 @@ class CoAPHomeKitConnection:
 
     async def do_pair_verify(self, pairing_data):
         if self.is_connected:
-            logger.warning("Connecting to connected device?")
+            logger.debug("Connecting to connected device?")
             await self.enc_ctx.coap_ctx.shutdown()
             self.enc_ctx = None
 
@@ -439,10 +445,10 @@ class CoAPHomeKitConnection:
             try:
                 await self.do_pair_verify(pairing_data)
             except asyncio.TimeoutError:
-                logger.warning("Pair verify timed out")
+                logger.debug("Pair verify timed out")
                 raise AccessoryDisconnectedError("Pair verify timed out")
             except Exception as exc:
-                logger.warning("Pair verify failed", exc_info=exc)
+                logger.debug("Pair verify failed", exc_info=exc)
                 raise AccessoryDisconnectedError("Pair verify failed")
 
             # we need the info this provides to be able to read/write characteristics
@@ -484,7 +490,7 @@ class CoAPHomeKitConnection:
                 # send the read requests
                 results = await self.enc_ctx.post_all(OpCode.CHAR_READ, iids, data)
 
-                for (idx, result) in enumerate(results):
+                for idx, result in enumerate(results):
                     if isinstance(result, bytes):
                         # success, let's convert the value
                         value = decode_pdu_03(result) if len(result) > 0 else b""
@@ -515,7 +521,7 @@ class CoAPHomeKitConnection:
         self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
     ) -> dict:
         results = dict()
-        for (idx, result) in enumerate(pdu_results):
+        for idx, result in enumerate(pdu_results):
             aid_iid = ids[idx]
             if isinstance(result, PDUStatus):
                 logger.debug(
@@ -563,7 +569,7 @@ class CoAPHomeKitConnection:
     ) -> list[bytearray]:
         # convert provided values to appropriate binary format for each characteristic
         tlv_values = list()
-        for (_, aid_iid_value) in enumerate(ids_values):
+        for _, aid_iid_value in enumerate(ids_values):
             # look up characteristic
             characteristic = self.info.find_characteristic_by_aid_iid(
                 int(aid_iid_value[0]), int(aid_iid_value[1])
@@ -587,7 +593,7 @@ class CoAPHomeKitConnection:
         # transform results
         # only error conditions are returned
         results = dict()
-        for (idx, result) in enumerate(pdu_results):
+        for idx, result in enumerate(pdu_results):
             aid_iid_value = ids_values[idx]
             key = (aid_iid_value[0], aid_iid_value[1])
             if isinstance(result, PDUStatus):
@@ -622,7 +628,7 @@ class CoAPHomeKitConnection:
         self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
     ) -> dict:
         results = dict()
-        for (idx, result) in enumerate(pdu_results):
+        for idx, result in enumerate(pdu_results):
             aid_iid = ids[idx]
             key = (aid_iid[0], aid_iid[1])
             if isinstance(result, PDUStatus):
@@ -651,7 +657,7 @@ class CoAPHomeKitConnection:
         self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
     ) -> dict:
         results = dict()
-        for (idx, result) in enumerate(pdu_results):
+        for idx, result in enumerate(pdu_results):
             aid_iid = ids[idx]
             key = (aid_iid[0], aid_iid[1])
             if isinstance(result, PDUStatus):
@@ -710,14 +716,12 @@ class CoAPHomeKitConnection:
 
         m2_state = list(filter(lambda x: x[0] == TLV.kTLVType_State, m2))
         if len(m2_state) != 1 or m2_state[0][1] != TLV.M2:
-            logger.warning("Unexpected state in list pairings M2")
+            logger.debug("Unexpected state in list pairings M2")
             return
 
         m2_error = list(filter(lambda x: x[0] == TLV.kTLVType_Error, m2))
         if len(m2_error) != 0:
-            logger.warning(
-                f"Error from accessory during list pairings: {m2_error[0][1]}"
-            )
+            logger.debug(f"Error from accessory during list pairings: {m2_error[0][1]}")
             return
 
         id_list = [

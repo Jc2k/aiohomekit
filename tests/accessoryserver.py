@@ -33,8 +33,11 @@ from zeroconf import ServiceInfo, Zeroconf
 
 from aiohomekit.crypto import hkdf_derive
 from aiohomekit.crypto.chacha20poly1305 import (
+    NONCE_PADDING,
+    PACK_NONCE,
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,
+    DecryptionError,
 )
 from aiohomekit.crypto.srp import SrpServer
 from aiohomekit.exceptions import (
@@ -390,7 +393,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
     def write_event(self, characteristics):
         tmp = []
-        for (aid, iid) in characteristics:
+        for aid, iid in characteristics:
             if (aid, iid) not in self.subscriptions:
                 continue
 
@@ -432,11 +435,11 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 a2c_key = self.server.sessions[self.session_id][
                     "accessory_to_controller_key"
                 ]
-                cnt_bytes = self.server.sessions[self.session_id][
+                cnt = self.server.sessions[self.session_id][
                     "accessory_to_controller_count"
-                ].to_bytes(8, byteorder="little")
+                ]
                 ciper_and_mac = ChaCha20Poly1305Encryptor(a2c_key).encrypt(
-                    len_bytes, cnt_bytes, bytes([0, 0, 0, 0]), block
+                    len_bytes, PACK_NONCE(cnt), bytes(block)
                 )
                 self.server.sessions[self.session_id][
                     "accessory_to_controller_count"
@@ -513,13 +516,12 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
         c2a_key = self.server.sessions[self.session_id]["controller_to_accessory_key"]
 
         # verify & decrypt the read data
-        cnt_bytes = self.server.sessions[self.session_id][
-            "controller_to_accessory_count"
-        ].to_bytes(8, byteorder="little")
-        decrypted = ChaCha20Poly1305Decryptor(c2a_key).decrypt(
-            len_bytes, cnt_bytes, bytes([0, 0, 0, 0]), data
-        )
-        if decrypted is False:
+        cnt = self.server.sessions[self.session_id]["controller_to_accessory_count"]
+        try:
+            decrypted = ChaCha20Poly1305Decryptor(c2a_key).decrypt(
+                len_bytes, PACK_NONCE(cnt), data
+            )
+        except DecryptionError:
             # crypto error, log it and request close of connection
             self.log_error("SEVERE: Could not decrypt %s", binascii.hexlify(data))
             self.close_connection = True
@@ -864,7 +866,6 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def _get_accessories(self):
-
         result_bytes = self.server.accessories.to_accessory_and_service_list().encode()
         self.send_response(HttpStatusCodes.OK)
         self.send_header("Content-Type", "application/hap+json")
@@ -941,9 +942,8 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 session_key
             ).encrypt(
                 b"",
-                b"PV-Msg02",
-                bytes([0, 0, 0, 0]),
-                sub_tlv_b,
+                NONCE_PADDING + b"PV-Msg02",
+                bytes(sub_tlv_b),
             )
 
             # 8) construct result tlv
@@ -971,13 +971,13 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 1) verify ios' authtag
             # 2) decrypt
             encrypted = d_req[1][1]
-            decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
-                b"",
-                b"PV-Msg03",
-                bytes([0, 0, 0, 0]),
-                encrypted,
-            )
-            if decrypted is False:
+            try:
+                decrypted = ChaCha20Poly1305Decryptor(session_key).decrypt(
+                    b"",
+                    NONCE_PADDING + b"PV-Msg03",
+                    bytes(encrypted),
+                )
+            except DecryptionError:
                 self.send_error_reply(TLV.M4, TLV.kTLVError_Authentication)
                 self.log_error(
                     "error in step #4: authtag %s %s", d_res, self.server.sessions
@@ -1415,15 +1415,15 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 2) decrypt and test
             encrypted_data = d_req[1][1]
-            decrypted_data = ChaCha20Poly1305Decryptor(
-                self.server.sessions[self.session_id]["session_key"]
-            ).decrypt(
-                b"",
-                b"PS-Msg05",
-                bytes([0, 0, 0, 0]),
-                encrypted_data,
-            )
-            if decrypted_data is False:
+            try:
+                decrypted_data = ChaCha20Poly1305Decryptor(
+                    self.server.sessions[self.session_id]["session_key"]
+                ).decrypt(
+                    b"",
+                    NONCE_PADDING + b"PS-Msg05",
+                    bytes(encrypted_data),
+                )
+            except DecryptionError:
                 d_res.append(
                     (
                         TLV.kTLVType_State,
@@ -1441,7 +1441,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 self.log_error("error in step #6 %s %s", d_res, self.server.sessions)
                 return
 
-            d_req_2 = TLV.decode_bytearray(decrypted_data)
+            d_req_2 = TLV.decode_bytearray(bytearray(decrypted_data))
 
             # 3) Derive ios_device_x
             shared_secret = self.server.sessions[self.session_id][
@@ -1533,9 +1533,8 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 self.server.sessions[self.session_id]["session_key"]
             ).encrypt(
                 b"",
-                b"PS-Msg06",
-                bytes([0, 0, 0, 0]),
-                sub_tlv_b,
+                NONCE_PADDING + b"PS-Msg06",
+                bytes(sub_tlv_b),
             )
 
             # 7) send response

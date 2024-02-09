@@ -20,6 +20,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import AsyncIterable, Awaitable, Iterable
 from dataclasses import dataclass
 from datetime import timedelta
+from enum import Enum
 import logging
 from typing import Any, Callable, TypedDict, final
 
@@ -39,7 +40,6 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractPairingData(TypedDict, total=False):
-
     AccessoryPairingID: str
     AccessoryLTPK: str
     iOSPairingId: str
@@ -51,7 +51,6 @@ class AbstractPairingData(TypedDict, total=False):
 
 @dataclass
 class AbstractDescription:
-
     name: str
     id: str
     status_flags: StatusFlags
@@ -59,8 +58,13 @@ class AbstractDescription:
     category: Categories
 
 
-class AbstractPairing(metaclass=ABCMeta):
+class TransportType(Enum):
+    IP = "ip"
+    COAP = "coap"
+    BLE = "ble"
 
+
+class AbstractPairing(metaclass=ABCMeta):
     # The current discovery information for this pairing.
     # This can be used to detect address changes, s# changes, c# changes, etc
     description: AbstractDescription | None = None
@@ -137,6 +141,13 @@ class AbstractPairing(metaclass=ABCMeta):
             return None
         return self._accessories_state.broadcast_key
 
+    @property
+    def state_num(self) -> bytes | None:
+        """Returns gsn that is saved between restarts."""
+        if not self._accessories_state:
+            return None
+        return self._accessories_state.state_num
+
     @abstractmethod
     async def _process_disconnected_events(self):
         """Process any disconnected events that are available."""
@@ -206,15 +217,20 @@ class AbstractPairing(metaclass=ABCMeta):
             )
             return
         config_num = cache.get("config_num", 0)
+        state_num = cache.get("state_num")
         broadcast_key_hex = cache.get("broadcast_key")
         accessories = Accessories.from_list(cache["accessories"])
         self._accessories_state = AccessoriesState(
-            accessories, config_num, deserialize_broadcast_key(broadcast_key_hex)
+            accessories,
+            config_num,
+            deserialize_broadcast_key(broadcast_key_hex),
+            state_num,
         )
         logger.debug(
-            "%s: Accessories cache loaded (c#: %d) (has broadcast_key: %s)",
+            "%s: Accessories cache loaded (c#: %d) (gsn: %s) (has broadcast_key: %s)",
             self.name,
             config_num,
+            state_num,  # May be None
             bool(broadcast_key_hex),
         )
 
@@ -223,11 +239,12 @@ class AbstractPairing(metaclass=ABCMeta):
         accessories: list[dict[str, Any]],
         config_num: int,
         broadcast_key: bytes | None,
+        state_num: int | None = None,
     ) -> None:
         """Restore accessories from cache."""
         accessories = Accessories.from_list(accessories)
         self._accessories_state = AccessoriesState(
-            accessories, config_num, broadcast_key
+            accessories, config_num, broadcast_key, state_num
         )
         self._update_accessories_state_cache()
 
@@ -238,6 +255,7 @@ class AbstractPairing(metaclass=ABCMeta):
             self.config_num,
             self.accessories.serialize(),
             serialize_broadcast_key(self.broadcast_key),
+            self.state_num,
         )
 
     async def get_primary_name(self) -> str:
@@ -252,6 +270,13 @@ class AbstractPairing(metaclass=ABCMeta):
             service_type=ServicesTypes.ACCESSORY_INFORMATION
         )
         return accessory_info.value(CharacteristicsTypes.NAME, "")
+
+    @abstractmethod
+    async def thread_provision(
+        self,
+        dataset: str,
+    ) -> None:
+        """Provision a device with Thread network credentials."""
 
     @abstractmethod
     async def async_populate_accessories_state(
@@ -388,7 +413,6 @@ FinishPairing = Callable[[str], Awaitable[AbstractPairing]]
 
 
 class AbstractDiscovery(metaclass=ABCMeta):
-
     description: AbstractDescription
 
     @final
@@ -406,7 +430,6 @@ class AbstractDiscovery(metaclass=ABCMeta):
 
 
 class AbstractController(metaclass=ABCMeta):
-
     discoveries: dict[str, AbstractDiscovery]
     pairings: dict[str, AbstractPairing]
     aliases: dict[str, AbstractPairing]
@@ -417,6 +440,10 @@ class AbstractController(metaclass=ABCMeta):
         self.discoveries = {}
 
         self._char_cache = char_cache
+
+    @property
+    def transport_type(self) -> TransportType:
+        raise NotImplementedError(self.transport_type)
 
     @final
     async def __aenter__(self):

@@ -44,6 +44,13 @@ def test_normalize_uuid():
     )
 
 
+def test_normalize_uuid_coap_short():
+    assert (
+        normalize_uuid("45E5011ECB4000A80FF2603DE")
+        == "00000004-5E50-11EC-B400-0A80FF2603DE"
+    )
+
+
 def test_normalize_invalid_uuid():
     with pytest.raises(Exception):
         normalize_uuid("NOT_A_VALID_UUID")

@@ -132,12 +132,23 @@ class IpPairing(ZeroconfPairing):
     async def _ensure_connected(self):
         if self._shutdown:
             return
+        connection = self.connection
         try:
             async with asyncio_timeout(10):
-                await self.connection.ensure_connection()
+                await connection.ensure_connection()
         except asyncio.TimeoutError:
+            last_connector_error = connection.last_connector_error
+            if not last_connector_error or isinstance(
+                last_connector_error, asyncio.TimeoutError
+            ):
+                raise AccessoryDisconnectedError(
+                    f"Timeout while waiting for connection to device {self.connection.host}:{self.connection.port}"
+                )
+            # The exception name is included since otherwise the error message
+            # is not very helpful as it could be something like `step 3`
             raise AccessoryDisconnectedError(
-                f"Timeout while waiting for connection to device {self.connection.host}:{self.connection.port}"
+                f"Error while connecting to device {self.connection.host}:{self.connection.port}: "
+                f"{last_connector_error} ({type(last_connector_error).__name__})"
             )
 
         if not self.connection.is_connected:
@@ -299,19 +310,25 @@ class IpPairing(ZeroconfPairing):
             # If there is a response it means something failed so
             # we need to remove the listener update for the failed
             # characteristics.
-            for characteristic in response:
+            for characteristic in response["characteristics"]:
                 aid, iid = characteristic["aid"], characteristic["iid"]
                 key = (aid, iid)
                 status = characteristic["status"]
                 status_code = to_status_code(status).description
                 if status_code != HapStatusCode.SUCCESS:
-                    listener_update.pop(key)
+                    listener_update.pop(key, None)
                 response_status[key] = {"status": status, "description": status_code}
 
         if listener_update:
             self._callback_listeners(listener_update)
 
         return response_status
+
+    async def thread_provision(
+        self,
+        dataset: str,
+    ) -> None:
+        """Provision a device with Thread network credentials."""
 
     async def subscribe(self, characteristics):
         await super().subscribe(set(characteristics))

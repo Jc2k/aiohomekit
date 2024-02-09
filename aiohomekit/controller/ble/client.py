@@ -18,12 +18,12 @@ from __future__ import annotations
 from collections.abc import Generator
 import logging
 import random
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, cast
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
 
-from aiohomekit.controller.ble.key import DecryptionKey, EncryptionKey
+from aiohomekit.controller.ble.key import DecryptionError, DecryptionKey, EncryptionKey
 from aiohomekit.exceptions import EncryptionError
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import (
@@ -35,7 +35,11 @@ from aiohomekit.pdu import (
 )
 from aiohomekit.protocol.tlv import TLV
 
-from .bleak import AIOHomeKitBleakClient
+from .bleak import (
+    AIOHomeKitBleakClient,
+    BleakCharacteristicMissing,
+    BleakServiceMissing,
+)
 from .const import AdditionalParameterTypes
 from .structs import BleRequest
 
@@ -56,6 +60,32 @@ class PDUStatusError(Exception):
         """Initialize a PDUStatusError."""
         super().__init__(message)
         self.status = status
+
+
+def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
+    """Define a wrapper to disconnect on missing services and characteristics.
+
+    This must be placed after the retry_bluetooth_connection_error
+    decorator.
+    """
+
+    async def _async_disconnect_on_missing_services_wrap(
+        self, *args: Any, **kwargs: Any
+    ) -> None:
+        try:
+            return await func(self, *args, **kwargs)
+        except (BleakServiceMissing, BleakCharacteristicMissing) as ex:
+            logger.warning(
+                "%s: Missing service or characteristic, disconnecting to force refetch of GATT services: %s",
+                self.name,
+                ex,
+            )
+            if self.client:
+                await self.client.clear_cache()
+                await self.client.disconnect()
+            raise
+
+    return cast(WrapFuncType, _async_disconnect_on_missing_services_wrap)
 
 
 async def ble_request(
@@ -89,16 +119,19 @@ async def _write_pdu(
     # Wrap data in one or more PDU's split at fragment_size
     # And write each one to the target characteristic handle
     writes = []
+    debug = logger.isEnabledFor(logging.DEBUG)
     for data in encode_pdu(opcode, tid, iid, data, fragment_size):
-        logger.debug("Queuing fragment for write: %s", data)
+        if debug:
+            logger.debug("Queuing fragment for write: %s", data)
         if encryption_key:
-            data = encryption_key.encrypt(data)
+            data = encryption_key.encrypt(bytes(data))
         writes.append(data)
 
+    response = "write-without-response" not in handle.properties
     for write in writes:
-        await client.write_gatt_char(
-            handle, write, "write-without-response" not in handle.properties
-        )
+        if debug:
+            logger.debug("Writing fragment: %s", write)
+        await client.write_gatt_char(handle, write, response)
 
 
 async def _read_pdu(
@@ -110,11 +143,14 @@ async def _read_pdu(
     """Read a PDU from a characteristic."""
     data = await client.read_gatt_char(handle)
     if decryption_key:
-        data = decryption_key.decrypt(data)
-        if data is False:
+        try:
+            data = decryption_key.decrypt(bytes(data))
+        except DecryptionError:
             raise EncryptionError("Decryption failed")
 
-    logger.debug("Read fragment: %s", data)
+    debug = logger.isEnabledFor(logging.DEBUG)
+    if debug:
+        logger.debug("Read fragment: %s", data)
 
     # Validate the PDU header
     status, expected_length, data = decode_pdu(tid, data)
@@ -128,10 +164,12 @@ async def _read_pdu(
     while len(data) < expected_length:
         next = await client.read_gatt_char(handle)
         if decryption_key:
-            next = decryption_key.decrypt(next)
-            if next is False:
+            try:
+                next = decryption_key.decrypt(bytes(next))
+            except DecryptionError:
                 raise EncryptionError("Decryption failed")
-        logger.debug("Read fragment: %s", next)
+        if debug:
+            logger.debug("Read fragment: %s", next)
 
         data += decode_pdu_continuation(tid, next)
 
@@ -184,7 +222,7 @@ async def _pairing_char_write(
 
     for _ in range(MAX_REASSEMBLY):
         data = await char_write(client, None, None, handle, iid, next_write)
-        decoded = dict(TLV.decode_bytearray(data))
+        decoded = dict(TLV.decode_bytearray(bytearray(data)))
         if TLV.kTLVType_FragmentLast in decoded:
             logger.debug("%s: Reassembling final fragment", client.address)
             buffer.extend(decoded[TLV.kTLVType_FragmentLast])

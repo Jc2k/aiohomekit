@@ -55,6 +55,6 @@ def normalize_uuid(value: str) -> str:
     # Handle cases like 34AB8811AC7F4340BAC3FD6A85F9943B
     # Reject the rest
     try:
-        return str(UUID(value)).upper()
+        return str(UUID(value.zfill(32))).upper()
     except ValueError:
         raise ValueError(f"{value} doesn't look like a valid UUID or short UUID")

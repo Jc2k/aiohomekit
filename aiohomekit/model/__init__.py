@@ -54,7 +54,6 @@ NEEDS_POLLINGS_CHARS = {
 
 
 class Transport(Enum):
-
     BLE = "ble"
     COAP = "coap"
     IP = "ip"
@@ -64,6 +63,7 @@ class Services:
     def __init__(self):
         self._services: list[Service] = []
         self._iid_to_service: dict[int, Service] = {}
+        self._type_to_service: dict[str, Service] = {}
 
     def __iter__(self) -> Iterator[Service]:
         return iter(self._services)
@@ -123,6 +123,14 @@ class Services:
         parent_service: Service = None,
         child_service: Service = None,
     ) -> Service:
+        if (
+            service_type is not None
+            and characteristics is None
+            and parent_service is None
+            and child_service is None
+        ):
+            return self._type_to_service.get(normalize_uuid(service_type))
+
         try:
             return next(
                 self.filter(
@@ -138,6 +146,8 @@ class Services:
     def append(self, service: Service):
         self._services.append(service)
         self._iid_to_service[service.iid] = service
+        if service.type not in self._type_to_service:
+            self._type_to_service[service.type] = service
 
 
 class Characteristics:
@@ -149,11 +159,13 @@ class Characteristics:
 
 
 class Accessory:
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize a new accessory."""
         self.aid = get_id()
         self._next_id = 0
         self.services = Services()
         self.characteristics = Characteristics(self.services)
+        self._accessory_information: Service | None = None
 
     @classmethod
     def create_with_info(
@@ -186,7 +198,11 @@ class Accessory:
     @property
     def accessory_information(self) -> Service:
         """Returns the ACCESSORY_INFORMATION service for this accessory."""
-        return self.services.first(service_type=ServicesTypes.ACCESSORY_INFORMATION)
+        if self._accessory_information is None:
+            self._accessory_information = self.services.first(
+                service_type=ServicesTypes.ACCESSORY_INFORMATION
+            )
+        return self._accessory_information
 
     @property
     def name(self) -> str:
@@ -309,7 +325,6 @@ class Accessory:
 
 
 class Accessories:
-
     accessories: list[Accessory]
 
     def __init__(self) -> None:
@@ -351,8 +366,11 @@ class Accessories:
     def aid(self, aid: int) -> Accessory:
         return self._aid_to_accessory[aid]
 
+    def has_aid(self, aid: int) -> bool:
+        return aid in self._aid_to_accessory
+
     def process_changes(self, changes: dict[tuple[int, int], Any]) -> None:
-        for ((aid, iid), value) in changes.items():
+        for (aid, iid), value in changes.items():
             accessory = self.aid(aid)
             if not accessory:
                 continue
@@ -369,7 +387,7 @@ class Accessories:
 
 @dataclass
 class AccessoriesState:
-
     accessories: Accessories
     config_num: int
     broadcast_key: bytes | None = None
+    state_num: int | None = None

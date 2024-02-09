@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class HomeKitAdvertisement(AbstractDescription):
-
     setup_hash: bytes
     address: str
     state_num: int
@@ -57,6 +56,22 @@ class HomeKitAdvertisement(AbstractDescription):
         )
 
     @classmethod
+    def from_cache(
+        cls, address: str, id: str, config_num: int, state_num: int
+    ) -> HomeKitAdvertisement:
+        """Create a HomeKitAdvertisement from a cache entry."""
+        return cls(
+            name=address,
+            id=id,
+            category=Categories(0),
+            status_flags=StatusFlags(0),
+            config_num=config_num,
+            state_num=state_num,
+            setup_hash=b"",
+            address=address,
+        )
+
+    @classmethod
     def from_advertisement(
         cls, device: BLEDevice, advertisement_data: AdvertisementData
     ) -> HomeKitAdvertisement:
@@ -68,7 +83,6 @@ class HomeKitAdvertisement(AbstractDescription):
 
 @dataclass
 class HomeKitEncryptedNotification:
-
     name: str
     address: str
     id: str

@@ -19,7 +19,7 @@ import enum
 __all__ = ["HttpContentTypes", "HttpStatusCodes"]
 
 
-class HttpContentTypes(str, enum.Enum):
+class HttpContentTypes(enum.Enum):
     """
     Collection of HTTP content types as used in HTTP headers
     """

@@ -23,6 +23,7 @@ import logging
 
 from aiohomekit import exceptions
 from aiohomekit.characteristic_cache import CharacteristicCacheMemory
+from aiohomekit.controller import TransportType
 from aiohomekit.controller.abstract import (
     AbstractController,
     AbstractDiscovery,
@@ -48,7 +49,6 @@ FAKE_CAMERA_IMAGE = (
 
 @dataclass
 class FakeDescription:
-
     name: str = "TestDevice"
     id: str = "00:00:00:00:00:00"
     model: str = "TestDevice"
@@ -59,7 +59,6 @@ class FakeDescription:
 
 
 class FakeDiscovery(AbstractDiscovery):
-
     description = FakeDescription()
 
     def __init__(
@@ -163,7 +162,7 @@ class PairingTester:
 
     def update_aid_iid(self, characteristics):
         changed = []
-        for (aid, iid, value) in characteristics:
+        for aid, iid, value in characteristics:
             self.characteristics[(aid, iid)].set_value(value)
             changed.append((aid, iid))
 
@@ -174,7 +173,7 @@ class PairingTester:
             return
 
         event = {}
-        for (aid, iid) in changed:
+        for aid, iid in changed:
             if (aid, iid) not in self.pairing.subscriptions:
                 continue
             event[(aid, iid)] = {"value": self.characteristics[(aid, iid)].get_value()}
@@ -224,7 +223,12 @@ class FakePairing(AbstractPairing):
 
     @property
     def transport(self) -> Transport:
-        return Transport.IP
+        transport_type = self.pairing_data.get("Connection", "IP")
+        return {
+            "BLE": Transport.BLE,
+            "CoAP": Transport.COAP,
+            "IP": Transport.IP,
+        }.get(transport_type, Transport.IP)
 
     @property
     def poll_interval(self) -> timedelta:
@@ -300,7 +304,7 @@ class FakePairing(AbstractPairing):
 
         filtered = []
         results = {}
-        for (aid, cid, value) in characteristics:
+        for aid, cid, value in characteristics:
             accessory = self.accessories.aid(aid)
             char = accessory.characteristics.iid(cid)
             if char.status != HapStatusCode.SUCCESS:
@@ -309,6 +313,12 @@ class FakePairing(AbstractPairing):
             filtered.append((aid, cid, value))
         self.testing.update_aid_iid(filtered)
         return results
+
+    async def thread_provision(
+        self,
+        dataset: str,
+    ) -> None:
+        pass
 
     async def image(self, accessory: int, width: int, height: int) -> bytes:
         self._ensure_connected()
@@ -328,6 +338,8 @@ class FakeController(AbstractController):
     discoveries: dict[str, FakeDiscovery]
     pairings: dict[str, FakePairing]
     aliases: dict[str, FakePairing]
+
+    transport_type = TransportType.IP
 
     def __init__(
         self, async_zeroconf_instance=None, char_cache=None, bleak_scanner_instance=None
@@ -362,7 +374,7 @@ class FakeController(AbstractController):
         for discovery in self.discoveries.values():
             yield discovery
 
-    async def async_find(self, device_id, max_seconds=10) -> AbstractDiscovery:
+    async def async_find(self, device_id, timeout=10) -> AbstractDiscovery:
         try:
             return self.discoveries[device_id]
         except KeyError:
@@ -377,4 +389,6 @@ class FakeController(AbstractController):
     def load_pairing(self, alias: str, pairing_data):
         # This assumes a test has already preseed self.pairings with a fake via
         # add_paired_device
-        return self.aliases[alias]
+        pairing = self.aliases[alias]
+        pairing.pairing_data = pairing_data
+        return pairing

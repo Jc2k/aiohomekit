@@ -125,6 +125,9 @@ def test_get_by_iid():
     name = "Hue dimmer switch button 3"
 
     bridge = Accessories.from_file("tests/fixtures/hue_bridge.json")
+    assert bridge.has_aid(6623462389072572) is True
+    assert bridge.has_aid(9999) is False
+
     accessory = bridge.aid(6623462389072572)
 
     char = accessory.characteristics.iid(588410716196)
@@ -153,6 +156,18 @@ def test_get_by_vendor_characteristic_types():
         char_types=[CharacteristicsTypes.VENDOR_VOCOLINC_HUMIDIFIER_SPRAY_LEVEL]
     )
     assert char.value == spray_level
+
+
+def test_get_by_service_type_is_normalized():
+    """Test we can get a service by a normalized service type."""
+    a = Accessories.from_file("tests/fixtures/vocolinc_flowerbud.json").aid(1)
+
+    service = a.services.first(
+        service_type=ServicesTypes.HUMIDIFIER_DEHUMIDIFIER.lower(),
+    )
+
+    found = service.has(CharacteristicsTypes.VENDOR_VOCOLINC_HUMIDIFIER_SPRAY_LEVEL)
+    assert found is True
 
 
 def test_get_by_linked():

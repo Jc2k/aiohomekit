@@ -37,6 +37,15 @@ from .permissions import CharacteristicPermissions
 from .types import CharacteristicShortUUID, CharacteristicUUID
 from .units import CharacteristicUnits
 
+EVENT_CHARACTERISTICS = {
+    CharacteristicsTypes.INPUT_EVENT,
+    CharacteristicsTypes.BUTTON_EVENT,
+}
+"""These characteristics are marked as [pr,ev] but make no sense to poll.
+
+Doing so can cause phantom triggers.
+"""
+
 __all__ = [
     "Characteristic",
     "CharacteristicFormats",
@@ -59,4 +68,5 @@ __all__ = [
     "SwingModeValues",
     "CurrentHeaterCoolerStateValues",
     "TargetHeaterCoolerStateValues",
+    "EVENT_CHARACTERISTICS",
 ]

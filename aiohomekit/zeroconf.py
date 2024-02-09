@@ -21,11 +21,17 @@ from abc import abstractmethod
 import asyncio
 from collections.abc import AsyncIterable
 from dataclasses import dataclass
-from ipaddress import ip_address
 import logging
 
-import async_timeout
-from zeroconf import DNSPointer, ServiceListener, ServiceStateChange, Zeroconf
+from zeroconf import (
+    BadTypeInNameException,
+    DNSPointer,
+    IPVersion,
+    ServiceListener,
+    ServiceStateChange,
+    Zeroconf,
+    current_time_millis,
+)
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
@@ -39,7 +45,7 @@ from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
 
-from .debounce import Debouncer
+from .utils import async_create_task, asyncio_timeout
 
 HAP_TYPE_TCP = "_hap._tcp.local."
 HAP_TYPE_UDP = "_hap._udp.local."
@@ -51,33 +57,8 @@ _TIMEOUT_MS = 3000
 logger = logging.getLogger(__name__)
 
 
-def _first_non_link_local_address(
-    addresses: list[bytes] | list[str],
-) -> str | None:
-    """Return the first ipv6 or non-link local ipv4 address, preferring IPv4."""
-    for address in addresses:
-        ip_addr = ip_address(address)
-        if (
-            not ip_addr.is_link_local
-            and not ip_addr.is_unspecified
-            and ip_addr.version == 4
-        ):
-            return str(ip_addr)
-    # If we didn't find a good IPv4 address, check for IPv6 addresses.
-    for address in addresses:
-        ip_addr = ip_address(address)
-        if (
-            not ip_addr.is_link_local
-            and not ip_addr.is_unspecified
-            and ip_addr.version == 6
-        ):
-            return str(ip_addr)
-    return None
-
-
-@dataclass
+@dataclass(slots=True)
 class HomeKitService:
-
     name: str
     id: str
     model: str
@@ -96,8 +77,25 @@ class HomeKitService:
 
     @classmethod
     def from_service_info(cls, service: AsyncServiceInfo) -> HomeKitService:
-        if not (addresses := service.parsed_addresses()):
+        if not (addresses := service.ip_addresses_by_version(IPVersion.All)):
             raise ValueError("Invalid HomeKit Zeroconf record: Missing address")
+
+        address: str | None = None
+        #
+        # Zeroconf addresses are guaranteed to be returned in LIFO (last in, first out)
+        # order with IPv4 addresses first and IPv6 addresses second.
+        #
+        # This means the first address will always be the most recently added
+        # address of the given IP version.
+        #
+        for ip_addr in addresses:
+            if not ip_addr.is_link_local and not ip_addr.is_unspecified:
+                address = str(ip_addr)
+                break
+        if not address:
+            raise ValueError(
+                "Invalid HomeKit Zeroconf record: Missing non-link-local or unspecified address"
+            )
 
         props: dict[str, str] = {
             k.decode("utf-8").lower(): v.decode("utf-8")
@@ -118,8 +116,8 @@ class HomeKitService:
             category=Categories(int(props.get("ci", 1))),
             protocol_version=props.get("pv", "1.0"),
             type=service.type,
-            address=_first_non_link_local_address(addresses),
-            addresses=addresses,
+            address=address,
+            addresses=[str(ip_addr) for ip_addr in addresses],
             port=service.port,
         )
 
@@ -149,7 +147,6 @@ def find_brower_for_hap_type(azc: AsyncZeroconf, hap_type: str) -> AsyncServiceB
 
 
 class ZeroconfDiscovery(AbstractDiscovery):
-
     description: HomeKitService
 
     def __init__(self, description: HomeKitService):
@@ -213,7 +210,9 @@ class ZeroconfController(AbstractController):
         super().__init__(char_cache)
         self._async_zeroconf_instance = zeroconf_instance
         self._waiters: dict[str, list[asyncio.Future]] = {}
-        self._debouncers: dict[str, Debouncer] = {}
+        self._resolve_later: dict[str, asyncio.TimerHandle] = {}
+        self._loop = asyncio.get_running_loop()
+        self._running = True
 
     async def async_start(self):
         zc = self._async_zeroconf_instance.zeroconf
@@ -230,13 +229,17 @@ class ZeroconfController(AbstractController):
 
     async def _async_update_from_cache(self, zc: Zeroconf) -> None:
         """Load the records from the cache."""
-        infos = [
-            AsyncServiceInfo(self.hap_type, record.alias)
-            for record in self._async_get_ptr_records(zc)
-        ]
-        tasks = []
-        for info in infos:
-            if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
+        tasks: list[asyncio.Task] = []
+        now = current_time_millis()
+        for record in self._async_get_ptr_records(zc):
+            try:
+                info = AsyncServiceInfo(self.hap_type, record.alias)
+            except BadTypeInNameException as ex:
+                logger.debug(
+                    "Ignoring record with bad type in name: %s: %s", record.alias, ex
+                )
+                continue
+            if info.load_from_cache(zc, now):
                 self._async_handle_loaded_service_info(info)
             else:
                 tasks.append(self._async_handle_service(info))
@@ -254,33 +257,52 @@ class ZeroconfController(AbstractController):
         service_type: str,
         name: str,
         state_change: ServiceStateChange,
-    ):
+    ) -> None:
         if service_type != self.hap_type:
             return
 
-        if not (debouncer := self._debouncers.get(name)):
-            info = AsyncServiceInfo(service_type, name)
-
-            async def _async_handle_service():
-                if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
-                    self._async_handle_loaded_service_info(info)
-                else:
-                    await self._async_handle_service(info)
-
-            debouncer = self._debouncers[name] = Debouncer(
-                logger,
-                cooldown=0.5,
-                immediate=False,
-                function=_async_handle_service,
-            )
-
-        debouncer.async_trigger()
-
         if state_change == ServiceStateChange.Removed:
-            self._debouncers.pop(name, None)
+            if cancel := self._resolve_later.pop(name, None):
+                cancel.cancel()
+            return
+
+        if name in self._resolve_later:
+            # We already have a timer to resolve this service, so ignore this
+            # callback.
+            return
+
+        try:
+            info = AsyncServiceInfo(service_type, name)
+        except BadTypeInNameException as ex:
+            logger.debug("Ignoring record with bad type in name: %s: %s", name, ex)
+            return
+
+        self._resolve_later[name] = self._loop.call_at(
+            self._loop.time() + 0.5, self._async_resolve_later, name, info
+        )
+
+    def _async_resolve_later(self, name: str, info: AsyncServiceInfo) -> None:
+        """Resolve a host later."""
+        # As soon as we get a callback, we can remove the _resolve_later
+        # so the next time we get a callback, we can resolve the service
+        # again if needed which ensures the TTL is respected.
+        self._resolve_later.pop(name, None)
+
+        if not self._running:
+            return
+
+        if info.load_from_cache(self._async_zeroconf_instance.zeroconf):
+            self._async_handle_loaded_service_info(info)
+        else:
+            async_create_task(self._async_handle_service(info))
 
     async def async_stop(self):
+        """Stop the controller."""
+        self._running = False
         self._browser.service_state_changed.unregister_handler(self._handle_service)
+        while self._resolve_later:
+            _, cancel = self._resolve_later.popitem()
+            cancel.cancel()
 
     async def async_find(
         self, device_id: str, timeout: float = 10.0
@@ -291,11 +313,11 @@ class ZeroconfController(AbstractController):
             return discovery
 
         waiters = self._waiters.setdefault(device_id, [])
-        waiter = asyncio.Future()
+        waiter = asyncio.get_running_loop().create_future()
         waiters.append(waiter)
 
         try:
-            async with async_timeout.timeout(timeout):
+            async with asyncio_timeout(timeout):
                 if discovery := await waiter:
                     return discovery
         except asyncio.TimeoutError:
@@ -340,7 +362,8 @@ class ZeroconfController(AbstractController):
 
         if waiters := self._waiters.pop(description.id, None):
             for waiter in waiters:
-                waiter.set_result(discovery)
+                if not waiter.cancelled():
+                    waiter.set_result(discovery)
 
     @abstractmethod
     def _make_discovery(self, description: HomeKitService) -> AbstractDiscovery:
