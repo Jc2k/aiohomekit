@@ -172,7 +172,7 @@ class CoAPPairing(ZeroconfPairing):
         )
         self._callback_and_save_config_changed(config_num)
 
-    async def _process_disconnected_events(self):
+    def _process_disconnected_events(self):
         """Process any events that happened while we were disconnected.
 
         We don't disconnect in COAP so there is no need to do anything here.

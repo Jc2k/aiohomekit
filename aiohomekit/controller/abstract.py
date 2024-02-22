@@ -149,7 +149,7 @@ class AbstractPairing(metaclass=ABCMeta):
         return self._accessories_state.state_num
 
     @abstractmethod
-    async def _process_disconnected_events(self):
+    def _process_disconnected_events(self):
         """Process any disconnected events that are available."""
 
     def _callback_listeners(self, event):
@@ -203,7 +203,7 @@ class AbstractPairing(metaclass=ABCMeta):
                     "%s: Disconnected event notification received; Triggering catch-up poll",
                     self.name,
                 )
-                async_create_task(self._process_disconnected_events())
+                self._process_disconnected_events()
 
         self.description = description
 
