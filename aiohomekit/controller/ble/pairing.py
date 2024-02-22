@@ -596,7 +596,7 @@ class BlePairing(AbstractPairing):
             self._derive = derive
 
     def _process_disconnected_events(self) -> None:
-        async_create_task(self._async_process_disconnected_events)
+        async_create_task(self._async_process_disconnected_events())
 
     async def _async_process_disconnected_events(self) -> None:
         """Handle disconnected events seen from the advertisement."""
