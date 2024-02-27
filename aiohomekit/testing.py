@@ -331,7 +331,7 @@ class FakePairing(AbstractPairing):
         self,
         dataset: str,
     ) -> None:
-        pass
+        self.pairing_data["Connection"] = "CoAP"
 
     async def image(self, accessory: int, width: int, height: int) -> bytes:
         self._ensure_connected()
