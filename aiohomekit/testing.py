@@ -331,7 +331,10 @@ class FakePairing(AbstractPairing):
         self,
         dataset: str,
     ) -> None:
+        # This ultimately needs refactoring so that we can have multiple test transports loaded
+        # rather than patching this one to be COAP.
         self.pairing_data["Connection"] = "CoAP"
+        self.controller.transport_type = TransportType.COAP
 
     async def image(self, accessory: int, width: int, height: int) -> bytes:
         self._ensure_connected()
