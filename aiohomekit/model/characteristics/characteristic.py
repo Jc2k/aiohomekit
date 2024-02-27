@@ -192,7 +192,14 @@ class Characteristic:
 
     @property
     def value(self) -> Any:
-        extra_data = characteristics.get(self.type, {})
+        """Get the value of the characteristic.
+
+        If the characteristic is a tlv8, decodes the struct
+
+        If the characteristic is an enum, returns the enum value
+        """
+        if not (extra_data := characteristics.get(self.type)):
+            return self._value
 
         if self.format == CharacteristicFormats.tlv8:
             new_val = base64.b64decode(self._value)
