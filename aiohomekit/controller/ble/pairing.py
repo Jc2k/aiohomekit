@@ -595,7 +595,10 @@ class BlePairing(AbstractPairing):
             self._session_id = session_id
             self._derive = derive
 
-    async def _process_disconnected_events(self) -> None:
+    def _process_disconnected_events(self) -> None:
+        async_create_task(self._async_process_disconnected_events())
+
+    async def _async_process_disconnected_events(self) -> None:
         """Handle disconnected events seen from the advertisement."""
         if not self._tried_to_connect_once:
             # We never tried connected to the accessory, so we don't need to
@@ -664,7 +667,7 @@ class BlePairing(AbstractPairing):
                 self.name,
                 data,
             )
-            async_create_task(self._process_disconnected_events())
+            self._process_disconnected_events()
             return
 
         if not self.description:
@@ -741,7 +744,7 @@ class BlePairing(AbstractPairing):
             self.name,
             data,
         )
-        async_create_task(self._process_disconnected_events())
+        self._process_disconnected_events()
 
     def _async_get_service_signature_char(self) -> Characteristic | None:
         """Get the service signature characteristic."""
