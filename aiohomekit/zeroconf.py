@@ -341,7 +341,10 @@ class ZeroconfController(AbstractController):
         see the device as reachable for up to 120 seconds after it has been
         removed from the network if it does not send a goodbye packet.
         """
-        discovery = await self.async_find(device_id, timeout)
+        try:                  
+            discovery = await self.async_find(device_id, timeout)
+        except AccessoryNotFoundError:
+            return False
         alias = f"{discovery.description.name}.{self.hap_type}"
         info = AsyncServiceInfo(self.hap_type, alias)
         zc = self._async_zeroconf_instance.zeroconf
