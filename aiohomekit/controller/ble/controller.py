@@ -24,7 +24,6 @@ from aiohomekit.controller.ble.manufacturer_data import (
 )
 from aiohomekit.controller.ble.pairing import BlePairing
 from aiohomekit.exceptions import AccessoryNotFoundError
-from aiohomekit.utils import asyncio_timeout
 
 from .discovery import BleDiscovery
 
