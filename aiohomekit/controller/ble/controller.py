@@ -145,10 +145,9 @@ class BleController(AbstractController):
 
     async def async_reachable(self, device_id: str, timeout: float = 10) -> bool:
         """Check if a device is reachable on the network."""
-        if not (discovery := self.discoveries.get(device_id)):
-            return False
-        return (
-            discovery.device.address
+        return bool(
+            (discovery := self.discoveries.get(device_id))
+            and discovery.device.address
             in self._scanner.discovered_devices_and_advertisement_data
         )
 
