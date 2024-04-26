@@ -343,12 +343,7 @@ class ZeroconfController(AbstractController):
         """
         discovery = await self.async_find(device_id, timeout)
         alias = f"{discovery.description.name}.{self.hap_type}"
-        try:
-            info = AsyncServiceInfo(self.hap_type, alias)
-        except BadTypeInNameException as ex:
-            raise AccessoryNotFoundError(
-                f"Accessory with device id {device_id} not found"
-            ) from ex
+        info = AsyncServiceInfo(self.hap_type, alias)
         zc = self._async_zeroconf_instance.zeroconf
         return info.load_from_cache(zc) or await info.async_request(zc, _TIMEOUT_MS)
 
