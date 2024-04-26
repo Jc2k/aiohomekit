@@ -145,6 +145,9 @@ class Controller(AbstractController):
 
         raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
 
+    async def async_reachable(self, device_id: str, timeout=10) -> bool:
+        raise NotImplementedError()
+
     async def async_discover(self, timeout=10) -> AsyncIterable[AbstractDiscovery]:
         for transport in self.transports.values():
             async for device in transport.async_discover():
