@@ -143,6 +143,15 @@ class BleController(AbstractController):
             self._scanner.register_detection_callback(None)
             self._scanner = None
 
+    async def async_reachable(self, device_id: str, timeout: float = 10) -> bool:
+        """Check if a device is reachable on the network."""
+        if not (discovery := self.discoveries.get(device_id)):
+            return False
+        return (
+            discovery.device.address
+            in self._scanner.discovered_devices_and_advertisement_data
+        )
+
     async def async_find(self, device_id: str, timeout: float = 10) -> BleDiscovery:
         if discovery := self.discoveries.get(device_id):
             logger.debug("Discovery for %s already found", device_id)

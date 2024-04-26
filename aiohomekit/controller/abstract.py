@@ -465,6 +465,10 @@ class AbstractController(metaclass=ABCMeta):
         """Find a device by id."""
 
     @abstractmethod
+    async def async_reachable(self, device_id: str, timeout=10) -> bool:
+        """Check if a device is reachable on the network."""
+
+    @abstractmethod
     async def async_discover(self, timeout=10) -> AsyncIterable[AbstractDiscovery]:
         """Discover all devices."""
 

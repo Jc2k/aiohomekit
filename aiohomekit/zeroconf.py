@@ -318,17 +318,46 @@ class ZeroconfController(AbstractController):
             return discovery
 
         waiters = self._waiters.setdefault(device_id, [])
-        waiter = asyncio.get_running_loop().create_future()
+        waiter = self._loop.create_future()
         waiters.append(waiter)
+        cancel_timeout = self._loop.call_later(timeout, self._async_on_timeout, waiter)
 
         try:
-            async with asyncio_timeout(timeout):
-                if discovery := await waiter:
-                    return discovery
+            if discovery := await waiter:
+                return discovery
         except asyncio.TimeoutError:
             raise AccessoryNotFoundError(
                 f"Accessory with device id {device_id} not found"
             )
+        finally:
+            cancel_timeout.cancel()
+
+    async def async_reachable(self, device_id: str, timeout: float = 10.0) -> bool:
+        """Check if a device is reachable.
+
+        This method will return True if the device is reachable, False if it is not.
+
+        Typically A/AAAA records have a TTL of 120 seconds which means we may
+        see the device as reachable for up to 120 seconds after it has been
+        removed from the network if it does not send a goodbye packet.
+        """
+        discovery = await self.async_find(device_id, timeout)
+        alias = f"{discovery.description.name}.{self.hap_type}"
+        try:
+            info = AsyncServiceInfo(self.hap_type, alias)
+        except BadTypeInNameException as ex:
+            raise AccessoryNotFoundError(
+                f"Accessory with device id {device_id} not found"
+            ) from ex
+        return info.load_from_cache(
+            self._async_zeroconf_instance.zeroconf
+        ) or await info.async_request(
+            self._async_zeroconf_instance.zeroconf, _TIMEOUT_MS
+        )
+
+    def _async_on_timeout(self, future: asyncio.Future) -> None:
+        if not future.done():
+            future.set_exception(asyncio.TimeoutError())
 
     async def async_discover(self) -> AsyncIterable[ZeroconfDiscovery]:
         for device in self.discoveries.values():
