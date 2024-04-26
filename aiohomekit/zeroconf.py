@@ -349,11 +349,8 @@ class ZeroconfController(AbstractController):
             raise AccessoryNotFoundError(
                 f"Accessory with device id {device_id} not found"
             ) from ex
-        return info.load_from_cache(
-            self._async_zeroconf_instance.zeroconf
-        ) or await info.async_request(
-            self._async_zeroconf_instance.zeroconf, _TIMEOUT_MS
-        )
+        zc = self._async_zeroconf_instance.zeroconf
+        return info.load_from_cache(zc) or await info.async_request(zc, _TIMEOUT_MS)
 
     def _async_on_timeout(self, future: asyncio.Future) -> None:
         if not future.done():
