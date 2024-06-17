@@ -89,9 +89,10 @@ async def test_update_named_service_events():
     assert accessories.aid(1).characteristics.iid(8).value == 1
 
 
-async def test_update_named_service_events_manual_accessory():
+async def test_update_named_service_events_manual_accessory(id_factory):
     accessories = Accessories()
     accessory = Accessory.create_with_info(
+        id_factory(),
         name="TestLight",
         manufacturer="Test Mfr",
         model="Test Bulb",
@@ -117,9 +118,10 @@ async def test_update_named_service_events_manual_accessory():
     ]
 
 
-async def test_update_named_service_events_manual_accessory_auto_requires():
+async def test_update_named_service_events_manual_accessory_auto_requires(id_factory):
     accessories = Accessories()
     accessory = Accessory.create_with_info(
+        id_factory(),
         name="TestLight",
         manufacturer="Test Mfr",
         model="Test Bulb",
