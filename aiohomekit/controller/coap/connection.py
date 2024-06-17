@@ -27,6 +27,7 @@ import uuid
 from aiocoap import Context, Message, resource
 from aiocoap.error import NetworkError
 from aiocoap.numbers.codes import Code
+from aiocoap.numbers.constants import TransportTuning
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
@@ -78,7 +79,7 @@ class EncryptionContext:
     send_ctr: int
     send_ctx: ChaCha20Poly1305
 
-    def __init__(self, recv_ctx, send_ctx, event_ctx, uri, coap_ctx):
+    def __init__(self, recv_ctx, send_ctx, event_ctx, uri, coap_ctx, transport_tuning):
         self.recv_ctr = 0
         self.recv_ctx = recv_ctx
         self.send_ctr = 0
@@ -89,6 +90,7 @@ class EncryptionContext:
         self.coap_ctx = coap_ctx
         self.lock = asyncio.Lock()
         self.uri = uri
+        self._transport_tuning = transport_tuning
 
     def decrypt(self, enc_data: bytes) -> bytes:
         logger.debug("DECRYPT counter=%d" % (self.recv_ctr,))
@@ -166,7 +168,12 @@ class EncryptionContext:
             payload = self.encrypt(payload)
 
             try:
-                request = Message(code=Code.POST, payload=payload, uri=self.uri)
+                request = Message(
+                    code=Code.POST,
+                    payload=payload,
+                    uri=self.uri,
+                    transport_tuning=self._transport_tuning,
+                )
                 async with asyncio_timeout(timeout):
                     response = await self.coap_ctx.request(request).response
             except (NetworkError, asyncio.TimeoutError):
@@ -257,6 +264,35 @@ class CoAPHomeKitConnection:
         self.enc_ctx = None
         self.owner = owner
         self.pair_setup_client = None
+        self._transport_tuning = TransportTuning()
+
+    def set_interval(self, interval: int) -> None:
+        """
+        Configure a connection's CoAP parameters based on how sleepy it is.
+
+        We don't expect the interval to change frequently at runtime, maybe it would on e.g. a firmware update.
+        We also don't expect a device to go from sleeping to not sleeping - if its battery powered its sleepy for a reason.
+        """
+        if not interval:
+            # Devicce is not sleepy, don't do anything
+            return
+
+        logger.debug("Setting CoAP parameters for sleep-interval of %d", interval)
+
+        self._transport_tuning.ACK_TIMEOUT = interval / 1000
+
+        # Recalculate these based on new interval
+        self._transport_tuning.MAX_TRANSMIT_SPAN = (
+            self._transport_tuning.ACK_TIMEOUT
+            * (2**self._transport_tuning.MAX_RETRANSMIT - 1)
+            * self._transport_tuning.ACK_RANDOM_FACTOR
+        )
+        self._transport_tuning.MAX_TRANSMIT_WAIT = (
+            self._transport_tuning.ACK_TIMEOUT
+            * (2 ** (self._transport_tuning.MAX_RETRANSMIT + 1) - 1)
+            * self._transport_tuning.ACK_RANDOM_FACTOR
+        )
+        self._transport_tuning.PROCESSING_DELAY = self._transport_tuning.ACK_TIMEOUT
 
     async def reconnect_soon(self):
         if not self.enc_ctx:
@@ -269,7 +305,12 @@ class CoAPHomeKitConnection:
         client = await Context.create_client_context()
         uri = "coap://%s/0" % (self.address)
 
-        request = Message(code=Code.POST, payload=b"", uri=uri)
+        request = Message(
+            code=Code.POST,
+            payload=b"",
+            uri=uri,
+            transport_tuning=self._transport_tuning,
+        )
         async with asyncio_timeout(4.0):
             response = await client.request(request).response
 
@@ -288,7 +329,12 @@ class CoAPHomeKitConnection:
         while True:
             try:
                 payload = TLV.encode_list(request)
-                request = Message(code=Code.POST, payload=payload, uri=uri)
+                request = Message(
+                    code=Code.POST,
+                    payload=payload,
+                    uri=uri,
+                    transport_tuning=self._transport_tuning,
+                )
                 # some operations can take some time
                 async with asyncio_timeout(16.0):
                     response = await self.pair_setup_client.request(request).response
@@ -312,7 +358,12 @@ class CoAPHomeKitConnection:
         while True:
             try:
                 payload = TLV.encode_list(request)
-                request = Message(code=Code.POST, payload=payload, uri=uri)
+                request = Message(
+                    code=Code.POST,
+                    payload=payload,
+                    uri=uri,
+                    transport_tuning=self._transport_tuning,
+                )
                 async with asyncio_timeout(16.0):
                     response = await self.pair_setup_client.request(request).response
 
@@ -350,7 +401,12 @@ class CoAPHomeKitConnection:
         while True:
             try:
                 payload = TLV.encode_list(request)
-                request = Message(code=Code.POST, payload=payload, uri=uri)
+                request = Message(
+                    code=Code.POST,
+                    payload=payload,
+                    uri=uri,
+                    transport_tuning=self._transport_tuning,
+                )
                 async with asyncio_timeout(8.0):
                     response = await coap_client.request(request).response
 
@@ -377,7 +433,7 @@ class CoAPHomeKitConnection:
         uri = "coap://%s/" % (self.address)
 
         self.enc_ctx = EncryptionContext(
-            recv_ctx, send_ctx, event_ctx, uri, coap_client
+            recv_ctx, send_ctx, event_ctx, uri, coap_client, self._transport_tuning
         )
 
         logger.debug(f"Connected to CoAP HAP accessory at {self.address}!")
