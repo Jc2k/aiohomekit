@@ -396,6 +396,9 @@ class FakeController(AbstractController):
         except KeyError:
             raise AccessoryNotFoundError(device_id)
 
+    async def async_reachable(self, device_id: str, timeout=10) -> bool:
+        return True
+
     async def remove_pairing(self, alias: str) -> None:
         pairing = self.aliases[alias]
         del self.pairings[self.aliases[alias].id]

@@ -86,6 +86,30 @@ async def test_discover_find_one(mock_asynczeroconf: AsyncZeroconf):
     assert result.paired is True
 
 
+async def test_async_reachable(mock_asynczeroconf: AsyncZeroconf):
+    controller = IpController(
+        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
+    )
+    with _install_mock_service_info(mock_asynczeroconf, _get_mock_service_info()):
+        async with controller:
+            result = await controller.async_reachable("00:00:01:00:00:02")
+
+    assert result is True
+
+
+async def test_async_reachable_not_reachable(mock_asynczeroconf: AsyncZeroconf):
+    controller = IpController(
+        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
+    )
+    with patch("aiohomekit.zeroconf.AsyncServiceInfo", MockedAsyncServiceInfo):
+        async with controller:
+            result = await controller.async_reachable(
+                "00:00:01:00:00:02", timeout=0.001
+            )
+
+    assert result is False
+
+
 async def test_discover_find_one_unpaired(mock_asynczeroconf: AsyncZeroconf):
     controller = IpController(
         char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
