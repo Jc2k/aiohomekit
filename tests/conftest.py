@@ -82,7 +82,9 @@ def mock_asynczeroconf():
 
 
 @pytest.fixture
-async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_loop, id_factory):
+async def controller_and_unpaired_accessory(
+    request, mock_asynczeroconf, event_loop, id_factory
+):
     available_port = next_available_port()
 
     config_file = tempfile.NamedTemporaryFile(delete=False)
@@ -135,7 +137,9 @@ async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_l
 
 
 @pytest.fixture
-async def controller_and_paired_accessory(request, event_loop, mock_asynczeroconf, id_factory):
+async def controller_and_paired_accessory(
+    request, event_loop, mock_asynczeroconf, id_factory
+):
     available_port = next_available_port()
 
     config_file = tempfile.NamedTemporaryFile(delete=False)
@@ -257,5 +261,5 @@ def id_factory():
         nonlocal id_counter
         id_counter += 1
         return id_counter
-    
+
     yield _get_id
