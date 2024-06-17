@@ -830,8 +830,7 @@ class BlePairing(AbstractPairing):
 
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
-        accessory = Accessory()
-        accessory.aid = 1
+        accessory = Accessory(1)
         # Never use the cache when fetching the GATT database
         services_to_link: list[tuple[Service, list[int]]] = []
         services = self.client.services
