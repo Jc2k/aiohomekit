@@ -597,6 +597,9 @@ class HomeKitConnection:
                 raise TimeoutError("Timeout") from last_exception
             raise ConnectionError(str(last_exception)) from last_exception
 
+        # set keep-alive on the socket to ensure we detect dropped connections
+        # since we don't send keep-alive packets ourselves
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         self.transport, self.protocol = await loop.create_connection(
             lambda: InsecureHomeKitProtocol(self), sock=sock
         )
