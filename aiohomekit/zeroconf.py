@@ -45,7 +45,7 @@ from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
 
-from .utils import async_create_task, asyncio_timeout
+from .utils import async_create_task
 
 HAP_TYPE_TCP = "_hap._tcp.local."
 HAP_TYPE_UDP = "_hap._udp.local."
@@ -318,17 +318,41 @@ class ZeroconfController(AbstractController):
             return discovery
 
         waiters = self._waiters.setdefault(device_id, [])
-        waiter = asyncio.get_running_loop().create_future()
+        waiter = self._loop.create_future()
         waiters.append(waiter)
+        cancel_timeout = self._loop.call_later(timeout, self._async_on_timeout, waiter)
 
         try:
-            async with asyncio_timeout(timeout):
-                if discovery := await waiter:
-                    return discovery
+            if discovery := await waiter:
+                return discovery
         except asyncio.TimeoutError:
             raise AccessoryNotFoundError(
                 f"Accessory with device id {device_id} not found"
             )
+        finally:
+            cancel_timeout.cancel()
+
+    async def async_reachable(self, device_id: str, timeout: float = 10.0) -> bool:
+        """Check if a device is reachable.
+
+        This method will return True if the device is reachable, False if it is not.
+
+        Typically A/AAAA records have a TTL of 120 seconds which means we may
+        see the device as reachable for up to 120 seconds after it has been
+        removed from the network if it does not send a goodbye packet.
+        """
+        try:
+            discovery = await self.async_find(device_id, timeout)
+        except AccessoryNotFoundError:
+            return False
+        alias = f"{discovery.description.name}.{self.hap_type}"
+        info = AsyncServiceInfo(self.hap_type, alias)
+        zc = self._async_zeroconf_instance.zeroconf
+        return info.load_from_cache(zc) or await info.async_request(zc, _TIMEOUT_MS)
+
+    def _async_on_timeout(self, future: asyncio.Future) -> None:
+        if not future.done():
+            future.set_exception(asyncio.TimeoutError())
 
     async def async_discover(self) -> AsyncIterable[ZeroconfDiscovery]:
         for device in self.discoveries.values():
