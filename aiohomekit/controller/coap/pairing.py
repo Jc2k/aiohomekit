@@ -24,7 +24,11 @@ from typing import Any
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Accessories, AccessoriesState, Transport
-from aiohomekit.model.characteristics import CharacteristicPermissions
+from aiohomekit.model.characteristics import (
+    CharacteristicPermissions,
+    CharacteristicsTypes,
+)
+from aiohomekit.model.services import ServicesTypes
 from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
@@ -47,6 +51,32 @@ class CoAPPairing(ZeroconfPairing):
         self.pairing_data = pairing_data
 
         super().__init__(controller, pairing_data)
+
+    def _load_accessories_from_cache(self) -> None:
+        super()._load_accessories_from_cache()
+        self._set_interval_from_accessory_state()
+
+    def restore_accessories_state(
+        self,
+        accessories: list[dict[str, Any]],
+        config_num: int,
+        broadcast_key: bytes | None,
+    ) -> None:
+        super().restore_accessories_state(accessories, config_num, broadcast_key)
+        self._set_interval_from_accessory_state()
+
+    def _set_interval_from_accessory_state(self):
+        """
+        Tune the CoAP connection based on metadata in the accessory
+        runtime information service.
+        """
+        if service := self.accessories.aid(1).services.first(
+            service_type=ServicesTypes.ACCESSORY_RUNTIME_INFORMATION
+        ):
+            if interval := service.characteristics.first(
+                CharacteristicsTypes.SLEEP_INTERVAL
+            ):
+                self.connection.set_interval(interval.value + 1)
 
     def _async_endpoint_changed(self) -> None:
         """The IP/Port has changed, so close connection if active then reconnect."""
