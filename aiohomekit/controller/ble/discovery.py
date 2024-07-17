@@ -51,7 +51,6 @@ logger = logging.getLogger(__name__)
 
 
 class BleDiscovery(AbstractDiscovery):
-
     """
     A discovered BLE HAP device that is unpaired.
     """

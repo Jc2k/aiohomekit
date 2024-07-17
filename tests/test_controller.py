@@ -28,10 +28,10 @@ async def test_passing_in_bleak_to_controller():
 
     Passing in the instance should enable BLE scanning.
     """
-    with patch.object(
-        controller_module, "BLE_TRANSPORT_SUPPORTED", False
-    ), patch.object(controller_module, "COAP_TRANSPORT_SUPPORTED", False), patch.object(
-        controller_module, "IP_TRANSPORT_SUPPORTED", False
+    with (
+        patch.object(controller_module, "BLE_TRANSPORT_SUPPORTED", False),
+        patch.object(controller_module, "COAP_TRANSPORT_SUPPORTED", False),
+        patch.object(controller_module, "IP_TRANSPORT_SUPPORTED", False),
     ):
         controller = Controller(
             bleak_scanner_instance=AsyncMock(register_detection_callback=MagicMock())
@@ -47,10 +47,10 @@ async def test_passing_in_async_zeroconf(mock_asynczeroconf):
 
     Passing in the instance should enable zeroconf scanning.
     """
-    with patch.object(
-        controller_module, "BLE_TRANSPORT_SUPPORTED", False
-    ), patch.object(controller_module, "COAP_TRANSPORT_SUPPORTED", False), patch.object(
-        controller_module, "IP_TRANSPORT_SUPPORTED", False
+    with (
+        patch.object(controller_module, "BLE_TRANSPORT_SUPPORTED", False),
+        patch.object(controller_module, "COAP_TRANSPORT_SUPPORTED", False),
+        patch.object(controller_module, "IP_TRANSPORT_SUPPORTED", False),
     ):
         controller = Controller(async_zeroconf_instance=mock_asynczeroconf)
         await controller.async_start()

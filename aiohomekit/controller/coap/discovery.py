@@ -23,7 +23,6 @@ from .pairing import CoAPPairing
 
 
 class CoAPDiscovery(ZeroconfDiscovery):
-
     """
     A discovered CoAP HAP device that is unpaired.
     """
