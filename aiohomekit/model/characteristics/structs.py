@@ -117,7 +117,6 @@ class VideoConfigConfiguration(TLVStruct):
 
 @dataclass
 class SupportedVideoStreamConfiguration(TLVStruct):
-
     """
     UUID 00000114-0000-1000-8000-0026BB765291
     Type public.hap.characteristic.supported-video-stream-configuration
@@ -128,7 +127,6 @@ class SupportedVideoStreamConfiguration(TLVStruct):
 
 @dataclass
 class SupportedAudioStreamConfiguration(TLVStruct):
-
     """
     UUID 00000115-0000-1000-8000-0026BB765291
     Type public.hap.characteristic.supported-audio-stream-configuration
@@ -140,7 +138,6 @@ class SupportedAudioStreamConfiguration(TLVStruct):
 
 @dataclass
 class SupportedRTPConfiguration(TLVStruct):
-
     """
     UUID 00000116-0000-1000-8000-0026BB765291
     Type public.hap.characteristic.supported-rtp-configuration
@@ -151,7 +148,6 @@ class SupportedRTPConfiguration(TLVStruct):
 
 @dataclass
 class SelectedRTPStreamConfiguration(TLVStruct):
-
     """
     UUID 00000117-0000-1000-8000-0026BB765291
     Type public.hap.characteristic.selected-rtp-stream-configuration

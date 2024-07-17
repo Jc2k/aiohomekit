@@ -16,7 +16,6 @@
 
 
 class CharacteristicsTypes:
-
     """
     All known characteristic types.
 

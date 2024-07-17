@@ -200,7 +200,6 @@ class ZeroconfPairing(AbstractPairing):
 
 
 class ZeroconfController(AbstractController):
-
     """
     Base class for HAP protocols that rely on Zeroconf discovery.
     """

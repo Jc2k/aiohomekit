@@ -28,7 +28,6 @@ from .pairing import IpPairing
 
 
 class IpDiscovery(ZeroconfDiscovery):
-
     """
     A discovered IP HAP device that is unpaired.
     """

@@ -230,7 +230,6 @@ class HttpErrorResponse(AccessoryDisconnectedError):
 
 
 class TimeoutError(ConnectionError):
-
     """Connection timeout."""
 
 

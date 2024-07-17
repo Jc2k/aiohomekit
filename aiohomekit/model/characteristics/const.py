@@ -183,7 +183,6 @@ class VideoCodecTypeValues(enum.IntEnum):
 
 
 class ProfileIDValues(enum.IntEnum):
-
     """
     The type of H.264 profile used.
 
@@ -196,7 +195,6 @@ class ProfileIDValues(enum.IntEnum):
 
 
 class ProfileSupportLevelValues(enum.IntEnum):
-
     """
     3-255 are reserved by Apple.
     """
@@ -220,7 +218,6 @@ class CVOEnabledValues(enum.IntEnum):
 
 
 class AudioCodecValues(enum.IntEnum):
-
     """
     7-255 reserved for Apple.
     """
