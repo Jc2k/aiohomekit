@@ -13,7 +13,7 @@ from zeroconf import DNSCache, SignalRegistrationInterface
 
 from aiohomekit import Controller
 from aiohomekit.controller.ip import IpPairing
-from aiohomekit.model import Accessory, mixin as model_mixin
+from aiohomekit.model import Accessory
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
 
@@ -82,7 +82,9 @@ def mock_asynczeroconf():
 
 
 @pytest.fixture
-async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_loop):
+async def controller_and_unpaired_accessory(
+    request, mock_asynczeroconf, event_loop, id_factory
+):
     available_port = next_available_port()
 
     config_file = tempfile.NamedTemporaryFile(delete=False)
@@ -104,12 +106,9 @@ async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_l
     )
     config_file.close()
 
-    # Make sure get_id() numbers are stable between tests
-    model_mixin.id_counter = 0
-
     httpd = AccessoryServer(config_file.name, None)
     accessory = Accessory.create_with_info(
-        "Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1"
+        id_factory(), "Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1"
     )
     lightBulbService = accessory.add_service(ServicesTypes.LIGHTBULB)
     lightBulbService.add_char(CharacteristicsTypes.ON, value=False)
@@ -138,7 +137,9 @@ async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_l
 
 
 @pytest.fixture
-async def controller_and_paired_accessory(request, event_loop, mock_asynczeroconf):
+async def controller_and_paired_accessory(
+    request, event_loop, mock_asynczeroconf, id_factory
+):
     available_port = next_available_port()
 
     config_file = tempfile.NamedTemporaryFile(delete=False)
@@ -166,12 +167,9 @@ async def controller_and_paired_accessory(request, event_loop, mock_asynczerocon
     config_file.write(data)
     config_file.close()
 
-    # Make sure get_id() numbers are stable between tests
-    model_mixin.id_counter = 0
-
     httpd = AccessoryServer(config_file.name, None)
     accessory = Accessory.create_with_info(
-        "Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1"
+        id_factory(), "Testlicht", "lusiardi.de", "Demoserver", "0001", "0.1"
     )
     lightBulbService = accessory.add_service(ServicesTypes.LIGHTBULB)
     lightBulbService.add_char(CharacteristicsTypes.ON, value=False)
@@ -253,3 +251,15 @@ async def pairings(request, controller_and_paired_accessory, event_loop):
 @pytest.fixture(autouse=True)
 def configure_test_logging(caplog):
     caplog.set_level(logging.DEBUG)
+
+
+@pytest.fixture()
+def id_factory():
+    id_counter = 0
+
+    def _get_id():
+        nonlocal id_counter
+        id_counter += 1
+        return id_counter
+
+    yield _get_id

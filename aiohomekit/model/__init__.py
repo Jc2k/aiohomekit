@@ -34,7 +34,6 @@ from .characteristics import (
     CharacteristicsTypes,
 )
 from .feature_flags import FeatureFlags
-from .mixin import get_id
 from .services import Service, ServicesTypes
 
 __all__ = [
@@ -178,9 +177,9 @@ class Characteristics:
 class Accessory:
     """Represents a HomeKit accessory."""
 
-    def __init__(self) -> None:
+    def __init__(self, aid: int) -> None:
         """Initialize a new accessory."""
-        self.aid = get_id()
+        self.aid = aid
         self._next_id = 0
         self.services = Services()
         self.characteristics = Characteristics(self.services)
@@ -189,6 +188,7 @@ class Accessory:
     @classmethod
     def create_with_info(
         cls,
+        aid: int,
         name: str,
         manufacturer: str,
         model: str,
@@ -200,7 +200,7 @@ class Accessory:
         This method should only be used for testing purposes as it assigns
         the next available ids to the accessory and services.
         """
-        self = cls()
+        self = cls(aid)
 
         accessory_info = self.add_service(ServicesTypes.ACCESSORY_INFORMATION)
         accessory_info.add_char(CharacteristicsTypes.IDENTIFY, description="Identify")
@@ -278,8 +278,7 @@ class Accessory:
     @classmethod
     def create_from_dict(cls, data: dict[str, Any]) -> Accessory:
         """Create an accessory from a dict."""
-        accessory = cls()
-        accessory.aid = data["aid"]
+        accessory = cls(data["aid"])
 
         for service_data in data["services"]:
             service = accessory.add_service(
