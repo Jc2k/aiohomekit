@@ -98,13 +98,11 @@ class HomeKitService:
                 "Invalid HomeKit Zeroconf record: Missing non-link-local or unspecified address"
             )
         address = valid_addresses[0]
-
-        props: dict[str, str] = {
-            k.decode("utf-8").lower(): v.decode("utf-8")
-            for (k, v) in service.properties.items()
+        props = {
+            k.lower(): v
+            for k, v in service.decoded_properties.items()
             if v is not None
         }
-
         if "id" not in props:
             raise ValueError("Invalid HomeKit Zeroconf record: Missing device ID")
 
