@@ -390,7 +390,7 @@ class ZeroconfController(AbstractController):
 
         if waiters := self._waiters.pop(description.id, None):
             for waiter in waiters:
-                if not waiter.cancelled():
+                if not waiter.cancelled() and not waiter.done():
                     waiter.set_result(discovery)
 
     @abstractmethod
