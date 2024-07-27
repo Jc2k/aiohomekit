@@ -99,9 +99,7 @@ class HomeKitService:
             )
         address = valid_addresses[0]
         props = {
-            k.lower(): v
-            for k, v in service.decoded_properties.items()
-            if v is not None
+            k.lower(): v for k, v in service.decoded_properties.items() if v is not None
         }
         if "id" not in props:
             raise ValueError("Invalid HomeKit Zeroconf record: Missing device ID")
