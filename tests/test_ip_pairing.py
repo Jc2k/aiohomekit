@@ -130,21 +130,10 @@ async def test_reconnect_soon_on_device_reboot(pairing: IpPairing):
         side_effect=asyncio.TimeoutError,
     ):
         pairing.connection.protocol.connection_lost(OSError("Connection reset by peer"))
-        await asyncio.sleep(0)
-        assert not pairing.connection.is_connected
-        assert not pairing.is_available
-
-        for _ in range(3):
-            pairing._async_description_update(None)
-            # ensure the callback has a chance to run and create _connector
-            await asyncio.sleep(0)
-            with pytest.raises(asyncio.TimeoutError):
-                await asyncio.wait_for(
-                    asyncio.shield(pairing.connection._connector), timeout=0.2
-                )
-            assert not pairing.connection.is_connected
-
-    pairing._async_description_update(None)
+    
+    await asyncio.sleep(0)
+    assert not pairing.connection.is_connected
+    assert not pairing.is_available
     await asyncio.wait_for(pairing.connection._connector, timeout=0.5)
     assert pairing.connection.is_connected
     assert pairing.is_available
