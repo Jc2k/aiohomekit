@@ -601,7 +601,6 @@ class HomeKitConnection:
                 raise TimeoutError("Timeout") from last_exception
             raise ConnectionError(str(last_exception)) from last_exception
 
-        logger.debug("Connected established to %s:%s", self.hosts, self.port)
         # set keep-alive on the socket to ensure we detect dropped connections
         # since we don't send keep-alive packets ourselves
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -621,9 +620,7 @@ class HomeKitConnection:
             self.host_header = f"Host: [{connected_host}]"
         else:
             self.host_header = f"Host: {connected_host}"
-
         if self.owner:
-            logger.debug("Connection made to %s:%s", self.hosts, self.port)
             await self.owner.connection_made(False)
 
     async def _reconnect(self) -> None:
@@ -743,11 +740,6 @@ class SecureHomeKitConnection(HomeKitConnection):
                 pass
 
         await super()._connect_once()
-        logger.debug(
-            "SecureHomeKitConnection established to %s:%s",
-            self.connected_host,
-            self.port,
-        )
 
         state_machine = get_session_keys(self.pairing_data)
 
