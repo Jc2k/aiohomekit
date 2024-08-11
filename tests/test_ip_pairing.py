@@ -130,7 +130,7 @@ async def test_reconnect_soon_on_device_reboot(pairing: IpPairing):
         side_effect=asyncio.TimeoutError,
     ):
         pairing.connection.protocol.connection_lost(OSError("Connection reset by peer"))
-    
+
     await asyncio.sleep(0)
     assert not pairing.connection.is_connected
     assert not pairing.is_available
