@@ -100,7 +100,7 @@ async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing: IpPairi
         for _ in range(3):
             pairing._async_description_update(None)
             # ensure the callback has a chance to run and create _connector
-            await asyncio.sleep(0)  
+            await asyncio.sleep(0)
             with pytest.raises(asyncio.TimeoutError):
                 await asyncio.wait_for(
                     asyncio.shield(pairing.connection._connector), timeout=0.2
@@ -115,7 +115,6 @@ async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing: IpPairi
     characteristics = await pairing.get_characteristics([(1, 9)])
 
     assert characteristics[(1, 9)] == {"value": False}
-
 
 
 async def test_reconnect_soon_on_device_reboot(pairing: IpPairing):
@@ -138,7 +137,7 @@ async def test_reconnect_soon_on_device_reboot(pairing: IpPairing):
         for _ in range(3):
             pairing._async_description_update(None)
             # ensure the callback has a chance to run and create _connector
-            await asyncio.sleep(0)  
+            await asyncio.sleep(0)
             with pytest.raises(asyncio.TimeoutError):
                 await asyncio.wait_for(
                     asyncio.shield(pairing.connection._connector), timeout=0.2
@@ -153,6 +152,7 @@ async def test_reconnect_soon_on_device_reboot(pairing: IpPairing):
     characteristics = await pairing.get_characteristics([(1, 9)])
 
     assert characteristics[(1, 9)] == {"value": False}
+
 
 async def test_put_characteristics(pairing: IpPairing):
     characteristics = await pairing.put_characteristics([(1, 9, True)])
