@@ -740,11 +740,6 @@ class SecureHomeKitConnection(HomeKitConnection):
                 pass
 
         await super()._connect_once()
-        logger.debug(
-            "SecureHomeKitConnection established to %s:%s",
-            self.connected_host,
-            self.port,
-        )
 
         state_machine = get_session_keys(self.pairing_data)
 
