@@ -86,6 +86,7 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
 
     def connection_lost(self, exception):
         self.connection._connection_lost(exception)
+        self._cancel_pending_requests()
 
     def _handle_timeout(self, fut: asyncio.Future[Any]) -> None:
         """Handle a timeout."""
@@ -151,6 +152,9 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
         return False
 
     def close(self):
+        self._cancel_pending_requests()
+
+    def _cancel_pending_requests(self) -> None:
         # If the connection is closed then any pending callbacks will never
         # fire, so set them to an error state.
         while self.result_cbs:
@@ -557,19 +561,19 @@ class HomeKitConnection:
         Called by a Protocol instance when eof_received happens.
         """
         logger.debug("Connection %r lost.", self)
-
-        if not self.closing:
-            self._start_connector()
-
-        if self.closing:
-            self.closed = True
-
+        # Clear the transport and protocol right away
+        # as otherwise _start_connector will see them and
+        # think we are still connected.
         self.transport = None
         self.protocol = None
+        if self.closing:
+            self.closed = True
+        else:
+            self._start_connector()
 
     async def _connect_once(self) -> None:
         """_connect_once must only ever be called from _reconnect to ensure its done with a lock."""
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         logger.debug("Attempting connection to %s:%s", self.hosts, self.port)
 
