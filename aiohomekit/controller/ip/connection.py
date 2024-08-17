@@ -159,7 +159,8 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
         # fire, so set them to an error state.
         while self.result_cbs:
             result = self.result_cbs.pop(0)
-            result.set_exception(AccessoryDisconnectedError("Connection closed"))
+            if not result.done():
+                result.set_exception(AccessoryDisconnectedError("Connection closed"))
 
 
 class SecureHomeKitProtocol(InsecureHomeKitProtocol):
