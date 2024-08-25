@@ -83,6 +83,7 @@ class AbstractPairing(metaclass=ABCMeta):
         self.config_changed_listeners: set[Callable[[int], None]] = set()
         self._accessories_state: AccessoriesState | None = None
         self._shutdown = False
+        self.supports_subscribe = True
 
         self.id = pairing_data["AccessoryPairingID"]
         self._pairing_data = pairing_data
