@@ -151,7 +151,8 @@ class CurrentFanState(enum.IntEnum):
 
 class TargetFanState(enum.IntEnum):
     """Possible values target fan state.
-    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluetargetfanstate"""
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluetargetfanstate
+    """
 
     MANUAL = 0
     AUTOMATIC = 1
