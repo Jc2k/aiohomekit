@@ -139,6 +139,23 @@ class SwingModeValues(enum.IntEnum):
     ENABLED = 1
 
 
+class CurrentFanState(enum.IntEnum):
+    """Possible values current fan state.
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluecurrentfanstate"""
+
+    INACTIVE = 0
+    IDLE = 1
+    ACTIVE = 2
+
+
+class TargetFanState(enum.IntEnum):
+    """Possible values target fan state.
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvaluetargetfanstate"""
+
+    MANUAL = 0
+    AUTOMATIC = 1
+
+
 class CurrentHeaterCoolerStateValues(enum.IntEnum):
     """Possible values for the current state of a device that heats or cools.
     https://developer.apple.com/documentation/homekit/hmcharacteristicvaluecurrentheatercoolerstate
