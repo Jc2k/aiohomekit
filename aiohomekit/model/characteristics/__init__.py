@@ -19,6 +19,7 @@ from .characteristic_formats import CharacteristicFormats
 from .characteristic_types import CharacteristicsTypes
 from .const import (
     ActivationStateValues,
+    CurrentFanStateValues,
     CurrentHeaterCoolerStateValues,
     CurrentMediaStateValues,
     HeatingCoolingCurrentValues,
@@ -29,6 +30,7 @@ from .const import (
     ProgramModeValues,
     RemoteKeyValues,
     SwingModeValues,
+    TargetFanStateValues,
     TargetHeaterCoolerStateValues,
     TargetMediaStateValues,
     ValveTypeValues,
@@ -52,6 +54,7 @@ __all__ = [
     "CharacteristicPermissions",
     "CharacteristicsTypes",
     "CharacteristicUnits",
+    "TargetFanStateValues",
     "TargetMediaStateValues",
     "CurrentMediaStateValues",
     "RemoteKeyValues",
@@ -66,6 +69,7 @@ __all__ = [
     "ValveTypeValues",
     "ActivationStateValues",
     "SwingModeValues",
+    "CurrentFanStateValues",
     "CurrentHeaterCoolerStateValues",
     "TargetHeaterCoolerStateValues",
     "EVENT_CHARACTERISTICS",
