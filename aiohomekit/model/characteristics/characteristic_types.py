@@ -335,7 +335,13 @@ class CharacteristicsTypes:
     VENDOR_ECOBEE_AWAY_TARGET_COOL = "A251F6E7-AC46-4190-9C5D-3D06277BDF9F"
     # w/o, uint8 - set hold schedule mode - home(0)/sleep(1)/away(2)
     VENDOR_ECOBEE_SET_HOLD_SCHEDULE = "1B300BC2-CFFC-47FF-89F9-BD6CCF5F2853"
-    # r/w, string - 2014-01-03T00:00:00-07:00T
+    # r/w, string - Next scheduled event time, this time seems to be a local timestamp formatted similar to "2024-10-19T20:35:05-04:00Q"
+    # This would be when the currently scheduled activity ends such as:
+    # 1. If there is a temporary hold in place, will show when that hold ends (the default hold is until next scheduled activity, so usually behaves like 2)
+    # 2. If there are no holds in place will show the next scheduled climate mode time
+    # 3. If there is an indefinite hold, will show a generally far-future date like "2035-12-29T12:00:00-04:00Q"
+    # NOTE: When setting this value, it seems to be interpreted as a local time so recommend using formatting like "2024-01-01T12:00:00" without an offset or you may get weird results
+    VENDOR_ECOBEE_NEXT_SCHEDULED_CHANGE_TIME = "1621F556-1367-443C-AF19-82AF018E99DE"
     VENDOR_ECOBEE_TIMESTAMP = "1621F556-1367-443C-AF19-82AF018E99DE"
     # w/o, bool - true to clear hold mode, false does nothing
     VENDOR_ECOBEE_CLEAR_HOLD = "FA128DE6-9D7D-49A4-B6D8-4E4E234DEE38"
@@ -344,6 +350,9 @@ class CharacteristicsTypes:
     VENDOR_ECOBEE_FAN_WRITE_SPEED = "C35DA3C0-E004-40E3-B153-46655CDD9214"
     # r/o, Mirrors status of above
     VENDOR_ECOBEE_FAN_READ_SPEED = "48F62AEC-4171-4B4A-8F0E-1EEB6708B3FB"
+    # r/o, string - Alert/reminder text, such as filter replacement/maintainence reminders
+    # If no current alerts this will usually have text like "The Hive is humming along. You have no pending alerts or reminders."
+    VENDOR_ECOBEE_ALERT_TEXT = "1B1515F2-CC45-409F-991F-C480987F92C3"
 
     # ConnectSense
     # r/o, float - amps between 0 and 20
