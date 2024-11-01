@@ -157,7 +157,7 @@ async def test_put_characteristics_cancelled(pairing: IpPairing):
     characteristics = await pairing.put_characteristics([(1, 9, True)])
     characteristics = await pairing.get_characteristics([(1, 9)])
 
-    with mock.patch.object(pairing.connection.transport, "write"):
+    with mock.patch.object(pairing.connection.transport, "writelines"):
         task = asyncio.create_task(pairing.put_characteristics([(1, 9, False)]))
         await asyncio.sleep(0)
         for future in pairing.connection.protocol.result_cbs:
