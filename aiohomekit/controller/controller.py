@@ -72,9 +72,9 @@ class Controller(AbstractController):
         self._tasks = AsyncExitStack()
 
     async def _async_register_backend(self, controller: AbstractController) -> None:
-        self.transports[controller.transport_type] = (
-            await self._tasks.enter_async_context(controller)
-        )
+        self.transports[
+            controller.transport_type
+        ] = await self._tasks.enter_async_context(controller)
 
     async def async_start(self) -> None:
         if IP_TRANSPORT_SUPPORTED or self._async_zeroconf_instance:

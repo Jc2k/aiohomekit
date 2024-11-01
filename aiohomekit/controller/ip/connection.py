@@ -14,11 +14,11 @@
 # limitations under the License.
 #
 from __future__ import annotations
-
+from struct import Struct
 import asyncio
 import logging
 import socket
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Iterable
 
 import aiohappyeyeballs
 from async_interrupt import interrupt
@@ -44,6 +44,9 @@ from aiohomekit.http.response import HttpResponse
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task, asyncio_timeout
+
+PACK_UNSIGNED_SHORT = Struct(">H").pack
+
 
 if TYPE_CHECKING:
     from .pairing import IpPairing
@@ -80,11 +83,11 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
         self.current_response = HttpResponse()
         self.loop = asyncio.get_running_loop()
 
-    def connection_made(self, transport):
+    def connection_made(self, transport: asyncio.Transport) -> None:
         super().connection_made(transport)
         self.transport = transport
 
-    def connection_lost(self, exception):
+    def connection_lost(self, exception: Exception) -> None:
         self.connection._connection_lost(exception)
         self._cancel_pending_requests()
 
@@ -95,9 +98,13 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
 
     async def send_bytes(self, payload: bytes) -> HttpResponse:
         """Send bytes to the device."""
+        return await self.send_lines((payload,))
+
+    async def send_lines(self, payload: Iterable[bytes]) -> HttpResponse:
+        """Send bytes to the device."""
         if self.transport.is_closing():
             # FIXME: It would be nice to try and wait for the reconnect in future.
-            # In that case we need to make sure we do it at a layer above send_bytes otherwise
+            # In that case we need to make sure we do it at a layer above send_lines otherwise
             # we might encrypt payloads with the last sessions keys then wait for a new connection
             # to send them - and on that connection the keys would be different.
             # Also need to make sure that the new connection has chance to pair-verify before
@@ -113,7 +120,7 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
         timeout_handle = loop.call_at(loop.time() + 30, self._handle_timeout, result)
         timeout_expired = False
         try:
-            self.transport.write(payload)
+            self.transport.writelines(payload)
             return await result
         except (asyncio.TimeoutError, BaseException) as ex:
             # If we get a timeout or any other exception then we need to
@@ -188,18 +195,14 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
         while len(payload) > 0:
             current = payload[:1024]
             payload = payload[1024:]
-            len_bytes = len(current).to_bytes(2, byteorder="little")
+            len_bytes = PACK_UNSIGNED_SHORT(len(current))
             buffer.append(len_bytes)
             buffer.append(
-                self.encryptor.encrypt(
-                    len_bytes,
-                    PACK_NONCE(self.c2a_counter),
-                    bytes(current),
-                )
+                self.encryptor.encrypt(len_bytes, PACK_NONCE(self.c2a_counter), current)
             )
             self.c2a_counter += 1
 
-        return await super().send_bytes(b"".join(buffer))
+        return await self.send_lines(buffer)
 
     def data_received(self, data: bytes) -> None:
         """
