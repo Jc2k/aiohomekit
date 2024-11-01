@@ -47,7 +47,7 @@ from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task, asyncio_timeout
 
-PACK_UNSIGNED_SHORT = Struct(">H").pack
+PACK_UNSIGNED_SHORT_LITTLE = Struct("<H").pack
 
 
 if TYPE_CHECKING:
@@ -197,7 +197,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
         while len(payload) > 0:
             current = payload[:1024]
             payload = payload[1024:]
-            len_bytes = PACK_UNSIGNED_SHORT(len(current))
+            len_bytes = PACK_UNSIGNED_SHORT_LITTLE(len(current))
             buffer.append(len_bytes)
             buffer.append(
                 self.encryptor.encrypt(len_bytes, PACK_NONCE(self.c2a_counter), current)
