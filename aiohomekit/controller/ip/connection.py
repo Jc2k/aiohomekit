@@ -566,7 +566,7 @@ class HomeKitConnection:
         """
         Called by a Protocol instance when eof_received happens.
         """
-        logger.debug("Connection %r lost.", self)
+        logger.debug("Connection lost to %r: %s", self, exception)
         # Clear the transport and protocol right away
         # as otherwise _start_connector will see them and
         # think we are still connected.
@@ -587,6 +587,7 @@ class HomeKitConnection:
 
         last_exception: Exception | None = None
         sock: socket.socket | None = None
+        connected_host: str | None = None
         interleave = 1
         while addr_infos:
             try:
@@ -597,12 +598,13 @@ class HomeKitConnection:
                         interleave=interleave,
                         loop=self._loop,
                     )
+                    connected_host = sock.getpeername()[0]
                     break
             except (OSError, asyncio.TimeoutError) as err:
                 last_exception = err
                 aiohappyeyeballs.pop_addr_infos_interleave(addr_infos, interleave)
 
-        if sock is None:
+        if sock is None or connected_host is None:
             if isinstance(last_exception, asyncio.TimeoutError):
                 raise TimeoutError("Timeout") from last_exception
             raise ConnectionError(str(last_exception)) from last_exception
@@ -613,7 +615,6 @@ class HomeKitConnection:
         self.transport, self.protocol = await loop.create_connection(
             lambda: InsecureHomeKitProtocol(self), sock=sock
         )
-        connected_host = sock.getpeername()[0]
         self.connected_host = connected_host
         # The port is not included in the Host header for compatibility
         # reasons. It may be safe to include it in the future if its
