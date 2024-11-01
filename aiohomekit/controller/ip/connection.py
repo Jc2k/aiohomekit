@@ -18,7 +18,8 @@ from struct import Struct
 import asyncio
 import logging
 import socket
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING, Any
+from collections.abc import Iterable
 
 import aiohappyeyeballs
 from async_interrupt import interrupt
