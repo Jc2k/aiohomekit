@@ -100,9 +100,9 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
 
     async def send_bytes(self, payload: bytes) -> HttpResponse:
         """Send bytes to the device."""
-        return await self.send_lines((payload,))
+        return await self._send_lines((payload,))
 
-    async def send_lines(self, payload: Iterable[bytes]) -> HttpResponse:
+    async def _send_lines(self, payload: Iterable[bytes]) -> HttpResponse:
         """Send bytes to the device."""
         if self.transport.is_closing():
             # FIXME: It would be nice to try and wait for the reconnect in future.
@@ -204,7 +204,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             )
             self.c2a_counter += 1
 
-        return await self.send_lines(buffer)
+        return await self._send_lines(buffer)
 
     def data_received(self, data: bytes) -> None:
         """
