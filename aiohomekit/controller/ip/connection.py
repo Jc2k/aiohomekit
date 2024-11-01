@@ -14,12 +14,13 @@
 # limitations under the License.
 #
 from __future__ import annotations
-from struct import Struct
+
 import asyncio
+from collections.abc import Iterable
 import logging
 import socket
+from struct import Struct
 from typing import TYPE_CHECKING, Any
-from collections.abc import Iterable
 
 import aiohappyeyeballs
 from async_interrupt import interrupt
