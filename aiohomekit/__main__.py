@@ -52,12 +52,6 @@ async def get_controller(args: argparse.Namespace) -> AsyncIterator[Controller]:
         char_cache=CharacteristicCacheFile(charmap_path),
     )
 
-    try:
-        controller.load_data(args.file)
-    except Exception:
-        logger.exception(f"Error while loading {args.file}")
-        raise SystemExit
-
     async with zeroconf:
         listener = ZeroconfServiceListener()
         browser = AsyncServiceBrowser(
@@ -70,6 +64,11 @@ async def get_controller(args: argparse.Namespace) -> AsyncIterator[Controller]:
         )
 
         async with controller:
+            try:
+                controller.load_data(args.file)
+            except Exception:
+                logger.exception(f"Error while loading {args.file}")
+                raise SystemExit
             yield controller
 
         await browser.async_cancel()
