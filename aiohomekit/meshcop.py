@@ -65,3 +65,9 @@ class Meshcop(TLVStruct):
     energy_list: bytes = tlv_entry(57)
     discoveryrequest: bytes = tlv_entry(128)
     discoveryresponse: bytes = tlv_entry(129)
+
+    # Seen in a dataset imported through iOS companion app
+    wakeup_channel: bytes = tlv_entry(74)
+    discovery_request: bytes = tlv_entry(128)
+    discovery_response: bytes = tlv_entry(129)
+    joiner_advertisement: bytes = tlv_entry(241)
