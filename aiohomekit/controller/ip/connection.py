@@ -136,7 +136,9 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
             self.transport.close()
             if isinstance(ex, asyncio.TimeoutError):
                 timeout_expired = True
-                raise AccessoryDisconnectedError("Timeout while waiting for response") from ex
+                raise AccessoryDisconnectedError(
+                    "Timeout while waiting for response"
+                ) from ex
             raise
         finally:
             if not timeout_expired:
@@ -232,8 +234,10 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
                 return
 
             # Drop the length from the top of the buffer as we have already parsed it
-            block_and_tag = self._incoming_buffer[BLOCK_SIZE_LEN : block_length + TAG_LENGTH]
-            del self._incoming_buffer[: exp_length]
+            block_and_tag = self._incoming_buffer[
+                BLOCK_SIZE_LEN : block_length + TAG_LENGTH
+            ]
+            del self._incoming_buffer[:exp_length]
 
             try:
                 decrypted = self.decryptor.decrypt(
