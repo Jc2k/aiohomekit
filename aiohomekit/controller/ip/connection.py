@@ -234,7 +234,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
                 return
 
             # Drop the length from the top of the buffer as we have already parsed it
-            block_and_tag = self._incoming_buffer[BLOCK_SIZE_LEN : exp_length]
+            block_and_tag = self._incoming_buffer[BLOCK_SIZE_LEN:exp_length]
             del self._incoming_buffer[:exp_length]
 
             try:
