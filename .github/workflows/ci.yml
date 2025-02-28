@@ -94,6 +94,11 @@ jobs:
 
     - uses: snok/install-poetry@v1
 
+    - name: Add poetry to path
+      shell: bash
+      run: |
+        echo "$HOME/.poetry/bin:$PATH" >> $GITHUB_PATH
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
