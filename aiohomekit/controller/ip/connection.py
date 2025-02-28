@@ -224,19 +224,17 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
 
         self._incoming_buffer += data
 
-        while len(self._incoming_buffer) >= BLOCK_SIZE_LEN:
+        while (incoming_len := len(self._incoming_buffer)) >= BLOCK_SIZE_LEN:
             block_length_bytes = self._incoming_buffer[:BLOCK_SIZE_LEN]
             block_length = UNPACK_UNSIGNED_SHORT_LITTLE(block_length_bytes)[0]
             exp_length = BLOCK_SIZE_LEN + block_length + TAG_LENGTH
 
-            if len(self._incoming_buffer) < exp_length:
+            if incoming_len < exp_length:
                 # Not enough data yet
                 return
 
             # Drop the length from the top of the buffer as we have already parsed it
-            block_and_tag = self._incoming_buffer[
-                BLOCK_SIZE_LEN : block_length + TAG_LENGTH
-            ]
+            block_and_tag = self._incoming_buffer[BLOCK_SIZE_LEN : exp_length]
             del self._incoming_buffer[:exp_length]
 
             try:
