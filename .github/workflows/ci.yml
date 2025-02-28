@@ -30,7 +30,7 @@ jobs:
 
     - name: Run pyupgrade
       shell: bash
-      run: poetry run find aiohomekit tests -name '*.py' -exec python -m pyupgrade --py310-plus {} + && git diff --exit-code
+      run: poetry run find aiohomekit tests -name '*.py' -exec python -m pyupgrade --py39-plus {} + && git diff --exit-code
 
     - name: Run isort
       shell: bash
