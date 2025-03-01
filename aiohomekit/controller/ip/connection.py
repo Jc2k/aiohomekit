@@ -47,8 +47,11 @@ from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task, asyncio_timeout
 
-PACK_UNSIGNED_SHORT_LITTLE = Struct("<H").pack
-
+UNSIGNED_SHORT_LITTLE = Struct("<H")
+PACK_UNSIGNED_SHORT_LITTLE = UNSIGNED_SHORT_LITTLE.pack
+UNPACK_UNSIGNED_SHORT_LITTLE = UNSIGNED_SHORT_LITTLE.unpack
+BLOCK_SIZE_LEN = UNSIGNED_SHORT_LITTLE.size
+TAG_LENGTH = 16
 
 if TYPE_CHECKING:
     from .pairing import IpPairing
@@ -133,7 +136,9 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
             self.transport.close()
             if isinstance(ex, asyncio.TimeoutError):
                 timeout_expired = True
-                raise AccessoryDisconnectedError("Timeout while waiting for response")
+                raise AccessoryDisconnectedError(
+                    "Timeout while waiting for response"
+                ) from ex
             raise
         finally:
             if not timeout_expired:
@@ -219,20 +224,18 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
 
         self._incoming_buffer += data
 
-        while len(self._incoming_buffer) >= 2:
-            block_length_bytes = self._incoming_buffer[:2]
-            block_length = int.from_bytes(block_length_bytes, "little")
-            exp_length = block_length + 18
+        while (incoming_len := len(self._incoming_buffer)) >= BLOCK_SIZE_LEN:
+            block_length_bytes = self._incoming_buffer[:BLOCK_SIZE_LEN]
+            block_length = UNPACK_UNSIGNED_SHORT_LITTLE(block_length_bytes)[0]
+            exp_length = BLOCK_SIZE_LEN + block_length + TAG_LENGTH
 
-            if len(self._incoming_buffer) < exp_length:
+            if incoming_len < exp_length:
                 # Not enough data yet
                 return
 
             # Drop the length from the top of the buffer as we have already parsed it
-            del self._incoming_buffer[:2]
-
-            block_and_tag = self._incoming_buffer[: block_length + 16]
-            del self._incoming_buffer[: block_length + 16]
+            block_and_tag = self._incoming_buffer[BLOCK_SIZE_LEN:exp_length]
+            del self._incoming_buffer[:exp_length]
 
             try:
                 decrypted = self.decryptor.decrypt(
