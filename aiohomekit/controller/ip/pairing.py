@@ -86,8 +86,6 @@ class IpPairing(ZeroconfPairing):
         """
         self.pairing_data = pairing_data
         self.connection = SecureHomeKitConnection(self, self.pairing_data)
-        self.supports_subscribe = True
-
         super().__init__(controller, pairing_data)
 
     @property
