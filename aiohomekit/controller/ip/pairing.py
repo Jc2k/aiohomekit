@@ -398,11 +398,11 @@ class IpPairing(ZeroconfPairing):
                 # An empty body is a success response
                 for row in response.get("characteristics", []):
                     if "aid" in row and "iid" in row:
-                      status[(row["aid"], row["iid"])] = {
-                          "status": row["status"],
-                          "description": to_status_code(row["status"]).description,
-                      }
-        
+                        status[(row["aid"], row["iid"])] = {
+                            "status": row["status"],
+                            "description": to_status_code(row["status"]).description,
+                        }
+
         return status
 
     async def async_populate_accessories_state(
