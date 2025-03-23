@@ -397,10 +397,11 @@ class IpPairing(ZeroconfPairing):
             if response:
                 # An empty body is a success response
                 for row in response.get("characteristics", []):
-                    status[(row["aid"], row["iid"])] = {
-                        "status": row["status"],
-                        "description": to_status_code(row["status"]).description,
-                    }
+                    if "aid" in row and "iid" in row:
+                        status[(row["aid"], row["iid"])] = {
+                            "status": row["status"],
+                            "description": to_status_code(row["status"]).description,
+                        }
 
         return status
 
