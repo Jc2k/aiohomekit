@@ -28,17 +28,7 @@ jobs:
         shell: bash
         run: poetry install
 
-      - name: Run pyupgrade
-        shell: bash
-        run: poetry run find aiohomekit tests -name '*.py' -exec python -m pyupgrade --py39-plus {} + && git diff --exit-code
-
-      - name: Run isort
-        shell: bash
-        run: poetry run python -m isort -c --diff aiohomekit tests
-
-      - name: Run black
-        shell: bash
-        run: poetry run python -m black --check --diff aiohomekit tests
+      - uses: pre-commit/action@v3.0.1
 
       - name: Run flake8
         shell: bash
