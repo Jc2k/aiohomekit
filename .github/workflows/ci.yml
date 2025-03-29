@@ -13,13 +13,13 @@ jobs:
 
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Install poetry
         run: pipx install poetry
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5
         with:
           python-version: 3.11
           cache: "poetry"
@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: poetry install
 
-      - uses: pre-commit/action@v3.0.1
+      - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
 
       - name: Run poetry build
         shell: bash
@@ -53,13 +53,13 @@ jobs:
 
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Install poetry
         run: pipx install poetry
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: "poetry"
@@ -77,6 +77,6 @@ jobs:
         shell: bash
         run: poetry run python -m pytest --cov=. --cov-report=xml
 
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
