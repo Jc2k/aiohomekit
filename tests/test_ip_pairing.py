@@ -69,9 +69,7 @@ async def test_reconnect_soon_after_disconnected(pairing: IpPairing):
     pairing._async_description_update(None)
     pairing._async_description_update(None)
 
-    await asyncio.sleep(
-        0
-    )  # ensure the callback has a chance to run and create _connector
+    await asyncio.sleep(0)  # ensure the callback has a chance to run and create _connector
     await asyncio.wait_for(pairing.connection._connector, timeout=0.5)
     assert pairing.connection.is_connected
 
@@ -102,9 +100,7 @@ async def test_reconnect_soon_after_device_is_offline_for_a_bit(pairing: IpPairi
             # ensure the callback has a chance to run and create _connector
             await asyncio.sleep(0)
             with pytest.raises(asyncio.TimeoutError):
-                await asyncio.wait_for(
-                    asyncio.shield(pairing.connection._connector), timeout=0.2
-                )
+                await asyncio.wait_for(asyncio.shield(pairing.connection._connector), timeout=0.2)
             assert not pairing.connection.is_connected
 
     pairing._async_description_update(None)
@@ -184,9 +180,7 @@ async def test_put_characteristics_cancelled(pairing: IpPairing):
 async def test_put_characteristics_callbacks(pairing: IpPairing):
     events = []
 
-    def process_new_events(
-        new_values_dict: dict[tuple[int, int], dict[str, Any]]
-    ) -> None:
+    def process_new_events(new_values_dict: dict[tuple[int, int], dict[str, Any]]) -> None:
         events.append(new_values_dict)
 
     pairing.dispatcher_connect(process_new_events)

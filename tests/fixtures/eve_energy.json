@@ -1,352 +1,285 @@
 [
-    {
-      "aid": 1,
-      "services": [
-        {
-          "iid": 1,
-          "type": "00001801-0000-1000-8000-00805F9B34FB",
-          "characteristics": []
-        },
-        {
-          "iid": 2,
-          "type": "0000003E-0000-1000-8000-0026BB765291",
-          "characteristics": [
-            {
-              "type": "00000023-0000-1000-8000-0026BB765291",
-              "iid": 2,
-              "perms": [
-                "pr"
-              ],
-              "format": "string",
-              "value": "Eve Energy 3A35",
-              "description": "Name",
-              "maxLen": 64
-            },
-            {
-              "type": "00000014-0000-1000-8000-0026BB765291",
-              "iid": 3,
-              "perms": [
-                "pw"
-              ],
-              "format": "bool",
-              "description": "Identify"
-            },
-            {
-              "type": "00000020-0000-1000-8000-0026BB765291",
-              "iid": 4,
-              "perms": [
-                "pr"
-              ],
-              "format": "string",
-              "value": "Elgato",
-              "description": "Manufacturer",
-              "maxLen": 64
-            },
-            {
-              "type": "00000021-0000-1000-8000-0026BB765291",
-              "iid": 5,
-              "perms": [
-                "pr"
-              ],
-              "format": "string",
-              "value": "Eve Energy 20EAG4101",
-              "description": "Model",
-              "maxLen": 64
-            },
-            {
-              "type": "00000030-0000-1000-8000-0026BB765291",
-              "iid": 6,
-              "perms": [
-                "pr"
-              ],
-              "format": "string",
-              "value": "**REDACTED**",
-              "description": "Serial Number",
-              "maxLen": 64
-            },
-            {
-              "type": "00000052-0000-1000-8000-0026BB765291",
-              "iid": 7,
-              "perms": [
-                "pr"
-              ],
-              "format": "string",
-              "value": "1.2.9",
-              "description": "Firmware Revision",
-              "maxLen": 64
-            },
-            {
-              "type": "00000053-0000-1000-8000-0026BB765291",
-              "iid": 8,
-              "perms": [
-                "pr"
-              ],
-              "format": "string",
-              "value": "1.0.0",
-              "description": "Hardware Revision",
-              "maxLen": 64
-            }
-          ]
-        },
-        {
-          "iid": 10,
-          "type": "000000A2-0000-1000-8000-0026BB765291",
-          "characteristics": [
-            {
-              "type": "00000037-0000-1000-8000-0026BB765291",
-              "iid": 10,
-              "perms": [
-                "pr"
-              ],
-              "format": "string",
-              "value": "2.2.0",
-              "description": "Version",
-              "maxLen": 64
-            },
-            {
-              "type": "000000A5-0000-1000-8000-0026BB765291",
-              "iid": 11,
-              "perms": [
-                "pr"
-              ],
-              "format": "data",
-              "value": "0400"
-            }
-          ]
-        },
-        {
-          "iid": 13,
-          "type": "00000055-0000-1000-8000-0026BB765291",
-          "characteristics": [
-            {
-              "type": "0000004C-0000-1000-8000-0026BB765291",
-              "iid": 13,
-              "perms": [],
-              "format": "data",
-              "description": "Pair Setup"
-            },
-            {
-              "type": "0000004E-0000-1000-8000-0026BB765291",
-              "iid": 14,
-              "perms": [],
-              "format": "data",
-              "description": "Pair Verify"
-            },
-            {
-              "type": "0000004F-0000-1000-8000-0026BB765291",
-              "iid": 15,
-              "perms": [],
-              "format": "uint8",
-              "description": "Pairing Features"
-            },
-            {
-              "type": "00000050-0000-1000-8000-0026BB765291",
-              "iid": 16,
-              "perms": [
-                "pr",
-                "pw"
-              ],
-              "format": "data",
-              "value": null,
-              "description": "Pairing Pairings"
-            }
-          ]
-        },
-        {
-          "iid": 18,
-          "type": "E863F007-079E-48FF-8F27-9C2605A29F52",
-          "characteristics": [
-            {
-              "type": "00000023-0000-1000-8000-0026BB765291",
-              "iid": 18,
-              "perms": [
-                "pr"
-              ],
-              "format": "string",
-              "value": "Logging",
-              "description": "Name",
-              "maxLen": 64
-            },
-            {
-              "type": "E863F11E-079E-48FF-8F27-9C2605A29F52",
-              "iid": 19,
-              "perms": [
-                "pr",
-                "pw"
-              ],
-              "format": "data",
-              "value": "1f00010e2100b8040a002b8c184c87f7f1f1"
-            },
-            {
-              "type": "E863F112-079E-48FF-8F27-9C2605A29F52",
-              "iid": 20,
-              "perms": [
-                "pr",
-                "pw"
-              ],
-              "format": "uint32",
-              "value": 0
-            },
-            {
-              "type": "E863F11C-079E-48FF-8F27-9C2605A29F52",
-              "iid": 21,
-              "perms": [
-                "pw"
-              ],
-              "format": "data"
-            },
-            {
-              "type": "E863F121-079E-48FF-8F27-9C2605A29F52",
-              "iid": 22,
-              "perms": [
-                "pw"
-              ],
-              "format": "data"
-            },
-            {
-              "type": "E863F116-079E-48FF-8F27-9C2605A29F52",
-              "iid": 23,
-              "perms": [
-                "pr"
-              ],
-              "format": "data",
-              "value": "ca1800000000000000000000050b020c020d0207020e011b000010f4130100010000000100"
-            },
-            {
-              "type": "E863F117-079E-48FF-8F27-9C2605A29F52",
-              "iid": 24,
-              "perms": [
-                "pr"
-              ],
-              "format": "data",
-              "value": "0bfa130100050900001000"
-            },
-            {
-              "type": "E863F131-079E-48FF-8F27-9C2605A29F52",
-              "iid": 25,
-              "perms": [
-                "pr"
-              ],
-              "format": "data",
-              "value": "000221000302b804040c54553238473141303738333706021b000704f41301000b0200000501000204382e00005f0400000000190296001401030f0400000000450505000000004609050000000e00004206441105000005030000000000000000000000004711050000000000000000000000000000000048060500000000004a060500000000001a0400000000600164d004971200009b04cb180000d200"
-            },
-            {
-              "type": "E863F11D-079E-48FF-8F27-9C2605A29F52",
-              "iid": 26,
-              "perms": [
-                "pw"
-              ],
-              "format": "data"
-            },
-            {
-              "type": "000000A5-0000-1000-8000-0026BB765291",
-              "iid": 27,
-              "perms": [
-                "pr"
-              ],
-              "format": "data",
-              "value": "0200"
-            }
-          ]
-        },
-        {
-          "iid": 29,
-          "type": "00000047-0000-1000-8000-0026BB765291",
-          "characteristics": [
-            {
-              "type": "00000023-0000-1000-8000-0026BB765291",
-              "iid": 29,
-              "perms": [
-                "pr"
-              ],
-              "format": "string",
-              "value": "Eve Energy",
-              "description": "Name",
-              "maxLen": 64
-            },
-            {
-              "type": "00000025-0000-1000-8000-0026BB765291",
-              "iid": 30,
-              "perms": [
-                "pr",
-                "pw",
-                "ev"
-              ],
-              "format": "bool",
-              "value": true,
-              "description": "On"
-            },
-            {
-              "type": "00000026-0000-1000-8000-0026BB765291",
-              "iid": 31,
-              "perms": [
-                "pr",
-                "ev"
-              ],
-              "format": "bool",
-              "value": true,
-              "description": "Outlet In Use"
-            },
-            {
-              "type": "E863F10A-079E-48FF-8F27-9C2605A29F52",
-              "iid": 32,
-              "perms": [
-                "pr"
-              ],
-              "format": "float",
-              "value": 120.5999984741211
-            },
-            {
-              "type": "E863F126-079E-48FF-8F27-9C2605A29F52",
-              "iid": 33,
-              "perms": [
-                "pr"
-              ],
-              "format": "float",
-              "value": 0.07000000029802322
-            },
-            {
-              "type": "E863F10D-079E-48FF-8F27-9C2605A29F52",
-              "iid": 34,
-              "perms": [
-                "pr",
-                "ev"
-              ],
-              "format": "float",
-              "value": 4.0
-            },
-            {
-              "type": "E863F10C-079E-48FF-8F27-9C2605A29F52",
-              "iid": 35,
-              "perms": [
-                "pr"
-              ],
-              "format": "float",
-              "value": 0.0
-            },
-            {
-              "type": "000000A7-0000-1000-8000-0026BB765291",
-              "iid": 36,
-              "perms": [
-                "pr",
-                "pw",
-                "ev"
-              ],
-              "format": "uint8",
-              "value": 0,
-              "description": "Lock Physical Controls"
-            },
-            {
-              "type": "000000A5-0000-1000-8000-0026BB765291",
-              "iid": 37,
-              "perms": [
-                "pr"
-              ],
-              "format": "data",
-              "value": "0100"
-            }
-          ]
-        }
-      ]
-    }
+  {
+    "aid": 1,
+    "services": [
+      {
+        "iid": 1,
+        "type": "00001801-0000-1000-8000-00805F9B34FB",
+        "characteristics": []
+      },
+      {
+        "iid": 2,
+        "type": "0000003E-0000-1000-8000-0026BB765291",
+        "characteristics": [
+          {
+            "type": "00000023-0000-1000-8000-0026BB765291",
+            "iid": 2,
+            "perms": ["pr"],
+            "format": "string",
+            "value": "Eve Energy 3A35",
+            "description": "Name",
+            "maxLen": 64
+          },
+          {
+            "type": "00000014-0000-1000-8000-0026BB765291",
+            "iid": 3,
+            "perms": ["pw"],
+            "format": "bool",
+            "description": "Identify"
+          },
+          {
+            "type": "00000020-0000-1000-8000-0026BB765291",
+            "iid": 4,
+            "perms": ["pr"],
+            "format": "string",
+            "value": "Elgato",
+            "description": "Manufacturer",
+            "maxLen": 64
+          },
+          {
+            "type": "00000021-0000-1000-8000-0026BB765291",
+            "iid": 5,
+            "perms": ["pr"],
+            "format": "string",
+            "value": "Eve Energy 20EAG4101",
+            "description": "Model",
+            "maxLen": 64
+          },
+          {
+            "type": "00000030-0000-1000-8000-0026BB765291",
+            "iid": 6,
+            "perms": ["pr"],
+            "format": "string",
+            "value": "**REDACTED**",
+            "description": "Serial Number",
+            "maxLen": 64
+          },
+          {
+            "type": "00000052-0000-1000-8000-0026BB765291",
+            "iid": 7,
+            "perms": ["pr"],
+            "format": "string",
+            "value": "1.2.9",
+            "description": "Firmware Revision",
+            "maxLen": 64
+          },
+          {
+            "type": "00000053-0000-1000-8000-0026BB765291",
+            "iid": 8,
+            "perms": ["pr"],
+            "format": "string",
+            "value": "1.0.0",
+            "description": "Hardware Revision",
+            "maxLen": 64
+          }
+        ]
+      },
+      {
+        "iid": 10,
+        "type": "000000A2-0000-1000-8000-0026BB765291",
+        "characteristics": [
+          {
+            "type": "00000037-0000-1000-8000-0026BB765291",
+            "iid": 10,
+            "perms": ["pr"],
+            "format": "string",
+            "value": "2.2.0",
+            "description": "Version",
+            "maxLen": 64
+          },
+          {
+            "type": "000000A5-0000-1000-8000-0026BB765291",
+            "iid": 11,
+            "perms": ["pr"],
+            "format": "data",
+            "value": "0400"
+          }
+        ]
+      },
+      {
+        "iid": 13,
+        "type": "00000055-0000-1000-8000-0026BB765291",
+        "characteristics": [
+          {
+            "type": "0000004C-0000-1000-8000-0026BB765291",
+            "iid": 13,
+            "perms": [],
+            "format": "data",
+            "description": "Pair Setup"
+          },
+          {
+            "type": "0000004E-0000-1000-8000-0026BB765291",
+            "iid": 14,
+            "perms": [],
+            "format": "data",
+            "description": "Pair Verify"
+          },
+          {
+            "type": "0000004F-0000-1000-8000-0026BB765291",
+            "iid": 15,
+            "perms": [],
+            "format": "uint8",
+            "description": "Pairing Features"
+          },
+          {
+            "type": "00000050-0000-1000-8000-0026BB765291",
+            "iid": 16,
+            "perms": ["pr", "pw"],
+            "format": "data",
+            "value": null,
+            "description": "Pairing Pairings"
+          }
+        ]
+      },
+      {
+        "iid": 18,
+        "type": "E863F007-079E-48FF-8F27-9C2605A29F52",
+        "characteristics": [
+          {
+            "type": "00000023-0000-1000-8000-0026BB765291",
+            "iid": 18,
+            "perms": ["pr"],
+            "format": "string",
+            "value": "Logging",
+            "description": "Name",
+            "maxLen": 64
+          },
+          {
+            "type": "E863F11E-079E-48FF-8F27-9C2605A29F52",
+            "iid": 19,
+            "perms": ["pr", "pw"],
+            "format": "data",
+            "value": "1f00010e2100b8040a002b8c184c87f7f1f1"
+          },
+          {
+            "type": "E863F112-079E-48FF-8F27-9C2605A29F52",
+            "iid": 20,
+            "perms": ["pr", "pw"],
+            "format": "uint32",
+            "value": 0
+          },
+          {
+            "type": "E863F11C-079E-48FF-8F27-9C2605A29F52",
+            "iid": 21,
+            "perms": ["pw"],
+            "format": "data"
+          },
+          {
+            "type": "E863F121-079E-48FF-8F27-9C2605A29F52",
+            "iid": 22,
+            "perms": ["pw"],
+            "format": "data"
+          },
+          {
+            "type": "E863F116-079E-48FF-8F27-9C2605A29F52",
+            "iid": 23,
+            "perms": ["pr"],
+            "format": "data",
+            "value": "ca1800000000000000000000050b020c020d0207020e011b000010f4130100010000000100"
+          },
+          {
+            "type": "E863F117-079E-48FF-8F27-9C2605A29F52",
+            "iid": 24,
+            "perms": ["pr"],
+            "format": "data",
+            "value": "0bfa130100050900001000"
+          },
+          {
+            "type": "E863F131-079E-48FF-8F27-9C2605A29F52",
+            "iid": 25,
+            "perms": ["pr"],
+            "format": "data",
+            "value": "000221000302b804040c54553238473141303738333706021b000704f41301000b0200000501000204382e00005f0400000000190296001401030f0400000000450505000000004609050000000e00004206441105000005030000000000000000000000004711050000000000000000000000000000000048060500000000004a060500000000001a0400000000600164d004971200009b04cb180000d200"
+          },
+          {
+            "type": "E863F11D-079E-48FF-8F27-9C2605A29F52",
+            "iid": 26,
+            "perms": ["pw"],
+            "format": "data"
+          },
+          {
+            "type": "000000A5-0000-1000-8000-0026BB765291",
+            "iid": 27,
+            "perms": ["pr"],
+            "format": "data",
+            "value": "0200"
+          }
+        ]
+      },
+      {
+        "iid": 29,
+        "type": "00000047-0000-1000-8000-0026BB765291",
+        "characteristics": [
+          {
+            "type": "00000023-0000-1000-8000-0026BB765291",
+            "iid": 29,
+            "perms": ["pr"],
+            "format": "string",
+            "value": "Eve Energy",
+            "description": "Name",
+            "maxLen": 64
+          },
+          {
+            "type": "00000025-0000-1000-8000-0026BB765291",
+            "iid": 30,
+            "perms": ["pr", "pw", "ev"],
+            "format": "bool",
+            "value": true,
+            "description": "On"
+          },
+          {
+            "type": "00000026-0000-1000-8000-0026BB765291",
+            "iid": 31,
+            "perms": ["pr", "ev"],
+            "format": "bool",
+            "value": true,
+            "description": "Outlet In Use"
+          },
+          {
+            "type": "E863F10A-079E-48FF-8F27-9C2605A29F52",
+            "iid": 32,
+            "perms": ["pr"],
+            "format": "float",
+            "value": 120.5999984741211
+          },
+          {
+            "type": "E863F126-079E-48FF-8F27-9C2605A29F52",
+            "iid": 33,
+            "perms": ["pr"],
+            "format": "float",
+            "value": 0.07000000029802322
+          },
+          {
+            "type": "E863F10D-079E-48FF-8F27-9C2605A29F52",
+            "iid": 34,
+            "perms": ["pr", "ev"],
+            "format": "float",
+            "value": 4.0
+          },
+          {
+            "type": "E863F10C-079E-48FF-8F27-9C2605A29F52",
+            "iid": 35,
+            "perms": ["pr"],
+            "format": "float",
+            "value": 0.0
+          },
+          {
+            "type": "000000A7-0000-1000-8000-0026BB765291",
+            "iid": 36,
+            "perms": ["pr", "pw", "ev"],
+            "format": "uint8",
+            "value": 0,
+            "description": "Lock Physical Controls"
+          },
+          {
+            "type": "000000A5-0000-1000-8000-0026BB765291",
+            "iid": 37,
+            "perms": ["pr"],
+            "format": "data",
+            "value": "0100"
+          }
+        ]
+      }
+    ]
+  }
 ]

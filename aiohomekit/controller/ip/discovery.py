@@ -35,9 +35,7 @@ class IpDiscovery(ZeroconfDiscovery):
     def __init__(self, controller, description: HomeKitService):
         super().__init__(description)
         self.controller = controller
-        self.connection = HomeKitConnection(
-            None, description.addresses, description.port
-        )
+        self.connection = HomeKitConnection(None, description.addresses, description.port)
 
     def __repr__(self):
         return f"IPDiscovery(host={self.description.address}, port={self.description.port})"
@@ -54,9 +52,7 @@ class IpDiscovery(ZeroconfDiscovery):
     async def async_start_pairing(self, alias: str) -> FinishPairing:
         await self._ensure_connected()
 
-        state_machine = perform_pair_setup_part1(
-            pair_with_auth(self.description.feature_flags)
-        )
+        state_machine = perform_pair_setup_part1(pair_with_auth(self.description.feature_flags))
         request, expected = state_machine.send(None)
         while True:
             try:
@@ -74,9 +70,7 @@ class IpDiscovery(ZeroconfDiscovery):
         async def finish_pairing(pin: str) -> IpPairing:
             check_pin_format(pin)
 
-            state_machine = perform_pair_setup_part2(
-                pin, str(uuid.uuid4()), salt, pub_key
-            )
+            state_machine = perform_pair_setup_part2(pin, str(uuid.uuid4()), salt, pub_key)
             request, expected = state_machine.send(None)
 
             while True:
@@ -115,9 +109,4 @@ class IpDiscovery(ZeroconfDiscovery):
 
         code = to_status_code(response["code"])
 
-        raise AlreadyPairedError(
-            "Identify failed because: {reason} ({code}).".format(
-                reason=code.description,
-                code=code.value,
-            )
-        )
+        raise AlreadyPairedError(f"Identify failed because: {code.description} ({code.value}).")

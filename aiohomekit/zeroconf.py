@@ -15,13 +15,14 @@
 #
 
 """Helpers for detecing homekit devices via zeroconf."""
+
 from __future__ import annotations
 
-from abc import abstractmethod
 import asyncio
+import logging
+from abc import abstractmethod
 from collections.abc import AsyncIterable
 from dataclasses import dataclass
-import logging
 
 from zeroconf import (
     BadTypeInNameException,
@@ -89,18 +90,12 @@ class HomeKitService:
         # address of the given IP version.
         #
         valid_addresses = [
-            str(ip_addr)
-            for ip_addr in addresses
-            if not ip_addr.is_link_local and not ip_addr.is_unspecified
+            str(ip_addr) for ip_addr in addresses if not ip_addr.is_link_local and not ip_addr.is_unspecified
         ]
         if not valid_addresses:
-            raise ValueError(
-                "Invalid HomeKit Zeroconf record: Missing non-link-local or unspecified address"
-            )
+            raise ValueError("Invalid HomeKit Zeroconf record: Missing non-link-local or unspecified address")
         address = valid_addresses[0]
-        props = {
-            k.lower(): v for k, v in service.decoded_properties.items() if v is not None
-        }
+        props = {k.lower(): v for k, v in service.decoded_properties.items() if v is not None}
         if "id" not in props:
             raise ValueError("Invalid HomeKit Zeroconf record: Missing device ID")
 
@@ -160,7 +155,6 @@ class ZeroconfPairing(AbstractPairing):
 
     def _async_endpoint_changed(self) -> None:
         """The IP and/or port of the accessory has changed."""
-        pass
 
     def _async_description_update(self, description: HomeKitService | None) -> None:
         old_description = self.description
@@ -219,9 +213,7 @@ class ZeroconfController(AbstractController):
         if not zc:
             return self
 
-        self._browser = find_brower_for_hap_type(
-            self._async_zeroconf_instance, self.hap_type
-        )
+        self._browser = find_brower_for_hap_type(self._async_zeroconf_instance, self.hap_type)
         self._browser.service_state_changed.register_handler(self._handle_service)
         await self._async_update_from_cache(zc)
 
@@ -235,9 +227,7 @@ class ZeroconfController(AbstractController):
             try:
                 info = AsyncServiceInfo(self.hap_type, record.alias)
             except BadTypeInNameException as ex:
-                logger.debug(
-                    "Ignoring record with bad type in name: %s: %s", record.alias, ex
-                )
+                logger.debug("Ignoring record with bad type in name: %s: %s", record.alias, ex)
                 continue
             if info.load_from_cache(zc, now):
                 self._async_handle_loaded_service_info(info)
@@ -304,9 +294,7 @@ class ZeroconfController(AbstractController):
             _, cancel = self._resolve_later.popitem()
             cancel.cancel()
 
-    async def async_find(
-        self, device_id: str, timeout: float = 10.0
-    ) -> ZeroconfDiscovery:
+    async def async_find(self, device_id: str, timeout: float = 10.0) -> ZeroconfDiscovery:
         device_id = device_id.lower()
 
         if discovery := self.discoveries.get(device_id):
@@ -321,9 +309,7 @@ class ZeroconfController(AbstractController):
             if discovery := await waiter:
                 return discovery
         except asyncio.TimeoutError:
-            raise AccessoryNotFoundError(
-                f"Accessory with device id {device_id} not found"
-            )
+            raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
         finally:
             cancel_timeout.cancel()
 
@@ -370,9 +356,7 @@ class ZeroconfController(AbstractController):
         if discovery := self.discoveries.get(description.id):
             discovery._update_from_discovery(description)
         else:
-            discovery = self.discoveries[description.id] = self._make_discovery(
-                description
-            )
+            discovery = self.discoveries[description.id] = self._make_discovery(description)
 
         discovery = self.discoveries[description.id] = self._make_discovery(description)
 

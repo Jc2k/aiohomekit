@@ -16,9 +16,9 @@
 
 from __future__ import annotations
 
-from enum import Enum
 import logging
 import struct
+from enum import Enum
 
 from aiohomekit.enum import EnumWithDescription
 
@@ -90,9 +90,7 @@ def decode_pdu(expected_tid: int, data: bytes) -> tuple[int, bytes | PDUStatus]:
         return (body_len, PDUStatus.TID_MISMATCH)
 
     if status != PDUStatus.SUCCESS:
-        logger.warning(
-            f"Transaction {tid} failed with error {status} ({status.description}"
-        )
+        logger.warning(f"Transaction {tid} failed with error {status} ({status.description}")
         return (body_len, status)
 
     if control & 0b0000_1110 != 0b0000_0010:
@@ -102,9 +100,7 @@ def decode_pdu(expected_tid: int, data: bytes) -> tuple[int, bytes | PDUStatus]:
     return body_len, data[5 : 5 + body_len]
 
 
-def decode_all_pdus(
-    starting_tid: int, data: bytes
-) -> list[tuple[int, bytes | PDUStatus]]:
+def decode_all_pdus(starting_tid: int, data: bytes) -> list[tuple[int, bytes | PDUStatus]]:
     idx = starting_tid
     offset = 0
     res = []

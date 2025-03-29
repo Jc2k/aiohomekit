@@ -27,14 +27,10 @@ def test_encode_all_without_data():
 
 
 def test_encode_all_with_data():
-    req_pdu = encode_all_pdus(
-        OpCode.CHAR_WRITE, [0x12, 0x13], [b"\x88\x88", b"\x99\x99\x99\x99"]
-    )
+    req_pdu = encode_all_pdus(OpCode.CHAR_WRITE, [0x12, 0x13], [b"\x88\x88", b"\x99\x99\x99\x99"])
 
     assert (
-        req_pdu
-        == b"\x00\x02\x00\x12\x00\x02\x00\x88\x88"
-        + b"\x00\x02\x01\x13\x00\x04\x00\x99\x99\x99\x99"
+        req_pdu == b"\x00\x02\x00\x12\x00\x02\x00\x88\x88" + b"\x00\x02\x01\x13\x00\x04\x00\x99\x99\x99\x99"
     )
 
 
@@ -77,11 +73,7 @@ def test_decode_all_with_data():
 
 
 def test_decode_all_with_single_bad_tid():
-    res_pdu = (
-        b"\x02\x40\x00\x02\x00\x03\x00"
-        + b"\x02\x99\x00\x02\x00\x04\x00"
-        + b"\x02\x42\x00\x00\x00"
-    )
+    res_pdu = b"\x02\x40\x00\x02\x00\x03\x00" + b"\x02\x99\x00\x02\x00\x04\x00" + b"\x02\x42\x00\x00\x00"
     res = decode_all_pdus(0x40, res_pdu)
 
     assert len(res) == 3
@@ -94,11 +86,7 @@ def test_decode_all_with_single_bad_tid():
 
 
 def test_decode_all_with_single_status_error():
-    res_pdu = (
-        b"\x02\x50\x00\x00\x00"
-        + b"\x02\x51\x06\x00\x00"
-        + b"\x02\x52\x00\x02\x00\x05\x00"
-    )
+    res_pdu = b"\x02\x50\x00\x00\x00" + b"\x02\x51\x06\x00\x00" + b"\x02\x52\x00\x02\x00\x05\x00"
     res = decode_all_pdus(0x50, res_pdu)
 
     assert len(res) == 3
@@ -111,11 +99,7 @@ def test_decode_all_with_single_status_error():
 
 
 def test_decode_all_with_single_bad_control():
-    res_pdu = (
-        b"\x02\x50\x00\x00\x00"
-        + b"\x08\x51\x00\x00\x00"
-        + b"\x02\x52\x00\x02\x00\x06\x00"
-    )
+    res_pdu = b"\x02\x50\x00\x00\x00" + b"\x08\x51\x00\x00\x00" + b"\x02\x52\x00\x02\x00\x06\x00"
     res = decode_all_pdus(0x50, res_pdu)
 
     assert len(res) == 3
@@ -145,7 +129,7 @@ def test_decode_with_status_error():
 
 
 def test_decode_with_bad_control():
-    res_pdu = b"\xCC\x99\x00\x00\x00"
+    res_pdu = b"\xcc\x99\x00\x00\x00"
     res_len, res_val = decode_pdu(0x99, res_pdu)
 
     assert res_len == 0

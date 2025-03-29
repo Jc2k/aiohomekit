@@ -24,6 +24,8 @@ from bleak_retry_connector import (
     BleakConnectionError,
     BleakError,
     BleakNotFoundError,
+)
+from bleak_retry_connector import (
     establish_connection as retry_establish_connection,
 )
 

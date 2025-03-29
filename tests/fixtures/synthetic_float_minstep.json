@@ -1,214 +1,182 @@
 [
-    {
-        "aid": 1,
-        "services": [
-            {
-                "characteristics": [
-                    {
-                        "format": "float",
-                        "iid": 104,
-                        "maxValue": 32,
-                        "minStep": 1,
-                        "minValue": 4.5,
-                        "perms": [
-                            "pr",
-                            "pw",
-                            "ev"
-                        ],
-                        "type": "35",
-                        "unit": "celsius",
-                        "value": 21
-                    }
-                ],
-                "iid": 100,
-                "primary": true,
-                "type": "4A"
-            }
-        ]
-    },
-    {
-        "aid": 2,
-        "services": [
-            {
-                "characteristics": [
-                    {
-                        "format": "float",
-                        "iid": 104,
-                        "maxValue": 32,
-                        "minStep": 2,
-                        "minValue": 4.5,
-                        "perms": [
-                            "pr",
-                            "pw",
-                            "ev"
-                        ],
-                        "type": "35",
-                        "unit": "celsius",
-                        "value": 21
-                    }
-                ],
-                "iid": 100,
-                "primary": true,
-                "type": "4A"
-            }
-        ]
-    },
-    {
-        "aid": 3,
-        "services": [
-            {
-                "characteristics": [
-                    {
-                        "format": "float",
-                        "iid": 104,
-                        "maxValue": 32,
-                        "minStep": 5,
-                        "minValue": 4.5,
-                        "perms": [
-                            "pr",
-                            "pw",
-                            "ev"
-                        ],
-                        "type": "35",
-                        "unit": "celsius",
-                        "value": 21
-                    }
-                ],
-                "iid": 100,
-                "primary": true,
-                "type": "4A"
-            }
-        ]
-    },
-    {
-        "aid": 4,
-        "services": [
-            {
-                "characteristics": [
-                    {
-                        "format": "float",
-                        "iid": 104,
-                        "maxValue": 32,
-                        "minValue": 4.5,
-                        "perms": [
-                            "pr",
-                            "pw",
-                            "ev"
-                        ],
-                        "type": "35",
-                        "unit": "celsius",
-                        "value": 21
-                    }
-                ],
-                "iid": 100,
-                "primary": true,
-                "type": "4A"
-            }
-        ]
-    },
-    {
-        "aid": 5,
-        "services": [
-            {
-                "characteristics": [
-                    {
-                        "format": "float",
-                        "iid": 104,
-                        "maxValue": 32,
-                        "minStep": 1,
-                        "perms": [
-                            "pr",
-                            "pw",
-                            "ev"
-                        ],
-                        "type": "35",
-                        "unit": "celsius",
-                        "value": 21
-                    }
-                ],
-                "iid": 100,
-                "primary": true,
-                "type": "4A"
-            }
-        ]
-    },
-    {
-        "aid": 6,
-        "services": [
-            {
-                "characteristics": [
-                    {
-                        "format": "float",
-                        "iid": 104,
-                        "maxValue": 32,
-                        "minStep": 2,
-                        "perms": [
-                            "pr",
-                            "pw",
-                            "ev"
-                        ],
-                        "type": "35",
-                        "unit": "celsius",
-                        "value": 21
-                    }
-                ],
-                "iid": 100,
-                "primary": true,
-                "type": "4A"
-            }
-        ]
-    },
-    {
-        "aid": 7,
-        "services": [
-            {
-                "characteristics": [
-                    {
-                        "format": "float",
-                        "iid": 104,
-                        "maxValue": 32,
-                        "minStep": 5,
-                        "perms": [
-                            "pr",
-                            "pw",
-                            "ev"
-                        ],
-                        "type": "35",
-                        "unit": "celsius",
-                        "value": 21
-                    }
-                ],
-                "iid": 100,
-                "primary": true,
-                "type": "4A"
-            }
-        ]
-    },
-    {
-        "aid": 8,
-        "services": [
-            {
-                "characteristics": [
-                    {
-                        "format": "int",
-                        "iid": 104,
-                        "maxValue": 32,
-                        "minStep": 1,
-                        "minValue": 4,
-                        "perms": [
-                            "pr",
-                            "pw",
-                            "ev"
-                        ],
-                        "type": "35",
-                        "unit": "celsius",
-                        "value": 21
-                    }
-                ],
-                "iid": 100,
-                "primary": true,
-                "type": "4A"
-            }
-        ]
-    }
+  {
+    "aid": 1,
+    "services": [
+      {
+        "characteristics": [
+          {
+            "format": "float",
+            "iid": 104,
+            "maxValue": 32,
+            "minStep": 1,
+            "minValue": 4.5,
+            "perms": ["pr", "pw", "ev"],
+            "type": "35",
+            "unit": "celsius",
+            "value": 21
+          }
+        ],
+        "iid": 100,
+        "primary": true,
+        "type": "4A"
+      }
+    ]
+  },
+  {
+    "aid": 2,
+    "services": [
+      {
+        "characteristics": [
+          {
+            "format": "float",
+            "iid": 104,
+            "maxValue": 32,
+            "minStep": 2,
+            "minValue": 4.5,
+            "perms": ["pr", "pw", "ev"],
+            "type": "35",
+            "unit": "celsius",
+            "value": 21
+          }
+        ],
+        "iid": 100,
+        "primary": true,
+        "type": "4A"
+      }
+    ]
+  },
+  {
+    "aid": 3,
+    "services": [
+      {
+        "characteristics": [
+          {
+            "format": "float",
+            "iid": 104,
+            "maxValue": 32,
+            "minStep": 5,
+            "minValue": 4.5,
+            "perms": ["pr", "pw", "ev"],
+            "type": "35",
+            "unit": "celsius",
+            "value": 21
+          }
+        ],
+        "iid": 100,
+        "primary": true,
+        "type": "4A"
+      }
+    ]
+  },
+  {
+    "aid": 4,
+    "services": [
+      {
+        "characteristics": [
+          {
+            "format": "float",
+            "iid": 104,
+            "maxValue": 32,
+            "minValue": 4.5,
+            "perms": ["pr", "pw", "ev"],
+            "type": "35",
+            "unit": "celsius",
+            "value": 21
+          }
+        ],
+        "iid": 100,
+        "primary": true,
+        "type": "4A"
+      }
+    ]
+  },
+  {
+    "aid": 5,
+    "services": [
+      {
+        "characteristics": [
+          {
+            "format": "float",
+            "iid": 104,
+            "maxValue": 32,
+            "minStep": 1,
+            "perms": ["pr", "pw", "ev"],
+            "type": "35",
+            "unit": "celsius",
+            "value": 21
+          }
+        ],
+        "iid": 100,
+        "primary": true,
+        "type": "4A"
+      }
+    ]
+  },
+  {
+    "aid": 6,
+    "services": [
+      {
+        "characteristics": [
+          {
+            "format": "float",
+            "iid": 104,
+            "maxValue": 32,
+            "minStep": 2,
+            "perms": ["pr", "pw", "ev"],
+            "type": "35",
+            "unit": "celsius",
+            "value": 21
+          }
+        ],
+        "iid": 100,
+        "primary": true,
+        "type": "4A"
+      }
+    ]
+  },
+  {
+    "aid": 7,
+    "services": [
+      {
+        "characteristics": [
+          {
+            "format": "float",
+            "iid": 104,
+            "maxValue": 32,
+            "minStep": 5,
+            "perms": ["pr", "pw", "ev"],
+            "type": "35",
+            "unit": "celsius",
+            "value": 21
+          }
+        ],
+        "iid": 100,
+        "primary": true,
+        "type": "4A"
+      }
+    ]
+  },
+  {
+    "aid": 8,
+    "services": [
+      {
+        "characteristics": [
+          {
+            "format": "int",
+            "iid": 104,
+            "maxValue": 32,
+            "minStep": 1,
+            "minValue": 4,
+            "perms": ["pr", "pw", "ev"],
+            "type": "35",
+            "unit": "celsius",
+            "value": 21
+          }
+        ],
+        "iid": 100,
+        "primary": true,
+        "type": "4A"
+      }
+    ]
+  }
 ]

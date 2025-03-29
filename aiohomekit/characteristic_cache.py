@@ -29,7 +29,7 @@ import logging
 import pathlib
 from typing import Any, Protocol, TypedDict
 
-import aiohomekit.hkjson as hkjson
+from aiohomekit import hkjson
 
 logger = logging.getLogger(__name__)
 
@@ -113,9 +113,7 @@ class CharacteristicCacheFile(CharacteristicCacheMemory):
                 try:
                     self.storage_data = hkjson.loads(fp.read())["pairings"]
                 except hkjson.JSON_DECODE_EXCEPTIONS:
-                    logger.debug(
-                        "Characteristic cache was corrupted, proceeding with cold cache"
-                    )
+                    logger.debug("Characteristic cache was corrupted, proceeding with cold cache")
 
     def async_create_or_update_map(
         self,

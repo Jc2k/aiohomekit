@@ -274,9 +274,7 @@ def test_example_multi_status_2():
         ]
     )
     assert res.code == 207
-    assert (
-        res.body == b'{"characteristics":[{"aid":2,"iid":10,"value":true,"status":0}]}'
-    )
+    assert res.body == b'{"characteristics":[{"aid":2,"iid":10,"value":true,"status":0}]}'
 
 
 def test_example_multi_status_3():

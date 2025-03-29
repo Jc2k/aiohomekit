@@ -33,9 +33,7 @@ async def test_passing_in_bleak_to_controller():
         patch.object(controller_module, "COAP_TRANSPORT_SUPPORTED", False),
         patch.object(controller_module, "IP_TRANSPORT_SUPPORTED", False),
     ):
-        controller = Controller(
-            bleak_scanner_instance=AsyncMock(register_detection_callback=MagicMock())
-        )
+        controller = Controller(bleak_scanner_instance=AsyncMock(register_detection_callback=MagicMock()))
         await controller.async_start()
 
     assert len(controller.transports) == 1

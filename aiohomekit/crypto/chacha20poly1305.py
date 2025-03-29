@@ -21,15 +21,17 @@ https://tools.ietf.org/html/rfc7539. See HomeKit spec page 51.
 
 from __future__ import annotations
 
-from functools import partial
 import logging
 import struct
+from functools import partial
 from struct import Struct
 
 from chacha20poly1305 import (
     ChaCha,
-    ChaCha20Poly1305 as ChaCha20Poly1305PurePython,
     Poly1305,
+)
+from chacha20poly1305 import (
+    ChaCha20Poly1305 as ChaCha20Poly1305PurePython,
 )
 from chacha20poly1305_reuseable import ChaCha20Poly1305Reusable
 from cryptography.exceptions import InvalidTag

@@ -51,7 +51,5 @@ class BroadcastDecryptionKey:
     def __init__(self, key: bytes) -> None:
         self.key = ChaCha20Poly1305PartialTag(key)
 
-    def decrypt(
-        self, data: bytes | bytearray, gsn: int, advertising_identifier: bytes
-    ) -> bytes | bool:
+    def decrypt(self, data: bytes | bytearray, gsn: int, advertising_identifier: bytes) -> bytes | bool:
         return self.key.open(PACK_NONCE(gsn), data, advertising_identifier)

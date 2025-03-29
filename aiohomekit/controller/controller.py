@@ -16,20 +16,20 @@
 from __future__ import annotations
 
 import asyncio
+import pathlib
 from asyncio.log import logger
 from collections.abc import AsyncIterable
 from contextlib import AsyncExitStack
-import pathlib
 
 from bleak import BleakScanner
 from zeroconf.asyncio import AsyncZeroconf
 
+from aiohomekit import hkjson
 from aiohomekit.characteristic_cache import (
     CharacteristicCacheMemory,
     CharacteristicCacheType,
 )
 from aiohomekit.controller.abstract import AbstractDiscovery
-import aiohomekit.hkjson as hkjson
 
 from ..const import (
     BLE_TRANSPORT_SUPPORTED,
@@ -72,9 +72,7 @@ class Controller(AbstractController):
         self._tasks = AsyncExitStack()
 
     async def _async_register_backend(self, controller: AbstractController) -> None:
-        self.transports[controller.transport_type] = (
-            await self._tasks.enter_async_context(controller)
-        )
+        self.transports[controller.transport_type] = await self._tasks.enter_async_context(controller)
 
     async def async_start(self) -> None:
         if IP_TRANSPORT_SUPPORTED or self._async_zeroconf_instance:
@@ -116,20 +114,14 @@ class Controller(AbstractController):
     async def async_stop(self) -> None:
         await self._tasks.aclose()
 
-    async def async_find(
-        self, device_id: str, timeout: float = 30.0
-    ) -> AbstractDiscovery:
+    async def async_find(self, device_id: str, timeout: float = 30.0) -> AbstractDiscovery:
         pending = []
         for transport in self.transports.values():
-            pending.append(
-                asyncio.create_task(transport.async_find(device_id, timeout))
-            )
+            pending.append(asyncio.create_task(transport.async_find(device_id, timeout)))
 
         try:
             while pending:
-                done, pending = await asyncio.wait(
-                    pending, return_when=asyncio.FIRST_COMPLETED
-                )
+                done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
                 for result in done:
                     try:
                         return result.result()
@@ -146,7 +138,7 @@ class Controller(AbstractController):
         raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
 
     async def async_reachable(self, device_id: str, timeout=10) -> bool:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     async def async_discover(self, timeout=10) -> AsyncIterable[AbstractDiscovery]:
         for transport in self.transports.values():
@@ -184,9 +176,7 @@ class Controller(AbstractController):
                     except TransportNotSupportedError as e:
                         logger.error("Skipped pairing: %s", e)
         except PermissionError:
-            raise ConfigLoadingError(
-                f'Could not open "{filename}" due to missing permissions'
-            )
+            raise ConfigLoadingError(f'Could not open "{filename}" due to missing permissions')
         except hkjson.JSON_DECODE_EXCEPTIONS as e:
             raise ConfigLoadingError(f'Cannot parse "{filename}" as JSON file') from e
         except FileNotFoundError:
@@ -212,15 +202,9 @@ class Controller(AbstractController):
             with open(filename, mode="w", encoding="utf-8") as output_fp:
                 output_fp.write(hkjson.dumps_indented(data))
         except PermissionError:
-            raise ConfigSavingError(
-                f'Could not write "{filename}" due to missing permissions'
-            )
+            raise ConfigSavingError(f'Could not write "{filename}" due to missing permissions')
         except FileNotFoundError:
-            raise ConfigSavingError(
-                'Could not write "{f}" because it (or the folder) does not exist'.format(
-                    f=filename
-                )
-            )
+            raise ConfigSavingError(f'Could not write "{filename}" because it (or the folder) does not exist')
 
     async def remove_pairing(self, alias: str) -> None:
         """

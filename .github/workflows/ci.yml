@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-    - main
+      - main
   pull_request: ~
 
 jobs:
@@ -12,45 +12,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check out code from GitHub
-      uses: actions/checkout@v4
+      - name: Check out code from GitHub
+        uses: actions/checkout@v4
 
-    - name: Install poetry
-      run: pipx install poetry
+      - name: Install poetry
+        run: pipx install poetry
 
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: 3.11
-        cache: 'poetry'
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+          cache: "poetry"
 
-    - name: Install dependencies
-      shell: bash
-      run: poetry install
+      - name: Install dependencies
+        shell: bash
+        run: poetry install
 
-    - name: Run pyupgrade
-      shell: bash
-      run: poetry run find aiohomekit tests -name '*.py' -exec python -m pyupgrade --py39-plus {} + && git diff --exit-code
+      - uses: pre-commit/action@v3.0.1
 
-    - name: Run isort
-      shell: bash
-      run: poetry run python -m isort -c --diff aiohomekit tests
+      - name: Run poetry build
+        shell: bash
+        run: poetry build
 
-    - name: Run black
-      shell: bash
-      run: poetry run python -m black --check --diff aiohomekit tests
-
-    - name: Run flake8
-      shell: bash
-      run: poetry run python -m flake8 aiohomekit tests
-
-    - name: Run poetry build
-      shell: bash
-      run: poetry build
-
-    - name: Run poetry check
-      shell: bash
-      run: poetry check
+      - name: Run poetry check
+        shell: bash
+        run: poetry check
 
   tests:
     name: pytest/${{ matrix.os }}/${{ matrix.python-version }}
@@ -66,29 +52,29 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
 
     steps:
-    - name: Check out code from GitHub
-      uses: actions/checkout@v4
+      - name: Check out code from GitHub
+        uses: actions/checkout@v4
 
-    - name: Install poetry
-      run: pipx install poetry
+      - name: Install poetry
+        run: pipx install poetry
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'poetry'
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "poetry"
 
-    - name: Get full Python version
-      id: full-python-version
-      shell: bash
-      run: echo ::set-output name=version::$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))")
+      - name: Get full Python version
+        id: full-python-version
+        shell: bash
+        run: echo ::set-output name=version::$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))")
 
-    - name: Install dependencies
-      shell: bash
-      run: poetry install
+      - name: Install dependencies
+        shell: bash
+        run: poetry install
 
-    - name: Run pytest
-      shell: bash
-      run: poetry run python -m pytest --cov=. --cov-report=xml
+      - name: Run pytest
+        shell: bash
+        run: poetry run python -m pytest --cov=. --cov-report=xml
 
-    - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v5

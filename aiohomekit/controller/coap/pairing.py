@@ -16,9 +16,9 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Iterable
 from datetime import timedelta
-import logging
 from typing import Any
 
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
@@ -36,9 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 class CoAPPairing(ZeroconfPairing):
-    def __init__(
-        self, controller: AbstractController, pairing_data: AbstractPairingData
-    ) -> None:
+    def __init__(self, controller: AbstractController, pairing_data: AbstractPairingData) -> None:
         self.connection = CoAPHomeKitConnection(
             self, pairing_data["AccessoryIP"], pairing_data["AccessoryPort"]
         )
@@ -50,9 +48,7 @@ class CoAPPairing(ZeroconfPairing):
 
     def _async_endpoint_changed(self) -> None:
         """The IP/Port has changed, so close connection if active then reconnect."""
-        self.connection.address = (
-            f"[{self.description.address}]:{self.description.port}"
-        )
+        self.connection.address = f"[{self.description.address}]:{self.description.port}"
         async_create_task(self.connection.reconnect_soon())
 
     @property
@@ -100,9 +96,7 @@ class CoAPPairing(ZeroconfPairing):
                 await self.connection_lock.wait()
                 # if the primary coroutine failed to connect, we also raise
                 if not self.connection.is_connected:
-                    raise AccessoryDisconnectedError(
-                        "primary coroutine failed to connect"
-                    )
+                    raise AccessoryDisconnectedError("primary coroutine failed to connect")
                 return
 
         try:
@@ -134,7 +128,6 @@ class CoAPPairing(ZeroconfPairing):
     async def close(self) -> None:
         if self.connection.is_connected:
             await self.unsubscribe(list(self.subscriptions))
-        return
 
     def event_received(self, event):
         self._callback_listeners(event)
@@ -155,9 +148,7 @@ class CoAPPairing(ZeroconfPairing):
                 for characteristic in service["characteristics"]:
                     characteristic["type"] = normalize_uuid(characteristic["type"])
 
-        self._accessories_state = AccessoriesState(
-            Accessories.from_list(accessories), self.config_num or 0
-        )
+        self._accessories_state = AccessoriesState(Accessories.from_list(accessories), self.config_num or 0)
         self._update_accessories_state_cache()
         return accessories
 
@@ -167,9 +158,7 @@ class CoAPPairing(ZeroconfPairing):
         This method is called when the config num changes.
         """
         await self.list_accessories_and_characteristics()
-        self._accessories_state = AccessoriesState(
-            self._accessories_state.accessories, config_num
-        )
+        self._accessories_state = AccessoriesState(self._accessories_state.accessories, config_num)
         self._callback_and_save_config_changed(config_num)
 
     def _process_disconnected_events(self):
@@ -208,8 +197,7 @@ class CoAPPairing(ZeroconfPairing):
             accessory_chars = self.accessories.aid(aid).characteristics
             char = accessory_chars.iid(iid)
             if (
-                response_status.get((aid, iid), HapStatusCode.SUCCESS)
-                == HapStatusCode.SUCCESS
+                response_status.get((aid, iid), HapStatusCode.SUCCESS) == HapStatusCode.SUCCESS
                 and CharacteristicPermissions.paired_read in char.perms
             ):
                 listener_update[(aid, iid)] = {"value": value}
@@ -230,7 +218,7 @@ class CoAPPairing(ZeroconfPairing):
         new_subs = await super().subscribe(set(characteristics))
         if len(new_subs) == 0:
             logger.debug("Nothing new to subscribe to, ignoring")
-            return
+            return None
         return await self.connection.subscribe_to(list(new_subs))
 
     async def unsubscribe(self, characteristics):
@@ -248,7 +236,7 @@ class CoAPPairing(ZeroconfPairing):
                         ("pairingId", x[0].decode()),
                         ("publicKey", x[1].hex()),
                         ("permissions", x[2]),
-                        ("controllerType", x[2] & 0x01 and "admin" or "regular"),
+                        ("controllerType", (x[2] & 0x01 and "admin") or "regular"),
                     )
                 ),
                 pairing_tuples,

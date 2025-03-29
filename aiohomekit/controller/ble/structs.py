@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from collections.abc import Sequence
-from dataclasses import dataclass, field
 import enum
 import struct
+from collections.abc import Sequence
+from dataclasses import dataclass, field
 from typing import Any, Optional, Union
 
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16, u128
@@ -109,13 +109,9 @@ class Characteristic(TLVStruct):
     type: u128 = tlv_entry(HAP_TLV.kTLVHAPParamCharacteristicType)
     instance_id: u16 = tlv_entry(HAP_TLV.kTLVHAPParamCharacteristicInstanceId)
     # permission bits
-    properties: u16 = tlv_entry(
-        HAP_TLV.kTLVHAPParamHAPCharacteristicPropertiesDescriptor
-    )
+    properties: u16 = tlv_entry(HAP_TLV.kTLVHAPParamHAPCharacteristicPropertiesDescriptor)
     # 7 bytes, contains type & unit
-    presentation_format: bytes = tlv_entry(
-        HAP_TLV.kTLVHAPParamGATTPresentationFormatDescriptor
-    )
+    presentation_format: bytes = tlv_entry(HAP_TLV.kTLVHAPParamGATTPresentationFormatDescriptor)
     # min/max, int or float, same type as value
     valid_range: bytes = tlv_entry(HAP_TLV.kTLVHAPParamGATTValidRange)
     # int or float, same type as value
@@ -123,14 +119,10 @@ class Characteristic(TLVStruct):
     # list of valid uint8 values
     valid_values: bytes = tlv_entry(HAP_TLV.kTLVHAPParamHAPValidValuesDescriptor)
     # list of valid (start, end) uint8 range values
-    valid_values_range: bytes = tlv_entry(
-        HAP_TLV.kTLVHAPParamHAPValidValuesRangeDescriptor
-    )
+    valid_values_range: bytes = tlv_entry(HAP_TLV.kTLVHAPParamHAPValidValuesRangeDescriptor)
     service_instance_id: bytes = tlv_entry(HAP_TLV.kTLVHAPParamServiceInstanceId)
     service_type: bytes = tlv_entry(HAP_TLV.kTLVHAPParamServiceType)
-    user_description: bytes = tlv_entry(
-        HAP_TLV.kTLVHAPParamGATTUserDescriptionDescriptor
-    )
+    user_description: bytes = tlv_entry(HAP_TLV.kTLVHAPParamGATTUserDescriptionDescriptor)
 
     @property
     def supports_read(self) -> bool:
@@ -192,15 +184,15 @@ class Characteristic(TLVStruct):
     def data_unit_str(self):
         if self.pf_unit == 0x272F:
             return "celsius"
-        elif self.pf_unit == 0x2763:
+        if self.pf_unit == 0x2763:
             return "arcdegrees"
-        elif self.pf_unit == 0x27AD:
+        if self.pf_unit == 0x27AD:
             return "percentage"
-        elif self.pf_unit == 0x2700:
+        if self.pf_unit == 0x2700:
             return "unitless"
-        elif self.pf_unit == 0x2731:
+        if self.pf_unit == 0x2731:
             return "lux"
-        elif self.pf_unit == 0x2703:
+        if self.pf_unit == 0x2703:
             return "seconds"
         return "unknown"
 
@@ -295,7 +287,7 @@ class Characteristic(TLVStruct):
         return None
 
     def to_dict(self):
-        perms = list()
+        perms = []
         if self.supports_secure_reads:
             perms.append("pr")
         if self.supports_secure_writes:
@@ -360,7 +352,7 @@ class Service(TLVStruct):
         return self.service_properties and self.service_properties & 0x0004
 
     def to_dict(self):
-        perms = list()
+        perms = []
         if self.hidden_service:
             perms.append("hd")
 

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from functools import cached_property, lru_cache
 import logging
-from typing import Any
 import uuid
+from functools import cached_property, lru_cache
+from typing import Any
 
 from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.backends.device import BLEDevice
@@ -114,17 +114,13 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
                     "maps to more than one handle, iid must be provided to disambiguate."
                 )
             for possible_matching_char in possible_matching_chars:
-                possible_matching_iid = await self.get_characteristic_iid(
-                    possible_matching_char
-                )
+                possible_matching_iid = await self.get_characteristic_iid(possible_matching_char)
                 if iid == possible_matching_iid:
                     self._char_cache[cache_key] = possible_matching_char
                     return possible_matching_char
 
         if not service_matched:
-            available_services = [
-                service.uuid for service in self.services.services.values()
-            ]
+            available_services = [service.uuid for service in self.services.services.values()]
             raise BleakServiceMissing(
                 f"{self.__name}: Service {service_uuid} not found, available services: {available_services}"
             )

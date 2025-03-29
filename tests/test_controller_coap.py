@@ -71,8 +71,8 @@ def test_write_characteristics(coap_controller: CoAPHomeKitConnection):
     assert len(tlv_values) == 4
     assert tlv_values[0] == b"\x01\x01\x01"
     assert tlv_values[1] == b"\x01\x04\x64\x00\x00\x00"
-    assert tlv_values[2] == b"\x01\x04\x00\x00\xB4\x43"
-    assert tlv_values[3] == b"\x01\x04\x00\x00\xC8\x42"
+    assert tlv_values[2] == b"\x01\x04\x00\x00\xb4\x43"
+    assert tlv_values[3] == b"\x01\x04\x00\x00\xc8\x42"
 
     results = coap_controller._write_characteristics_exit(values, [b""] * len(values))
 
@@ -93,8 +93,8 @@ def test_read_characteristics(coap_controller: CoAPHomeKitConnection):
     pdu_results = [
         b"\x01\x01\x01",
         b"\x01\x04\x64\x00\x00\x00",
-        b"\x01\x04\x00\x00\xB4\x43",
-        b"\x01\x04\x00\x00\xC8\x42",
+        b"\x01\x04\x00\x00\xb4\x43",
+        b"\x01\x04\x00\x00\xc8\x42",
     ]
 
     results = coap_controller._read_characteristics_exit(ids, pdu_results)

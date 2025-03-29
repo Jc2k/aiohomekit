@@ -17,12 +17,13 @@
 Implements the Secure Remote Password (SRP) algorithm. More information can be found on
 https://tools.ietf.org/html/rfc5054. See HomeKit spec page 36 for adjustments imposed by Apple.
 """
+
 from __future__ import annotations
 
-from collections.abc import Iterable
 import hashlib
 import math
 import os
+from collections.abc import Iterable
 
 # The K value for HK SRP is always the same because G and N are fixed
 CLIENT_K_VALUE = int(
@@ -70,9 +71,7 @@ def to_byte_array(num: int) -> bytearray:
 
 HASH_MOD = hashlib.sha512(to_byte_array(MODULUS_VALUE)).digest()  # H(modulus)
 HASH_GEN = hashlib.sha512(to_byte_array(GENERATOR_VALUE)).digest()  # H(generator)
-H_GROUP = bytes(
-    HASH_MOD[i] ^ HASH_GEN[i] for i in range(0, len(HASH_MOD))
-)  # H(modulus) xor H(generator)
+H_GROUP = bytes(HASH_MOD[i] ^ HASH_GEN[i] for i in range(len(HASH_MOD)))  # H(modulus) xor H(generator)
 
 
 class Srp:
@@ -146,7 +145,7 @@ class Srp:
         )
 
     def get_shared_secret(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _assert_public_keys(self) -> None:
         if self.A_b is None:
@@ -220,13 +219,16 @@ class SrpClient(Srp):
         return self.verify_servers_proof(int.from_bytes(M_b, "big"))
 
     def verify_servers_proof(self, M: int) -> bool:
-        return M == int.from_bytes(
-            self.digest(
-                self.A_b,
-                self.get_proof_bytes(),
-                self.get_session_key_bytes(),
-            ),
-            "big",
+        return (
+            int.from_bytes(
+                self.digest(
+                    self.A_b,
+                    self.get_proof_bytes(),
+                    self.get_session_key_bytes(),
+                ),
+                "big",
+            )
+            == M
         )
 
 

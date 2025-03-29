@@ -18,8 +18,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING
 import uuid
+from typing import TYPE_CHECKING
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -204,9 +204,7 @@ class BleDiscovery(AbstractDiscovery):
 
     async def async_identify(self) -> None:
         if self.paired:
-            raise RuntimeError(
-                f"{self.name}: Cannot anonymously identify a paired accessory"
-            )
+            raise RuntimeError(f"{self.name}: Cannot anonymously identify a paired accessory")
 
         await self._ensure_connected()
 

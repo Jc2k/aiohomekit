@@ -82,9 +82,7 @@ def mock_asynczeroconf():
 
 
 @pytest.fixture
-async def controller_and_unpaired_accessory(
-    request, mock_asynczeroconf, event_loop, id_factory
-):
+async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_loop, id_factory):
     available_port = next_available_port()
 
     config_file = tempfile.NamedTemporaryFile(delete=False)
@@ -100,9 +98,7 @@ async def controller_and_unpaired_accessory(
         "host_port": %port%,
         "name": "unittestLight",
         "unsuccessful_tries": 0
-    }""".replace(
-            b"%port%", str(available_port).encode("utf-8")
-        )
+    }""".replace(b"%port%", str(available_port).encode("utf-8"))
     )
     config_file.close()
 
@@ -137,9 +133,7 @@ async def controller_and_unpaired_accessory(
 
 
 @pytest.fixture
-async def controller_and_paired_accessory(
-    request, event_loop, mock_asynczeroconf, id_factory
-):
+async def controller_and_paired_accessory(request, event_loop, mock_asynczeroconf, id_factory):
     available_port = next_available_port()
 
     config_file = tempfile.NamedTemporaryFile(delete=False)
@@ -160,9 +154,7 @@ async def controller_and_paired_accessory(
             }
         },
         "unsuccessful_tries": 0
-    }""".replace(
-        b"%port%", str(available_port).encode("utf-8")
-    )
+    }""".replace(b"%port%", str(available_port).encode("utf-8"))
 
     config_file.write(data)
     config_file.close()
@@ -193,9 +185,7 @@ async def controller_and_paired_accessory(
             "AccessoryIP": "127.0.0.1",
             "iOSDeviceLTSK": "fa45f082ef87efc6c8c8d043d74084a3ea923a2253e323a7eb9917b4090c2fcc"
         }
-    }""".replace(
-            b"%port%", str(available_port).encode("utf-8")
-        )
+    }""".replace(b"%port%", str(available_port).encode("utf-8"))
     )
     controller_file.close()
 

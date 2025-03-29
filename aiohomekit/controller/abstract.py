@@ -16,12 +16,12 @@
 
 from __future__ import annotations
 
+import logging
 from abc import ABCMeta, abstractmethod
 from collections.abc import AsyncIterable, Awaitable, Iterable
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-import logging
 from typing import Any, Callable, TypedDict, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
@@ -73,9 +73,7 @@ class AbstractPairing(metaclass=ABCMeta):
     # and BLE advertisements), and also as AccessoryPairingID i pairing data.
     id: str
 
-    def __init__(
-        self, controller: AbstractController, pairing_data: AbstractPairingData
-    ) -> None:
+    def __init__(self, controller: AbstractController, pairing_data: AbstractPairingData) -> None:
         self.controller = controller
         self.listeners: set[Callable[[dict], None]] = set()
         self.subscriptions: set[tuple[int, int]] = set()
@@ -160,9 +158,7 @@ class AbstractPairing(metaclass=ABCMeta):
             except Exception:
                 logger.exception("Unhandled error when processing event")
 
-    def _async_description_update(
-        self, description: AbstractDescription | None
-    ) -> None:
+    def _async_description_update(self, description: AbstractDescription | None) -> None:
         if self._shutdown:
             return
 
@@ -185,10 +181,7 @@ class AbstractPairing(metaclass=ABCMeta):
                 )
                 repopulate_accessories = True
 
-            elif (
-                not self.description
-                or description.state_num != self.description.state_num
-            ):
+            elif not self.description or description.state_num != self.description.state_num:
                 # Only process disconnected events if the config number has
                 # not also changed since we will do a full repopulation
                 # of the accessories anyway when the config number changes.
@@ -212,9 +205,7 @@ class AbstractPairing(metaclass=ABCMeta):
 
     def _load_accessories_from_cache(self) -> None:
         if (cache := self.controller._char_cache.get_map(self.id)) is None:
-            logger.debug(
-                "%s: No accessories cache available for this device", self.name
-            )
+            logger.debug("%s: No accessories cache available for this device", self.name)
             return
         config_num = cache.get("config_num", 0)
         state_num = cache.get("state_num")
@@ -243,9 +234,7 @@ class AbstractPairing(metaclass=ABCMeta):
     ) -> None:
         """Restore accessories from cache."""
         accessories = Accessories.from_list(accessories)
-        self._accessories_state = AccessoriesState(
-            accessories, config_num, broadcast_key, state_num
-        )
+        self._accessories_state = AccessoriesState(accessories, config_num, broadcast_key, state_num)
         self._update_accessories_state_cache()
 
     def _update_accessories_state_cache(self):
@@ -266,9 +255,7 @@ class AbstractPairing(metaclass=ABCMeta):
         else:
             parsed = self.accessories
 
-        accessory_info = parsed.aid(1).services.first(
-            service_type=ServicesTypes.ACCESSORY_INFORMATION
-        )
+        accessory_info = parsed.aid(1).services.first(service_type=ServicesTypes.ACCESSORY_INFORMATION)
         return accessory_info.value(CharacteristicsTypes.NAME, "")
 
     @abstractmethod
@@ -355,9 +342,7 @@ class AbstractPairing(metaclass=ABCMeta):
             callback(self.config_num)
         self._update_accessories_state_cache()
 
-    async def subscribe(
-        self, characteristics: Iterable[tuple[int, int]]
-    ) -> set[tuple[int, int]]:
+    async def subscribe(self, characteristics: Iterable[tuple[int, int]]) -> set[tuple[int, int]]:
         new_characteristics = set(characteristics) - self.subscriptions
         self.subscriptions.update(characteristics)
         return new_characteristics
@@ -365,9 +350,7 @@ class AbstractPairing(metaclass=ABCMeta):
     async def unsubscribe(self, characteristics: Iterable[tuple[int, int]]) -> None:
         self.subscriptions.difference_update(characteristics)
 
-    def dispatcher_availability_changed(
-        self, callback: Callable[[bool], None]
-    ) -> Callable[[], None]:
+    def dispatcher_availability_changed(self, callback: Callable[[bool], None]) -> Callable[[], None]:
         """Notify subscribers when availablity changes.
 
         Currently this only notifies when a device is seen as available and
@@ -380,9 +363,7 @@ class AbstractPairing(metaclass=ABCMeta):
 
         return stop_listening
 
-    def dispatcher_connect_config_changed(
-        self, callback: Callable[[int], None]
-    ) -> Callable[[], None]:
+    def dispatcher_connect_config_changed(self, callback: Callable[[int], None]) -> Callable[[], None]:
         """Notify subscribers of a new accessories state."""
         self.config_changed_listeners.add(callback)
 
@@ -391,9 +372,7 @@ class AbstractPairing(metaclass=ABCMeta):
 
         return stop_listening
 
-    def dispatcher_connect(
-        self, callback: Callable[[dict], None]
-    ) -> Callable[[], None]:
+    def dispatcher_connect(self, callback: Callable[[dict], None]) -> Callable[[], None]:
         """
         Register an event handler to be called when a characteristic (or multiple characteristics) change.
 

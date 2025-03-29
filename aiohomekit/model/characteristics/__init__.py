@@ -43,34 +43,34 @@ EVENT_CHARACTERISTICS = {
     CharacteristicsTypes.INPUT_EVENT,
     CharacteristicsTypes.BUTTON_EVENT,
 }
-"""These characteristics are marked as [pr,ev] but make no sense to poll.
+# These characteristics are marked as [pr,ev] but make no sense to poll.
+#
+# Doing so can cause phantom triggers.
 
-Doing so can cause phantom triggers.
-"""
 
 __all__ = [
+    "EVENT_CHARACTERISTICS",
+    "ActivationStateValues",
     "Characteristic",
     "CharacteristicFormats",
     "CharacteristicPermissions",
-    "CharacteristicsTypes",
-    "CharacteristicUnits",
-    "TargetFanStateValues",
-    "TargetMediaStateValues",
-    "CurrentMediaStateValues",
-    "RemoteKeyValues",
-    "InputEventValues",
-    "HeatingCoolingCurrentValues",
-    "HeatingCoolingTargetValues",
-    "CharacteristicUUID",
     "CharacteristicShortUUID",
-    "InUseValues",
-    "IsConfiguredValues",
-    "ProgramModeValues",
-    "ValveTypeValues",
-    "ActivationStateValues",
-    "SwingModeValues",
+    "CharacteristicUUID",
+    "CharacteristicUnits",
+    "CharacteristicsTypes",
     "CurrentFanStateValues",
     "CurrentHeaterCoolerStateValues",
+    "CurrentMediaStateValues",
+    "HeatingCoolingCurrentValues",
+    "HeatingCoolingTargetValues",
+    "InUseValues",
+    "InputEventValues",
+    "IsConfiguredValues",
+    "ProgramModeValues",
+    "RemoteKeyValues",
+    "SwingModeValues",
+    "TargetFanStateValues",
     "TargetHeaterCoolerStateValues",
-    "EVENT_CHARACTERISTICS",
+    "TargetMediaStateValues",
+    "ValveTypeValues",
 ]

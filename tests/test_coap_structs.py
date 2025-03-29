@@ -60,13 +60,9 @@ database_schlage_encode_plus = bytes.fromhex(
 
 def test_coap_pdu09_encode_1():
     c_identity = Pdu09CharacteristicContainer(
-        Pdu09Characteristic(
-            0x14, 2, 0x0200, b"\x01\x00\x00\x27\x01\x00\x00", None, None, None, None
-        )
+        Pdu09Characteristic(0x14, 2, 0x0200, b"\x01\x00\x00\x27\x01\x00\x00", None, None, None, None)
     )
-    s_accessory_information = Pdu09ServiceContainer(
-        Pdu09Service(0x3E, 1, [c_identity], None, b"")
-    )
+    s_accessory_information = Pdu09ServiceContainer(Pdu09Service(0x3E, 1, [c_identity], None, b""))
     a_light = Pdu09AccessoryContainer(Pdu09Accessory(1, [s_accessory_information]))
     database = Pdu09Database([a_light])
 
@@ -79,17 +75,17 @@ def test_coap_pdu09_encode_1():
         # instance id TLV
         + b"\x05\x02\x02\x00"
         # properties TLV
-        + b"\x0A\x02\x00\x02"
+        + b"\x0a\x02\x00\x02"
         # presentation format TLV
-        + b"\x0C\x07\x01\x00\x00\x27\x01\x00\x00"
+        + b"\x0c\x07\x01\x00\x00\x27\x01\x00\x00"
     )
     assert c_identity.encode() == exp_c_identity
 
     exp_s_accessory_information = (
         # service tag + length
-        b"\x15\x3D"
+        b"\x15\x3d"
         # type TLV
-        + b"\x06\x10\x3E"
+        + b"\x06\x10\x3e"
         + b"\x00" * 15
         # instance id TLV
         + b"\x07\x02\x01\x00"
@@ -104,9 +100,9 @@ def test_coap_pdu09_encode_1():
         # accessory tag + length
         b"\x19\x45"
         # instance id TLV
-        + b"\x1A\x02\x01\x00"
+        + b"\x1a\x02\x01\x00"
         # services container TLV
-        + b"\x16\x3F"
+        + b"\x16\x3f"
         # services
         + exp_s_accessory_information
     )
@@ -127,10 +123,7 @@ def test_coap_pdu09_decode_1():
     assert lightbulb_accessory.instance_id == 1
     assert lightbulb_accessory.find_characteristic_by_iid(51) is not None
     assert lightbulb_accessory.find_service_by_type(0x43) is not None
-    assert (
-        lightbulb_accessory.find_service_characteristic_by_type(0x0701, 0x022B)
-        is not None
-    )
+    assert lightbulb_accessory.find_service_characteristic_by_type(0x0701, 0x022B) is not None
     assert lightbulb_accessory.find_characteristic_by_iid(999) is None
     assert lightbulb_accessory.find_service_by_type(999) is None
     assert lightbulb_accessory.find_service_characteristic_by_type(999, 999) is None
@@ -237,7 +230,7 @@ def test_coap_pdu09_decode_1():
     hue_char.value = 360.0
     assert hue_char.raw_value == struct.pack("<f", 360.0)
 
-    hue_char.raw_value = b"\x00\x80\x9D\x43"
+    hue_char.raw_value = b"\x00\x80\x9d\x43"
     assert hue_char.value == 315.0
 
     # get a characteristic whose unit is percentage

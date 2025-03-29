@@ -231,9 +231,7 @@ def test_process_changes_error():
     assert on_char.value is False
     assert on_char.status == HapStatusCode.SUCCESS
 
-    changed = accessories.process_changes(
-        {(1, 8): {"status": HapStatusCode.UNABLE_TO_COMMUNICATE.value}}
-    )
+    changed = accessories.process_changes({(1, 8): {"status": HapStatusCode.UNABLE_TO_COMMUNICATE.value}})
 
     assert on_char.value is False
     assert on_char.status == HapStatusCode.UNABLE_TO_COMMUNICATE
@@ -254,9 +252,7 @@ def test_process_changes_availability():
     assert on_char.service.available is True
     assert on_char.service.accessory.available is True
 
-    changed = accessories.process_changes(
-        {(1, 8): {"status": HapStatusCode.UNABLE_TO_COMMUNICATE.value}}
-    )
+    changed = accessories.process_changes({(1, 8): {"status": HapStatusCode.UNABLE_TO_COMMUNICATE.value}})
     assert changed == {(1, 8)}
 
     assert on_char.available is False
@@ -394,9 +390,7 @@ def test_tlv8_struct():
     streaming_status = service.value(CharacteristicsTypes.STREAMING_STATUS)
     assert streaming_status.status == StreamingStatusValues.AVAILABLE
 
-    video_stream_config = service.value(
-        CharacteristicsTypes.SUPPORTED_VIDEO_STREAM_CONFIGURATION
-    )
+    video_stream_config = service.value(CharacteristicsTypes.SUPPORTED_VIDEO_STREAM_CONFIGURATION)
 
     assert video_stream_config == SupportedVideoStreamConfiguration(
         config=[
@@ -416,9 +410,7 @@ def test_tlv8_struct():
         ]
     )
 
-    audio_stream_config = service.value(
-        CharacteristicsTypes.SUPPORTED_AUDIO_CONFIGURATION
-    )
+    audio_stream_config = service.value(CharacteristicsTypes.SUPPORTED_AUDIO_CONFIGURATION)
 
     assert audio_stream_config == SupportedAudioStreamConfiguration(
         config=[
@@ -466,9 +458,7 @@ def test_tlv8_struct_re_encode():
     a = Accessories.from_file("tests/fixtures/camera.json")
     service = a.aid(1).services.iid(16)
 
-    video_stream_config = service.value(
-        CharacteristicsTypes.SUPPORTED_VIDEO_STREAM_CONFIGURATION
-    )
+    video_stream_config = service.value(CharacteristicsTypes.SUPPORTED_VIDEO_STREAM_CONFIGURATION)
 
     raw = base64.b64decode(
         "AcUBAQACHQEBAAAAAQEBAAABAQICAQAAAAIBAQAAAgECAwEAAwsBAoAHAgI4BAMBHgAAAwsBAgAFAgL"

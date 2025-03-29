@@ -16,20 +16,20 @@ INT_TYPES = {
 def from_bytes(char: Characteristic, value: bytes) -> bool | str | float | int | bytes:
     if char.format == CharacteristicFormats.bool:
         return struct.unpack_from("?", value)[0]
-    elif char.format == CharacteristicFormats.uint8:
+    if char.format == CharacteristicFormats.uint8:
         return struct.unpack_from("B", value)[0]
-    elif char.format == CharacteristicFormats.uint16:
+    if char.format == CharacteristicFormats.uint16:
         return struct.unpack_from("H", value)[0]
-    elif char.format == CharacteristicFormats.uint32:
+    if char.format == CharacteristicFormats.uint32:
         return struct.unpack_from("I", value)[0]
-    elif char.format == CharacteristicFormats.uint64:
+    if char.format == CharacteristicFormats.uint64:
         return struct.unpack_from("Q", value)[0]
-    elif char.format == CharacteristicFormats.int:
+    if char.format == CharacteristicFormats.int:
         return struct.unpack_from("i", value)[0]
-    elif char.format == CharacteristicFormats.float:
+    if char.format == CharacteristicFormats.float:
         # FOR BLE float is 32 bit
         return struct.unpack_from("f", value)[0]
-    elif char.format == CharacteristicFormats.string:
+    if char.format == CharacteristicFormats.string:
         return value.decode("utf-8")
 
     return value.hex()

@@ -18,9 +18,7 @@ class CoAPController(ZeroconfController):
     def _make_discovery(self, discovery) -> CoAPDiscovery:
         return CoAPDiscovery(self, discovery)
 
-    def load_pairing(
-        self, alias: str, pairing_data: dict[str, Any]
-    ) -> CoAPPairing | None:
+    def load_pairing(self, alias: str, pairing_data: dict[str, Any]) -> CoAPPairing | None:
         if pairing_data["Connection"] != "CoAP":
             return None
 

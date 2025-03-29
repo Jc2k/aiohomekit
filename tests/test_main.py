@@ -25,9 +25,7 @@ async def test_get_accessories(pairing):
     assert printed.startswith("1.1: >0000003E-0000-1000-8000-0026BB765291")
 
     with mock.patch("sys.stdout") as stdout:
-        await main(
-            ["-f", "tests-pairing.json", "accessories", "-a", "alias", "-o", "json"]
-        )
+        await main(["-f", "tests-pairing.json", "accessories", "-a", "alias", "-o", "json"])
     printed = stdout.write.call_args_list[0][0][0]
     accessories = json.loads(printed)
     assert accessories[0]["aid"] == 1
@@ -44,9 +42,7 @@ async def test_get_characteristic(pairing):
 
 async def test_put_characteristic(pairing):
     with mock.patch("sys.stdout"):
-        await main(
-            ["-f", "tests-pairing.json", "put", "-a", "alias", "-c", "1.9", "true"]
-        )
+        await main(["-f", "tests-pairing.json", "put", "-a", "alias", "-c", "1.9", "true"])
 
     characteristics = await pairing.get_characteristics([(1, 9)])
     assert characteristics[(1, 9)] == {"value": True}

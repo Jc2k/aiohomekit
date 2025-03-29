@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 
+import struct
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-import struct
 from typing import Any, Optional, Union
 
 from aiohomekit.protocol.tlv import HAP_TLV
@@ -31,13 +31,9 @@ class Pdu09Characteristic(TLVStruct):
     type: u128 = tlv_entry(HAP_TLV.kTLVHAPParamCharacteristicType)
     instance_id: u16 = tlv_entry(HAP_TLV.kTLVHAPParamCharacteristicInstanceId)
     # permission bits
-    properties: u16 = tlv_entry(
-        HAP_TLV.kTLVHAPParamHAPCharacteristicPropertiesDescriptor
-    )
+    properties: u16 = tlv_entry(HAP_TLV.kTLVHAPParamHAPCharacteristicPropertiesDescriptor)
     # 7 bytes, contains type & unit
-    presentation_format: bytes = tlv_entry(
-        HAP_TLV.kTLVHAPParamGATTPresentationFormatDescriptor
-    )
+    presentation_format: bytes = tlv_entry(HAP_TLV.kTLVHAPParamGATTPresentationFormatDescriptor)
     # min/max, int or float, same type as value
     valid_range: bytes = tlv_entry(HAP_TLV.kTLVHAPParamGATTValidRange)
     # int or float, same type as value
@@ -45,13 +41,9 @@ class Pdu09Characteristic(TLVStruct):
     # list of valid uint8 values
     valid_values: bytes = tlv_entry(HAP_TLV.kTLVHAPParamHAPValidValuesDescriptor)
     # list of valid (start, end) uint8 range values
-    valid_values_range: bytes = tlv_entry(
-        HAP_TLV.kTLVHAPParamHAPValidValuesRangeDescriptor
-    )
+    valid_values_range: bytes = tlv_entry(HAP_TLV.kTLVHAPParamHAPValidValuesRangeDescriptor)
 
-    user_descriptor: bytes = tlv_entry(
-        HAP_TLV.kTLVHAPParamGATTUserDescriptionDescriptor
-    )
+    user_descriptor: bytes = tlv_entry(HAP_TLV.kTLVHAPParamGATTUserDescriptionDescriptor)
 
     @property
     def supports_read(self) -> bool:
@@ -103,13 +95,13 @@ class Pdu09Characteristic(TLVStruct):
     def data_type_str(self):
         if self.pf_format == 0x01:
             return "bool"
-        elif self.pf_format in [0x04, 0x06, 0x08, 0x0A, 0x10]:
+        if self.pf_format in [0x04, 0x06, 0x08, 0x0A, 0x10]:
             return "int"
-        elif self.pf_format == 0x14:
+        if self.pf_format == 0x14:
             return "float"
-        elif self.pf_format == 0x19:
+        if self.pf_format == 0x19:
             return "string"
-        elif self.pf_format == 0x1B:
+        if self.pf_format == 0x1B:
             return "data"
         return "unknown"
 
@@ -123,15 +115,15 @@ class Pdu09Characteristic(TLVStruct):
     def data_unit_str(self):
         if self.pf_unit == 0x272F:
             return "celsius"
-        elif self.pf_unit == 0x2763:
+        if self.pf_unit == 0x2763:
             return "arcdegrees"
-        elif self.pf_unit == 0x27AD:
+        if self.pf_unit == 0x27AD:
             return "percentage"
-        elif self.pf_unit == 0x2700:
+        if self.pf_unit == 0x2700:
             return "unitless"
-        elif self.pf_unit == 0x2731:
+        if self.pf_unit == 0x2731:
             return "lux"
-        elif self.pf_unit == 0x2703:
+        if self.pf_unit == 0x2703:
             return "seconds"
         return "unknown"
 
@@ -228,7 +220,7 @@ class Pdu09Characteristic(TLVStruct):
         return None
 
     def to_dict(self):
-        perms = list()
+        perms = []
         if self.supports_secure_reads:
             perms.append("pr")
         if self.supports_secure_writes:
@@ -270,9 +262,7 @@ class Pdu09Characteristic(TLVStruct):
 
 @dataclass
 class Pdu09CharacteristicContainer(TLVStruct):
-    characteristic: Pdu09Characteristic = tlv_entry(
-        HAP_TLV.kTLVHAPParamUnknown_13_Characteristic
-    )
+    characteristic: Pdu09Characteristic = tlv_entry(HAP_TLV.kTLVHAPParamUnknown_13_Characteristic)
 
 
 @dataclass
@@ -305,9 +295,7 @@ class Pdu09Service(TLVStruct):
         res = {
             "type": f"{self.type:X}",
             "iid": self.instance_id,
-            "characteristics": [
-                characteristic.to_dict() for characteristic in self.characteristics
-            ],
+            "characteristics": [characteristic.to_dict() for characteristic in self.characteristics],
         }
 
         if self.linked_services:
@@ -324,9 +312,7 @@ class Pdu09ServiceContainer(TLVStruct):
 @dataclass
 class Pdu09Accessory(TLVStruct):
     instance_id: u16 = tlv_entry(HAP_TLV.kTLVHAPParamUnknown_1A_AccessoryInstanceId)
-    _services: Sequence[Pdu09ServiceContainer] = tlv_entry(
-        HAP_TLV.kTLVHAPParamUnknown_16_Services
-    )
+    _services: Sequence[Pdu09ServiceContainer] = tlv_entry(HAP_TLV.kTLVHAPParamUnknown_16_Services)
 
     @property
     def services(self) -> list[Pdu09Service]:
@@ -365,9 +351,7 @@ class Pdu09AccessoryContainer(TLVStruct):
 
 @dataclass
 class Pdu09Database(TLVStruct):
-    _accessories: Sequence[Pdu09AccessoryContainer] = tlv_entry(
-        HAP_TLV.kTLVHAPParamUnknown_18
-    )
+    _accessories: Sequence[Pdu09AccessoryContainer] = tlv_entry(HAP_TLV.kTLVHAPParamUnknown_18)
 
     @property
     def accessories(self) -> list[Pdu09Accessory]:

@@ -16,10 +16,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from enum import Enum
 import logging
 import struct
+from collections.abc import Iterable
+from enum import Enum
 
 from aiohomekit.enum import EnumWithDescription
 
@@ -107,16 +107,12 @@ def decode_pdu(expected_tid: int, data: bytes) -> tuple[PDUStatus, bool, bytes]:
     )
 
     if tid != expected_tid:
-        raise ValueError(
-            f"Expected transaction {expected_tid} but got transaction {tid}"
-        )
+        raise ValueError(f"Expected transaction {expected_tid} but got transaction {tid}")
 
     if status != PDUStatus.SUCCESS:
         # We can't currently raise here or it will break the encryption
         # stream
-        logger.warning(
-            f"Transaction {tid} failed with error {status} ({status.description})"
-        )
+        logger.warning(f"Transaction {tid} failed with error {status} ({status.description})")
 
     if len(data) < 5:
         return status, 0, b""
@@ -142,8 +138,6 @@ def decode_pdu_continuation(expected_tid, data):
         raise ValueError("Expected continuation flag but isn't set")
 
     if tid != expected_tid:
-        raise ValueError(
-            f"Expected transaction {expected_tid} but got transaction {tid}"
-        )
+        raise ValueError(f"Expected transaction {expected_tid} but got transaction {tid}")
 
     return data[2:]

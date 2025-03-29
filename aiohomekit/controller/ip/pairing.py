@@ -16,13 +16,14 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Iterable
 from datetime import timedelta
 from itertools import groupby
-import logging
 from operator import itemgetter
 from typing import Any
 
+from aiohomekit import hkjson
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -33,7 +34,6 @@ from aiohomekit.exceptions import (
     UnknownError,
     UnpairedError,
 )
-import aiohomekit.hkjson as hkjson
 from aiohomekit.http import HttpContentTypes
 from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.characteristics import (
@@ -75,9 +75,7 @@ class IpPairing(ZeroconfPairing):
     This represents a paired HomeKit IP accessory.
     """
 
-    def __init__(
-        self, controller: AbstractController, pairing_data: AbstractPairingData
-    ) -> None:
+    def __init__(self, controller: AbstractController, pairing_data: AbstractPairingData) -> None:
         """
         Initialize a Pairing by using the data either loaded from file or obtained after calling
         Controller.perform_pairing().
@@ -142,9 +140,7 @@ class IpPairing(ZeroconfPairing):
                 await connection.ensure_connection()
         except asyncio.TimeoutError:
             last_connector_error = connection.last_connector_error
-            if not last_connector_error or isinstance(
-                last_connector_error, asyncio.TimeoutError
-            ):
+            if not last_connector_error or isinstance(last_connector_error, asyncio.TimeoutError):
                 raise AccessoryDisconnectedError(
                     f"Timeout while waiting for connection to device {connection.hosts}:{connection.port}"
                 )
@@ -189,9 +185,7 @@ class IpPairing(ZeroconfPairing):
                 for characteristic in service["characteristics"]:
                     characteristic["type"] = normalize_uuid(characteristic["type"])
 
-        self._accessories_state = AccessoriesState(
-            Accessories.from_list(accessories), self.config_num or 0
-        )
+        self._accessories_state = AccessoriesState(Accessories.from_list(accessories), self.config_num or 0)
         self._update_accessories_state_cache()
         return accessories
 
@@ -220,10 +214,7 @@ class IpPairing(ZeroconfPairing):
         if not (data[0][0] == TLV.kTLVType_State and data[0][1] == TLV.M2):
             raise UnknownError("unexpected data received: " + str(data))
 
-        if (
-            data[1][0] == TLV.kTLVType_Error
-            and data[1][1] == TLV.kTLVError_Authentication
-        ):
+        if data[1][0] == TLV.kTLVType_Error and data[1][1] == TLV.kTLVError_Authentication:
             raise UnpairedError("Must be paired")
 
         tmp = []
@@ -273,9 +264,7 @@ class IpPairing(ZeroconfPairing):
         else:
             characteristics_set = set(characteristics)
 
-        url = "/characteristics?id=" + ",".join(
-            f"{aid}.{iid}" for aid, iid in characteristics_set
-        )
+        url = "/characteristics?id=" + ",".join(f"{aid}.{iid}" for aid, iid in characteristics_set)
 
         response = await self.connection.get_json(url)
 
@@ -310,9 +299,7 @@ class IpPairing(ZeroconfPairing):
             if CharacteristicPermissions.paired_read in char.perms:
                 listener_update[(aid, iid)] = {"value": value}
 
-        response = await self.connection.put_json(
-            "/characteristics", {"characteristics": char_payload}
-        )
+        response = await self.connection.put_json("/characteristics", {"characteristics": char_payload})
         response_status: dict[tuple[int, int], dict[str, Any]] = {}
         if response:
             # If there is a response it means something failed so
@@ -345,14 +332,12 @@ class IpPairing(ZeroconfPairing):
             logger.info(
                 "This device does not support push, so only polling operations will be supported during this session"
             )
-            return
+            return None
 
         try:
             await self._ensure_connected()
         except AccessoryDisconnectedError:
-            logger.debug(
-                "Attempted to subscribe to characteristics but could not connect to accessory"
-            )
+            logger.debug("Attempted to subscribe to characteristics but could not connect to accessory")
             return {}
 
         try:
@@ -422,9 +407,7 @@ class IpPairing(ZeroconfPairing):
         This method is called when the config num changes.
         """
         await self.list_accessories_and_characteristics()
-        self._accessories_state = AccessoriesState(
-            self._accessories_state.accessories, config_num
-        )
+        self._accessories_state = AccessoriesState(self._accessories_state.accessories, config_num)
         self._callback_and_save_config_changed(self.config_num)
 
     def _process_disconnected_events(self):
@@ -465,9 +448,7 @@ class IpPairing(ZeroconfPairing):
                             return True
         return False
 
-    async def add_pairing(
-        self, additional_controller_pairing_identifier, ios_device_ltpk, permissions
-    ):
+    async def add_pairing(self, additional_controller_pairing_identifier, ios_device_ltpk, permissions):
         await self._ensure_connected()
 
         if permissions == "User":
