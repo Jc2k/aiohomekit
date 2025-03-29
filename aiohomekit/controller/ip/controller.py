@@ -17,9 +17,7 @@ class IpController(ZeroconfController):
     def _make_discovery(self, discovery) -> IpDiscovery:
         return IpDiscovery(self, discovery)
 
-    def load_pairing(
-        self, alias: str, pairing_data: dict[str, Any]
-    ) -> IpPairing | None:
+    def load_pairing(self, alias: str, pairing_data: dict[str, Any]) -> IpPairing | None:
         if pairing_data["Connection"] != "IP":
             return None
 

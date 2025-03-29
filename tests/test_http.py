@@ -15,14 +15,12 @@
 #
 
 import pytest
+
 from aiohomekit.http import HttpStatusCodes
 
 
 def test_1():
-    assert (
-        HttpStatusCodes[HttpStatusCodes.INTERNAL_SERVER_ERROR]
-        == "Internal Server Error"
-    )
+    assert HttpStatusCodes[HttpStatusCodes.INTERNAL_SERVER_ERROR] == "Internal Server Error"
 
 
 def test_unknown_code():

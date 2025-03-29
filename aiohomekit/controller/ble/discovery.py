@@ -21,6 +21,9 @@ import logging
 import uuid
 from typing import TYPE_CHECKING
 
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
+from bleak.exc import BleakError
 from bleak_retry_connector import retry_bluetooth_connection_error
 
 from aiohomekit.controller.abstract import AbstractDiscovery, FinishPairing
@@ -28,9 +31,6 @@ from aiohomekit.model import CharacteristicsTypes, ServicesTypes
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.protocol import perform_pair_setup_part1, perform_pair_setup_part2
 from aiohomekit.utils import check_pin_format, pair_with_auth
-from bleak.backends.device import BLEDevice
-from bleak.backends.scanner import AdvertisementData
-from bleak.exc import BleakError
 
 from .bleak import AIOHomeKitBleakClient
 from .client import (
@@ -204,9 +204,7 @@ class BleDiscovery(AbstractDiscovery):
 
     async def async_identify(self) -> None:
         if self.paired:
-            raise RuntimeError(
-                f"{self.name}: Cannot anonymously identify a paired accessory"
-            )
+            raise RuntimeError(f"{self.name}: Cannot anonymously identify a paired accessory")
 
         await self._ensure_connected()
 

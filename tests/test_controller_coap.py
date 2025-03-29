@@ -1,4 +1,5 @@
 import pytest
+
 from aiohomekit.controller.coap.connection import CoAPHomeKitConnection
 from aiohomekit.controller.coap.pdu import PDUStatus
 from aiohomekit.controller.coap.structs import Pdu09Database

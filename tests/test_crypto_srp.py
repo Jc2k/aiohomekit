@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import pytest
+
 from aiohomekit.crypto.srp import SrpClient, SrpServer
 
 # To find short keys

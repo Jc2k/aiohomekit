@@ -92,8 +92,7 @@ class ValveTypeValues(enum.IntEnum):
 
 
 class ActivationStateValues(enum.IntEnum):
-    """
-    Possible values for the current status of an accessory.
+    """Possible values for the current status of an accessory.
     https://developer.apple.com/documentation/homekit/hmcharacteristicvalueactivationstate
     """
 
@@ -102,10 +101,8 @@ class ActivationStateValues(enum.IntEnum):
 
 
 class AirQualityValues(enum.IntEnum):
-    """
-    Possible values for the air quality.
-    https://developer.apple.com/documentation/homekit/hmcharacteristicvalueairquality
-    """
+    """Possible values for the air quality.
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvalueairquality"""
 
     UNKNOWN = 0
     EXCELLENT = 1
@@ -116,8 +113,7 @@ class AirQualityValues(enum.IntEnum):
 
 
 class CurrentAirPurifierStateValues(enum.IntEnum):
-    """
-    Possible values for the current state of an air purifier.
+    """Possible values for the current state of an air purifier.
     https://developer.apple.com/documentation/homekit/hmcharacteristicvaluecurrentairpurifierstate
     """
 
@@ -127,8 +123,7 @@ class CurrentAirPurifierStateValues(enum.IntEnum):
 
 
 class TargetAirPurifierStateValues(enum.IntEnum):
-    """
-    Possible values for the target state  of an air purifier.
+    """Possible values for the target state  of an air purifier.
     https://developer.apple.com/documentation/homekit/hmcharacteristicvaluetargetairpurifierstate
     """
 
@@ -137,18 +132,15 @@ class TargetAirPurifierStateValues(enum.IntEnum):
 
 
 class SwingModeValues(enum.IntEnum):
-    """
-    Possible values for fan movement.
-    https://developer.apple.com/documentation/homekit/hmcharacteristicvalueswingmode
-    """
+    """Possible values for fan movement.
+    https://developer.apple.com/documentation/homekit/hmcharacteristicvalueswingmode"""
 
     DISABLED = 0
     ENABLED = 1
 
 
 class CurrentFanStateValues(enum.IntEnum):
-    """
-    Possible values current fan state.
+    """Possible values current fan state.
     https://developer.apple.com/documentation/homekit/hmcharacteristicvaluecurrentfanstate
     """
 
@@ -158,8 +150,7 @@ class CurrentFanStateValues(enum.IntEnum):
 
 
 class TargetFanStateValues(enum.IntEnum):
-    """
-    Possible values target fan state.
+    """Possible values target fan state.
     https://developer.apple.com/documentation/homekit/hmcharacteristicvaluetargetfanstate
     """
 
@@ -168,8 +159,7 @@ class TargetFanStateValues(enum.IntEnum):
 
 
 class CurrentHeaterCoolerStateValues(enum.IntEnum):
-    """
-    Possible values for the current state of a device that heats or cools.
+    """Possible values for the current state of a device that heats or cools.
     https://developer.apple.com/documentation/homekit/hmcharacteristicvaluecurrentheatercoolerstate
     """
 
@@ -180,8 +170,7 @@ class CurrentHeaterCoolerStateValues(enum.IntEnum):
 
 
 class TargetHeaterCoolerStateValues(enum.IntEnum):
-    """
-    Possible values for the target state of a device that heats or cools.
+    """Possible values for the target state of a device that heats or cools.
     https://developer.apple.com/documentation/homekit/hmcharacteristicvaluetargetheatercoolerstate
     """
 

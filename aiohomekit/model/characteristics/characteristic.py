@@ -60,8 +60,7 @@ NUMBER_TYPES = INTEGER_TYPES + [CharacteristicFormats.float]
 
 
 def strtobool(val):
-    """
-    Convert a string representation of truth to true (1) or false (0).
+    """Convert a string representation of truth to true (1) or false (0).
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
     are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
     'val' is anything else.
@@ -72,10 +71,9 @@ def strtobool(val):
     val = val.lower()
     if val in ("y", "yes", "t", "true", "on", "1"):
         return 1
-    elif val in ("n", "no", "f", "false", "off", "0"):
+    if val in ("n", "no", "f", "false", "off", "0"):
         return 0
-    else:
-        raise ValueError(f"invalid truth value {val!r}")
+    raise ValueError(f"invalid truth value {val!r}")
 
 
 class Characteristic:
@@ -94,23 +92,15 @@ class Characteristic:
     def __init__(self, service: Service, characteristic_type: str, **kwargs) -> None:
         self.service = service
         self.type = normalize_uuid(characteristic_type)
-        self.iid = self._get_configuration(
-            kwargs, "iid", service.accessory.get_next_id()
-        )
+        self.iid = self._get_configuration(kwargs, "iid", service.accessory.get_next_id())
 
-        self.perms = self._get_configuration(
-            kwargs, "perms", [CharacteristicPermissions.paired_read]
-        )
+        self.perms = self._get_configuration(kwargs, "perms", [CharacteristicPermissions.paired_read])
         self.format = self._get_configuration(kwargs, "format", None)
 
         self.ev = None
         self.handle = self._get_configuration(kwargs, "handle", None)
-        self.broadcast_events = self._get_configuration(
-            kwargs, "broadcast_events", None
-        )
-        self.disconnected_events = self._get_configuration(
-            kwargs, "disconnected_events", None
-        )
+        self.broadcast_events = self._get_configuration(kwargs, "broadcast_events", None)
+        self.disconnected_events = self._get_configuration(kwargs, "disconnected_events", None)
         self.description = self._get_configuration(kwargs, "description", None)
         self.unit = self._get_configuration(kwargs, "unit", None)
         self.minValue = self._get_configuration(kwargs, "min_value", None)
@@ -182,6 +172,7 @@ class Characteristic:
 
         Returns True if the value has changed, False otherwise.
         """
+
         if self.format == CharacteristicFormats.bool:
             # Device might return 1 or 0, so lets case to True/False
             new_val = bool(new_val)
@@ -192,8 +183,7 @@ class Characteristic:
 
     @property
     def value(self) -> Any:
-        """
-        Get the value of the characteristic.
+        """Get the value of the characteristic.
 
         If the characteristic is a tlv8, decodes the struct
 
@@ -208,8 +198,7 @@ class Characteristic:
             if struct:
                 if extra_data.get("array"):
                     return [struct.decode(new_val) for new_val in tlv_array(new_val)]
-                else:
-                    return struct.decode(new_val)
+                return struct.decode(new_val)
 
         if enum := extra_data.get("enum"):
             return enum(self._value)
@@ -345,6 +334,7 @@ def check_convert_value(val: str, char: Characteristic) -> Any:
     :return: the converted value
     :raises FormatError: if the input value could not be converted to the target type
     """
+
     if char.format == CharacteristicFormats.bool:
         try:
             val = strtobool(str(val))
@@ -385,9 +375,7 @@ def check_convert_value(val: str, char: Characteristic) -> Any:
 
                 # We use to_integral_value() here rather than round as it respsects
                 # ctx.rounding
-                val = offset + (
-                    ((val - offset) / min_step).to_integral_value() * min_step
-                )
+                val = offset + (((val - offset) / min_step).to_integral_value() * min_step)
 
         if char.format in INTEGER_TYPES:
             val = int(val.to_integral_value())

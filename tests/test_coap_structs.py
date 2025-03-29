@@ -60,13 +60,9 @@ database_schlage_encode_plus = bytes.fromhex(
 
 def test_coap_pdu09_encode_1():
     c_identity = Pdu09CharacteristicContainer(
-        Pdu09Characteristic(
-            0x14, 2, 0x0200, b"\x01\x00\x00\x27\x01\x00\x00", None, None, None, None
-        )
+        Pdu09Characteristic(0x14, 2, 0x0200, b"\x01\x00\x00\x27\x01\x00\x00", None, None, None, None)
     )
-    s_accessory_information = Pdu09ServiceContainer(
-        Pdu09Service(0x3E, 1, [c_identity], None, b"")
-    )
+    s_accessory_information = Pdu09ServiceContainer(Pdu09Service(0x3E, 1, [c_identity], None, b""))
     a_light = Pdu09AccessoryContainer(Pdu09Accessory(1, [s_accessory_information]))
     database = Pdu09Database([a_light])
 
@@ -127,10 +123,7 @@ def test_coap_pdu09_decode_1():
     assert lightbulb_accessory.instance_id == 1
     assert lightbulb_accessory.find_characteristic_by_iid(51) is not None
     assert lightbulb_accessory.find_service_by_type(0x43) is not None
-    assert (
-        lightbulb_accessory.find_service_characteristic_by_type(0x0701, 0x022B)
-        is not None
-    )
+    assert lightbulb_accessory.find_service_characteristic_by_type(0x0701, 0x022B) is not None
     assert lightbulb_accessory.find_characteristic_by_iid(999) is None
     assert lightbulb_accessory.find_service_by_type(999) is None
     assert lightbulb_accessory.find_service_characteristic_by_type(999, 999) is None

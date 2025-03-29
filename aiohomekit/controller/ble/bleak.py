@@ -5,11 +5,10 @@ import uuid
 from functools import cached_property, lru_cache
 from typing import Any
 
-from bleak_retry_connector import BleakClientWithServiceCache
-
 from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
+from bleak_retry_connector import BleakClientWithServiceCache
 
 from .const import HAP_MIN_REQUIRED_MTU
 
@@ -77,8 +76,7 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
     async def get_characteristic(
         self, service_uuid: str, characteristic_uuid: str, iid: int | None = None
     ) -> BleakGATTCharacteristic:
-        """
-        Get a characteristic from the cache or the BleakGATTServiceCollection.
+        """Get a characteristic from the cache or the BleakGATTServiceCollection.
 
         We need to do the linear searching ourselves because the BleakGATTServiceCollection
         calls can raise BleakError if there are more than one matching service or characteristic
@@ -116,17 +114,13 @@ class AIOHomeKitBleakClient(BleakClientWithServiceCache):
                     "maps to more than one handle, iid must be provided to disambiguate."
                 )
             for possible_matching_char in possible_matching_chars:
-                possible_matching_iid = await self.get_characteristic_iid(
-                    possible_matching_char
-                )
+                possible_matching_iid = await self.get_characteristic_iid(possible_matching_char)
                 if iid == possible_matching_iid:
                     self._char_cache[cache_key] = possible_matching_char
                     return possible_matching_char
 
         if not service_matched:
-            available_services = [
-                service.uuid for service in self.services.services.values()
-            ]
+            available_services = [service.uuid for service in self.services.services.values()]
             raise BleakServiceMissing(
                 f"{self.__name}: Service {service_uuid} not found, available services: {available_services}"
             )

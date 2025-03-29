@@ -3,10 +3,10 @@ from __future__ import annotations
 import enum
 import struct
 from collections import abc
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import field, fields
 from functools import cache, lru_cache
-from typing import Any, ClassVar, Generic, TypeVar, _GenericAlias
+from typing import Any, Callable, ClassVar, Generic, TypeVar, _GenericAlias
 
 SerializerCallback = Callable[[type, Any], bytes]
 DeserializerCallback = Callable[[type, bytes], Any]
@@ -54,13 +54,9 @@ def get_origin(tp):
 class TlvParseException(Exception):
     """Raised upon parse error with some TLV"""
 
-    pass
-
 
 class TlvSerializeException(Exception):
     """Raised upon parse error with some TLV"""
-
-    pass
 
 
 def tlv_iterator(encoded_struct: bytes) -> Iterable:
@@ -283,9 +279,7 @@ class TLVStruct:
     @cache
     def _tlv_types(cls: T) -> dict:
         """Return the TLV types for this class."""
-        return {
-            field.metadata["tlv_type"]: field for field in fields(cls) if field.init
-        }
+        return {field.metadata["tlv_type"]: field for field in fields(cls) if field.init}
 
     @classmethod
     def decode(cls: T, encoded_struct: bytes) -> T:

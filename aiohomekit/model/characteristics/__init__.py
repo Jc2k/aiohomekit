@@ -47,6 +47,7 @@ EVENT_CHARACTERISTICS = {
 #
 # Doing so can cause phantom triggers.
 
+
 __all__ = [
     "EVENT_CHARACTERISTICS",
     "ActivationStateValues",

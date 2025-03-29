@@ -16,18 +16,13 @@
 
 
 class HomeKitException(Exception):
-    """
-    Generic HomeKit exception.
-
+    """Generic HomeKit exception.
     Attributes:
         stage: the stage that the exception occurred at
-
     """
 
     def __init__(self, stage: str) -> None:
         self.stage = stage
-
-    pass
 
 
 class BluetoothAdapterError(HomeKitException):
@@ -39,8 +34,6 @@ class MalformedPinError(HomeKitException):
     Class to represent a malformed pin (not following the form DDD-DD-DDD)
     """
 
-    pass
-
 
 class ProtocolError(HomeKitException):
     """
@@ -48,16 +41,12 @@ class ProtocolError(HomeKitException):
     specification.
     """
 
-    pass
-
 
 class UnknownError(ProtocolError):
     """
     Raised upon receipt of an unknown error (transmission of kTLVError_Unknown). The spec says that this can happen
     during "Add Pairing" (chapter 4.11 page 51) and "Remove Pairing" (chapter 4.12 page 53).
     """
-
-    pass
 
 
 class AuthenticationError(ProtocolError):
@@ -70,16 +59,12 @@ class AuthenticationError(ProtocolError):
      * during list pairing (M2 / page 56): if the controller is not admin
     """
 
-    pass
-
 
 class BackoffError(ProtocolError):
     """
     Raised upon receipt of a back off error. It seems unclear when this is raised, must be related to
     kTLVType_RetryDelay which is defined on page 61 of the spec.
     """
-
-    pass
 
 
 class MaxPeersError(ProtocolError):
@@ -89,8 +74,6 @@ class MaxPeersError(ProtocolError):
      * during an "add pairing" command
     """
 
-    pass
-
 
 class MaxTriesError(ProtocolError):
     """
@@ -98,13 +81,9 @@ class MaxTriesError(ProtocolError):
     authentication attempts were performed.
     """
 
-    pass
-
 
 class UnavailableError(ProtocolError):
     """Raised upon receipt of an unavailable error"""
-
-    pass
 
 
 class BusyError(ProtocolError):
@@ -113,16 +92,12 @@ class BusyError(ProtocolError):
     is ongoing.
     """
 
-    pass
-
 
 class InvalidError(ProtocolError):
     """
     Raised upon receipt of an error not defined in the HomeKit spec. This should basically never be raised since it is
     the default error in the protocol's error handler.
     """
-
-    pass
 
 
 class IllegalData(ProtocolError):
@@ -143,23 +118,17 @@ class InvalidAuthTagError(ProtocolError):
     Raised upon receipt of an invalid auth tag in Pair Verify Step 3.3 (Page 49).
     """
 
-    pass
-
 
 class IncorrectPairingIdError(ProtocolError):
     """
     Raised in Pair Verify Step 3.5 (Page 49) if the accessory responds with an unexpected pairing id.
     """
 
-    pass
-
 
 class InvalidSignatureError(ProtocolError):
     """
     Raised upon receipt of an invalid signature either from an accessory or from the controller.
     """
-
-    pass
 
 
 class ConfigurationError(HomeKitException):

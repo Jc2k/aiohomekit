@@ -30,9 +30,7 @@ class CoAPDiscovery(ZeroconfDiscovery):
     def __init__(self, controller, description: HomeKitService):
         super().__init__(description)
         self.controller = controller
-        self.connection = CoAPHomeKitConnection(
-            None, description.address, description.port
-        )
+        self.connection = CoAPHomeKitConnection(None, description.address, description.port)
 
     def __repr__(self):
         return f"CoAPDiscovery(host={self.description.address}, port={self.description.port})"
@@ -53,9 +51,7 @@ class CoAPDiscovery(ZeroconfDiscovery):
         return await self.connection.do_identify()
 
     async def async_start_pairing(self, alias: str) -> FinishPairing:
-        salt, srpB = await self.connection.do_pair_setup(
-            pair_with_auth(self.description.feature_flags)
-        )
+        salt, srpB = await self.connection.do_pair_setup(pair_with_auth(self.description.feature_flags))
 
         async def finish_pairing(pin: str) -> CoAPPairing:
             check_pin_format(pin)
@@ -65,9 +61,7 @@ class CoAPDiscovery(ZeroconfDiscovery):
             pairing["AccessoryPort"] = self.description.port
             pairing["Connection"] = "CoAP"
 
-            obj = self.controller.pairings[alias] = CoAPPairing(
-                self.controller, pairing
-            )
+            obj = self.controller.pairings[alias] = CoAPPairing(self.controller, pairing)
 
             return obj
 

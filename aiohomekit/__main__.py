@@ -26,9 +26,10 @@ import sys
 from argparse import ArgumentParser, Namespace
 from collections.abc import AsyncIterator
 
-import aiohomekit.hkjson as hkjson
-from aiohomekit.characteristic_cache import CharacteristicCacheFile
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf
+
+from aiohomekit import hkjson
+from aiohomekit.characteristic_cache import CharacteristicCacheFile
 
 from .controller import Controller
 from .exceptions import HomeKitException
@@ -85,9 +86,7 @@ def setup_logging(level: None) -> None:
     Set up the logging to use a decent format and the log level given as parameter.
     :param level: the log level used for the root logger
     """
-    logging.basicConfig(
-        format="%(asctime)s %(filename)s:%(lineno)04d %(levelname)s %(message)s"
-    )
+    logging.basicConfig(format="%(asctime)s %(filename)s:%(lineno)04d %(levelname)s %(message)s")
     if level:
         getattr(logging, level.upper())
         numeric_level = getattr(logging, level.upper(), None)
@@ -111,9 +110,7 @@ def prepare_string(input_string):
     :param input_string: the input string
     :return: the output string which is save for printing
     """
-    return "{t}".format(
-        t=input_string.encode(locale.getpreferredencoding(), errors="replace").decode()
-    )
+    return "{t}".format(t=input_string.encode(locale.getpreferredencoding(), errors="replace").decode())
 
 
 async def discover(args):
@@ -214,9 +211,7 @@ async def get_characteristics(args: Namespace) -> bool:
         pairing = controller.aliases[args.alias]
 
         # convert the command line parameters to the required form
-        characteristics = [
-            (int(c.split(".")[0]), int(c.split(".")[1])) for c in args.characteristics
-        ]
+        characteristics = [(int(c.split(".")[0]), int(c.split(".")[1])) for c in args.characteristics]
 
         # get the data
         try:
@@ -269,9 +264,7 @@ async def put_characteristics(args: Namespace) -> bool:
             desc = value["description"]
             # used to be < 0 but bluetooth le errors are > 0 and only success (= 0) needs to be checked
             if status != 0:
-                print(
-                    f"put_characteristics failed on {aid}.{iid} because: {desc} ({status})"
-                )
+                print(f"put_characteristics failed on {aid}.{iid} because: {desc} ({status})")
 
     return True
 
@@ -352,9 +345,7 @@ async def get_events(args):
         pairing = controller.aliases[args.alias]
 
         # convert the command line parameters to the required form
-        characteristics = [
-            (int(c.split(".")[0]), int(c.split(".")[1])) for c in args.characteristics
-        ]
+        characteristics = [(int(c.split(".")[0]), int(c.split(".")[1])) for c in args.characteristics]
 
         def handler(data):
             # print the data
@@ -395,9 +386,7 @@ async def get_events(args):
 
 
 def setup_parser_for_pairing(parser: ArgumentParser) -> None:
-    parser.add_argument(
-        "-a", action="store", required=True, dest="alias", help="alias for the pairing"
-    )
+    parser.add_argument("-a", action="store", required=True, dest="alias", help="alias for the pairing")
 
 
 async def main(argv: list[str] | None = None) -> None:
@@ -424,9 +413,7 @@ async def main(argv: list[str] | None = None) -> None:
         help="File with the pairing data",
     )
 
-    subparsers = parser.add_subparsers(
-        title="available commands", metavar="command [options ...]"
-    )
+    subparsers = parser.add_subparsers(title="available commands", metavar="command [options ...]")
 
     # discover
     discover_parser = subparsers.add_parser(
@@ -451,9 +438,7 @@ async def main(argv: list[str] | None = None) -> None:
     )
 
     # pair
-    pair_parser = subparsers.add_parser(
-        "pair", help="Pair with an unpaired HomeKit device"
-    )
+    pair_parser = subparsers.add_parser("pair", help="Pair with an unpaired HomeKit device")
     pair_parser.set_defaults(func=pair)
     setup_parser_for_pairing(pair_parser)
     pair_parser.add_argument(
@@ -503,9 +488,7 @@ async def main(argv: list[str] | None = None) -> None:
     )
 
     # put_characteristics - set characteristics values
-    put_char_parser = subparsers.add_parser(
-        "put", help="Write to a characteristic of a paired device"
-    )
+    put_char_parser = subparsers.add_parser("put", help="Write to a characteristic of a paired device")
     put_char_parser.set_defaults(func=put_characteristics)
     setup_parser_for_pairing(put_char_parser)
     put_char_parser.add_argument(
@@ -556,9 +539,7 @@ async def main(argv: list[str] | None = None) -> None:
     )
 
     # unpair - completely unpair the device
-    unpair_parser = subparsers.add_parser(
-        "unpair", help="Completely unpair this device"
-    )
+    unpair_parser = subparsers.add_parser("unpair", help="Completely unpair this device")
     unpair_parser.set_defaults(func=unpair)
     setup_parser_for_pairing(unpair_parser)
 

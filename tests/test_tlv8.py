@@ -31,13 +31,7 @@ def test_example_2():
         certificate: str = tlv_entry(9)
         identifier: str = tlv_entry(1)
 
-    raw = (
-        b"\x06\x01\x03\x09\xff"
-        + b"a" * 255
-        + b"\x09\x2d"
-        + b"a" * 45
-        + b"\x01\x05hello"
-    )
+    raw = b"\x06\x01\x03\x09\xff" + b"a" * 255 + b"\x09\x2d" + b"a" * 45 + b"\x01\x05hello"
 
     result = DummyStruct.decode(raw)
 
@@ -126,17 +120,11 @@ def test_bytes():
         value: bytes = tlv_entry(160)
 
     raw = (
-        b"\xa0\x12"
-        + b"\x88\x01\x00\x34"
-        + b"\x00\x01\x00\x05\x74\x68\x2f\x74\x63"
-        + b"\x00\x03\x00\x27\x00"
+        b"\xa0\x12" + b"\x88\x01\x00\x34" + b"\x00\x01\x00\x05\x74\x68\x2f\x74\x63" + b"\x00\x03\x00\x27\x00"
     )
 
     result = DummyStruct.decode(raw)
 
-    assert (
-        result.value
-        == b"\x88\x01\x00\x34\x00\x01\x00\x05\x74\x68\x2f\x74\x63\x00\x03\x00\x27\x00"
-    )
+    assert result.value == b"\x88\x01\x00\x34\x00\x01\x00\x05\x74\x68\x2f\x74\x63\x00\x03\x00\x27\x00"
 
     assert result.encode() == raw

@@ -4,6 +4,11 @@ import asyncio
 import logging
 from collections.abc import AsyncIterable
 
+from bleak import BleakScanner
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
+from bleak.exc import BleakDBusError, BleakError
+
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import (
     AbstractController,
@@ -20,10 +25,6 @@ from aiohomekit.controller.ble.manufacturer_data import (
 from aiohomekit.controller.ble.pairing import BlePairing
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.utils import asyncio_timeout
-from bleak import BleakScanner
-from bleak.backends.device import BLEDevice
-from bleak.backends.scanner import AdvertisementData
-from bleak.exc import BleakDBusError, BleakError
 
 from .discovery import BleDiscovery
 
@@ -47,14 +48,12 @@ class BleController(AbstractController):
         self._scanner = bleak_scanner_instance
         self._ble_futures: dict[str, list[asyncio.Future[BLEDevice]]] = {}
 
-    def _device_detected(
-        self, device: BLEDevice, advertisement_data: AdvertisementData
-    ) -> None:
+    def _device_detected(self, device: BLEDevice, advertisement_data: AdvertisementData) -> None:
         manufacturer_data = advertisement_data.manufacturer_data
         if not (mfr_data := manufacturer_data.get(APPLE_MANUFACTURER_ID)):
             return
 
-        elif mfr_data[0] == HOMEKIT_ENCRYPTED_NOTIFICATION_TYPE:
+        if mfr_data[0] == HOMEKIT_ENCRYPTED_NOTIFICATION_TYPE:
             try:
                 data = HomeKitEncryptedNotification.from_manufacturer_data(
                     device.name, device.address, manufacturer_data
@@ -71,19 +70,14 @@ class BleController(AbstractController):
             return
 
         try:
-            data = HomeKitAdvertisement.from_manufacturer_data(
-                device.name, device.address, manufacturer_data
-            )
+            data = HomeKitAdvertisement.from_manufacturer_data(device.name, device.address, manufacturer_data)
         except ValueError:
             return
 
         if old_discovery := self.discoveries.get(data.id):
             if (old_name := old_discovery.description.name) and (
                 not (name := data.name)
-                or (
-                    old_name != old_discovery.device.address
-                    and len(old_name) > len(name)
-                )
+                or (old_name != old_discovery.device.address and len(old_name) > len(name))
             ):
                 #
                 # If we have a pairing and the name is longer than the one we
@@ -123,9 +117,7 @@ class BleController(AbstractController):
             try:
                 self._scanner = BleakScanner()
             except (FileNotFoundError, BleakDBusError, BleakError) as e:
-                logger.debug(
-                    "Failed to init scanner, HAP-BLE not available: %s", str(e)
-                )
+                logger.debug("Failed to init scanner, HAP-BLE not available: %s", str(e))
                 self._scanner = None
                 return
 
@@ -146,8 +138,7 @@ class BleController(AbstractController):
         """Check if a device is reachable on the network."""
         return bool(
             (discovery := self.discoveries.get(device_id))
-            and discovery.device.address
-            in self._scanner.discovered_devices_and_advertisement_data
+            and discovery.device.address in self._scanner.discovered_devices_and_advertisement_data
         )
 
     async def async_find(self, device_id: str, timeout: float = 10) -> BleDiscovery:
@@ -164,18 +155,16 @@ class BleController(AbstractController):
         try:
             async with asyncio_timeout(timeout):
                 return await future
-        except TimeoutError:
+        except asyncio.TimeoutError:
             logger.debug(
                 "Timed out after %s waiting for discovery with hkid %s",
                 timeout,
                 device_id,
             )
-            raise AccessoryNotFoundError(
-                f"Accessory with device id {device_id} not found"
-            )
+            raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
         finally:
             if device_id not in self._ble_futures:
-                return
+                return None
             if future in self._ble_futures[device_id]:
                 self._ble_futures[device_id].remove(future)
             if not self._ble_futures[device_id]:
@@ -185,9 +174,7 @@ class BleController(AbstractController):
         for device in self.discoveries.values():
             yield device
 
-    def load_pairing(
-        self, alias: str, pairing_data: AbstractPairingData
-    ) -> BlePairing | None:
+    def load_pairing(self, alias: str, pairing_data: AbstractPairingData) -> BlePairing | None:
         if pairing_data["Connection"] != "BLE":
             return None
 
@@ -202,9 +189,7 @@ class BleController(AbstractController):
             device = discovery.device
             description = discovery.description
 
-        pairing = self.pairings[id_] = BlePairing(
-            self, pairing_data, device=device, description=description
-        )
+        pairing = self.pairings[id_] = BlePairing(self, pairing_data, device=device, description=description)
         self.aliases[alias] = pairing
 
         return pairing

@@ -51,9 +51,7 @@ class Characteristics:
         """Iterate over characteristics."""
         return iter(self._characteristics)
 
-    def filter(
-        self, char_types: Iterable[str] | None = None
-    ) -> Iterator[Characteristic]:
+    def filter(self, char_types: Iterable[str] | None = None) -> Iterator[Characteristic]:
         """Filter characteristics by type."""
         matches = iter(self)
 

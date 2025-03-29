@@ -113,9 +113,7 @@ async def test_update_named_service_events_manual_accessory(id_factory):
     # Simulate that the state was changed on the device itself.
     pairing.testing.update_named_service("Light Strip", {CharacteristicsTypes.ON: True})
 
-    assert callback.call_args_list == [
-        mock.call({(accessory.aid, on_char.iid): {"value": 1}})
-    ]
+    assert callback.call_args_list == [mock.call({(accessory.aid, on_char.iid): {"value": 1}})]
 
 
 async def test_update_named_service_events_manual_accessory_auto_requires(id_factory):
@@ -128,9 +126,7 @@ async def test_update_named_service_events_manual_accessory_auto_requires(id_fac
         serial_number="1234",
         firmware_revision="1.1",
     )
-    service = accessory.add_service(
-        ServicesTypes.LIGHTBULB, name="Light Strip", add_required=True
-    )
+    service = accessory.add_service(ServicesTypes.LIGHTBULB, name="Light Strip", add_required=True)
     on_char = service[CharacteristicsTypes.ON]
     accessories.add_accessory(accessory)
 
@@ -144,9 +140,7 @@ async def test_update_named_service_events_manual_accessory_auto_requires(id_fac
     # Simulate that the state was changed on the device itself.
     pairing.testing.update_named_service("Light Strip", {CharacteristicsTypes.ON: True})
 
-    assert callback.call_args_list == [
-        mock.call({(accessory.aid, on_char.iid): {"value": 1}})
-    ]
+    assert callback.call_args_list == [mock.call({(accessory.aid, on_char.iid): {"value": 1}})]
 
 
 async def test_update_aid_iid_events():

@@ -1,17 +1,18 @@
+from collections.abc import Iterable
 import contextlib
 import socket
-from collections.abc import Iterable
 from typing import Optional
 from unittest.mock import patch
 
 import pytest
+from zeroconf import DNSQuestionType, Zeroconf
+from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
+
 from aiohomekit.characteristic_cache import CharacteristicCacheMemory
 from aiohomekit.controller.ip.controller import IpController
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.status_flags import StatusFlags
-from zeroconf import DNSQuestionType, Zeroconf
-from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
 
 HAP_TYPE_TCP = "_hap._tcp.local."
 HAP_TYPE_UDP = "_hap._udp.local."
@@ -58,19 +59,14 @@ def _install_mock_service_info(
         [*info.dns_addresses(), info.dns_pointer(), info.dns_service(), info.dns_text()]
     )
 
-    assert (
-        zeroconf.cache.async_all_by_details(HAP_TYPE_TCP, TYPE_PTR, CLASS_IN)
-        is not None
-    )
+    assert zeroconf.cache.async_all_by_details(HAP_TYPE_TCP, TYPE_PTR, CLASS_IN) is not None
 
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", MockedAsyncServiceInfo):
         yield
 
 
 async def test_discover_find_one(mock_asynczeroconf: AsyncZeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
     with _install_mock_service_info(mock_asynczeroconf, _get_mock_service_info()):
         async with controller:
             result = await controller.async_find("00:00:01:00:00:02")
@@ -86,9 +82,7 @@ async def test_discover_find_one(mock_asynczeroconf: AsyncZeroconf):
 
 
 async def test_async_reachable(mock_asynczeroconf: AsyncZeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
     with _install_mock_service_info(mock_asynczeroconf, _get_mock_service_info()):
         async with controller:
             result = await controller.async_reachable("00:00:01:00:00:02")
@@ -97,22 +91,16 @@ async def test_async_reachable(mock_asynczeroconf: AsyncZeroconf):
 
 
 async def test_async_reachable_not_reachable(mock_asynczeroconf: AsyncZeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
     with patch("aiohomekit.zeroconf.AsyncServiceInfo", MockedAsyncServiceInfo):
         async with controller:
-            result = await controller.async_reachable(
-                "00:00:01:00:00:02", timeout=0.001
-            )
+            result = await controller.async_reachable("00:00:01:00:00:02", timeout=0.001)
 
     assert result is False
 
 
 async def test_discover_find_one_unpaired(mock_asynczeroconf: AsyncZeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
 
     svc = _get_mock_service_info()
     svc.properties[b"sf"] = b"1"
@@ -128,9 +116,7 @@ async def test_discover_find_one_unpaired(mock_asynczeroconf: AsyncZeroconf):
 
 
 async def test_discover_find_none(mock_asynczeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
 
     async with controller:
         with pytest.raises(AccessoryNotFoundError):
@@ -138,9 +124,7 @@ async def test_discover_find_none(mock_asynczeroconf):
 
 
 async def test_find_device_id_case_lower(mock_asynczeroconf: AsyncZeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
 
     svc_info_1 = _get_mock_service_info()
     svc_info_1.properties[b"id"] = b"aa:aa:aa:aa:aa:aa"
@@ -166,9 +150,7 @@ async def test_find_device_id_case_lower(mock_asynczeroconf: AsyncZeroconf):
 
 
 async def test_find_device_id_case_upper(mock_asynczeroconf: AsyncZeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
 
     svc_info = _get_mock_service_info()
     svc_info.properties[b"id"] = b"AA:AA:aa:aa:AA:AA"
@@ -192,9 +174,7 @@ async def test_find_device_id_case_upper(mock_asynczeroconf: AsyncZeroconf):
 
 
 async def test_discover_discover_one(mock_asynczeroconf: AsyncZeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
 
     srv_info = _get_mock_service_info()
     with _install_mock_service_info(mock_asynczeroconf, srv_info):
@@ -212,18 +192,14 @@ async def test_discover_discover_one(mock_asynczeroconf: AsyncZeroconf):
 
 
 async def test_discover_none(mock_asynczeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
 
     results = [d async for d in controller.async_discover()]
     assert results == []
 
 
 async def test_discover_missing_csharp(mock_asynczeroconf: AsyncZeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
 
     svc_info = _get_mock_service_info()
     del svc_info.properties[b"c#"]
@@ -239,9 +215,7 @@ async def test_discover_missing_csharp(mock_asynczeroconf: AsyncZeroconf):
 
 
 async def test_discover_csharp_case(mock_asynczeroconf: AsyncZeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
 
     svc_info = _get_mock_service_info()
     del svc_info.properties[b"c#"]
@@ -257,9 +231,7 @@ async def test_discover_csharp_case(mock_asynczeroconf: AsyncZeroconf):
 
 
 async def test_discover_device_id_case_lower(mock_asynczeroconf: AsyncZeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
 
     svc_info = _get_mock_service_info()
     svc_info.properties[b"id"] = b"aa:aa:aa:aa:aa:aa"
@@ -275,9 +247,7 @@ async def test_discover_device_id_case_lower(mock_asynczeroconf: AsyncZeroconf):
 
 
 async def test_discover_device_id_case_upper(mock_asynczeroconf: AsyncZeroconf):
-    controller = IpController(
-        char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf
-    )
+    controller = IpController(char_cache=CharacteristicCacheMemory(), zeroconf_instance=mock_asynczeroconf)
 
     svc_info = _get_mock_service_info()
     svc_info.properties[b"id"] = b"AA:AA:aa:aa:AA:AA"

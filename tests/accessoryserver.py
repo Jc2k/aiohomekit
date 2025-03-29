@@ -15,16 +15,21 @@
 #
 
 import binascii
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import io
 import json
+from json.decoder import JSONDecodeError
 import logging
 import select
 import socket
+from socketserver import ThreadingMixIn
 import sys
 import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from json.decoder import JSONDecodeError
-from socketserver import ThreadingMixIn
+
+from cryptography import exceptions as cryptography_exceptions
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
+from zeroconf import ServiceInfo, Zeroconf
 
 from aiohomekit.crypto import hkdf_derive
 from aiohomekit.crypto.chacha20poly1305 import (
@@ -47,10 +52,6 @@ from aiohomekit.http import HttpStatusCodes
 from aiohomekit.model import Accessories
 from aiohomekit.protocol import TLV
 from aiohomekit.protocol.statuscodes import HapStatusCode
-from cryptography import exceptions as cryptography_exceptions
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
-from zeroconf import ServiceInfo, Zeroconf
 
 
 def tlv_reorder(tlv_array, preferred_order):
@@ -93,9 +94,7 @@ class AccessoryServer(ThreadingMixIn, HTTPServer):
 
         self.accessories = Accessories()
 
-        HTTPServer.__init__(
-            self, (self.data.ip, self.data.port), AccessoryRequestHandler
-        )
+        HTTPServer.__init__(self, (self.data.ip, self.data.port), AccessoryRequestHandler)
 
     def write_event(self, characteristics, source=None):
         dead_sessions = []
@@ -173,15 +172,11 @@ class AccessoryServerData:
             with open(data_file) as input_file:
                 self.data = json.load(input_file)
         except PermissionError:
-            raise ConfigLoadingError(
-                f'Could not open "{input_file}" due to missing permissions'
-            )
+            raise ConfigLoadingError(f'Could not open "{input_file}" due to missing permissions')
         except JSONDecodeError:
             raise ConfigLoadingError(f'Cannot parse "{input_file}" as JSON file')
         except FileNotFoundError:
-            raise ConfigLoadingError(
-                f'Could not open "{input_file}" because it does not exist'
-            )
+            raise ConfigLoadingError(f'Could not open "{input_file}" because it does not exist')
 
         self.check()
 
@@ -196,9 +191,7 @@ class AccessoryServerData:
             with open(self.data_file, "w") as output_file:
                 json.dump(self.data, output_file, indent=2, sort_keys=True)
         except PermissionError:
-            raise ConfigSavingError(
-                f'Could not write "{self.data_file}" due to missing permissions'
-            )
+            raise ConfigSavingError(f'Could not write "{self.data_file}" due to missing permissions')
         except FileNotFoundError:
             raise ConfigSavingError(
                 f'Could not write "{self.data_file}" because it (or the folder) does not exist'
@@ -316,14 +309,10 @@ class AccessoryServerData:
             "category",
         ]
         if paired:
-            required_fields.extend(
-                ["accessory_ltpk", "accessory_ltsk", "peers", "unsuccessful_tries"]
-            )
+            required_fields.extend(["accessory_ltpk", "accessory_ltsk", "peers", "unsuccessful_tries"])
         for f in required_fields:
             if f not in self.data:
-                raise ConfigurationError(
-                    f'"{f}" is missing in the config file "{self.data_file}"!'
-                )
+                raise ConfigurationError(f'"{f}" is missing in the config file "{self.data_file}"!')
 
 
 class AccessoryRequestHandler(BaseHTTPRequestHandler):
@@ -423,18 +412,12 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 data = data[block_size:]
 
                 len_bytes = len(block).to_bytes(2, byteorder="little")
-                a2c_key = self.server.sessions[self.session_id][
-                    "accessory_to_controller_key"
-                ]
-                cnt = self.server.sessions[self.session_id][
-                    "accessory_to_controller_count"
-                ]
+                a2c_key = self.server.sessions[self.session_id]["accessory_to_controller_key"]
+                cnt = self.server.sessions[self.session_id]["accessory_to_controller_count"]
                 ciper_and_mac = ChaCha20Poly1305Encryptor(a2c_key).encrypt(
                     len_bytes, PACK_NONCE(cnt), bytes(block)
                 )
-                self.server.sessions[self.session_id][
-                    "accessory_to_controller_count"
-                ] += 1
+                self.server.sessions[self.session_id]["accessory_to_controller_count"] += 1
                 out_data += len_bytes + ciper_and_mac
 
             try:
@@ -484,7 +467,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                     self.server.sessions[self.session_id]["enrypted_connection"] = False
                     BaseHTTPRequestHandler.handle_one_request(self)
                     return
-        except (TimeoutError, OSError) as e:
+        except (socket.timeout, OSError) as e:
             # a read or a write timed out.  Discard this connection
             self.log_error(" %r", e)
             self.close_connection = True
@@ -509,9 +492,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
         # verify & decrypt the read data
         cnt = self.server.sessions[self.session_id]["controller_to_accessory_count"]
         try:
-            decrypted = ChaCha20Poly1305Decryptor(c2a_key).decrypt(
-                len_bytes, PACK_NONCE(cnt), data
-            )
+            decrypted = ChaCha20Poly1305Decryptor(c2a_key).decrypt(len_bytes, PACK_NONCE(cnt), data)
         except DecryptionError:
             # crypto error, log it and request close of connection
             self.log_error("SEVERE: Could not decrypt %s", binascii.hexlify(data))
@@ -556,10 +537,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
         # analyse
         params = {}
         if "?" in self.path:
-            params = {
-                t.split("=")[0]: t.split("=")[1]
-                for t in self.path.split("?")[1].split("&")
-            }
+            params = {t.split("=")[0]: t.split("=")[1] for t in self.path.split("?")[1].split("&")}
 
         # handle id param
         ids = []
@@ -599,9 +577,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
         result = {"characteristics": []}
 
         if len(ids) != len(set(ids)):
-            self.log_message(
-                "duplicate iid detected - this breaks some accessories: %s", ids
-            )
+            self.log_message("duplicate iid detected - this breaks some accessories: %s", ids)
             self.send_response(HttpStatusCodes.BAD_REQUEST)
             return
 
@@ -622,9 +598,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                         # try to read the characteristic and report possible exceptions as error
                         try:
                             value = characteristic.get_value()
-                            result["characteristics"].append(
-                                {"aid": aid, "iid": cid, "value": value}
-                            )
+                            result["characteristics"].append({"aid": aid, "iid": cid, "value": value})
                         except FormatError:
                             result["characteristics"].append(
                                 {
@@ -667,9 +641,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                         if include_type:
                             result["characteristics"][-1]["type"] = characteristic.type
                         if perms:
-                            result["characteristics"][-1]["perms"] = (
-                                characteristic.perms
-                            )
+                            result["characteristics"][-1]["perms"] = characteristic.perms
                         if meta:
                             meta_data = characteristic.get_meta()
                             for key in meta_data:
@@ -755,9 +727,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                                     self.subscriptions.add((aid, cid))
                                 else:
                                     self.subscriptions.discard((aid, cid))
-                                result["characteristics"].append(
-                                    {"aid": aid, "iid": cid, "status": 0}
-                                )
+                                result["characteristics"].append({"aid": aid, "iid": cid, "status": 0})
                             else:
                                 result["characteristics"].append(
                                     {
@@ -780,13 +750,9 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                                     raise CharacteristicPermissionError(
                                         HapStatusCode.CANT_WRITE_READ_ONLY.value
                                     )
-                                new_val = characteristic.validate_value(
-                                    characteristic_to_set["value"]
-                                )
+                                new_val = characteristic.validate_value(characteristic_to_set["value"])
                                 characteristic.set_value(new_val)
-                                result["characteristics"].append(
-                                    {"aid": aid, "iid": cid, "status": 0}
-                                )
+                                result["characteristics"].append({"aid": aid, "iid": cid, "status": 0})
                                 changed.append((aid, cid))
                             except FormatError:
                                 result["characteristics"].append(
@@ -840,9 +806,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
     def _post_identify(self):
         if self.server.data.is_paired:
-            result_bytes = json.dumps(
-                {"status": HapStatusCode.INSUFFICIENT_PRIVILEGES.value}
-            ).encode()
+            result_bytes = json.dumps({"status": HapStatusCode.INSUFFICIENT_PRIVILEGES.value}).encode()
             self.send_response(HttpStatusCodes.BAD_REQUEST)
             self.send_header("Content-Type", "application/hap+json")
             self.send_header("Content-Length", len(result_bytes))
@@ -890,16 +854,12 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 2) generate shared secret
             ios_device_curve25519_pub_key_bytes = bytes(d_req[1][1])
-            self.server.sessions[self.session_id]["ios_device_pub_key"] = (
-                ios_device_curve25519_pub_key_bytes
-            )
+            self.server.sessions[self.session_id]["ios_device_pub_key"] = ios_device_curve25519_pub_key_bytes
             ios_device_curve25519_pub_key = x25519.X25519PublicKey.from_public_bytes(
                 ios_device_curve25519_pub_key_bytes
             )
 
-            shared_secret = accessory_session_key.exchange(
-                ios_device_curve25519_pub_key
-            )
+            shared_secret = accessory_session_key.exchange(ios_device_curve25519_pub_key)
             self.server.sessions[self.session_id]["shared_secret"] = shared_secret
 
             # 3) generate accessory info
@@ -910,9 +870,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             )
 
             # 4) sign accessory info for accessory signature
-            accessory_ltsk = ed25519.Ed25519PrivateKey.from_private_bytes(
-                self.server.data.accessory_ltsk
-            )
+            accessory_ltsk = ed25519.Ed25519PrivateKey.from_private_bytes(self.server.data.accessory_ltsk)
             accessory_signature = accessory_ltsk.sign(accessory_info)
 
             # 5) sub tlv
@@ -923,15 +881,11 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             sub_tlv_b = TLV.encode_list(sub_tlv)
 
             # 6) derive session key
-            session_key = hkdf_derive(
-                shared_secret, b"Pair-Verify-Encrypt-Salt", b"Pair-Verify-Encrypt-Info"
-            )
+            session_key = hkdf_derive(shared_secret, b"Pair-Verify-Encrypt-Salt", b"Pair-Verify-Encrypt-Info")
             self.server.sessions[self.session_id]["session_key"] = session_key
 
             # 7) encrypt sub tlv
-            encrypted_data_with_auth_tag = ChaCha20Poly1305Encryptor(
-                session_key
-            ).encrypt(
+            encrypted_data_with_auth_tag = ChaCha20Poly1305Encryptor(session_key).encrypt(
                 b"",
                 NONCE_PADDING + b"PV-Msg02",
                 bytes(sub_tlv_b),
@@ -970,9 +924,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                 )
             except DecryptionError:
                 self.send_error_reply(TLV.M4, TLV.kTLVError_Authentication)
-                self.log_error(
-                    "error in step #4: authtag %s %s", d_res, self.server.sessions
-                )
+                self.log_error("error in step #4: authtag %s %s", d_res, self.server.sessions)
                 return
             d1 = TLV.decode_bytes(decrypted)
             assert d1[0][0] == TLV.kTLVType_Identifier
@@ -980,38 +932,24 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 3) get ios_device_ltpk
             ios_device_pairing_id = d1[0][1]
-            self.server.sessions[self.session_id]["ios_device_pairing_id"] = (
-                ios_device_pairing_id
-            )
+            self.server.sessions[self.session_id]["ios_device_pairing_id"] = ios_device_pairing_id
             ios_device_ltpk_bytes = self.server.data.get_peer_key(ios_device_pairing_id)
             if ios_device_ltpk_bytes is None:
                 self.send_error_reply(TLV.M4, TLV.kTLVError_Authentication)
-                self.log_error(
-                    "error in step #4: not paired %s %s", d_res, self.server.sessions
-                )
+                self.log_error("error in step #4: not paired %s %s", d_res, self.server.sessions)
                 return
-            ios_device_ltpk = ed25519.Ed25519PublicKey.from_public_bytes(
-                ios_device_ltpk_bytes
-            )
+            ios_device_ltpk = ed25519.Ed25519PublicKey.from_public_bytes(ios_device_ltpk_bytes)
 
             # 4) verify ios_device_info
             ios_device_sig = d1[1][1]
-            ios_device_curve25519_pub_key_bytes = self.server.sessions[self.session_id][
-                "ios_device_pub_key"
-            ]
+            ios_device_curve25519_pub_key_bytes = self.server.sessions[self.session_id]["ios_device_pub_key"]
             accessory_spk = self.server.sessions[self.session_id]["accessory_pub_key"]
-            ios_device_info = (
-                ios_device_curve25519_pub_key_bytes
-                + ios_device_pairing_id
-                + accessory_spk
-            )
+            ios_device_info = ios_device_curve25519_pub_key_bytes + ios_device_pairing_id + accessory_spk
             try:
                 ios_device_ltpk.verify(bytes(ios_device_sig), bytes(ios_device_info))
             except cryptography_exceptions.InvalidSignature:
                 self.send_error_reply(TLV.M4, TLV.kTLVError_Authentication)
-                self.log_error(
-                    "error in step #4: signature %s %s", d_res, self.server.sessions
-                )
+                self.log_error("error in step #4: signature %s %s", d_res, self.server.sessions)
                 return
 
             #
@@ -1020,17 +958,13 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             controller_to_accessory_key = hkdf_derive(
                 shared_secret, b"Control-Salt", b"Control-Write-Encryption-Key"
             )
-            self.server.sessions[self.session_id]["controller_to_accessory_key"] = (
-                controller_to_accessory_key
-            )
+            self.server.sessions[self.session_id]["controller_to_accessory_key"] = controller_to_accessory_key
             self.server.sessions[self.session_id]["controller_to_accessory_count"] = 0
 
             accessory_to_controller_key = hkdf_derive(
                 shared_secret, b"Control-Salt", b"Control-Read-Encryption-Key"
             )
-            self.server.sessions[self.session_id]["accessory_to_controller_key"] = (
-                accessory_to_controller_key
-            )
+            self.server.sessions[self.session_id]["accessory_to_controller_key"] = accessory_to_controller_key
             self.server.sessions[self.session_id]["accessory_to_controller_count"] = 0
 
             d_res.append(
@@ -1101,9 +1035,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             is_admin = additional_controller_permissions == b"\x01"
 
             # 3) pairing exists?
-            registered_controller_LTPK = server_data.get_peer_key(
-                additional_controller_pairing_identifier
-            )
+            registered_controller_LTPK = server_data.get_peer_key(additional_controller_pairing_identifier)
 
             if registered_controller_LTPK is not None:
                 self.log_message("controller is already registered!")
@@ -1115,9 +1047,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
                 self.log_message("with different permissions")
                 # 3.b) update permission
-                server_data.set_peer_permissions(
-                    additional_controller_pairing_identifier, is_admin
-                )
+                server_data.set_peer_permissions(additional_controller_pairing_identifier, is_admin)
             else:
                 self.log_message("add pairing")
 
@@ -1296,15 +1226,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 8) show setup code to user
             sc = self.server.data.setup_code
-            sc_str = (
-                "Setup Code\n┌─"
-                + "─" * len(sc)
-                + "─┐\n│ "
-                + sc
-                + " │\n└─"
-                + "─" * len(sc)
-                + "─┘"
-            )
+            sc_str = "Setup Code\n┌─" + "─" * len(sc) + "─┐\n│ " + sc + " │\n└─" + "─" * len(sc) + "─┘"
             self.log_message(sc_str)
 
             # 9) create public key
@@ -1435,9 +1357,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             d_req_2 = TLV.decode_bytearray(bytearray(decrypted_data))
 
             # 3) Derive ios_device_x
-            shared_secret = self.server.sessions[self.session_id][
-                "srp"
-            ].get_session_key()
+            shared_secret = self.server.sessions[self.session_id]["srp"].get_session_key()
 
             ios_device_x = hkdf_derive(
                 SrpServer.to_byte_array(shared_secret),
@@ -1453,9 +1373,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 5) verify signature
             ios_device_sig = d_req_2[2][1]  # should be [TLV.kTLVType_Signature
 
-            verify_key = ed25519.Ed25519PublicKey.from_public_bytes(
-                bytes(ios_device_ltpk)
-            )
+            verify_key = ed25519.Ed25519PublicKey.from_public_bytes(bytes(ios_device_ltpk))
             try:
                 verify_key.verify(bytes(ios_device_sig), bytes(ios_device_info))
             except cryptography_exceptions.InvalidSignature:
@@ -1468,10 +1386,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # Response Generation
             # 1) generate accessoryLTPK if not existing
-            if (
-                self.server.data.accessory_ltsk is None
-                or self.server.data.accessory_ltpk is None
-            ):
+            if self.server.data.accessory_ltsk is None or self.server.data.accessory_ltpk is None:
                 accessory_ltsk = ed25519.Ed25519PrivateKey.generate()
                 accessory_ltsk_bytes = accessory_ltsk.private_bytes(
                     encoding=serialization.Encoding.Raw,
@@ -1490,9 +1405,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                     accessory_ltsk_bytes,
                 )
             else:
-                accessory_ltsk = ed25519.Ed25519PrivateKey.from_private_bytes(
-                    self.server.data.accessory_ltsk
-                )
+                accessory_ltsk = ed25519.Ed25519PrivateKey.from_private_bytes(self.server.data.accessory_ltsk)
 
             # 2) derive AccessoryX
             accessory_x = hkdf_derive(
@@ -1503,9 +1416,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 3)
             accessory_info = (
-                accessory_x
-                + self.server.data.accessory_pairing_id_bytes
-                + self.server.data.accessory_ltpk
+                accessory_x + self.server.data.accessory_pairing_id_bytes + self.server.data.accessory_ltpk
             )
 
             # 4) generate signature

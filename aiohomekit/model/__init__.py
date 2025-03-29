@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-import aiohomekit.hkjson as hkjson
+from aiohomekit import hkjson
 from aiohomekit.protocol.statuscodes import to_status_code
 from aiohomekit.uuid import normalize_uuid
 
@@ -105,9 +105,7 @@ class Services:
 
         if characteristics:
             for characteristic, value in characteristics.items():
-                matches = filter(
-                    lambda service: service.value(characteristic) == value, matches
-                )
+                matches = filter(lambda service: service.value(characteristic) == value, matches)
 
         if parent_service:
             matches = filter(lambda service: service in parent_service.linked, matches)
@@ -118,9 +116,7 @@ class Services:
         if order_by:
             matches = sorted(
                 matches,
-                key=lambda service: tuple(
-                    service.value(char_type) for char_type in order_by
-                ),
+                key=lambda service: tuple(service.value(char_type) for char_type in order_by),
             )
 
         return matches
@@ -195,8 +191,7 @@ class Accessory:
         serial_number: str,
         firmware_revision: str,
     ) -> Accessory:
-        """
-        Create an accessory with the required services for HomeKit.
+        """Create an accessory with the required services for HomeKit.
 
         This method should only be used for testing purposes as it assigns
         the next available ids to the accessory and services.
@@ -209,9 +204,7 @@ class Accessory:
         accessory_info.add_char(CharacteristicsTypes.MANUFACTURER, value=manufacturer)
         accessory_info.add_char(CharacteristicsTypes.MODEL, value=model)
         accessory_info.add_char(CharacteristicsTypes.SERIAL_NUMBER, value=serial_number)
-        accessory_info.add_char(
-            CharacteristicsTypes.FIRMWARE_REVISION, value=firmware_revision
-        )
+        accessory_info.add_char(CharacteristicsTypes.FIRMWARE_REVISION, value=firmware_revision)
 
         return self
 
@@ -247,16 +240,12 @@ class Accessory:
     @property
     def firmware_revision(self) -> str:
         """Return the firmware revision of the accessory."""
-        return self.accessory_information.value(
-            CharacteristicsTypes.FIRMWARE_REVISION, ""
-        )
+        return self.accessory_information.value(CharacteristicsTypes.FIRMWARE_REVISION, "")
 
     @property
     def hardware_revision(self) -> str:
         """Return the hardware revision of the accessory."""
-        return self.accessory_information.value(
-            CharacteristicsTypes.HARDWARE_REVISION, ""
-        )
+        return self.accessory_information.value(CharacteristicsTypes.HARDWARE_REVISION, "")
 
     @property
     def available(self) -> bool:
@@ -265,8 +254,7 @@ class Accessory:
 
     @property
     def needs_polling(self) -> bool:
-        """
-        Check if there are any chars that need polling.
+        """Check if there are any chars that need polling.
 
         Currently this is only used for BLE devices that have
         energy consumption characteristics.
@@ -283,9 +271,7 @@ class Accessory:
         accessory = cls(data["aid"])
 
         for service_data in data["services"]:
-            service = accessory.add_service(
-                service_data["type"], iid=service_data["iid"], add_required=False
-            )
+            service = accessory.add_service(service_data["type"], iid=service_data["iid"], add_required=False)
             for char_data in service_data["characteristics"]:
                 kwargs = {
                     "perms": char_data["perms"],
@@ -313,9 +299,7 @@ class Accessory:
                 if "disconnected_events" in char_data:
                     kwargs["disconnected_events"] = char_data["disconnected_events"]
 
-                char = service.add_char(
-                    char_data["type"], iid=char_data["iid"], **kwargs
-                )
+                char = service.add_char(char_data["type"], iid=char_data["iid"], **kwargs)
                 if char_data.get("value") is not None:
                     char.set_value(char_data["value"])
 
@@ -343,9 +327,7 @@ class Accessory:
         iid: int | None = None,
     ) -> Service:
         """Add a service to the accessory."""
-        service = Service(
-            self, service_type, name=name, add_required=add_required, iid=iid
-        )
+        service = Service(self, service_type, name=name, add_required=add_required, iid=iid)
         self.services.append(service)
         return service
 
@@ -409,11 +391,8 @@ class Accessories:
         """Return True if the given aid exists."""
         return aid in self._aid_to_accessory
 
-    def process_changes(
-        self, changes: dict[tuple[int, int], dict[str, Any]]
-    ) -> set[tuple[int, int]]:
-        """
-        Process changes from a HomeKit controller.
+    def process_changes(self, changes: dict[tuple[int, int], dict[str, Any]]) -> set[tuple[int, int]]:
+        """Process changes from a HomeKit controller.
 
         Returns a set of the changes that were applied.
         """

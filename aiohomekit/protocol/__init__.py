@@ -17,8 +17,12 @@ from __future__ import annotations
 
 import logging
 from binascii import hexlify
-from collections.abc import Callable, Generator
-from typing import Any
+from collections.abc import Generator
+from typing import Any, Callable
+
+from cryptography import exceptions as cryptography_exceptions
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
 
 from aiohomekit.crypto import (
     NONCE_PADDING,
@@ -42,9 +46,6 @@ from aiohomekit.exceptions import (
     UnavailableError,
 )
 from aiohomekit.protocol.tlv import TLV
-from cryptography import exceptions as cryptography_exceptions
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
 
 logger = logging.getLogger(__name__)
 
@@ -59,18 +60,17 @@ def error_handler(error: bytearray, stage: str):
     """
     if error == TLV.kTLVError_Unavailable:
         raise UnavailableError(stage)
-    elif error == TLV.kTLVError_Authentication:
+    if error == TLV.kTLVError_Authentication:
         raise AuthenticationError(stage)
-    elif error == TLV.kTLVError_Backoff:
+    if error == TLV.kTLVError_Backoff:
         raise BackoffError(stage)
-    elif error == TLV.kTLVError_MaxPeers:
+    if error == TLV.kTLVError_MaxPeers:
         raise MaxPeersError(stage)
-    elif error == TLV.kTLVError_MaxTries:
+    if error == TLV.kTLVError_MaxTries:
         raise MaxTriesError(stage)
-    elif error == TLV.kTLVError_Busy:
+    if error == TLV.kTLVError_Busy:
         raise BusyError(stage)
-    else:
-        raise InvalidError(stage)
+    raise InvalidError(stage)
 
 
 def handle_state_step(tlv_dict, expected_state):
@@ -91,9 +91,7 @@ def handle_state_step(tlv_dict, expected_state):
 
 def perform_pair_setup_part1(
     with_auth: bool = True,
-) -> Generator[
-    tuple[list[tuple[int, bytearray]], list[int]], None, tuple[bytearray, bytearray]
-]:
+) -> Generator[tuple[list[tuple[int, bytearray]], list[int]], None, tuple[bytearray, bytearray]]:
     """
     Performs a pair setup operation as described in chapter 4.7 page 39 ff.
 
@@ -105,6 +103,7 @@ def perform_pair_setup_part1(
     :raises MaxPeersError: if the device cannot accept an additional pairing
     :raises IllegalData: if the verification of the accessory's data fails
     """
+
     #
     # Step #1 ios --> accessory (send SRP start Request) (see page 39)
     #
@@ -148,9 +147,7 @@ def validate_mfi(session_key, response_tlv):
             bytes(response_tlv[TLV.kTLVType_EncryptedData]),
         )
     except DecryptionError:
-        logger.debug(
-            "Device returned kTLVType_EncryptedData during M4 but could not decrypt"
-        )
+        logger.debug("Device returned kTLVType_EncryptedData during M4 but could not decrypt")
         return
 
     sub_tlv = TLV.decode_bytes(decrypted)
@@ -162,17 +159,13 @@ def validate_mfi(session_key, response_tlv):
         return
 
     if TLV.kTLVType_Certificate not in sub_tlv:
-        logger.debug(
-            "QUIRK: M4: Device returned kTLVType_Signature but not kTLVType_Certificate"
-        )
+        logger.debug("QUIRK: M4: Device returned kTLVType_Signature but not kTLVType_Certificate")
         return
 
     # Certificate appears to be X509 in DER format but with some sort of PKCS7 pre-amble.
     # cryptography doesn't seem to support that yet.
 
-    logger.debug(
-        "Found seemingly valid MFI kTLVType_Signature; we don't validate this yet"
-    )
+    logger.debug("Found seemingly valid MFI kTLVType_Signature; we don't validate this yet")
 
 
 def perform_pair_setup_part2(
@@ -191,6 +184,7 @@ def perform_pair_setup_part2(
     :raises MaxPeersError: if the device cannot accept an additional pairing
     :raises IllegalData: if the verification of the accessory's data fails
     """
+
     srp_client = SrpClient("Pair-Setup", pin)
     srp_client.set_salt(salt)
     srp_client.set_server_public_key(server_public_key)
@@ -413,15 +407,11 @@ def resume_m3(
             bytes(auth_tag),
         )
     except DecryptionError:
-        logger.debug(
-            "M3: Failure to resume existing session: Could not decrypt kTLVType_EncryptedData"
-        )
+        logger.debug("M3: Failure to resume existing session: Could not decrypt kTLVType_EncryptedData")
         return None
 
     if plaintext != b"":
-        logger.debug(
-            "M3: Failure to resume existing session: Could not decrypt kTLVType_EncryptedData"
-        )
+        logger.debug("M3: Failure to resume existing session: Could not decrypt kTLVType_EncryptedData")
         return None
 
     shared_secret = derive(
@@ -458,6 +448,7 @@ def get_session_keys(
     :raises InvalidSignatureError: if the accessory's signature could not be verified
     :raises AuthenticationError: if the secured session could not be established
     """
+
     #
     # Step #1 ios --> accessory (send verify start Request) (page 47)
     #
@@ -497,15 +488,11 @@ def get_session_keys(
 
     # 1) generate shared secret
     accessorys_session_pub_key_bytes = bytes(response_tlv[TLV.kTLVType_PublicKey])
-    accessorys_session_pub_key = x25519.X25519PublicKey.from_public_bytes(
-        accessorys_session_pub_key_bytes
-    )
+    accessorys_session_pub_key = x25519.X25519PublicKey.from_public_bytes(accessorys_session_pub_key_bytes)
     shared_secret = ios_key.exchange(accessorys_session_pub_key)
 
     # 2) derive session key
-    session_key = hkdf_derive(
-        shared_secret, b"Pair-Verify-Encrypt-Salt", b"Pair-Verify-Encrypt-Info"
-    )
+    session_key = hkdf_derive(shared_secret, b"Pair-Verify-Encrypt-Salt", b"Pair-Verify-Encrypt-Info")
 
     # 3) verify auth tag on encrypted data and 4) decrypt
     encrypted = response_tlv[TLV.kTLVType_EncryptedData]
@@ -529,35 +516,25 @@ def get_session_keys(
     if pairing_data["AccessoryPairingID"] != accessory_name:
         raise IncorrectPairingIdError("step 3")
 
-    accessory_ltpk = ed25519.Ed25519PublicKey.from_public_bytes(
-        bytes.fromhex(pairing_data["AccessoryLTPK"])
-    )
+    accessory_ltpk = ed25519.Ed25519PublicKey.from_public_bytes(bytes.fromhex(pairing_data["AccessoryLTPK"]))
 
     # 6) verify accessory's signature
     accessory_sig = d1[TLV.kTLVType_Signature]
     accessory_session_pub_key_bytes = response_tlv[TLV.kTLVType_PublicKey]
-    accessory_info = (
-        accessory_session_pub_key_bytes + accessory_name.encode() + ios_key_pub
-    )
+    accessory_info = accessory_session_pub_key_bytes + accessory_name.encode() + ios_key_pub
     try:
         accessory_ltpk.verify(bytes(accessory_sig), bytes(accessory_info))
     except cryptography_exceptions.InvalidSignature:
         raise InvalidSignatureError("step 3")
 
     # 7) create iOSDeviceInfo
-    ios_device_info = (
-        ios_key_pub
-        + pairing_data["iOSPairingId"].encode()
-        + accessorys_session_pub_key_bytes
-    )
+    ios_device_info = ios_key_pub + pairing_data["iOSPairingId"].encode() + accessorys_session_pub_key_bytes
 
     # 8) sign iOSDeviceInfo with long term secret key
     ios_device_ltsk_h = pairing_data["iOSDeviceLTSK"]
     # ios_device_ltpk_h = pairing_data["iOSDeviceLTPK"]
 
-    ios_device_ltsk = ed25519.Ed25519PrivateKey.from_private_bytes(
-        bytes.fromhex(ios_device_ltsk_h)
-    )
+    ios_device_ltsk = ed25519.Ed25519PrivateKey.from_private_bytes(bytes.fromhex(ios_device_ltsk_h))
     # ios_device_ltsk = ed25519.SigningKey(
     #    bytes.fromhex(ios_device_ltsk_h) + bytes.fromhex(ios_device_ltpk_h)
     # )

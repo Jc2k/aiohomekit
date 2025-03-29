@@ -27,6 +27,8 @@ from typing import Any
 from aiocoap import Context, Message, resource
 from aiocoap.error import NetworkError
 from aiocoap.numbers.codes import Code
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -41,8 +43,6 @@ from aiohomekit.protocol import (
 )
 from aiohomekit.protocol.tlv import HAP_TLV, TLV
 from aiohomekit.utils import asyncio_timeout
-from cryptography.exceptions import InvalidTag
-from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
 from .pdu import (
     OpCode,
@@ -92,24 +92,18 @@ class EncryptionContext:
 
     def decrypt(self, enc_data: bytes) -> bytes:
         logger.debug("DECRYPT counter=%d" % (self.recv_ctr,))
-        dec_data = self.recv_ctx.decrypt(
-            struct.pack("=4xQ", self.recv_ctr), enc_data, b""
-        )
+        dec_data = self.recv_ctx.decrypt(struct.pack("=4xQ", self.recv_ctr), enc_data, b"")
         self.recv_ctr += 1
         return dec_data
 
     def decrypt_event(self, enc_data: bytes) -> bytes:
-        dec_data = self.event_ctx.decrypt(
-            struct.pack("=4xQ", self.event_ctr), enc_data, b""
-        )
+        dec_data = self.event_ctx.decrypt(struct.pack("=4xQ", self.event_ctr), enc_data, b"")
         self.event_ctr += 1
         return dec_data
 
     def encrypt(self, dec_data: bytes) -> bytes:
         logger.debug("ENCRYPT counter=%d" % (self.send_ctr,))
-        enc_data = self.send_ctx.encrypt(
-            struct.pack("=4xQ", self.send_ctr), dec_data, b""
-        )
+        enc_data = self.send_ctx.encrypt(struct.pack("=4xQ", self.send_ctr), dec_data, b"")
         self.send_ctr += 1
         return enc_data
 
@@ -117,10 +111,7 @@ class EncryptionContext:
         try:
             return self.decrypt(response.payload)
         except InvalidTag:
-            logger.error(
-                "Decryption failed, desynchronized? Counter=%d/%d"
-                % (self.recv_ctr, self.send_ctr)
-            )
+            logger.error("Decryption failed, desynchronized? Counter=%d/%d" % (self.recv_ctr, self.send_ctr))
 
             # look back a few counter values
             rewind = min(5, self.recv_ctr)
@@ -151,9 +142,7 @@ class EncryptionContext:
             except InvalidTag:
                 pass
 
-            logger.error(
-                "Failed flailing attempts to resynchronize, self-destructing in 3, 2, 1..."
-            )
+            logger.error("Failed flailing attempts to resynchronize, self-destructing in 3, 2, 1...")
 
             if self.coap_ctx:
                 await self.coap_ctx.shutdown()
@@ -169,7 +158,7 @@ class EncryptionContext:
                 request = Message(code=Code.POST, payload=payload, uri=self.uri)
                 async with asyncio_timeout(timeout):
                     response = await self.coap_ctx.request(request).response
-            except (TimeoutError, NetworkError):
+            except (NetworkError, asyncio.TimeoutError):
                 logger.debug("%s: Did not receive a reply; end of session.", self.uri)
                 if self.coap_ctx:
                     await self.coap_ctx.shutdown()
@@ -186,17 +175,13 @@ class EncryptionContext:
 
             return await self._decrypt_response(response)
 
-    async def post(
-        self, opcode: OpCode, iid: int, data: bytes
-    ) -> tuple[int, bytes | PDUStatus]:
+    async def post(self, opcode: OpCode, iid: int, data: bytes) -> tuple[int, bytes | PDUStatus]:
         tid = random.randint(1, 254)
         req_pdu = encode_pdu(opcode, tid, iid, data)
         res_pdu = await self.post_bytes(req_pdu)
         return decode_pdu(tid, res_pdu)
 
-    async def post_all(
-        self, opcode: OpCode, iids: list[int], data: list[bytes]
-    ) -> list[bytes | PDUStatus]:
+    async def post_all(self, opcode: OpCode, iids: list[int], data: list[bytes]) -> list[bytes | PDUStatus]:
         req_pdu = encode_all_pdus(opcode, iids, data)
         res_pdu = await self.post_bytes(req_pdu)
         return decode_all_pdus(0, res_pdu)
@@ -212,8 +197,7 @@ class EventResource(resource.Resource):
             payload = self.connection.enc_ctx.decrypt_event(request.payload)
         except InvalidTag:
             logger.debug(
-                "Event decryption failed, desynchronized? Counter=%d"
-                % (self.connection.enc_ctx.event_ctr,)
+                "Event decryption failed, desynchronized? Counter=%d" % (self.connection.enc_ctx.event_ctr,)
             )
             # XXX invalidate subscriptions, etc
             return Message(code=Code.NOT_FOUND)
@@ -376,9 +360,7 @@ class CoAPHomeKitConnection:
 
         uri = "coap://%s/" % (self.address)
 
-        self.enc_ctx = EncryptionContext(
-            recv_ctx, send_ctx, event_ctx, uri, coap_client
-        )
+        self.enc_ctx = EncryptionContext(recv_ctx, send_ctx, event_ctx, uri, coap_client)
 
         logger.debug(f"Connected to CoAP HAP accessory at {self.address}!")
         root.add_resource([], EventResource(self))
@@ -393,7 +375,7 @@ class CoAPHomeKitConnection:
 
             try:
                 await self.do_pair_verify(pairing_data)
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 logger.debug("Pair verify timed out")
                 raise AccessoryDisconnectedError("Pair verify timed out")
             except Exception as exc:
@@ -424,11 +406,7 @@ class CoAPHomeKitConnection:
             # one service at a time
             for service in accessory.services:
                 # first, collect all readable characteristics
-                readable = [
-                    char
-                    for char in service.characteristics
-                    if char.supports_secure_reads
-                ]
+                readable = [char for char in service.characteristics if char.supports_secure_reads]
 
                 # get instance IDs
                 iids = [char.instance_id for char in readable]
@@ -473,9 +451,7 @@ class CoAPHomeKitConnection:
         for idx, result in enumerate(pdu_results):
             aid_iid = ids[idx]
             if isinstance(result, PDUStatus):
-                logger.debug(
-                    "Failed to read aid %d iid %d" % (int(aid_iid[0]), int(aid_iid[1]))
-                )
+                logger.debug("Failed to read aid %d iid %d" % (int(aid_iid[0]), int(aid_iid[1])))
                 results[aid_iid] = {
                     "description": result.description,
                     "status": -result.value,  # XXX
@@ -520,9 +496,7 @@ class CoAPHomeKitConnection:
         pdu_results = await self.enc_ctx.post_all(OpCode.CHAR_READ, iids, data)
         return self._read_characteristics_exit(ids, pdu_results)
 
-    def _write_characteristics_enter(
-        self, ids_values: list[tuple[int, int, Any]]
-    ) -> list[bytearray]:
+    def _write_characteristics_enter(self, ids_values: list[tuple[int, int, Any]]) -> list[bytearray]:
         # convert provided values to appropriate binary format for each characteristic
         tlv_values = []
         for _, aid_iid_value in enumerate(ids_values):
@@ -580,9 +554,7 @@ class CoAPHomeKitConnection:
 
         return self._write_characteristics_exit(ids_values, pdu_results)
 
-    def _subscribe_to_exit(
-        self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
-    ) -> dict:
+    def _subscribe_to_exit(self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]) -> dict:
         results = {}
         for idx, result in enumerate(pdu_results):
             aid_iid = ids[idx]
@@ -641,9 +613,7 @@ class CoAPHomeKitConnection:
         return self._unsubscribe_from_exit(ids, pdu_results)
 
     async def list_pairings(self):
-        pairings_characteristic = self.info.accessories[
-            0
-        ].find_service_characteristic_by_type(0x55, 0x50)
+        pairings_characteristic = self.info.accessories[0].find_service_characteristic_by_type(0x55, 0x50)
 
         # list pairings M1
         m1_payload = TLV.encode_list(
@@ -673,34 +643,24 @@ class CoAPHomeKitConnection:
         m2_state = list(filter(lambda x: x[0] == TLV.kTLVType_State, m2))
         if len(m2_state) != 1 or m2_state[0][1] != TLV.M2:
             logger.debug("Unexpected state in list pairings M2")
-            return
+            return None
 
         m2_error = list(filter(lambda x: x[0] == TLV.kTLVType_Error, m2))
         if len(m2_error) != 0:
             logger.debug(f"Error from accessory during list pairings: {m2_error[0][1]}")
-            return
+            return None
 
-        id_list = [
-            pairing_tuple[1]
-            for pairing_tuple in m2
-            if pairing_tuple[0] == TLV.kTLVType_Identifier
-        ]
-        pk_list = [
-            pairing_tuple[1]
-            for pairing_tuple in m2
-            if pairing_tuple[0] == TLV.kTLVType_PublicKey
-        ]
+        id_list = [pairing_tuple[1] for pairing_tuple in m2 if pairing_tuple[0] == TLV.kTLVType_Identifier]
+        pk_list = [pairing_tuple[1] for pairing_tuple in m2 if pairing_tuple[0] == TLV.kTLVType_PublicKey]
         pr_list = [
             int.from_bytes(pairing_tuple[1], byteorder="little")
             for pairing_tuple in m2
             if pairing_tuple[0] == TLV.kTLVType_Permissions
         ]
-        return list(zip(id_list, pk_list, pr_list, strict=False))
+        return list(zip(id_list, pk_list, pr_list))
 
     async def remove_pairing(self, pairing_id) -> bool:
-        pairings_characteristic = self.info.accessories[
-            0
-        ].find_service_characteristic_by_type(0x55, 0x50)
+        pairings_characteristic = self.info.accessories[0].find_service_characteristic_by_type(0x55, 0x50)
 
         # remove pairings M1
         m1_payload = TLV.encode_list(
@@ -724,7 +684,6 @@ class CoAPHomeKitConnection:
                 PDUStatus.INSUFFICIENT_AUTHORIZATION,
             ]:
                 raise AuthenticationError("Remove pairing failed")
-            else:
-                raise UnknownError("Remove pairing failed")
+            raise UnknownError("Remove pairing failed")
 
         return True

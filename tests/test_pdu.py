@@ -15,6 +15,7 @@
 #
 
 import pytest
+
 from aiohomekit.pdu import (
     OpCode,
     PDUStatus,
@@ -35,9 +36,7 @@ def test_encode_with_body():
 
 
 def test_encode_with_fragments():
-    result = list(
-        encode_pdu(OpCode.CHAR_SIG_READ, 44, 1, b"ABCD" * 64, fragment_size=256)
-    )
+    result = list(encode_pdu(OpCode.CHAR_SIG_READ, 44, 1, b"ABCD" * 64, fragment_size=256))
 
     assert result == [
         b"\x00\x01,\x01\x00\x00\x01ABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDA"

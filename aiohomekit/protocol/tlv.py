@@ -161,9 +161,7 @@ class TLV:
             length = tail.pop(0)
             value = tail[:length]
             if length != len(value):
-                raise TlvParseException(
-                    f"Not enough data for length {length} while decoding '{ba}'"
-                )
+                raise TlvParseException(f"Not enough data for length {length} while decoding '{ba}'")
             tail = tail[length:]
 
             if len(result) > 0 and result[-1][0] == key:
@@ -224,9 +222,7 @@ class TLV:
             name = K_TLV_TYPE_NAMES.get(tlv_key, UNKNOWN_TLV_TYPE_NAME)
             value_description = ""
             if tlv_key == TLV.kTLVType_Error:
-                value_description = K_TLV_ERROR_NAMES.get(
-                    entry_value[0], UNKNOWN_TLV_ERROR_NAME
-                )
+                value_description = K_TLV_ERROR_NAMES.get(entry_value[0], UNKNOWN_TLV_ERROR_NAME)
             if value_description:
                 value_description = f" [{value_description}]"
             if isinstance(entry_value, bytearray):
@@ -248,5 +244,3 @@ class TLV:
 
 class TlvParseException(Exception):
     """Raised upon parse error with some TLV"""
-
-    pass

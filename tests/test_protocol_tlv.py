@@ -39,9 +39,7 @@ class TestTLV(unittest.TestCase):
         self.assertEqual(val, res)
 
     def test_long_values_decode_bytearray_to_list(self):
-        example = bytearray.fromhex(
-            "060103" + ("09FF" + 255 * "61" + "092D" + 45 * "61") + "010568656c6c6f"
-        )
+        example = bytearray.fromhex("060103" + ("09FF" + 255 * "61" + "092D" + 45 * "61") + "010568656c6c6f")
         expected = [
             [6, bytearray(b"\x03")],
             [9, bytearray(300 * b"a")],
@@ -53,9 +51,7 @@ class TestTLV(unittest.TestCase):
 
     def test_long_values_decode_bytes_to_list(self):
         example = bytes(
-            bytearray.fromhex(
-                "060103" + ("09FF" + 255 * "61" + "092D" + 45 * "61") + "010568656c6c6f"
-            )
+            bytearray.fromhex("060103" + ("09FF" + 255 * "61" + "092D" + 45 * "61") + "010568656c6c6f")
         )
         expected = [
             [6, bytearray(b"\x03")],
@@ -82,15 +78,11 @@ class TestTLV(unittest.TestCase):
     #     self.assertRaises(TlvParseException, TLV.decode_bytearray, example)
 
     def test_decode_bytearray_to_list_not_enough_data(self):
-        example = bytearray.fromhex(
-            "060103" + "09FF" + 25 * "61"
-        )  # should have been 255 '61'
+        example = bytearray.fromhex("060103" + "09FF" + 25 * "61")  # should have been 255 '61'
         self.assertRaises(TlvParseException, TLV.decode_bytearray, example)
 
     def test_decode_bytes_to_list_not_enough_data(self):
-        example = bytes(
-            bytearray.fromhex("060103" + "09FF" + 25 * "61")
-        )  # should have been 255 '61'
+        example = bytes(bytearray.fromhex("060103" + "09FF" + 25 * "61"))  # should have been 255 '61'
         self.assertRaises(TlvParseException, TLV.decode_bytes, example)
 
     def test_encode_list_key_error(self):
@@ -155,16 +147,12 @@ class TestTLV(unittest.TestCase):
     def test_to_string_for_dict_bytearray(self):
         example = {1: bytearray([0x42, 0x23])}
         res = TLV.to_string(example)
-        self.assertEqual(
-            res, "{\n  1 (Identifier): (2 bytes/<class 'bytearray'>) 0x4223\n}\n"
-        )
+        self.assertEqual(res, "{\n  1 (Identifier): (2 bytes/<class 'bytearray'>) 0x4223\n}\n")
 
     def test_to_string_for_list_bytearray(self):
         example = [[1, bytearray([0x42, 0x23])]]
         res = TLV.to_string(example)
-        self.assertEqual(
-            res, "[\n  1 (Identifier): (2 bytes/<class 'bytearray'>) 0x4223\n]\n"
-        )
+        self.assertEqual(res, "[\n  1 (Identifier): (2 bytes/<class 'bytearray'>) 0x4223\n]\n")
 
     def test_separator_list(self):
         val = [

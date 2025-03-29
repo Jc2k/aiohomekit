@@ -1,8 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from aiohomekit.controller import Controller
-from aiohomekit.controller import controller as controller_module
+
+from aiohomekit.controller import Controller, controller as controller_module
 from aiohomekit.controller.abstract import TransportType
 from aiohomekit.controller.ble.controller import BleController
 from aiohomekit.controller.ip.controller import IpController
@@ -24,8 +24,7 @@ async def test_remove_pairing(controller_and_paired_accessory):
 
 
 async def test_passing_in_bleak_to_controller():
-    """
-    Test we can pass in a bleak scanner instance to the controller.
+    """Test we can pass in a bleak scanner instance to the controller.
 
     Passing in the instance should enable BLE scanning.
     """
@@ -34,9 +33,7 @@ async def test_passing_in_bleak_to_controller():
         patch.object(controller_module, "COAP_TRANSPORT_SUPPORTED", False),
         patch.object(controller_module, "IP_TRANSPORT_SUPPORTED", False),
     ):
-        controller = Controller(
-            bleak_scanner_instance=AsyncMock(register_detection_callback=MagicMock())
-        )
+        controller = Controller(bleak_scanner_instance=AsyncMock(register_detection_callback=MagicMock()))
         await controller.async_start()
 
     assert len(controller.transports) == 1
@@ -44,8 +41,7 @@ async def test_passing_in_bleak_to_controller():
 
 
 async def test_passing_in_async_zeroconf(mock_asynczeroconf):
-    """
-    Test we can pass in a zeroconf ServiceBrowser instance to the controller.
+    """Test we can pass in a zeroconf ServiceBrowser instance to the controller.
 
     Passing in the instance should enable zeroconf scanning.
     """

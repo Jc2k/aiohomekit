@@ -64,9 +64,7 @@ class FakeDescription:
 class FakeDiscovery(AbstractDiscovery):
     description = FakeDescription()
 
-    def __init__(
-        self, controller: FakeController, device_id: str, accessories: Accessories
-    ):
+    def __init__(self, controller: FakeController, device_id: str, accessories: Accessories):
         self.controller = controller
         self.accessories = accessories
 
@@ -153,9 +151,7 @@ class PairingTester:
             uuid = normalize_uuid(uuid)
 
             if uuid not in service:
-                raise RuntimeError(
-                    f"Unexpected characteristic {uuid!r} applied to service {name!r}"
-                )
+                raise RuntimeError(f"Unexpected characteristic {uuid!r} applied to service {name!r}")
 
             char: Characteristic = service[uuid]
             changed.append((char.service.accessory.aid, char.iid, value))
@@ -167,9 +163,7 @@ class PairingTester:
 
     def set_aid_iid_status(self, aid_iid_statuses: list[tuple[int, int, int]]):
         """Set status for an aid iid pair."""
-        event = {
-            (aid, iid): {"status": status} for aid, iid, status in aid_iid_statuses
-        }
+        event = {(aid, iid): {"status": status} for aid, iid, status in aid_iid_statuses}
 
         if not event:
             return
@@ -273,8 +267,7 @@ class FakePairing(AbstractPairing):
     async def async_populate_accessories_state(
         self, force_update: bool = False, attempts: int | None = None
     ) -> bool:
-        """
-        Populate the state of all accessories.
+        """Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless
         we know the config num is out of date or force_update is True
@@ -284,9 +277,7 @@ class FakePairing(AbstractPairing):
 
     async def _process_config_changed(self, config_num: int) -> None:
         await self.list_accessories_and_characteristics()
-        self._accessories_state = AccessoriesState(
-            self._accessories_state.accessories, config_num
-        )
+        self._accessories_state = AccessoriesState(self._accessories_state.accessories, config_num)
         self._callback_and_save_config_changed(config_num)
 
     async def _process_disconnected_events(self):
@@ -358,9 +349,7 @@ class FakeController(AbstractController):
 
     transport_type = TransportType.IP
 
-    def __init__(
-        self, async_zeroconf_instance=None, char_cache=None, bleak_scanner_instance=None
-    ):
+    def __init__(self, async_zeroconf_instance=None, char_cache=None, bleak_scanner_instance=None):
         super().__init__(char_cache=char_cache or CharacteristicCacheMemory())
 
     def add_device(self, accessories):
@@ -374,9 +363,7 @@ class FakeController(AbstractController):
 
     async def add_paired_device(self, accessories: Accessories, alias: str = None):
         discovery = self.add_device(accessories)
-        finish_pairing = await discovery.async_start_pairing(
-            alias or discovery.description.id
-        )
+        finish_pairing = await discovery.async_start_pairing(alias or discovery.description.id)
         return await finish_pairing(discovery.pairing_code)
 
     async def async_start(self) -> None:
@@ -385,9 +372,7 @@ class FakeController(AbstractController):
     async def async_stop(self) -> None:
         self.started = False
 
-    async def async_discover(
-        self, max_seconds: int = 10
-    ) -> AsyncIterable[AbstractDiscovery]:
+    async def async_discover(self, max_seconds: int = 10) -> AsyncIterable[AbstractDiscovery]:
         for discovery in self.discoveries.values():
             yield discovery
 

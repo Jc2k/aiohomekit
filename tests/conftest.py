@@ -9,13 +9,15 @@ from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from zeroconf import DNSCache, SignalRegistrationInterface
+
 from aiohomekit import Controller
 from aiohomekit.controller.ip import IpPairing
 from aiohomekit.model import Accessory
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
+
 from tests.accessoryserver import AccessoryServer
-from zeroconf import DNSCache, SignalRegistrationInterface
 
 
 def _get_test_socket() -> socket.socket:
@@ -65,6 +67,7 @@ class AsyncServiceBrowserStub:
 @pytest.fixture
 def mock_asynczeroconf():
     """Mock zeroconf."""
+
     with patch("aiohomekit.zeroconf.AsyncServiceBrowser", AsyncServiceBrowserStub):
         with patch("aiohomekit.zeroconf.AsyncZeroconf") as mock_zc:
             zc = mock_zc.return_value
@@ -79,9 +82,7 @@ def mock_asynczeroconf():
 
 
 @pytest.fixture
-async def controller_and_unpaired_accessory(
-    request, mock_asynczeroconf, event_loop, id_factory
-):
+async def controller_and_unpaired_accessory(request, mock_asynczeroconf, event_loop, id_factory):
     available_port = next_available_port()
 
     config_file = tempfile.NamedTemporaryFile(delete=False)
@@ -132,9 +133,7 @@ async def controller_and_unpaired_accessory(
 
 
 @pytest.fixture
-async def controller_and_paired_accessory(
-    request, event_loop, mock_asynczeroconf, id_factory
-):
+async def controller_and_paired_accessory(request, event_loop, mock_asynczeroconf, id_factory):
     available_port = next_available_port()
 
     config_file = tempfile.NamedTemporaryFile(delete=False)

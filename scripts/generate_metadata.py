@@ -13,19 +13,13 @@ with open(plist, "rb") as fp:
 
 enrichment = {
     "00000120-0000-1000-8000-0026BB765291": {"struct": ".structs.StreamingStatus"},
-    "00000117-0000-1000-8000-0026BB765291": {
-        "struct": ".structs.SelectedRTPStreamConfiguration"
-    },
+    "00000117-0000-1000-8000-0026BB765291": {"struct": ".structs.SelectedRTPStreamConfiguration"},
     "00000116-0000-1000-8000-0026BB765291": {
         "struct": ".structs.SupportedRTPConfiguration",
         "array": True,
     },
-    "00000115-0000-1000-8000-0026BB765291": {
-        "struct": ".structs.SupportedAudioStreamConfiguration"
-    },
-    "00000114-0000-1000-8000-0026BB765291": {
-        "struct": ".structs.SupportedVideoStreamConfiguration"
-    },
+    "00000115-0000-1000-8000-0026BB765291": {"struct": ".structs.SupportedAudioStreamConfiguration"},
+    "00000114-0000-1000-8000-0026BB765291": {"struct": ".structs.SupportedVideoStreamConfiguration"},
 }
 
 

@@ -23,7 +23,9 @@ from struct import Struct
 from typing import TYPE_CHECKING, Any
 
 import aiohappyeyeballs
-import aiohomekit.hkjson as hkjson
+from async_interrupt import interrupt
+
+from aiohomekit import hkjson
 from aiohomekit.crypto.chacha20poly1305 import (
     PACK_NONCE,
     ChaCha20Poly1305Decryptor,
@@ -44,7 +46,6 @@ from aiohomekit.http.response import HttpResponse
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task, asyncio_timeout
-from async_interrupt import interrupt
 
 UNSIGNED_SHORT_LITTLE = Struct("<H")
 PACK_UNSIGNED_SHORT_LITTLE = UNSIGNED_SHORT_LITTLE.pack
@@ -58,11 +59,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _convert_hosts_to_addr_infos(
-    hosts: list[str], port: int
-) -> list[aiohappyeyeballs.AddrInfoType]:
-    """
-    Converts the list of hosts to a list of addr_infos.
+def _convert_hosts_to_addr_infos(hosts: list[str], port: int) -> list[aiohappyeyeballs.AddrInfoType]:
+    """Converts the list of hosts to a list of addr_infos.
     The list of hosts is the result of a DNS lookup. The list of
     addr_infos is the result of a call to `socket.getaddrinfo()`.
     """
@@ -136,9 +134,7 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
             self.transport.close()
             if isinstance(ex, asyncio.TimeoutError):
                 timeout_expired = True
-                raise AccessoryDisconnectedError(
-                    "Timeout while waiting for response"
-                ) from ex
+                raise AccessoryDisconnectedError("Timeout while waiting for response") from ex
             raise
         finally:
             if not timeout_expired:
@@ -180,9 +176,7 @@ class InsecureHomeKitProtocol(asyncio.Protocol):
 class SecureHomeKitProtocol(InsecureHomeKitProtocol):
     """An asyncio.Protocol implementation for secure HomeKit connections."""
 
-    def __init__(
-        self, connection: HomeKitConnection, a2c_key: bytes, c2a_key: bytes
-    ) -> None:
+    def __init__(self, connection: HomeKitConnection, a2c_key: bytes, c2a_key: bytes) -> None:
         super().__init__(connection)
 
         self._incoming_buffer: bytearray = bytearray()
@@ -204,9 +198,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
             payload = payload[1024:]
             len_bytes = PACK_UNSIGNED_SHORT_LITTLE(len(current))
             buffer.append(len_bytes)
-            buffer.append(
-                self.encryptor.encrypt(len_bytes, PACK_NONCE(self.c2a_counter), current)
-            )
+            buffer.append(self.encryptor.encrypt(len_bytes, PACK_NONCE(self.c2a_counter), current))
             self.c2a_counter += 1
 
         return await self._send_lines(buffer)
@@ -221,6 +213,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
         The blocks are expected to be in order - there is no protocol level support for
         interleaving of HTTP messages.
         """
+
         self._incoming_buffer += data
 
         while (incoming_len := len(self._incoming_buffer)) >= BLOCK_SIZE_LEN:
@@ -251,9 +244,7 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
 
 
 class HomeKitConnection:
-    def __init__(
-        self, owner: IpPairing, hosts: list[str], port: int, concurrency_limit: int = 1
-    ) -> None:
+    def __init__(self, owner: IpPairing, hosts: list[str], port: int, concurrency_limit: int = 1) -> None:
         self.owner = owner
         self.hosts = hosts
         self.port = port
@@ -306,8 +297,7 @@ class HomeKitConnection:
         self._connector = async_create_task(self._reconnect())
 
     def reconnect_soon(self) -> None:
-        """
-        Reconnect to the device if disconnected.
+        """Reconnect to the device if disconnected.
 
         If a reconnect is in progress, the reconnection wait is canceled
         and the reconnect proceeds.
@@ -384,9 +374,7 @@ class HomeKitConnection:
         response = await self.get(target)
         return hkjson.loads(response.body)
 
-    async def put(
-        self, target: str, body: bytes, content_type=HttpContentTypes.JSON
-    ) -> HttpResponse:
+    async def put(self, target: str, body: bytes, content_type=HttpContentTypes.JSON) -> HttpResponse:
         """
         Sends a HTTP POST request to the current transport and returns an awaitable
         that can be used to wait for a response.
@@ -415,23 +403,17 @@ class HomeKitConnection:
             decoded = response.body.decode("utf-8")
         except UnicodeDecodeError:
             self.transport.close()
-            raise AccessoryDisconnectedError(
-                "Session closed after receiving non-utf8 response"
-            )
+            raise AccessoryDisconnectedError("Session closed after receiving non-utf8 response")
 
         try:
             parsed = hkjson.loads(decoded)
         except hkjson.JSON_DECODE_EXCEPTIONS:
             self.transport.close()
-            raise AccessoryDisconnectedError(
-                "Session closed after receiving malformed response from device"
-            )
+            raise AccessoryDisconnectedError("Session closed after receiving malformed response from device")
 
         return parsed
 
-    async def post(
-        self, target: str, body: bytes, content_type=HttpContentTypes.TLV
-    ) -> HttpResponse:
+    async def post(self, target: str, body: bytes, content_type=HttpContentTypes.TLV) -> HttpResponse:
         """
         Sends a HTTP POST request to the current transport and returns an awaitable
         that can be used to wait for a response.
@@ -467,9 +449,7 @@ class HomeKitConnection:
             parsed = hkjson.loads(decoded)
         except hkjson.JSON_DECODE_EXCEPTIONS:
             self.transport.close()
-            raise AccessoryDisconnectedError(
-                "Session closed after receiving malformed response from device"
-            )
+            raise AccessoryDisconnectedError("Session closed after receiving malformed response from device")
 
         return parsed
 
@@ -505,9 +485,7 @@ class HomeKitConnection:
         :param body: The body of the request (optional)
         """
         if not self.protocol:
-            raise AccessoryDisconnectedError(
-                "Connection lost before request could be sent"
-            )
+            raise AccessoryDisconnectedError("Connection lost before request could be sent")
 
         # WARNING: It is vital that a Host: header is present or some devices
         # will reject the request.
@@ -644,7 +622,7 @@ class HomeKitConnection:
         #
         if self._connect_lock.locked():
             # Reconnect already in progress.
-            return
+            return None
         async with self._connect_lock:
             interval = 0.5
 
@@ -780,9 +758,7 @@ class SecureHomeKitConnection(HomeKitConnection):
 
         self.is_secure = True
 
-        logger.debug(
-            "Secure connection to %s:%s established", self.connected_host, self.port
-        )
+        logger.debug("Secure connection to %s:%s established", self.connected_host, self.port)
 
         if self.owner:
             await self.owner.connection_made(True)

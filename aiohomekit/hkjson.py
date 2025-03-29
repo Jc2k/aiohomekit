@@ -19,7 +19,6 @@ import json
 from typing import Any
 
 import commentjson
-
 import orjson
 
 JSON_ENCODE_EXCEPTIONS = (TypeError, ValueError)
@@ -27,8 +26,7 @@ JSON_DECODE_EXCEPTIONS = (json.JSONDecodeError, orjson.JSONDecodeError)
 
 
 def loads(s: str | bytes | bytearray | memoryview) -> Any:
-    """
-    Load json or fallback to commentjson.
+    """Load json or fallback to commentjson.
 
     We try to load the json with built-in json, and
     if it fails with JSONDecodeError we fallback to
@@ -52,8 +50,7 @@ def dumps(data: Any) -> str:
 
 
 def dump_bytes(data: Any) -> str:
-    """
-    JSON encoder that works with iOS.
+    """JSON encoder that works with iOS.
 
     An iPhone sends JSON like this:
 
