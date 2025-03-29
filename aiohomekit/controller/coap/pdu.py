@@ -16,9 +16,9 @@
 
 from __future__ import annotations
 
-from enum import Enum
 import logging
 import struct
+from enum import Enum
 
 from aiohomekit.enum import EnumWithDescription
 
@@ -56,7 +56,7 @@ def encode_pdu(opcode: OpCode, tid: int, iid: int, data: bytes) -> bytes:
 
 
 def encode_all_pdus(opcode: OpCode, iids: list[int], data: list[bytes]) -> bytes:
-    iids_data = zip(iids, data)
+    iids_data = zip(iids, data, strict=False)
     req_pdu = b"".join(
         [
             encode_pdu(

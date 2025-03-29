@@ -16,9 +16,9 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Iterable
 from datetime import timedelta
-import logging
 from typing import Any
 
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
@@ -162,7 +162,8 @@ class CoAPPairing(ZeroconfPairing):
         return accessories
 
     async def _process_config_changed(self, config_num: int) -> None:
-        """Process a config change.
+        """
+        Process a config change.
 
         This method is called when the config num changes.
         """
@@ -173,7 +174,8 @@ class CoAPPairing(ZeroconfPairing):
         self._callback_and_save_config_changed(config_num)
 
     def _process_disconnected_events(self):
-        """Process any events that happened while we were disconnected.
+        """
+        Process any events that happened while we were disconnected.
 
         We don't disconnect in COAP so there is no need to do anything here.
         """
@@ -181,7 +183,8 @@ class CoAPPairing(ZeroconfPairing):
     async def async_populate_accessories_state(
         self, force_update: bool = False, attempts: int | None = None
     ) -> bool:
-        """Populate the state of all accessories.
+        """
+        Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless
         we know the config num is out of date or force_update is True
@@ -248,7 +251,7 @@ class CoAPPairing(ZeroconfPairing):
                         ("pairingId", x[0].decode()),
                         ("publicKey", x[1].hex()),
                         ("permissions", x[2]),
-                        ("controllerType", x[2] & 0x01 and "admin" or "regular"),
+                        ("controllerType", (x[2] & 0x01 and "admin") or "regular"),
                     )
                 ),
                 pairing_tuples,

@@ -4,7 +4,6 @@ import json
 from unittest import mock
 
 import pytest
-
 from aiohomekit.__main__ import main
 
 

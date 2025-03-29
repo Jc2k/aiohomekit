@@ -17,21 +17,19 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Iterable
-from datetime import timedelta
 import logging
 import random
 import struct
 import time
+from collections.abc import Callable, Iterable
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 from uuid import UUID
 
-from bleak.backends.characteristic import BleakGATTCharacteristic
-from bleak.backends.device import BLEDevice
-from bleak.backends.scanner import AdvertisementData
-from bleak.exc import BleakError
 from bleak_retry_connector import (
     BLEAK_RETRY_EXCEPTIONS as BLEAK_EXCEPTIONS,
+)
+from bleak_retry_connector import (
     retry_bluetooth_connection_error,
 )
 
@@ -62,6 +60,10 @@ from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
+from bleak.backends.characteristic import BleakGATTCharacteristic
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
+from bleak.exc import BleakError
 
 from ..abstract import AbstractPairing, AbstractPairingData
 from .bleak import AIOHomeKitBleakClient
@@ -79,9 +81,13 @@ from .structs import (
     HAP_BLE_CHARACTERISTIC_CONFIGURATION_REQUEST_TLV,
     HAP_BLE_PROTOCOL_CONFIGURATION_REQUEST_TLV,
     HAP_TLV,
-    Characteristic as CharacteristicTLV,
     ProtocolParams,
     ProtocolParamsTLV,
+)
+from .structs import (
+    Characteristic as CharacteristicTLV,
+)
+from .structs import (
     Service as ServiceTLV,
 )
 from .values import from_bytes, to_bytes
@@ -475,7 +481,8 @@ class BlePairing(AbstractPairing):
         self._had_notify_this_session = False
 
     async def _ensure_connected(self, attempts: int | None = None) -> bool | None:
-        """Ensure that we are connected to the accessory.
+        """
+        Ensure that we are connected to the accessory.
 
         Returns True if we had to make the connection,
         returns False if we were already connected or shutdown.
@@ -959,7 +966,8 @@ class BlePairing(AbstractPairing):
         return self.accessories.serialize()
 
     async def get_primary_name(self) -> str:
-        """Return the primary name of the device.
+        """
+        Return the primary name of the device.
 
         This overrides the default implementation
         to get name from the advertisement if the
@@ -1063,7 +1071,8 @@ class BlePairing(AbstractPairing):
     async def async_populate_accessories_state(
         self, force_update: bool = False, attempts: int | None = None
     ) -> None:
-        """Populate the state of all accessories.
+        """
+        Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless
         we know the config num is out of date.
@@ -1217,7 +1226,8 @@ class BlePairing(AbstractPairing):
 
     @operation_lock
     async def _async_start_notify_subscriptions(self) -> None:
-        """Start notifications for the given subscriptions.
+        """
+        Start notifications for the given subscriptions.
 
         If we have an error or are disconnected we do not want
         to retry, as it usually means the accessory indented
@@ -1252,7 +1262,8 @@ class BlePairing(AbstractPairing):
     @retry_bluetooth_connection_error()
     @disconnect_on_missing_services
     async def _process_config_changed(self, config_num: int) -> None:
-        """Process a config change.
+        """
+        Process a config change.
 
         This method is called when the config num changes.
         """
@@ -1314,7 +1325,8 @@ class BlePairing(AbstractPairing):
     def _sort_characteristics_by_fetch_order(
         self, characteristics: list[Characteristic]
     ) -> list[Characteristic]:
-        """Sort characteristics by fetch order.
+        """
+        Sort characteristics by fetch order.
 
         Characteristics are sorted by what we expect to be the most
         useful order to fetch them in. This is based on the following

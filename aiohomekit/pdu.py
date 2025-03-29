@@ -16,10 +16,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from enum import Enum
 import logging
 import struct
+from collections.abc import Iterable
+from enum import Enum
 
 from aiohomekit.enum import EnumWithDescription
 

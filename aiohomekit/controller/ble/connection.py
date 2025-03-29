@@ -18,16 +18,18 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from bleak.backends.device import BLEDevice
 from bleak_retry_connector import (
     BleakAbortedError,
     BleakConnectionError,
     BleakError,
     BleakNotFoundError,
+)
+from bleak_retry_connector import (
     establish_connection as retry_establish_connection,
 )
 
 from aiohomekit.exceptions import AccessoryDisconnectedError, AccessoryNotFoundError
+from bleak.backends.device import BLEDevice
 
 from .bleak import AIOHomeKitBleakClient
 

@@ -16,20 +16,19 @@
 from __future__ import annotations
 
 import asyncio
+import pathlib
 from asyncio.log import logger
 from collections.abc import AsyncIterable
 from contextlib import AsyncExitStack
-import pathlib
 
-from bleak import BleakScanner
-from zeroconf.asyncio import AsyncZeroconf
-
+import aiohomekit.hkjson as hkjson
 from aiohomekit.characteristic_cache import (
     CharacteristicCacheMemory,
     CharacteristicCacheType,
 )
 from aiohomekit.controller.abstract import AbstractDiscovery
-import aiohomekit.hkjson as hkjson
+from bleak import BleakScanner
+from zeroconf.asyncio import AsyncZeroconf
 
 from ..const import (
     BLE_TRANSPORT_SUPPORTED,
@@ -72,9 +71,9 @@ class Controller(AbstractController):
         self._tasks = AsyncExitStack()
 
     async def _async_register_backend(self, controller: AbstractController) -> None:
-        self.transports[controller.transport_type] = (
-            await self._tasks.enter_async_context(controller)
-        )
+        self.transports[
+            controller.transport_type
+        ] = await self._tasks.enter_async_context(controller)
 
     async def async_start(self) -> None:
         if IP_TRANSPORT_SUPPORTED or self._async_zeroconf_instance:
@@ -217,9 +216,7 @@ class Controller(AbstractController):
             )
         except FileNotFoundError:
             raise ConfigSavingError(
-                'Could not write "{f}" because it (or the folder) does not exist'.format(
-                    f=filename
-                )
+                f'Could not write "{filename}" because it (or the folder) does not exist'
             )
 
     async def remove_pairing(self, alias: str) -> None:

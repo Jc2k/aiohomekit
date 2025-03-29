@@ -145,7 +145,7 @@ def test_decode_with_status_error():
 
 
 def test_decode_with_bad_control():
-    res_pdu = b"\xCC\x99\x00\x00\x00"
+    res_pdu = b"\xcc\x99\x00\x00\x00"
     res_len, res_val = decode_pdu(0x99, res_pdu)
 
     assert res_len == 0

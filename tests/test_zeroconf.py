@@ -17,11 +17,10 @@
 import socket
 
 import pytest
-from zeroconf.asyncio import AsyncServiceInfo
-
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.zeroconf import HomeKitService
+from zeroconf.asyncio import AsyncServiceInfo
 
 
 def test_simple():

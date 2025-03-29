@@ -16,13 +16,14 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Iterable
 from datetime import timedelta
 from itertools import groupby
-import logging
 from operator import itemgetter
 from typing import Any
 
+import aiohomekit.hkjson as hkjson
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -33,7 +34,6 @@ from aiohomekit.exceptions import (
     UnknownError,
     UnpairedError,
 )
-import aiohomekit.hkjson as hkjson
 from aiohomekit.http import HttpContentTypes
 from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.characteristics import (
@@ -140,7 +140,7 @@ class IpPairing(ZeroconfPairing):
         try:
             async with asyncio_timeout(10):
                 await connection.ensure_connection()
-        except asyncio.TimeoutError:
+        except TimeoutError:
             last_connector_error = connection.last_connector_error
             if not last_connector_error or isinstance(
                 last_connector_error, asyncio.TimeoutError
@@ -408,7 +408,8 @@ class IpPairing(ZeroconfPairing):
     async def async_populate_accessories_state(
         self, force_update: bool = False, attempts: int | None = None
     ) -> bool:
-        """Populate the state of all accessories.
+        """
+        Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless
         we know the config num is out of date or force_update is True
@@ -417,7 +418,8 @@ class IpPairing(ZeroconfPairing):
             await self.list_accessories_and_characteristics()
 
     async def _process_config_changed(self, config_num: int) -> None:
-        """Process a config change.
+        """
+        Process a config change.
 
         This method is called when the config num changes.
         """
@@ -428,7 +430,8 @@ class IpPairing(ZeroconfPairing):
         self._callback_and_save_config_changed(self.config_num)
 
     def _process_disconnected_events(self):
-        """Process any events that happened while we were disconnected.
+        """
+        Process any events that happened while we were disconnected.
 
         We don't disconnect in IP so there is no need to do anything here.
         """

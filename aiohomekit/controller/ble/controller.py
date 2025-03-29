@@ -1,13 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterable
 import logging
-
-from bleak import BleakScanner
-from bleak.backends.device import BLEDevice
-from bleak.backends.scanner import AdvertisementData
-from bleak.exc import BleakDBusError, BleakError
+from collections.abc import AsyncIterable
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import (
@@ -25,6 +20,10 @@ from aiohomekit.controller.ble.manufacturer_data import (
 from aiohomekit.controller.ble.pairing import BlePairing
 from aiohomekit.exceptions import AccessoryNotFoundError
 from aiohomekit.utils import asyncio_timeout
+from bleak import BleakScanner
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
+from bleak.exc import BleakDBusError, BleakError
 
 from .discovery import BleDiscovery
 
@@ -165,7 +164,7 @@ class BleController(AbstractController):
         try:
             async with asyncio_timeout(timeout):
                 return await future
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.debug(
                 "Timed out after %s waiting for discovery with hkid %s",
                 timeout,

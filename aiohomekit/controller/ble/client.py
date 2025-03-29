@@ -15,13 +15,10 @@
 #
 from __future__ import annotations
 
-from collections.abc import Generator
 import logging
 import random
-from typing import Any, Callable, TypeVar, cast
-
-from bleak import BleakClient
-from bleak.backends.characteristic import BleakGATTCharacteristic
+from collections.abc import Callable, Generator
+from typing import Any, TypeVar, cast
 
 from aiohomekit.controller.ble.key import DecryptionError, DecryptionKey, EncryptionKey
 from aiohomekit.exceptions import EncryptionError
@@ -34,6 +31,8 @@ from aiohomekit.pdu import (
     encode_pdu,
 )
 from aiohomekit.protocol.tlv import TLV
+from bleak import BleakClient
+from bleak.backends.characteristic import BleakGATTCharacteristic
 
 from .bleak import (
     AIOHomeKitBleakClient,
@@ -63,7 +62,8 @@ class PDUStatusError(Exception):
 
 
 def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
-    """Define a wrapper to disconnect on missing services and characteristics.
+    """
+    Define a wrapper to disconnect on missing services and characteristics.
 
     This must be placed after the retry_bluetooth_connection_error
     decorator.

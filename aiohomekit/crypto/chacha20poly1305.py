@@ -21,17 +21,20 @@ https://tools.ietf.org/html/rfc7539. See HomeKit spec page 51.
 
 from __future__ import annotations
 
-from functools import partial
 import logging
 import struct
+from functools import partial
 from struct import Struct
 
 from chacha20poly1305 import (
     ChaCha,
-    ChaCha20Poly1305 as ChaCha20Poly1305PurePython,
     Poly1305,
 )
+from chacha20poly1305 import (
+    ChaCha20Poly1305 as ChaCha20Poly1305PurePython,
+)
 from chacha20poly1305_reuseable import ChaCha20Poly1305Reusable
+
 from cryptography.exceptions import InvalidTag
 
 DecryptionError = InvalidTag
@@ -47,7 +50,8 @@ class ChaCha20Poly1305Encryptor:
     """Encrypt data with ChaCha20Poly1305."""
 
     def __init__(self, key: bytes) -> None:
-        """Init the encryptor
+        """
+        Init the encryptor
 
         :param key: 256-bit (32-byte) key of type bytes
         """
@@ -73,7 +77,8 @@ class ChaCha20Poly1305Decryptor:
     """Decrypt data with ChaCha20Poly1305."""
 
     def __init__(self, key: bytes) -> None:
-        """Init the decrypter
+        """
+        Init the decrypter
 
         :param key: 256-bit (32-byte) key of type bytes
         """

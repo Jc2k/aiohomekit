@@ -16,9 +16,9 @@
 
 __all__ = [
     "Service",
-    "ServicesTypes",
     "ServiceShortUUID",
     "ServiceUUID",
+    "ServicesTypes",
 ]
 
 from .service import Service

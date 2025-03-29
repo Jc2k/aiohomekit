@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from collections.abc import Sequence
-from dataclasses import dataclass, field
 import enum
 import struct
+from collections.abc import Sequence
+from dataclasses import dataclass, field
 from typing import Any, Optional, Union
 
 from aiohomekit.tlv8 import TLVStruct, tlv_entry, u8, u16, u128
@@ -295,7 +295,7 @@ class Characteristic(TLVStruct):
         return None
 
     def to_dict(self):
-        perms = list()
+        perms = []
         if self.supports_secure_reads:
             perms.append("pr")
         if self.supports_secure_writes:
@@ -360,7 +360,7 @@ class Service(TLVStruct):
         return self.service_properties and self.service_properties & 0x0004
 
     def to_dict(self):
-        perms = list()
+        perms = []
         if self.hidden_service:
             perms.append("hd")
 

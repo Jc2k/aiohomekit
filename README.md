@@ -16,10 +16,10 @@ Because API breaking changes would hamper our ability to quickly update Home Ass
 
 Please bear in mind that some shipping devices interpret the HAP specification loosely. In general we prefer to match the behaviour of real HAP controllers even where their behaviour is not strictly specified. Here are just some of the kinds of problems we've had to work around:
 
-* Despite the precise formatting of JSON being unspecified, there are devices in the wild that cannot handle spaces when parsing JSON. For example, `{"foo": "bar"}` vs `{"foo":"bar"}`. This means we never use a "pretty" encoding of JSON.
-* Despite a boolean being explicitly defined as `0`, `1`, `true` or `false` in the spec, some devices only support 3 of the 4. This means booleans must be encoded as `0` or `1`.
-* Some devices have shown themselves to be sensitive to headers being missing, in the wrong order or if there are extra headers. So we ensure that only the headers iOS sends are present, and that the casing and ordering is the same.
-* Some devices are sensitive to a HTTP message being split into separate TCP packets. So we take care to only write a full message to the network stack.
+- Despite the precise formatting of JSON being unspecified, there are devices in the wild that cannot handle spaces when parsing JSON. For example, `{"foo": "bar"}` vs `{"foo":"bar"}`. This means we never use a "pretty" encoding of JSON.
+- Despite a boolean being explicitly defined as `0`, `1`, `true` or `false` in the spec, some devices only support 3 of the 4. This means booleans must be encoded as `0` or `1`.
+- Some devices have shown themselves to be sensitive to headers being missing, in the wrong order or if there are extra headers. So we ensure that only the headers iOS sends are present, and that the casing and ordering is the same.
+- Some devices are sensitive to a HTTP message being split into separate TCP packets. So we take care to only write a full message to the network stack.
 
 And so on. As a rule we need to be strict about what we send and loose about what we receive.
 
@@ -45,8 +45,8 @@ No. Eventually we hope to via [aioble](https://github.com/detectlabs/aioble) whi
 
 No, this is just the client part. You should use one the of other implementations:
 
- * [homekit_python](https://github.com/jlusiardi/homekit_python/) (this is used a lot during aiohomekit development)
- * [HAP-python](https://github.com/ikalchev/HAP-python)
+- [homekit_python](https://github.com/jlusiardi/homekit_python/) (this is used a lot during aiohomekit development)
+- [HAP-python](https://github.com/ikalchev/HAP-python)
 
 ### Why doesn't Home Assistant use library X instead?
 
@@ -58,10 +58,10 @@ Where possible aiohomekit uses libraries that are easy to install with pip, are 
 
 People are often alarmed at the hand rolled HTTP code and suggest using an existing HTTP library like `aiohttp`. High level HTTP libraries are pretty much a non-starter because:
 
-* Of the difficulty of adding in HAP session security without monkey patches.
-* They don't expect responses without requests (i.e. events).
-* As mentioned above, some of these devices are very sensitive. We don't care if your change is compliant with every spec if it still makes a real world device cry. We are not in a position to demand these devices be fixed. So instead we strive for byte-for-byte accuracy on our write path. Any library would need to give us that flexibility.
-* Some parts of the responses are actually not HTTP, even though they look it.
+- Of the difficulty of adding in HAP session security without monkey patches.
+- They don't expect responses without requests (i.e. events).
+- As mentioned above, some of these devices are very sensitive. We don't care if your change is compliant with every spec if it still makes a real world device cry. We are not in a position to demand these devices be fixed. So instead we strive for byte-for-byte accuracy on our write path. Any library would need to give us that flexibility.
+- Some parts of the responses are actually not HTTP, even though they look it.
 
 We are also just reluctant to make a change that large for something that is working with a lot of devices. There is a big chance of introducing a regression.
 
@@ -69,4 +69,4 @@ Of course a working proof of concept (using a popular well maintained library) t
 
 ## Thanks
 
-This library wouldn't have been possible without homekit_python, a synchronous implementation of both the client and server parts of HAP. 
+This library wouldn't have been possible without homekit_python, a synchronous implementation of both the client and server parts of HAP.

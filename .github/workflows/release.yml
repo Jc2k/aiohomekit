@@ -1,10 +1,9 @@
-
 name: Release
 
 on:
   push:
     tags:
-      - '*.*.*'
+      - "*.*.*"
 
 jobs:
   build:
@@ -18,14 +17,14 @@ jobs:
       - name: Get tag
         id: tag
         run: |
-          echo ::set-output name=tag::${GITHUB_REF#refs/tags/}      
+          echo ::set-output name=tag::${GITHUB_REF#refs/tags/}
       - name: Install poetry
         run: pipx install poetry
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: 3.11
-          cache: 'poetry'          
+          cache: "poetry"
       - name: Build a binary wheel and a source tarball
         run: poetry build
       - name: Store the distribution packages
@@ -83,5 +82,4 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/aiohomekit-${{ needs.build.outputs.tag }}-py3-none-any.whl
           asset_name: aiohomekit-${{ needs.build.outputs.tag }}-py3-none-any.whl
-          asset_content_type: application/x-wheel+zip        
-
+          asset_content_type: application/x-wheel+zip

@@ -17,12 +17,13 @@
 Implements the Secure Remote Password (SRP) algorithm. More information can be found on
 https://tools.ietf.org/html/rfc5054. See HomeKit spec page 36 for adjustments imposed by Apple.
 """
+
 from __future__ import annotations
 
-from collections.abc import Iterable
 import hashlib
 import math
 import os
+from collections.abc import Iterable
 
 # The K value for HK SRP is always the same because G and N are fixed
 CLIENT_K_VALUE = int(
@@ -57,7 +58,8 @@ E0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF""",
 
 
 def pad_left(data: bytes, length: int) -> bytes:
-    """Pads the data with 0x00 until it is of length length.
+    """
+    Pads the data with 0x00 until it is of length length.
 
     Some devices use a salt of all 0s (LIFX BEAM)
     """

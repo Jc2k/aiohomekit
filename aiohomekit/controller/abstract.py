@@ -16,13 +16,13 @@
 
 from __future__ import annotations
 
+import logging
 from abc import ABCMeta, abstractmethod
-from collections.abc import AsyncIterable, Awaitable, Iterable
+from collections.abc import AsyncIterable, Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-import logging
-from typing import Any, Callable, TypedDict, final
+from typing import Any, TypedDict, final
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.model import Accessories, AccessoriesState, Transport
@@ -282,7 +282,8 @@ class AbstractPairing(metaclass=ABCMeta):
     async def async_populate_accessories_state(
         self, force_update: bool = False, attempts: int | None = None
     ) -> None:
-        """Populate the state of all accessories.
+        """
+        Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless
         we know the config num is out of date or force_update is True
@@ -325,7 +326,8 @@ class AbstractPairing(metaclass=ABCMeta):
 
     @abstractmethod
     async def _process_config_changed(self, config_num: int) -> None:
-        """Process a config change.
+        """
+        Process a config change.
 
         This method is called when the config num changes.
         """
@@ -336,7 +338,8 @@ class AbstractPairing(metaclass=ABCMeta):
             await self.shutdown()
 
     async def shutdown(self) -> None:
-        """Shutdown the pairing.
+        """
+        Shutdown the pairing.
 
         This method is irreversible. It should be called when
         the pairing is removed or the controller is shutdown.
@@ -368,7 +371,8 @@ class AbstractPairing(metaclass=ABCMeta):
     def dispatcher_availability_changed(
         self, callback: Callable[[bool], None]
     ) -> Callable[[], None]:
-        """Notify subscribers when availablity changes.
+        """
+        Notify subscribers when availablity changes.
 
         Currently this only notifies when a device is seen as available and
         not when it is seen as unavailable.

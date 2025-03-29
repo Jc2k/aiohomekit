@@ -15,7 +15,6 @@
 #
 
 import pytest
-
 from aiohomekit.http import HttpStatusCodes
 
 

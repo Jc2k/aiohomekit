@@ -37,11 +37,11 @@ from .feature_flags import FeatureFlags
 from .services import Service, ServicesTypes
 
 __all__ = [
-    "Categories",
-    "CharacteristicPermissions",
-    "CharacteristicFormats",
-    "FeatureFlags",
     "Accessory",
+    "Categories",
+    "CharacteristicFormats",
+    "CharacteristicPermissions",
+    "FeatureFlags",
     "Service",
     "ServiceTypes",
     "Transport",
@@ -195,7 +195,8 @@ class Accessory:
         serial_number: str,
         firmware_revision: str,
     ) -> Accessory:
-        """Create an accessory with the required services for HomeKit.
+        """
+        Create an accessory with the required services for HomeKit.
 
         This method should only be used for testing purposes as it assigns
         the next available ids to the accessory and services.
@@ -264,7 +265,8 @@ class Accessory:
 
     @property
     def needs_polling(self) -> bool:
-        """Check if there are any chars that need polling.
+        """
+        Check if there are any chars that need polling.
 
         Currently this is only used for BLE devices that have
         energy consumption characteristics.
@@ -410,7 +412,8 @@ class Accessories:
     def process_changes(
         self, changes: dict[tuple[int, int], dict[str, Any]]
     ) -> set[tuple[int, int]]:
-        """Process changes from a HomeKit controller.
+        """
+        Process changes from a HomeKit controller.
 
         Returns a set of the changes that were applied.
         """

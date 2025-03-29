@@ -16,10 +16,10 @@
 from __future__ import annotations
 
 import base64
+import logging
 from collections.abc import AsyncIterable
 from dataclasses import dataclass
 from datetime import timedelta
-import logging
 
 from aiohomekit import exceptions
 from aiohomekit.characteristic_cache import CharacteristicCacheMemory
@@ -273,7 +273,8 @@ class FakePairing(AbstractPairing):
     async def async_populate_accessories_state(
         self, force_update: bool = False, attempts: int | None = None
     ) -> bool:
-        """Populate the state of all accessories.
+        """
+        Populate the state of all accessories.
 
         This method should try not to fetch all the accessories unless
         we know the config num is out of date or force_update is True

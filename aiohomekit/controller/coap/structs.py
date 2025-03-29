@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 
+import struct
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-import struct
 from typing import Any, Optional, Union
 
 from aiohomekit.protocol.tlv import HAP_TLV
@@ -228,7 +228,7 @@ class Pdu09Characteristic(TLVStruct):
         return None
 
     def to_dict(self):
-        perms = list()
+        perms = []
         if self.supports_secure_reads:
             perms.append("pr")
         if self.supports_secure_writes:

@@ -17,18 +17,16 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Iterable
 import logging
 import random
 import struct
-from typing import Any
 import uuid
+from collections.abc import Iterable
+from typing import Any
 
 from aiocoap import Context, Message, resource
 from aiocoap.error import NetworkError
 from aiocoap.numbers.codes import Code
-from cryptography.exceptions import InvalidTag
-from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
 from aiohomekit.exceptions import (
     AccessoryDisconnectedError,
@@ -43,6 +41,8 @@ from aiohomekit.protocol import (
 )
 from aiohomekit.protocol.tlv import HAP_TLV, TLV
 from aiohomekit.utils import asyncio_timeout
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
 from .pdu import (
     OpCode,
@@ -169,7 +169,7 @@ class EncryptionContext:
                 request = Message(code=Code.POST, payload=payload, uri=self.uri)
                 async with asyncio_timeout(timeout):
                     response = await self.coap_ctx.request(request).response
-            except (NetworkError, asyncio.TimeoutError):
+            except (TimeoutError, NetworkError):
                 logger.debug("%s: Did not receive a reply; end of session.", self.uri)
                 if self.coap_ctx:
                     await self.coap_ctx.shutdown()
@@ -393,7 +393,7 @@ class CoAPHomeKitConnection:
 
             try:
                 await self.do_pair_verify(pairing_data)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.debug("Pair verify timed out")
                 raise AccessoryDisconnectedError("Pair verify timed out")
             except Exception as exc:
@@ -469,7 +469,7 @@ class CoAPHomeKitConnection:
     def _read_characteristics_exit(
         self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
     ) -> dict:
-        results = dict()
+        results = {}
         for idx, result in enumerate(pdu_results):
             aid_iid = ids[idx]
             if isinstance(result, PDUStatus):
@@ -524,7 +524,7 @@ class CoAPHomeKitConnection:
         self, ids_values: list[tuple[int, int, Any]]
     ) -> list[bytearray]:
         # convert provided values to appropriate binary format for each characteristic
-        tlv_values = list()
+        tlv_values = []
         for _, aid_iid_value in enumerate(ids_values):
             # look up characteristic
             characteristic = self.info.find_characteristic_by_aid_iid(
@@ -548,7 +548,7 @@ class CoAPHomeKitConnection:
     ) -> dict:
         # transform results
         # only error conditions are returned
-        results = dict()
+        results = {}
         for idx, result in enumerate(pdu_results):
             aid_iid_value = ids_values[idx]
             key = (aid_iid_value[0], aid_iid_value[1])
@@ -583,7 +583,7 @@ class CoAPHomeKitConnection:
     def _subscribe_to_exit(
         self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
     ) -> dict:
-        results = dict()
+        results = {}
         for idx, result in enumerate(pdu_results):
             aid_iid = ids[idx]
             key = (aid_iid[0], aid_iid[1])
@@ -612,7 +612,7 @@ class CoAPHomeKitConnection:
     def _unsubscribe_from_exit(
         self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]
     ) -> dict:
-        results = dict()
+        results = {}
         for idx, result in enumerate(pdu_results):
             aid_iid = ids[idx]
             key = (aid_iid[0], aid_iid[1])
@@ -695,7 +695,7 @@ class CoAPHomeKitConnection:
             for pairing_tuple in m2
             if pairing_tuple[0] == TLV.kTLVType_Permissions
         ]
-        return list(zip(id_list, pk_list, pr_list))
+        return list(zip(id_list, pk_list, pr_list, strict=False))
 
     async def remove_pairing(self, pairing_id) -> bool:
         pairings_characteristic = self.info.accessories[

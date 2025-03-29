@@ -16,15 +16,14 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Iterable
 import logging
 import socket
+from collections.abc import Iterable
 from struct import Struct
 from typing import TYPE_CHECKING, Any
 
 import aiohappyeyeballs
-from async_interrupt import interrupt
-
+import aiohomekit.hkjson as hkjson
 from aiohomekit.crypto.chacha20poly1305 import (
     PACK_NONCE,
     ChaCha20Poly1305Decryptor,
@@ -40,12 +39,12 @@ from aiohomekit.exceptions import (
     HttpErrorResponse,
     TimeoutError,
 )
-import aiohomekit.hkjson as hkjson
 from aiohomekit.http import HttpContentTypes
 from aiohomekit.http.response import HttpResponse
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.tlv import TLV
 from aiohomekit.utils import async_create_task, asyncio_timeout
+from async_interrupt import interrupt
 
 UNSIGNED_SHORT_LITTLE = Struct("<H")
 PACK_UNSIGNED_SHORT_LITTLE = UNSIGNED_SHORT_LITTLE.pack
@@ -62,7 +61,8 @@ logger = logging.getLogger(__name__)
 def _convert_hosts_to_addr_infos(
     hosts: list[str], port: int
 ) -> list[aiohappyeyeballs.AddrInfoType]:
-    """Converts the list of hosts to a list of addr_infos.
+    """
+    Converts the list of hosts to a list of addr_infos.
     The list of hosts is the result of a DNS lookup. The list of
     addr_infos is the result of a call to `socket.getaddrinfo()`.
     """
@@ -221,7 +221,6 @@ class SecureHomeKitProtocol(InsecureHomeKitProtocol):
         The blocks are expected to be in order - there is no protocol level support for
         interleaving of HTTP messages.
         """
-
         self._incoming_buffer += data
 
         while (incoming_len := len(self._incoming_buffer)) >= BLOCK_SIZE_LEN:
@@ -307,7 +306,8 @@ class HomeKitConnection:
         self._connector = async_create_task(self._reconnect())
 
     def reconnect_soon(self) -> None:
-        """Reconnect to the device if disconnected.
+        """
+        Reconnect to the device if disconnected.
 
         If a reconnect is in progress, the reconnection wait is canceled
         and the reconnect proceeds.

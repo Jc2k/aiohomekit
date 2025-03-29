@@ -126,7 +126,7 @@ def test_bytes():
         value: bytes = tlv_entry(160)
 
     raw = (
-        b"\xA0\x12"
+        b"\xa0\x12"
         + b"\x88\x01\x00\x34"
         + b"\x00\x01\x00\x05\x74\x68\x2f\x74\x63"
         + b"\x00\x03\x00\x27\x00"

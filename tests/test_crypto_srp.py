@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 import pytest
-
 from aiohomekit.crypto.srp import SrpClient, SrpServer
 
 # To find short keys
@@ -89,6 +88,6 @@ def test_1(server_cls, client_cls):
     servers_proof = server.get_proof_bytes(clients_proof_bytes)
 
     # step M5
-    assert (
-        client.verify_servers_proof_bytes(servers_proof) is True
-    ), f"proof mismatch: server_key:{server.b} client_key:{client.a} server_salt:{server.salt}"
+    assert client.verify_servers_proof_bytes(servers_proof) is True, (
+        f"proof mismatch: server_key:{server.b} client_key:{client.a} server_salt:{server.salt}"
+    )

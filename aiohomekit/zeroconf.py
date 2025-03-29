@@ -15,24 +15,14 @@
 #
 
 """Helpers for detecing homekit devices via zeroconf."""
+
 from __future__ import annotations
 
-from abc import abstractmethod
 import asyncio
+import logging
+from abc import abstractmethod
 from collections.abc import AsyncIterable
 from dataclasses import dataclass
-import logging
-
-from zeroconf import (
-    BadTypeInNameException,
-    DNSPointer,
-    IPVersion,
-    ServiceListener,
-    ServiceStateChange,
-    Zeroconf,
-    current_time_millis,
-)
-from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from aiohomekit.characteristic_cache import CharacteristicCacheType
 from aiohomekit.controller.abstract import (
@@ -44,6 +34,16 @@ from aiohomekit.exceptions import AccessoryNotFoundError, TransportNotSupportedE
 from aiohomekit.model import Categories
 from aiohomekit.model.feature_flags import FeatureFlags
 from aiohomekit.model.status_flags import StatusFlags
+from zeroconf import (
+    BadTypeInNameException,
+    DNSPointer,
+    IPVersion,
+    ServiceListener,
+    ServiceStateChange,
+    Zeroconf,
+    current_time_millis,
+)
+from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from .utils import async_create_task
 
@@ -320,7 +320,7 @@ class ZeroconfController(AbstractController):
         try:
             if discovery := await waiter:
                 return discovery
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise AccessoryNotFoundError(
                 f"Accessory with device id {device_id} not found"
             )
@@ -328,7 +328,8 @@ class ZeroconfController(AbstractController):
             cancel_timeout.cancel()
 
     async def async_reachable(self, device_id: str, timeout: float = 10.0) -> bool:
-        """Check if a device is reachable.
+        """
+        Check if a device is reachable.
 
         This method will return True if the device is reachable, False if it is not.
 
@@ -347,7 +348,7 @@ class ZeroconfController(AbstractController):
 
     def _async_on_timeout(self, future: asyncio.Future) -> None:
         if not future.done():
-            future.set_exception(asyncio.TimeoutError())
+            future.set_exception(TimeoutError())
 
     async def async_discover(self) -> AsyncIterable[ZeroconfDiscovery]:
         for device in self.discoveries.values():

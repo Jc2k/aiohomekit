@@ -15,7 +15,6 @@
 #
 
 import pytest
-
 from aiohomekit.crypto.chacha20poly1305 import (
     ChaCha20Poly1305Decryptor,
     ChaCha20Poly1305Encryptor,

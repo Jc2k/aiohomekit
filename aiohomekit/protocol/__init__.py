@@ -15,14 +15,10 @@
 #
 from __future__ import annotations
 
-from binascii import hexlify
-from collections.abc import Generator
 import logging
-from typing import Any, Callable
-
-from cryptography import exceptions as cryptography_exceptions
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
+from binascii import hexlify
+from collections.abc import Callable, Generator
+from typing import Any
 
 from aiohomekit.crypto import (
     NONCE_PADDING,
@@ -46,6 +42,9 @@ from aiohomekit.exceptions import (
     UnavailableError,
 )
 from aiohomekit.protocol.tlv import TLV
+from cryptography import exceptions as cryptography_exceptions
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +105,6 @@ def perform_pair_setup_part1(
     :raises MaxPeersError: if the device cannot accept an additional pairing
     :raises IllegalData: if the verification of the accessory's data fails
     """
-
     #
     # Step #1 ios --> accessory (send SRP start Request) (see page 39)
     #
@@ -193,7 +191,6 @@ def perform_pair_setup_part2(
     :raises MaxPeersError: if the device cannot accept an additional pairing
     :raises IllegalData: if the verification of the accessory's data fails
     """
-
     srp_client = SrpClient("Pair-Setup", pin)
     srp_client.set_salt(salt)
     srp_client.set_server_public_key(server_public_key)
@@ -461,7 +458,6 @@ def get_session_keys(
     :raises InvalidSignatureError: if the accessory's signature could not be verified
     :raises AuthenticationError: if the secured session could not be established
     """
-
     #
     # Step #1 ios --> accessory (send verify start Request) (page 47)
     #

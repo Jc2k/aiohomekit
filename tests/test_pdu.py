@@ -15,7 +15,6 @@
 #
 
 import pytest
-
 from aiohomekit.pdu import (
     OpCode,
     PDUStatus,

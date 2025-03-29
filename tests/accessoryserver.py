@@ -15,21 +15,16 @@
 #
 
 import binascii
-from http.server import BaseHTTPRequestHandler, HTTPServer
 import io
 import json
-from json.decoder import JSONDecodeError
 import logging
 import select
 import socket
-from socketserver import ThreadingMixIn
 import sys
 import threading
-
-from cryptography import exceptions as cryptography_exceptions
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
-from zeroconf import ServiceInfo, Zeroconf
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from json.decoder import JSONDecodeError
+from socketserver import ThreadingMixIn
 
 from aiohomekit.crypto import hkdf_derive
 from aiohomekit.crypto.chacha20poly1305 import (
@@ -52,6 +47,10 @@ from aiohomekit.http import HttpStatusCodes
 from aiohomekit.model import Accessories
 from aiohomekit.protocol import TLV
 from aiohomekit.protocol.statuscodes import HapStatusCode
+from cryptography import exceptions as cryptography_exceptions
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
+from zeroconf import ServiceInfo, Zeroconf
 
 
 def tlv_reorder(tlv_array, preferred_order):
@@ -198,15 +197,11 @@ class AccessoryServerData:
                 json.dump(self.data, output_file, indent=2, sort_keys=True)
         except PermissionError:
             raise ConfigSavingError(
-                'Could not write "{f}" due to missing permissions'.format(
-                    f=self.data_file
-                )
+                f'Could not write "{self.data_file}" due to missing permissions'
             )
         except FileNotFoundError:
             raise ConfigSavingError(
-                'Could not write "{f}" because it (or the folder) does not exist'.format(
-                    f=self.data_file
-                )
+                f'Could not write "{self.data_file}" because it (or the folder) does not exist'
             )
 
     @property
@@ -327,9 +322,7 @@ class AccessoryServerData:
         for f in required_fields:
             if f not in self.data:
                 raise ConfigurationError(
-                    '"{r}" is missing in the config file "{f}"!'.format(
-                        r=f, f=self.data_file
-                    )
+                    f'"{f}" is missing in the config file "{self.data_file}"!'
                 )
 
 
@@ -352,9 +345,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
     def __init__(self, request, client_address, server):
         # keep pycharm from complaining about those not being define in __init__
-        self.session_id = "{ip}:{port}".format(
-            ip=client_address[0], port=client_address[1]
-        )
+        self.session_id = f"{client_address[0]}:{client_address[1]}"
         if self.session_id not in server.sessions:
             server.sessions[self.session_id] = {"handler": self}
         self.rfile = None
@@ -493,7 +484,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                     self.server.sessions[self.session_id]["enrypted_connection"] = False
                     BaseHTTPRequestHandler.handle_one_request(self)
                     return
-        except (socket.timeout, OSError) as e:
+        except (TimeoutError, OSError) as e:
             # a read or a write timed out.  Discard this connection
             self.log_error(" %r", e)
             self.close_connection = True
@@ -676,9 +667,9 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
                         if include_type:
                             result["characteristics"][-1]["type"] = characteristic.type
                         if perms:
-                            result["characteristics"][-1][
-                                "perms"
-                            ] = characteristic.perms
+                            result["characteristics"][-1]["perms"] = (
+                                characteristic.perms
+                            )
                         if meta:
                             meta_data = characteristic.get_meta()
                             for key in meta_data:
@@ -899,9 +890,9 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 2) generate shared secret
             ios_device_curve25519_pub_key_bytes = bytes(d_req[1][1])
-            self.server.sessions[self.session_id][
-                "ios_device_pub_key"
-            ] = ios_device_curve25519_pub_key_bytes
+            self.server.sessions[self.session_id]["ios_device_pub_key"] = (
+                ios_device_curve25519_pub_key_bytes
+            )
             ios_device_curve25519_pub_key = x25519.X25519PublicKey.from_public_bytes(
                 ios_device_curve25519_pub_key_bytes
             )
@@ -989,9 +980,9 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 3) get ios_device_ltpk
             ios_device_pairing_id = d1[0][1]
-            self.server.sessions[self.session_id][
-                "ios_device_pairing_id"
-            ] = ios_device_pairing_id
+            self.server.sessions[self.session_id]["ios_device_pairing_id"] = (
+                ios_device_pairing_id
+            )
             ios_device_ltpk_bytes = self.server.data.get_peer_key(ios_device_pairing_id)
             if ios_device_ltpk_bytes is None:
                 self.send_error_reply(TLV.M4, TLV.kTLVError_Authentication)
@@ -1029,17 +1020,17 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             controller_to_accessory_key = hkdf_derive(
                 shared_secret, b"Control-Salt", b"Control-Write-Encryption-Key"
             )
-            self.server.sessions[self.session_id][
-                "controller_to_accessory_key"
-            ] = controller_to_accessory_key
+            self.server.sessions[self.session_id]["controller_to_accessory_key"] = (
+                controller_to_accessory_key
+            )
             self.server.sessions[self.session_id]["controller_to_accessory_count"] = 0
 
             accessory_to_controller_key = hkdf_derive(
                 shared_secret, b"Control-Salt", b"Control-Read-Encryption-Key"
             )
-            self.server.sessions[self.session_id][
-                "accessory_to_controller_key"
-            ] = accessory_to_controller_key
+            self.server.sessions[self.session_id]["accessory_to_controller_key"] = (
+                accessory_to_controller_key
+            )
             self.server.sessions[self.session_id]["accessory_to_controller_count"] = 0
 
             d_res.append(

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections import abc
-from collections.abc import Iterable, Sequence
-from dataclasses import field, fields
 import enum
-from functools import lru_cache
 import struct
-from typing import Any, Callable, ClassVar, Generic, TypeVar, _GenericAlias
+from collections import abc
+from collections.abc import Callable, Iterable, Sequence
+from dataclasses import field, fields
+from functools import cache, lru_cache
+from typing import Any, ClassVar, Generic, TypeVar, _GenericAlias
 
 SerializerCallback = Callable[[type, Any], bytes]
 DeserializerCallback = Callable[[type, bytes], Any]
@@ -280,7 +280,7 @@ class TLVStruct:
         return bytes(result)
 
     @classmethod
-    @lru_cache(maxsize=None)
+    @cache
     def _tlv_types(cls: T) -> dict:
         """Return the TLV types for this class."""
         return {

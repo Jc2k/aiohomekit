@@ -15,18 +15,18 @@
 #
 
 __all__ = [
-    "Controller",
-    "BluetoothAdapterError",
     "AccessoryDisconnectedError",
     "AccessoryNotFoundError",
     "AlreadyPairedError",
     "AuthenticationError",
     "BackoffError",
+    "BluetoothAdapterError",
     "BusyError",
     "CharacteristicPermissionError",
     "ConfigLoadingError",
     "ConfigSavingError",
     "ConfigurationError",
+    "Controller",
     "FormatError",
     "HomeKitException",
     "HttpException",

@@ -16,9 +16,12 @@
 
 
 class HomeKitException(Exception):
-    """Generic HomeKit exception.
+    """
+    Generic HomeKit exception.
+
     Attributes:
         stage: the stage that the exception occurred at
+
     """
 
     def __init__(self, stage: str) -> None:
@@ -289,9 +292,7 @@ class TransportNotSupportedError(HomeKitException):
     def __init__(self, transport):
         Exception.__init__(
             self,
-            "Transport {t} not supported. See setup.py for required dependencies.".format(
-                t=transport
-            ),
+            f"Transport {transport} not supported. See setup.py for required dependencies.",
         )
 
 

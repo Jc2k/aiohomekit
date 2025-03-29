@@ -162,9 +162,7 @@ class TLV:
             value = tail[:length]
             if length != len(value):
                 raise TlvParseException(
-                    "Not enough data for length {} while decoding '{}'".format(
-                        length, ba
-                    )
+                    f"Not enough data for length {length} while decoding '{ba}'"
                 )
             tail = tail[length:]
 
@@ -232,24 +230,8 @@ class TLV:
             if value_description:
                 value_description = f" [{value_description}]"
             if isinstance(entry_value, bytearray):
-                return "  {k} ({key_name}): ({len} bytes/{t}) 0x{v}{value_description}\n".format(
-                    k=entry_key,
-                    key_name=name,
-                    v=entry_value.hex(),
-                    len=len(entry_value),
-                    t=type(entry_value),
-                    value_description=value_description,
-                )
-            return (
-                "  {k} ({key_name}): ({len} bytes/{t}) {v}{value_description}\n".format(
-                    k=entry_key,
-                    key_name=name,
-                    v=entry_value,
-                    len=len(entry_value),
-                    t=type(entry_value),
-                    value_description=value_description,
-                )
-            )
+                return f"  {entry_key} ({name}): ({len(entry_value)} bytes/{type(entry_value)}) 0x{entry_value.hex()}{value_description}\n"
+            return f"  {entry_key} ({name}): ({len(entry_value)} bytes/{type(entry_value)}) {entry_value}{value_description}\n"
 
         if isinstance(d, dict):
             res = "{\n"

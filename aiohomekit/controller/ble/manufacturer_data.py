@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
 import struct
-
-from bleak.backends.device import BLEDevice
-from bleak.backends.scanner import AdvertisementData
+from dataclasses import dataclass
 
 from aiohomekit.controller.abstract import AbstractDescription
 from aiohomekit.model.categories import Categories
 from aiohomekit.model.status_flags import StatusFlags
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
 
 UNPACK_HHBB = struct.Struct("<HHBB").unpack
 UNPACK_HH = struct.Struct("<HH").unpack

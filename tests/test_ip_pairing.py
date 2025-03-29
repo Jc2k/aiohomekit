@@ -4,7 +4,6 @@ from typing import Any
 from unittest import mock
 
 import pytest
-
 from aiohomekit.controller.ip.pairing import IpPairing
 from aiohomekit.exceptions import AccessoryDisconnectedError
 from aiohomekit.model import Transport
@@ -185,7 +184,7 @@ async def test_put_characteristics_callbacks(pairing: IpPairing):
     events = []
 
     def process_new_events(
-        new_values_dict: dict[tuple[int, int], dict[str, Any]]
+        new_values_dict: dict[tuple[int, int], dict[str, Any]],
     ) -> None:
         events.append(new_values_dict)
 

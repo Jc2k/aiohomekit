@@ -16,20 +16,19 @@
 from __future__ import annotations
 
 import argparse
-from argparse import ArgumentParser, Namespace
 import asyncio
-from collections.abc import AsyncIterator
 import contextlib
 import locale
 import logging
 import pathlib
 import re
 import sys
+from argparse import ArgumentParser, Namespace
+from collections.abc import AsyncIterator
 
-from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf
-
-from aiohomekit.characteristic_cache import CharacteristicCacheFile
 import aiohomekit.hkjson as hkjson
+from aiohomekit.characteristic_cache import CharacteristicCacheFile
+from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf
 
 from .controller import Controller
 from .exceptions import HomeKitException
@@ -271,9 +270,7 @@ async def put_characteristics(args: Namespace) -> bool:
             # used to be < 0 but bluetooth le errors are > 0 and only success (= 0) needs to be checked
             if status != 0:
                 print(
-                    "put_characteristics failed on {aid}.{iid} because: {reason} ({code})".format(
-                        aid=aid, iid=iid, reason=desc, code=status
-                    )
+                    f"put_characteristics failed on {aid}.{iid} because: {desc} ({status})"
                 )
 
     return True
@@ -378,11 +375,7 @@ async def get_events(args):
                 status = value["status"]
                 desc = value["description"]
                 if status < 0:
-                    print(
-                        "watch failed on {aid}.{iid} because: {reason} ({code})".format(
-                            aid=aid, iid=iid, reason=desc, code=status
-                        )
-                    )
+                    print(f"watch failed on {aid}.{iid} because: {desc} ({status})")
             return False
 
         while True:

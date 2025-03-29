@@ -15,7 +15,6 @@
 #
 
 import pytest
-
 from aiohomekit.model import Accessory
 from aiohomekit.model.characteristics import (
     CharacteristicsTypes,

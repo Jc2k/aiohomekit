@@ -60,7 +60,8 @@ NUMBER_TYPES = INTEGER_TYPES + [CharacteristicFormats.float]
 
 
 def strtobool(val):
-    """Convert a string representation of truth to true (1) or false (0).
+    """
+    Convert a string representation of truth to true (1) or false (0).
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
     are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
     'val' is anything else.
@@ -181,7 +182,6 @@ class Characteristic:
 
         Returns True if the value has changed, False otherwise.
         """
-
         if self.format == CharacteristicFormats.bool:
             # Device might return 1 or 0, so lets case to True/False
             new_val = bool(new_val)
@@ -192,7 +192,8 @@ class Characteristic:
 
     @property
     def value(self) -> Any:
-        """Get the value of the characteristic.
+        """
+        Get the value of the characteristic.
 
         If the characteristic is a tlv8, decodes the struct
 
@@ -344,7 +345,6 @@ def check_convert_value(val: str, char: Characteristic) -> Any:
     :return: the converted value
     :raises FormatError: if the input value could not be converted to the target type
     """
-
     if char.format == CharacteristicFormats.bool:
         try:
             val = strtobool(str(val))

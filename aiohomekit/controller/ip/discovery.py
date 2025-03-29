@@ -116,8 +116,5 @@ class IpDiscovery(ZeroconfDiscovery):
         code = to_status_code(response["code"])
 
         raise AlreadyPairedError(
-            "Identify failed because: {reason} ({code}).".format(
-                reason=code.description,
-                code=code.value,
-            )
+            f"Identify failed because: {code.description} ({code.value})."
         )

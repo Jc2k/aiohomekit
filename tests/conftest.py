@@ -9,15 +9,13 @@ from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from zeroconf import DNSCache, SignalRegistrationInterface
-
 from aiohomekit import Controller
 from aiohomekit.controller.ip import IpPairing
 from aiohomekit.model import Accessory
 from aiohomekit.model.characteristics import CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
-
 from tests.accessoryserver import AccessoryServer
+from zeroconf import DNSCache, SignalRegistrationInterface
 
 
 def _get_test_socket() -> socket.socket:
@@ -67,7 +65,6 @@ class AsyncServiceBrowserStub:
 @pytest.fixture
 def mock_asynczeroconf():
     """Mock zeroconf."""
-
     with patch("aiohomekit.zeroconf.AsyncServiceBrowser", AsyncServiceBrowserStub):
         with patch("aiohomekit.zeroconf.AsyncZeroconf") as mock_zc:
             zc = mock_zc.return_value
@@ -100,9 +97,7 @@ async def controller_and_unpaired_accessory(
         "host_port": %port%,
         "name": "unittestLight",
         "unsuccessful_tries": 0
-    }""".replace(
-            b"%port%", str(available_port).encode("utf-8")
-        )
+    }""".replace(b"%port%", str(available_port).encode("utf-8"))
     )
     config_file.close()
 
@@ -160,9 +155,7 @@ async def controller_and_paired_accessory(
             }
         },
         "unsuccessful_tries": 0
-    }""".replace(
-        b"%port%", str(available_port).encode("utf-8")
-    )
+    }""".replace(b"%port%", str(available_port).encode("utf-8"))
 
     config_file.write(data)
     config_file.close()
@@ -193,9 +186,7 @@ async def controller_and_paired_accessory(
             "AccessoryIP": "127.0.0.1",
             "iOSDeviceLTSK": "fa45f082ef87efc6c8c8d043d74084a3ea923a2253e323a7eb9917b4090c2fcc"
         }
-    }""".replace(
-            b"%port%", str(available_port).encode("utf-8")
-        )
+    }""".replace(b"%port%", str(available_port).encode("utf-8"))
     )
     controller_file.close()
 
