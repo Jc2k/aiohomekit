@@ -64,6 +64,12 @@ jobs:
     environment:
       name: release
     steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -75,22 +81,14 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Linux release file asset
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Sign the dists with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v3.0.0
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/aiohomekit-${{ needs.build.outputs.tag }}.tar.gz
-          asset_name: aiohomekit-${{ needs.build.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
+          inputs: >-
+            ./dist/*.tar.gz
+            ./dist/*.whl
 
-      - name: Upload Linux checksum file asset
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifact signatures to GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/aiohomekit-${{ needs.build.outputs.tag }}-py3-none-any.whl
-          asset_name: aiohomekit-${{ needs.build.outputs.tag }}-py3-none-any.whl
-          asset_content_type: application/x-wheel+zip
+          files: dist/**
