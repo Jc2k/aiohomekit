@@ -33,7 +33,7 @@ jobs:
           name: python-package-distributions
           path: dist/
 
-  deploy:
+  deploy_pypi:
     permissions:
       id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
     runs-on: ubuntu-latest
@@ -53,6 +53,17 @@ jobs:
           path: dist/
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  deploy_github:
+    runs-on: ubuntu-latest
+    permissions: write-all # IMPORTANT: this permission is mandatory for GitHub releases
+    needs:
+      - build
+    name: >-
+      Publish Python 🐍 distribution 📦 to GitHub
+    environment:
+      name: release
+    steps:
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
