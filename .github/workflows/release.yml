@@ -56,7 +56,8 @@ jobs:
 
   deploy_github:
     runs-on: ubuntu-latest
-    permissions: write-all # IMPORTANT: this permission is mandatory for GitHub releases
+    permissions:
+      contents: write
     needs:
       - build
     name: >-
@@ -69,18 +70,9 @@ jobs:
         with:
           name: python-package-distributions
           path: dist/
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ needs.build.outputs.tag }}
-          release_name: ${{ needs.build.outputs.tag }}
-          draft: false
-          prerelease: false
-
+      - name: Collected dists
+        run: |
+          tree dist
       - name: Sign the dists with Sigstore
         uses: sigstore/gh-action-sigstore-python@v3.0.0
         with:
@@ -88,7 +80,11 @@ jobs:
             ./dist/*.tar.gz
             ./dist/*.whl
 
-      - name: Upload artifact signatures to GitHub Release
+      - name: GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.build.outputs.tag }}
           files: dist/**
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false
