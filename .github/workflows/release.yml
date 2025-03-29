@@ -57,7 +57,8 @@ jobs:
   deploy_github:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      id-token: write # IMPORTANT: this permission is mandatory for sigstore signing
+      contents: write # for creating a release
     needs:
       - build
     name: >-
