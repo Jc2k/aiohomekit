@@ -56,7 +56,8 @@ jobs:
 
   deploy_github:
     runs-on: ubuntu-latest
-    permissions: write-all # IMPORTANT: this permission is mandatory for GitHub releases
+    permissions:
+      contents: write
     needs:
       - build
     name: >-
@@ -64,33 +65,26 @@ jobs:
     environment:
       name: release
     steps:
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Collected dists
+        run: |
+          tree dist
+      - name: Sign the dists with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v3.0.0
+        with:
+          inputs: >-
+            ./dist/*.tar.gz
+            ./dist/*.whl
+
+      - name: GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.build.outputs.tag }}
-          release_name: ${{ needs.build.outputs.tag }}
+          files: dist/**
+          token: ${{ secrets.GITHUB_TOKEN }}
           draft: false
           prerelease: false
-
-      - name: Upload Linux release file asset
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/aiohomekit-${{ needs.build.outputs.tag }}.tar.gz
-          asset_name: aiohomekit-${{ needs.build.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Linux checksum file asset
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/aiohomekit-${{ needs.build.outputs.tag }}-py3-none-any.whl
-          asset_name: aiohomekit-${{ needs.build.outputs.tag }}-py3-none-any.whl
-          asset_content_type: application/x-wheel+zip
