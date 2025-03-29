@@ -30,10 +30,6 @@ jobs:
 
       - uses: pre-commit/action@v3.0.1
 
-      - name: Run flake8
-        shell: bash
-        run: poetry run python -m flake8 aiohomekit tests
-
       - name: Run poetry build
         shell: bash
         run: poetry build
