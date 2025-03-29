@@ -78,3 +78,5 @@ jobs:
         run: poetry run python -m pytest --cov=. --cov-report=xml
 
       - uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
