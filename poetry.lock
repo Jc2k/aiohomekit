@@ -2,23 +2,23 @@
 
 [[package]]
 name = "aiocoap"
-version = "0.4.12"
+version = "0.4.14"
 description = "Python CoAP library"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "aiocoap-0.4.12-py3-none-any.whl", hash = "sha256:c7199776696e37bf7103eef19031b8426cc5476ed57bb3991c0a8093cf7a745a"},
-    {file = "aiocoap-0.4.12.tar.gz", hash = "sha256:808e87068aa57dbf31486cfdfa9098b0a6f5ca444c6b8966f3e50a403628981e"},
+    {file = "aiocoap-0.4.14-py3-none-any.whl", hash = "sha256:c8e4f0789e2ffbaad1b9a6d3a1cd1370aeea8800b3ff23be533f2af2369747f0"},
+    {file = "aiocoap-0.4.14.tar.gz", hash = "sha256:01a34233b6f9a97df9a61f30bc64c0399bac498eaa160189a7f1f48f89d18717"},
 ]
 
 [package.extras]
-all = ["DTLSSocket (>=0.1.18)", "cbor-diag", "cbor2", "cbor2", "cryptography (>=2.5)", "filelock", "ge25519", "lakers-python (==0.4.1)", "pygments", "websockets (>=13,<14)"]
+all = ["DTLSSocket (>=0.1.18)", "cbor-diag", "cbor2", "cbor2", "colorlog", "cryptography (>=2.5)", "filelock", "ge25519", "lakers-python (>=0.5,<0.6)", "pygments", "websockets (>=13,<16)"]
 docs = ["sphinx (>=5)", "sphinx-argparse"]
-oscore = ["cbor2", "cryptography (>=2.5)", "filelock", "ge25519", "lakers-python (==0.4.1)"]
-prettyprint = ["cbor-diag", "cbor2", "pygments (>=2.1)"]
+oscore = ["cbor2", "cryptography (>=2.5)", "filelock", "ge25519", "lakers-python (>=0.5,<0.6)"]
+prettyprint = ["cbor-diag", "cbor2", "colorlog", "pygments (>=2.1)"]
 tinydtls = ["DTLSSocket (>=0.1.18)"]
-ws = ["websockets (>=13,<14)"]
+ws = ["websockets (>=13,<16)"]
 
 [[package]]
 name = "aiohappyeyeballs"
