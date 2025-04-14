@@ -273,20 +273,20 @@ winrt-runtime = {version = ">=2,<3", markers = "platform_system == \"Windows\" a
 
 [[package]]
 name = "bleak-retry-connector"
-version = "3.9.0"
+version = "3.10.0"
 description = "A connector for Bleak Clients that handles transient connection failures"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "bleak_retry_connector-3.9.0-py3-none-any.whl", hash = "sha256:6f7711c3c39b60f3dea5963abe40de3514165e912c9fe7e11a88f36104aa5644"},
-    {file = "bleak_retry_connector-3.9.0.tar.gz", hash = "sha256:5c772298b86bcd3b46a57b16cdd9aa5fca9434ebcf87d72493af94e4f4ca2a6e"},
+    {file = "bleak_retry_connector-3.10.0-py3-none-any.whl", hash = "sha256:caaf976320ef280f1145b557bf3b13697f71ef2c1070e1dc643709eb2d29fb1f"},
+    {file = "bleak_retry_connector-3.10.0.tar.gz", hash = "sha256:a95172bd56d2af677fb9e250291cde8c70d8f72381d423f64e48c828dffbc93b"},
 ]
 
 [package.dependencies]
 async-timeout = {version = ">=3.0.0", markers = "python_version < \"3.11\""}
-bleak = ">=0.21.0"
-bluetooth-adapters = {version = ">=0.15.2", markers = "platform_system == \"Linux\""}
+bleak = {version = ">=0.21.0", markers = "python_version >= \"3.10\" and python_version < \"3.14\""}
+bluetooth-adapters = {version = ">=0.15.2", markers = "python_version >= \"3.10\" and python_version < \"3.14\" and platform_system == \"Linux\""}
 dbus-fast = {version = ">=1.14.0", markers = "platform_system == \"Linux\""}
 
 [[package]]
