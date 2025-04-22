@@ -501,7 +501,9 @@ class IpPairing(ZeroconfPairing):
             (TLV.kTLVType_Identifier, pairingId.encode("utf-8")),
         ]
 
+        logger.debug("Removing pairing with id %s", pairingId)
         data = dict(await self.connection.post_tlv("/pairings", request_tlv))
+        logger.debug("Remove pairing response: %s", data)
 
         if data.get(TLV.kTLVType_State, TLV.M2) != TLV.M2:
             raise InvalidError("Unexpected state after removing pairing request")
