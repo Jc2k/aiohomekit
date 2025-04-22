@@ -547,4 +547,5 @@ class IpPairing(ZeroconfPairing):
         super()._async_description_update(description)
 
         # If we are not connected, or are in the process of reconnecting, hasten the process
-        self.connection.reconnect_soon()
+        if not self._shutdown:
+            self.connection.reconnect_soon()

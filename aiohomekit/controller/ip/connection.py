@@ -316,6 +316,7 @@ class HomeKitConnection:
         if self.is_connected:
             return False
         self.closing = False
+        logger.debug("%s: Starting connector", self.name)
         self._start_connector()
         return True
 
@@ -349,6 +350,7 @@ class HomeKitConnection:
         """
         if not self._connector:
             return
+        logger.debug("%s: Stopping connector", self.name)
         self._connector.cancel("Stop connector")
         # Wait for the connector but do not propagate the CancelledError
         # since the connector will be canceled when the connection is closed.

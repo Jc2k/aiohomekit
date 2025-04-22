@@ -320,6 +320,7 @@ class AbstractPairing(metaclass=ABCMeta):
     async def _shutdown_if_primary_pairing_removed(self, pairingId: str) -> None:
         """Shutdown the connection if the primary pairing was removed."""
         if pairingId == self._pairing_data.get("iOSPairingId"):
+            logger.debug("%s: Primary pairing removed; shutting down", self.name)
             await self.shutdown()
 
     async def shutdown(self) -> None:
@@ -329,6 +330,7 @@ class AbstractPairing(metaclass=ABCMeta):
         the pairing is removed or the controller is shutdown.
         """
         self._shutdown = True
+        logger.debug("%s: Shutting down", self.name)
         await self.close()
 
     def _callback_availability_changed(self, available: bool) -> None:
