@@ -1,15 +1,20 @@
-[tool.poetry]
+[project]
 name = "aiohomekit"
 version = "3.2.14"
 description = "An asyncio HomeKit client"
-authors = ["John Carr <john.carr@unrouted.co.uk>"]
+authors = [{ name = "John Carr", email = "john.carr@unrouted.co.uk" }]
 license = "Apache-2.0"
 readme = "README.md"
-homepage = "https://github.com/Jc2k/aiohomekit"
-repository = "https://github.com/Jc2k/aiohomekit"
+requires-python = ">=3.10"
 keywords = ["HomeKit", "home", "automation"]
+dynamic = ["classifiers", "dependencies"]
+
+[project.urls]
+"Homepage" = "https://github.com/Jc2k/aiohomekit"
+"Repository" = "https://github.com/Jc2k/aiohomekit"
+
+[tool.poetry]
 classifiers = [
-    "License :: OSI Approved :: Apache Software License",
     "Topic :: Home Automation",
     "Intended Audience :: Developers",
     "Intended Audience :: End Users/Desktop",
@@ -46,9 +51,6 @@ asynctest = "^0.13.0"
 aiohttp = ">=3.8.3"
 ruff = "^0.11.2"
 
-[tool.black]
-target-version = ["py39", "py310"]
-
 [tool.poetry.scripts]
 aiohomekitctl = "aiohomekit.__main__:sync_main"
 
@@ -70,11 +72,10 @@ combine_as_imports = "true"
 extra_standard_library = "_socket"
 
 [build-system]
-requires = ["poetry_core>=1.0.0"]
+requires = ["poetry_core>=2.1.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-target-version = "py39"
 line-length = 110
 
 [tool.ruff.lint]
