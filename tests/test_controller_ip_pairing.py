@@ -206,6 +206,35 @@ def test_format_characteristic_list_global_error_with_partial_data() -> None:
     assert "Out of resources" in result[(2, 5)]["description"]
 
 
+def test_format_characteristic_list_unknown_status_codes() -> None:
+    """Test handling of unknown/undefined status codes."""
+    # Test global unknown error
+    response = {"status": -99999}
+    requested = {(1, 2), (1, 3)}
+
+    result = format_characteristic_list(response, requested)
+
+    assert len(result) == 2
+    assert result[(1, 2)]["status"] == -99999
+    assert result[(1, 2)]["description"] == "Unknown error code: -99999"
+    assert result[(1, 3)]["status"] == -99999
+    assert result[(1, 3)]["description"] == "Unknown error code: -99999"
+
+    # Test individual unknown error
+    response = {
+        "characteristics": [
+            {"aid": 1, "iid": 2, "value": 23.5},
+            {"aid": 1, "iid": 3, "status": -88888},
+        ]
+    }
+
+    result = format_characteristic_list(response)
+
+    assert result[(1, 2)] == {"value": 23.5}
+    assert result[(1, 3)]["status"] == -88888
+    assert result[(1, 3)]["description"] == "Unknown error code: -88888"
+
+
 def test_format_characteristic_list_real_thermostat_scenario() -> None:
     """Test the exact scenario from the Resideo T9/T10 thermostat error."""
     # This is the exact response from the device when overwhelmed

@@ -63,16 +63,22 @@ def format_characteristic_list(
     # Handle global error status first - set defaults for all requested characteristics
     if "status" in data and data["status"] != 0:
         # Device returned a global error status
-        status_code = to_status_code(data["status"])
+        try:
+            status_code = to_status_code(data["status"])
+            description = status_code.description
+        except ValueError:
+            # Unknown status code
+            description = f"Unknown error code: {data['status']}"
+
         logger.debug(
             "Device returned error status %s (%s) for characteristics request",
             data["status"],
-            status_code.description,
+            description,
         )
         # If we know what was requested, mark them all as failed initially
         if requested_characteristics:
             for aid, iid in requested_characteristics:
-                tmp[(aid, iid)] = {"status": data["status"], "description": status_code.description}
+                tmp[(aid, iid)] = {"status": data["status"], "description": description}
 
     # Process any characteristics that are present - these override the defaults
     for c in data.get("characteristics", []):
@@ -88,7 +94,11 @@ def format_characteristic_list(
         if "status" in c and c["status"] == 0:
             del c["status"]
         if "status" in c and c["status"] != 0:
-            c["description"] = to_status_code(c["status"]).description
+            try:
+                c["description"] = to_status_code(c["status"]).description
+            except ValueError:
+                # Unknown status code
+                c["description"] = f"Unknown error code: {c['status']}"
         tmp[key] = c
 
     return tmp
