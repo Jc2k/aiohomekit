@@ -61,7 +61,7 @@ def format_characteristic_list(data, requested_characteristics=None):
     if "status" in data and data["status"] != 0:
         # Device returned a global error status for all requested characteristics
         status_code = to_status_code(data["status"])
-        logger.warning(
+        logger.debug(
             "Device returned error status %s (%s) for all requested characteristics",
             data["status"],
             status_code.description,
