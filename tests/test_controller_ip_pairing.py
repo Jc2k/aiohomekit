@@ -157,6 +157,35 @@ def test_format_characteristic_list_status_zero_only() -> None:
     assert result[(1, 3)] == {}
 
 
+def test_format_characteristic_list_global_error_with_partial_data() -> None:
+    """Test global error with some characteristics present."""
+    # Device returns global error but also includes some successful characteristics
+    response = {
+        "status": -70407,
+        "characteristics": [
+            {"aid": 1, "iid": 2, "value": 23.5},
+            {"aid": 1, "iid": 3, "status": -70402},
+        ],
+    }
+    requested = {(1, 2), (1, 3), (2, 4), (2, 5)}
+
+    result = format_characteristic_list(response, requested)
+
+    # Should have all 4 requested characteristics
+    assert len(result) == 4
+
+    # The ones in the response should use their actual data
+    assert result[(1, 2)] == {"value": 23.5}
+    assert result[(1, 3)]["status"] == -70402
+    assert "Unable to communicate" in result[(1, 3)]["description"]
+
+    # The missing ones should get the global error
+    assert result[(2, 4)]["status"] == -70407
+    assert "Out of resources" in result[(2, 4)]["description"]
+    assert result[(2, 5)]["status"] == -70407
+    assert "Out of resources" in result[(2, 5)]["description"]
+
+
 def test_format_characteristic_list_real_thermostat_scenario() -> None:
     """Test the exact scenario from the Resideo T9/T10 thermostat error."""
     # This is the exact response from the device when overwhelmed

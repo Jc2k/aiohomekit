@@ -57,25 +57,28 @@ EMPTY_EVENT = {}
 
 def format_characteristic_list(data, requested_characteristics=None):
     tmp = {}
-    # Handle error responses that don't have a characteristics array
+
+    # Handle global error status first - set defaults for all requested characteristics
     if "status" in data and data["status"] != 0:
-        # Device returned a global error status for all requested characteristics
+        # Device returned a global error status
         status_code = to_status_code(data["status"])
         logger.debug(
-            "Device returned error status %s (%s) for all requested characteristics",
+            "Device returned error status %s (%s) for characteristics request",
             data["status"],
             status_code.description,
         )
-        # If we know what was requested, mark them all as failed with this status
+        # If we know what was requested, mark them all as failed initially
         if requested_characteristics:
-            return {
-                (aid, iid): {"status": data["status"], "description": status_code.description}
-                for aid, iid in requested_characteristics
-            }
-        return tmp
+            for aid, iid in requested_characteristics:
+                tmp[(aid, iid)] = {"status": data["status"], "description": status_code.description}
 
-    # Normal path when we have characteristics
+    # Process any characteristics that are present - these override the defaults
     for c in data.get("characteristics", []):
+        # Skip malformed characteristics missing aid or iid
+        if "aid" not in c or "iid" not in c:
+            logger.debug("Skipping characteristic missing aid or iid: %s", c)
+            continue
+
         key = (c["aid"], c["iid"])
         del c["aid"]
         del c["iid"]
@@ -85,6 +88,7 @@ def format_characteristic_list(data, requested_characteristics=None):
         if "status" in c and c["status"] != 0:
             c["description"] = to_status_code(c["status"]).description
         tmp[key] = c
+
     return tmp
 
 
