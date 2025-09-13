@@ -68,8 +68,10 @@ def format_characteristic_list(data, requested_characteristics=None):
         )
         # If we know what was requested, mark them all as failed with this status
         if requested_characteristics:
-            for aid, iid in requested_characteristics:
-                tmp[(aid, iid)] = {"status": data["status"], "description": status_code.description}
+            return {
+                (aid, iid): {"status": data["status"], "description": status_code.description}
+                for aid, iid in requested_characteristics
+            }
         return tmp
 
     # Normal path when we have characteristics
