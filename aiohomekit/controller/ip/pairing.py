@@ -55,9 +55,25 @@ logger = logging.getLogger(__name__)
 EMPTY_EVENT = {}
 
 
-def format_characteristic_list(data):
+def format_characteristic_list(data, requested_characteristics=None):
     tmp = {}
-    for c in data["characteristics"]:
+    # Handle error responses that don't have a characteristics array
+    if "status" in data and data["status"] != 0:
+        # Device returned a global error status for all requested characteristics
+        status_code = to_status_code(data["status"])
+        logger.warning(
+            "Device returned error status %s (%s) for all requested characteristics",
+            data["status"],
+            status_code.description,
+        )
+        # If we know what was requested, mark them all as failed with this status
+        if requested_characteristics:
+            for aid, iid in requested_characteristics:
+                tmp[(aid, iid)] = {"status": data["status"], "description": status_code.description}
+        return tmp
+
+    # Normal path when we have characteristics
+    for c in data.get("characteristics", []):
         key = (c["aid"], c["iid"])
         del c["aid"]
         del c["iid"]
@@ -268,7 +284,7 @@ class IpPairing(ZeroconfPairing):
 
         response = await self.connection.get_json(url)
 
-        return format_characteristic_list(response)
+        return format_characteristic_list(response, characteristics_set)
 
     async def put_characteristics(
         self, characteristics: Iterable[tuple[int, int, Any]]
