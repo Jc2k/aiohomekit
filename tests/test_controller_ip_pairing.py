@@ -157,6 +157,26 @@ def test_format_characteristic_list_status_zero_only() -> None:
     assert result[(1, 3)] == {}
 
 
+def test_format_characteristic_list_malformed_characteristics() -> None:
+    """Test handling of malformed characteristics missing aid or iid."""
+    response = {
+        "characteristics": [
+            {"aid": 1, "iid": 2, "value": 23.5},
+            {"iid": 3, "value": "missing aid"},  # Missing aid
+            {"aid": 2, "value": "missing iid"},  # Missing iid
+            {"value": "missing both"},  # Missing both aid and iid
+            {"aid": 1, "iid": 4, "value": 100},
+        ]
+    }
+    result = format_characteristic_list(response)
+
+    # Should only have the valid characteristics
+    assert len(result) == 2
+    assert result[(1, 2)] == {"value": 23.5}
+    assert result[(1, 4)] == {"value": 100}
+    # Malformed ones should be skipped
+
+
 def test_format_characteristic_list_global_error_with_partial_data() -> None:
     """Test global error with some characteristics present."""
     # Device returns global error but also includes some successful characteristics
