@@ -56,7 +56,7 @@ EMPTY_EVENT = {}
 
 
 def format_characteristic_list(data, requested_characteristics=None):
-    tmp = {}
+    tmp: dict[tuple[int, int], dict[str, Any]] = {}
 
     # Handle global error status first - set defaults for all requested characteristics
     if "status" in data and data["status"] != 0:
