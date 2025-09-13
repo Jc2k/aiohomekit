@@ -63,11 +63,12 @@ def format_characteristic_list(
     # Handle global error status first - set defaults for all requested characteristics
     if "status" in data and data["status"] != 0:
         # Device returned a global error status
-        try:
-            description = to_status_code(data["status"]).description
-        except ValueError:
-            # Unknown status code
+        status_code = to_status_code(data["status"])
+        # For unknown codes, include the actual code in the description
+        if status_code == HapStatusCode.UNKNOWN:
             description = f"Unknown error code: {data['status']}"
+        else:
+            description = status_code.description
 
         logger.debug(
             "Device returned error status %s (%s) for characteristics request",
@@ -93,11 +94,11 @@ def format_characteristic_list(
         if "status" in c and c["status"] == 0:
             del c["status"]
         if "status" in c and c["status"] != 0:
-            try:
-                c["description"] = to_status_code(c["status"]).description
-            except ValueError:
-                # Unknown status code
+            status_code = to_status_code(c["status"])
+            if status_code == HapStatusCode.UNKNOWN:
                 c["description"] = f"Unknown error code: {c['status']}"
+            else:
+                c["description"] = status_code.description
         tmp[key] = c
 
     return tmp
