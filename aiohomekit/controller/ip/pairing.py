@@ -64,8 +64,7 @@ def format_characteristic_list(
     if "status" in data and data["status"] != 0:
         # Device returned a global error status
         try:
-            status_code = to_status_code(data["status"])
-            description = status_code.description
+            description = to_status_code(data["status"]).description
         except ValueError:
             # Unknown status code
             description = f"Unknown error code: {data['status']}"
