@@ -55,7 +55,9 @@ logger = logging.getLogger(__name__)
 EMPTY_EVENT = {}
 
 
-def format_characteristic_list(data, requested_characteristics=None):
+def format_characteristic_list(
+    data: dict[str, Any], requested_characteristics: set[tuple[int, int]] | None = None
+) -> dict[tuple[int, int], dict[str, Any]]:
     tmp: dict[tuple[int, int], dict[str, Any]] = {}
 
     # Handle global error status first - set defaults for all requested characteristics
