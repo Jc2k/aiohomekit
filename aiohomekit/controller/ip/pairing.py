@@ -55,9 +55,37 @@ logger = logging.getLogger(__name__)
 EMPTY_EVENT = {}
 
 
-def format_characteristic_list(data):
-    tmp = {}
-    for c in data["characteristics"]:
+def format_characteristic_list(
+    data: dict[str, Any], requested_characteristics: set[tuple[int, int]] | None = None
+) -> dict[tuple[int, int], dict[str, Any]]:
+    tmp: dict[tuple[int, int], dict[str, Any]] = {}
+
+    # Handle global error status first - set defaults for all requested characteristics
+    if "status" in data and data["status"] != 0:
+        # Device returned a global error status
+        try:
+            description = to_status_code(data["status"]).description
+        except ValueError:
+            # Unknown status code
+            description = f"Unknown error code: {data['status']}"
+
+        logger.debug(
+            "Device returned error status %s (%s) for characteristics request",
+            data["status"],
+            description,
+        )
+        # If we know what was requested, mark them all as failed initially
+        if requested_characteristics:
+            for aid, iid in requested_characteristics:
+                tmp[(aid, iid)] = {"status": data["status"], "description": description}
+
+    # Process any characteristics that are present - these override the defaults
+    for c in data.get("characteristics", []):
+        # Skip malformed characteristics missing aid or iid
+        if "aid" not in c or "iid" not in c:
+            logger.debug("Skipping characteristic missing aid or iid: %s", c)
+            continue
+
         key = (c["aid"], c["iid"])
         del c["aid"]
         del c["iid"]
@@ -65,8 +93,13 @@ def format_characteristic_list(data):
         if "status" in c and c["status"] == 0:
             del c["status"]
         if "status" in c and c["status"] != 0:
-            c["description"] = to_status_code(c["status"]).description
+            try:
+                c["description"] = to_status_code(c["status"]).description
+            except ValueError:
+                # Unknown status code
+                c["description"] = f"Unknown error code: {c['status']}"
         tmp[key] = c
+
     return tmp
 
 
@@ -268,7 +301,7 @@ class IpPairing(ZeroconfPairing):
 
         response = await self.connection.get_json(url)
 
-        return format_characteristic_list(response)
+        return format_characteristic_list(response, characteristics_set)
 
     async def put_characteristics(
         self, characteristics: Iterable[tuple[int, int, Any]]
