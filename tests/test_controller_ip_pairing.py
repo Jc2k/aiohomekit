@@ -207,18 +207,27 @@ def test_format_characteristic_list_global_error_with_partial_data() -> None:
 
 
 def test_format_characteristic_list_unknown_status_codes() -> None:
-    """Test handling of unknown/undefined status codes."""
-    # Test global unknown error
-    response = {"status": -99999}
+    """Test handling of unknown/undefined status codes including -6 from Nanoleaf."""
+    # Test status -6 (from Nanoleaf devices)
+    response = {"status": -6}
     requested = {(1, 2), (1, 3)}
 
     result = format_characteristic_list(response, requested)
 
     assert len(result) == 2
+    assert result[(1, 2)]["status"] == -6
+    assert result[(1, 2)]["description"] == "Unknown error code: -6"
+    assert result[(1, 3)]["status"] == -6
+    assert result[(1, 3)]["description"] == "Unknown error code: -6"
+
+    # Test another unknown error
+    response = {"status": -99999}
+    requested = {(1, 2)}
+
+    result = format_characteristic_list(response, requested)
+
     assert result[(1, 2)]["status"] == -99999
     assert result[(1, 2)]["description"] == "Unknown error code: -99999"
-    assert result[(1, 3)]["status"] == -99999
-    assert result[(1, 3)]["description"] == "Unknown error code: -99999"
 
     # Test individual unknown error
     response = {
