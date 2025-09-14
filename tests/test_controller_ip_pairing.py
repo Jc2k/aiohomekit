@@ -270,3 +270,23 @@ def test_format_characteristic_list_real_thermostat_scenario() -> None:
         assert char_id in result
         assert result[char_id]["status"] == -70407
         assert result[char_id]["description"] == "Out of resources to process request."
+
+
+def test_format_characteristic_list_boolean_in_response() -> None:
+    """Test handling of boolean values in characteristics array (from TaHoma covers issue #465)."""
+    # This is the exact response that caused the issue in the TaHoma V2 covers
+    # When setting tilt positions, the device sometimes returns boolean values
+    # mixed with error dictionaries
+    response = {
+        "characteristics": [
+            True,  # Boolean instead of dict
+            {"iid": 1400123, "aid": 490605949956, "status": -70402},
+            True,  # Another boolean
+        ]
+    }
+    result = format_characteristic_list(response)
+
+    # Should only have the valid characteristic with error
+    assert len(result) == 1
+    assert result[(490605949956, 1400123)]["status"] == -70402
+    assert "Unable to communicate" in result[(490605949956, 1400123)]["description"]
