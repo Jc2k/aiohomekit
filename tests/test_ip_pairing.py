@@ -388,3 +388,25 @@ async def test_put_characteristics_invalid_value(pairing: IpPairing):
     assert status_code is not None
     assert status_code[(aid, iid)] is not None
     assert status_code[(aid, iid)]["status"] == HapStatusCode.INVALID_VALUE.value
+
+
+async def test_put_characteristics_boolean_response(pairing: IpPairing):
+    """Test handling of malformed response with boolean values (issue #465)."""
+    # Mock the connection's put_json to return the malformed response
+    # Use the existing accessory ID from the test fixture
+    malformed_response = {
+        "characteristics": [
+            True,  # Boolean instead of dict
+            {"iid": 9, "aid": 1, "status": -70402},
+            True,  # Another boolean
+        ]
+    }
+
+    with mock.patch.object(pairing.connection, "put_json", return_value=malformed_response):
+        # This should not raise TypeError anymore
+        result = await pairing.put_characteristics([(1, 9, True)])
+
+        # Should only process the valid error response
+        assert (1, 9) in result
+        assert result[(1, 9)]["status"] == -70402
+        assert "Unable to communicate" in result[(1, 9)]["description"]

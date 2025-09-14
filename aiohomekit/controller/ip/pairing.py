@@ -81,9 +81,9 @@ def format_characteristic_list(
 
     # Process any characteristics that are present - these override the defaults
     for c in data.get("characteristics", []):
-        # Skip malformed characteristics missing aid or iid
-        if "aid" not in c or "iid" not in c:
-            logger.debug("Skipping characteristic missing aid or iid: %s", c)
+        # Skip malformed characteristics (e.g., boolean values) or missing aid/iid
+        if not isinstance(c, dict) or "aid" not in c or "iid" not in c:
+            logger.debug("Skipping malformed characteristic: %s", c)
             continue
 
         key = (c["aid"], c["iid"])
@@ -339,6 +339,14 @@ class IpPairing(ZeroconfPairing):
             # we need to remove the listener update for the failed
             # characteristics.
             for characteristic in response["characteristics"]:
+                # Skip malformed characteristics (e.g., boolean values)
+                if (
+                    not isinstance(characteristic, dict)
+                    or "aid" not in characteristic
+                    or "iid" not in characteristic
+                ):
+                    logger.debug("Skipping malformed characteristic in response: %s", characteristic)
+                    continue
                 aid, iid = characteristic["aid"], characteristic["iid"]
                 key = (aid, iid)
                 status = characteristic["status"]
