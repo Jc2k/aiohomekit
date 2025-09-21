@@ -37,13 +37,16 @@ class HomeKitAdvertisement(AbstractDescription):
         if data[0] != HOMEKIT_ADVERTISEMENT_TYPE:
             raise ValueError("Not a HomeKit device")
 
-        if len(data) < 19:
+        # Minimum size is 15 bytes for the basic fields
+        # Some devices (like Eve gen1) may not include the setup_hash
+        if len(data) < 15:
             raise ValueError("HomeKit advertisement data too short")
 
         sf = data[2]
         device_id = ":".join(data[3:9].hex()[0 + i : 2 + i] for i in range(0, 12, 2)).lower()
         acid, gsn, cn, cv = UNPACK_HHBB(data[9:15])
-        sh = data[15:19]
+        # Setup hash is optional - only present in data >= 19 bytes
+        sh = data[15:19] if len(data) >= 19 else b""
 
         return cls(
             name=name,
