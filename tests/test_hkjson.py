@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pytest
+
 import aiohomekit.hkjson as hkjson
 
 
@@ -27,3 +29,9 @@ def test_loads_trailing_comma():
             {"aid": 10, "iid": 13, "value": 20.5},
         ]
     }
+
+
+def test_loads_empty_document():
+    """Test that empty document raises ValueError instead of lark error."""
+    with pytest.raises(ValueError, match="Failed to parse JSON"):
+        hkjson.loads("")
