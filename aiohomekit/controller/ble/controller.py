@@ -163,12 +163,11 @@ class BleController(AbstractController):
             )
             raise AccessoryNotFoundError(f"Accessory with device id {device_id} not found")
         finally:
-            if device_id not in self._ble_futures:
-                return None
-            if future in self._ble_futures[device_id]:
-                self._ble_futures[device_id].remove(future)
-            if not self._ble_futures[device_id]:
-                del self._ble_futures[device_id]
+            if device_id in self._ble_futures:
+                if future in self._ble_futures[device_id]:
+                    self._ble_futures[device_id].remove(future)
+                if not self._ble_futures[device_id]:
+                    del self._ble_futures[device_id]
 
     async def async_discover(self) -> AsyncIterable[BleDiscovery]:
         for device in self.discoveries.values():
