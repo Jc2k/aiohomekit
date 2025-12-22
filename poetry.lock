@@ -2,14 +2,14 @@
 
 [[package]]
 name = "aiocoap"
-version = "0.4.15"
+version = "0.4.16"
 description = "Python CoAP library"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "aiocoap-0.4.15-py3-none-any.whl", hash = "sha256:9ea920a0d904a73b8fbb59e7ff712fd83a83b329b9ef9086aa5aa20b722d40f9"},
-    {file = "aiocoap-0.4.15.tar.gz", hash = "sha256:ec6fc9313299725aee246f865599f064050438b8e3aca887f04065f663945dff"},
+    {file = "aiocoap-0.4.16-py3-none-any.whl", hash = "sha256:5412219d7f1e729baa630bf3ca6e7a4b10e291d554bfd644e59d1f4e18d4051b"},
+    {file = "aiocoap-0.4.16.tar.gz", hash = "sha256:1ee108d1a0bede6543f768552925c077507bd2c5196870147c3b02bad2f64961"},
 ]
 
 [package.extras]
