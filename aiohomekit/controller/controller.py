@@ -18,10 +18,11 @@ from __future__ import annotations
 import asyncio
 import pathlib
 from asyncio.log import logger
-from collections.abc import AsyncIterable
+from collections.abc import AsyncIterable, Callable
 from contextlib import AsyncExitStack
 
 from bleak import BleakScanner
+from bleak.backends.scanner import AdvertisementDataCallback
 from zeroconf.asyncio import AsyncZeroconf
 
 from aiohomekit import hkjson
@@ -56,7 +57,7 @@ class Controller(AbstractController):
         self,
         async_zeroconf_instance: AsyncZeroconf | None = None,
         char_cache: CharacteristicCacheType | None = None,
-        bleak_scanner_instance: BleakScanner | None = None,
+        bleak_scanner_factory: Callable[[AdvertisementDataCallback], BleakScanner] | None = None,
     ) -> None:
         """
         Initialize an empty controller. Use 'load_data()' to load the pairing data.
@@ -66,7 +67,7 @@ class Controller(AbstractController):
         super().__init__(char_cache=char_cache or CharacteristicCacheMemory())
 
         self._async_zeroconf_instance = async_zeroconf_instance
-        self._bleak_scanner_instance = bleak_scanner_instance
+        self._bleak_scanner_factory = bleak_scanner_factory
 
         self.transports: dict[TransportType, AbstractController] = {}
         self._tasks = AsyncExitStack()
@@ -99,7 +100,7 @@ class Controller(AbstractController):
                 )
             )
 
-        if BLE_TRANSPORT_SUPPORTED or self._bleak_scanner_instance:
+        if BLE_TRANSPORT_SUPPORTED or self._bleak_scanner_factory:
             from .ble.controller import (
                 BleController,  # pylint: disable=import-outside-toplevel
             )
@@ -107,7 +108,7 @@ class Controller(AbstractController):
             await self._async_register_backend(
                 BleController(
                     char_cache=self._char_cache,
-                    bleak_scanner_instance=self._bleak_scanner_instance,
+                    bleak_scanner_factory=self._bleak_scanner_factory,
                 )
             )
 

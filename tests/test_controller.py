@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -28,12 +28,17 @@ async def test_passing_in_bleak_to_controller():
 
     Passing in the instance should enable BLE scanning.
     """
+    scanner = AsyncMock()
+
+    def _factory(detection_callback):
+        return scanner
+
     with (
         patch.object(controller_module, "BLE_TRANSPORT_SUPPORTED", False),
         patch.object(controller_module, "COAP_TRANSPORT_SUPPORTED", False),
         patch.object(controller_module, "IP_TRANSPORT_SUPPORTED", False),
     ):
-        controller = Controller(bleak_scanner_instance=AsyncMock(register_detection_callback=MagicMock()))
+        controller = Controller(bleak_scanner_factory=_factory)
         await controller.async_start()
 
     assert len(controller.transports) == 1

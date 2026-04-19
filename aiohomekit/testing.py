@@ -349,7 +349,7 @@ class FakeController(AbstractController):
 
     transport_type = TransportType.IP
 
-    def __init__(self, async_zeroconf_instance=None, char_cache=None, bleak_scanner_instance=None):
+    def __init__(self, async_zeroconf_instance=None, char_cache=None, bleak_scanner_factory=None):
         super().__init__(char_cache=char_cache or CharacteristicCacheMemory())
 
     def add_device(self, accessories):
