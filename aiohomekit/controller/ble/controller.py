@@ -42,10 +42,9 @@ class BleController(AbstractController):
     def __init__(
         self,
         char_cache: CharacteristicCacheType,
-        bleak_scanner_instance: BleakScanner | None = None,
     ) -> None:
         super().__init__(char_cache=char_cache)
-        self._scanner = bleak_scanner_instance
+        self._scanner: BleakScanner | None = None
         self._ble_futures: dict[str, list[asyncio.Future[BLEDevice]]] = {}
 
     def _device_detected(self, device: BLEDevice, advertisement_data: AdvertisementData) -> None:
@@ -112,17 +111,15 @@ class BleController(AbstractController):
         self.discoveries[data.id] = BleDiscovery(self, device, data, advertisement_data)
 
     async def async_start(self) -> None:
-        logger.debug("Starting BLE controller with instance: %s", self._scanner)
-        if not self._scanner:
-            try:
-                self._scanner = BleakScanner()
-            except (FileNotFoundError, BleakDBusError, BleakError) as e:
-                logger.debug("Failed to init scanner, HAP-BLE not available: %s", str(e))
-                self._scanner = None
-                return
-
         try:
-            self._scanner.register_detection_callback(self._device_detected)
+            self._scanner = BleakScanner(detection_callback=self._device_detected)
+        except (FileNotFoundError, BleakDBusError, BleakError) as e:
+            logger.debug("Failed to init scanner, HAP-BLE not available: %s", str(e))
+            self._scanner = None
+            return
+
+        logger.debug("Starting BLE controller with instance: %s", self._scanner)
+        try:
             await self._scanner.start()
         except (FileNotFoundError, BleakDBusError, BleakError) as e:
             logger.debug("Failed to start scanner, HAP-BLE not available: %s", str(e))
@@ -131,7 +128,6 @@ class BleController(AbstractController):
     async def async_stop(self, *args):
         if self._scanner:
             await self._scanner.stop()
-            self._scanner.register_detection_callback(None)
             self._scanner = None
 
     async def async_reachable(self, device_id: str, timeout: float = 10) -> bool:
