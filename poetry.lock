@@ -182,7 +182,6 @@ description = "Async OUI lookups"
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
-markers = "python_version < \"3.14\" and platform_system == \"Linux\""
 files = [
     {file = "aiooui-0.1.9-cp310-cp310-manylinux_2_31_x86_64.whl", hash = "sha256:64d904b43f14dd1d8d9fcf1684d9e2f558bc5e0bd68dc10023c93355c9027907"},
     {file = "aiooui-0.1.9-py3-none-any.whl", hash = "sha256:737a5e62d8726540218c2b70e5f966d9912121e4644f3d490daf8f3c18b182e5"},
@@ -328,21 +327,20 @@ dbus-fast = {version = ">=1.14.0", markers = "platform_system == \"Linux\""}
 
 [[package]]
 name = "bluetooth-adapters"
-version = "0.21.4"
+version = "2.1.1"
 description = "Tools to enumerate and find Bluetooth Adapters"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "python_version < \"3.14\" and platform_system == \"Linux\""
 files = [
-    {file = "bluetooth_adapters-0.21.4-py3-none-any.whl", hash = "sha256:ce2e8139cc9d7b103c21654c6309507979e469aae3efebcaeee9923080b0569b"},
-    {file = "bluetooth_adapters-0.21.4.tar.gz", hash = "sha256:a5a809ef7ba95ee673a78704f90ce34612deb3696269d1a6fd61f98642b99dd3"},
+    {file = "bluetooth_adapters-2.1.1-py3-none-any.whl", hash = "sha256:1f93026e530dcb2f4515a92955fa6f85934f928b009a181ee57edc8b4affd25c"},
+    {file = "bluetooth_adapters-2.1.1.tar.gz", hash = "sha256:f289e0f08814f74252a28862f488283680584744430d7eac45820f9c20ba041a"},
 ]
 
 [package.dependencies]
 aiooui = ">=0.1.1"
 async-timeout = {version = ">=3.0.0", markers = "python_version < \"3.11\""}
-bleak = ">=0.21.1"
+bleak = ">=1"
 dbus-fast = {version = ">=1.21.0", markers = "platform_system == \"Linux\""}
 uart-devices = ">=0.1.0"
 usb-devices = ">=0.4.5"
@@ -1787,7 +1785,6 @@ description = "UART Devices for Linux"
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
-markers = "python_version < \"3.14\" and platform_system == \"Linux\""
 files = [
     {file = "uart_devices-0.1.1-py3-none-any.whl", hash = "sha256:55bc8cce66465e90b298f0910e5c496bc7be021341c5455954cf61c6253dc123"},
     {file = "uart_devices-0.1.1.tar.gz", hash = "sha256:3a52c4ae0f5f7400ebe1ae5f6e2a2d40cc0b7f18a50e895236535c4e53c6ed34"},
@@ -1800,7 +1797,6 @@ description = "Tools for mapping, describing, and resetting USB devices"
 optional = false
 python-versions = ">=3.9,<4.0"
 groups = ["main"]
-markers = "python_version < \"3.14\" and platform_system == \"Linux\""
 files = [
     {file = "usb_devices-0.4.5-py3-none-any.whl", hash = "sha256:8a415219ef1395e25aa0bddcad484c88edf9673acdeae8a07223ca7222a01dcf"},
     {file = "usb_devices-0.4.5.tar.gz", hash = "sha256:9b5c7606df2bc791c6c45b7f76244a0cbed83cb6fa4c68791a143c03345e195d"},
@@ -2276,4 +2272,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10,<3.15"
-content-hash = "e497bc7661f73eb24b3f3759a3ca8dba4ff3141b3efc3d64a0ca0a9b6c6820c5"
+content-hash = "dfc1b77886ddeb8d6d510c871d07b9886d54a295895244a054ef4ca43bf83574"
