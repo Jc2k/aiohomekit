@@ -318,21 +318,25 @@ class CharacteristicsTypes:
     # r/w, float - home cool temperature between 18.3 and 33.3
     VENDOR_ECOBEE_HOME_TARGET_COOL = "7D381BAA-20F9-40E5-9BE9-AEB92D4BECEF"
     # r/w, float - sleep heat temperature between 7.2 and 26.1
-    VENDOR_ECOBEE_SLEEP_TARGET_HEAT = "73AAB542-892A-4439-879A-D2A883724B69"
+    VENDOR_ECOBEE_SLEEP_TARGET_HEAT = "05B97374-6DC0-439B-A0FA-CA33F612D425"
     # r/w, float - sleep cool temperature between 18.3 and 33.3
-    VENDOR_ECOBEE_SLEEP_TARGET_COOL = "5DA985F0-898A-4850-B987-B76C6C78D670"
+    VENDOR_ECOBEE_SLEEP_TARGET_COOL = "A251F6E7-AC46-4190-9C5D-3D06277BDF9F"
     # r/w, float - away heat temp between 7.2 and 26.1
-    VENDOR_ECOBEE_AWAY_TARGET_HEAT = "05B97374-6DC0-439B-A0FA-CA33F612D425"
+    VENDOR_ECOBEE_AWAY_TARGET_HEAT = "73AAB542-892A-4439-879A-D2A883724B69"
     # r/w, float - away cool temp between 18.3 and 33.3
-    VENDOR_ECOBEE_AWAY_TARGET_COOL = "A251F6E7-AC46-4190-9C5D-3D06277BDF9F"
+    VENDOR_ECOBEE_AWAY_TARGET_COOL = "5DA985F0-898A-4850-B987-B76C6C78D670"
     # w/o, uint8 - set hold schedule mode - home(0)/sleep(1)/away(2)
     VENDOR_ECOBEE_SET_HOLD_SCHEDULE = "1B300BC2-CFFC-47FF-89F9-BD6CCF5F2853"
-    # r/w, string - Next scheduled event time, this time seems to be a local timestamp formatted similar to "2024-10-19T20:35:05-04:00Q"
-    # This would be when the currently scheduled activity ends such as:
-    # 1. If there is a temporary hold in place, will show when that hold ends (the default hold is until next scheduled activity, so usually behaves like 2)
-    # 2. If there are no holds in place will show the next scheduled climate mode time
-    # 3. If there is an indefinite hold, will show a generally far-future date like "2035-12-29T12:00:00-04:00Q"
-    # NOTE: When setting this value, it seems to be interpreted as a local time so recommend using formatting like "2024-01-01T12:00:00" without an offset or you may get weird results
+    # r/w, string - Timed hold end time or next scheduled event time.
+    # Ecobee reports values with a trailing 'T' suffix, e.g. "2024-10-19T20:35:05-04:00T".
+    # Values:
+    # 1. Timed hold active: ISO-8601 local time when hold ends, trailing T suffix
+    # 2. No hold (following schedule): next scheduled climate change time, trailing T suffix
+    # 3. Indefinite hold: far-future sentinel, typically "2035-01-03T00:00:00+00:00T"
+    # Writing: set a timed hold end time. Must be written BEFORE SET_HOLD_SCHEDULE in a
+    # separate HAP request; combined writes cause ecobee to ignore TIMESTAMP and default
+    # to permanent hold. Write format: ISO-8601 with local offset + trailing T suffix,
+    # e.g. "2024-01-01T12:00:00-05:00T".
     VENDOR_ECOBEE_NEXT_SCHEDULED_CHANGE_TIME = "1621F556-1367-443C-AF19-82AF018E99DE"
     VENDOR_ECOBEE_TIMESTAMP = "1621F556-1367-443C-AF19-82AF018E99DE"
     # w/o, bool - true to clear hold mode, false does nothing
@@ -345,6 +349,18 @@ class CharacteristicsTypes:
     # r/o, string - Alert/reminder text, such as filter replacement/maintainence reminders
     # If no current alerts this will usually have text like "The Hive is humming along. You have no pending alerts or reminders."
     VENDOR_ECOBEE_ALERT_TEXT = "1B1515F2-CC45-409F-991F-C480987F92C3"
+    # r/o, uint8 - equipment currently running: 0=idle, 1=heat, 2=cool, 3=fan, 4=aux
+    VENDOR_ECOBEE_EQUIPMENT_RUNNING = "4A6AE4F6-036C-495D-87CC-B3702B437741"
+    # r/o, uint8 - thermostat status code: 0=ok, 1=service, 2=alert, 3=error
+    VENDOR_ECOBEE_STATUS_CODE = "DB7BF261-7042-4194-8BD1-3AA22830AEDD"
+    # r/o, bool - auxiliary heat currently active
+    VENDOR_ECOBEE_AUX_HEAT_ACTIVE = "41935E3E-B54D-42E9-B8B9-D33C6319F0AF"
+
+    # Ecobee SmartSensor (Eve UUID namespace)
+    # r/o, int - seconds since last motion trigger; -1 = never triggered
+    VENDOR_ECOBEE_MOTION_LAST_ACTIVATION = "BFE61C70-4A40-11E6-BDF4-0800200C9A66"
+    # r/o, int - seconds since last occupancy trigger; -1 = never triggered
+    VENDOR_ECOBEE_OCCUPANCY_LAST_ACTIVATION = "A8F798E0-4A40-11E6-BDF4-0800200C9A66"
 
     # ConnectSense
     # r/o, float - amps between 0 and 20
