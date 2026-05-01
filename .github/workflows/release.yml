@@ -28,7 +28,7 @@ jobs:
       - name: Build a binary wheel and a source tarball
         run: poetry build
       - name: Store the distribution packages
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: python-package-distributions
           path: dist/
@@ -52,7 +52,7 @@ jobs:
           name: python-package-distributions
           path: dist/
       - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # release/v1
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
 
   deploy_github:
     runs-on: ubuntu-latest
@@ -82,7 +82,7 @@ jobs:
             ./dist/*.whl
 
       - name: GitHub Release
-        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v2
         with:
           tag_name: ${{ needs.build.outputs.tag }}
           files: dist/**
