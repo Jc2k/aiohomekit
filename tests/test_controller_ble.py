@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -58,17 +57,11 @@ def generate_ble_device(
 
 
 @pytest.fixture
-def mock_bleak_scanner() -> MagicMock:
-    return MagicMock()
+def ble_controller() -> BleController:
+    return BleController(CharacteristicCacheMemory())
 
 
-@pytest.fixture
-def ble_controller(mock_bleak_scanner: MagicMock) -> BleController:
-    controller = BleController(CharacteristicCacheMemory(), mock_bleak_scanner)
-    return controller
-
-
-def test_discovery_with_none_name(mock_bleak_scanner: MagicMock, ble_controller: BleController) -> None:
+def test_discovery_with_none_name(ble_controller: BleController) -> None:
     ble_device_with_short_name = generate_ble_device(name="Nam", address="00:00:00:00:00:00")
     ble_device_with_name = generate_ble_device(name="Name in Full", address="00:00:00:00:00:00")
     ble_device = generate_ble_device(
