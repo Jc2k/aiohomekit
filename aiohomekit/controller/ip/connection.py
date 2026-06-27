@@ -39,6 +39,7 @@ from aiohomekit.exceptions import (
     ConnectionError,
     HomeKitException,
     HttpErrorResponse,
+    IncorrectPairingIdError,
     TimeoutError,
 )
 from aiohomekit.http import HttpContentTypes
@@ -560,13 +561,26 @@ class HomeKitConnection:
         else:
             self._start_connector()
 
-    async def _connect_once(self) -> None:
-        """_connect_once must only ever be called from _reconnect to ensure its done with a lock."""
+    async def _connect_once(self, exclude_hosts: list[str] | None = None) -> None:
+        """_connect_once must only ever be called from _reconnect to ensure its done with a lock.
+
+        ``exclude_hosts`` is a list of addresses that should not be attempted on
+        this connection attempt. It is used to skip an address that connected at
+        the TCP layer but failed at the application layer (e.g. a buggy accessory
+        that advertises another device's address in its mDNS record).
+        """
         loop = asyncio.get_running_loop()
 
-        logger.debug("Attempting connection to %s:%s", self.hosts, self.port)
+        hosts = self.hosts
+        if exclude_hosts:
+            hosts = [host for host in hosts if host not in exclude_hosts]
 
-        addr_infos = _convert_hosts_to_addr_infos(self.hosts, self.port)
+        logger.debug("Attempting connection to %s:%s", hosts, self.port)
+
+        if not hosts:
+            raise ConnectionError("No addresses left to try")
+
+        addr_infos = _convert_hosts_to_addr_infos(hosts, self.port)
 
         last_exception: Exception | None = None
         sock: socket.socket | None = None
@@ -729,8 +743,43 @@ class SecureHomeKitConnection(HomeKitConnection):
             except AccessoryNotFoundError:
                 pass
 
-        await super()._connect_once()
+        # Some buggy accessories (e.g. the BTicino Smarther 2) advertise other
+        # devices' addresses in their mDNS record. Such an address connects
+        # fine at the TCP layer but the Pair-Verify exchange returns the wrong
+        # accessory's pairing id (IncorrectPairingIdError). When that happens we
+        # skip the offending address and try the next one, only giving up once
+        # every advertised address has been exhausted.
+        exclude_hosts: list[str] = []
+        while True:
+            await super()._connect_once(exclude_hosts=exclude_hosts)
+            try:
+                await self._pair_verify()
+                return
+            except IncorrectPairingIdError:
+                wrong_host = self.connected_host
+                if not wrong_host:
+                    # Without knowing which address responded we cannot make
+                    # progress by excluding it, so give up rather than loop.
+                    raise
+                exclude_hosts.append(wrong_host)
+                remaining = [host for host in self.hosts if host not in exclude_hosts]
+                logger.debug(
+                    "%s: Pair-Verify returned the wrong pairing id from %s; %d address(es) left to try",
+                    self.name,
+                    wrong_host,
+                    len(remaining),
+                )
+                # Tear down the connection to the wrong device before retrying.
+                if self.transport:
+                    self.transport.close()
+                self.transport = None
+                self.protocol = None
+                self.is_secure = False
+                if not remaining:
+                    raise
 
+    async def _pair_verify(self) -> None:
+        """Negotiate a secure session over the already-open transport."""
         state_machine = get_session_keys(self.pairing_data)
 
         request, expected = state_machine.send(None)
