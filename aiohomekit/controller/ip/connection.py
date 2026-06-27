@@ -757,9 +757,10 @@ class SecureHomeKitConnection(HomeKitConnection):
                 return
             except IncorrectPairingIdError:
                 wrong_host = self.connected_host
-                if not wrong_host:
-                    # Without knowing which address responded we cannot make
-                    # progress by excluding it, so give up rather than loop.
+                if not wrong_host or wrong_host not in self.hosts:
+                    # If the responding address is unknown or is not one of the
+                    # advertised hosts we cannot exclude it to make progress, so
+                    # give up rather than loop forever against the same device.
                     raise
                 exclude_hosts.append(wrong_host)
                 remaining = [host for host in self.hosts if host not in exclude_hosts]

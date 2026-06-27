@@ -121,3 +121,32 @@ async def test_pair_verify_raises_after_all_addresses_exhausted():
     # Both advertised addresses were attempted exactly once before giving up.
     assert verify_attempts == ["1.2.3.13", "1.2.3.14"]
     assert conn.is_secure is False
+
+
+async def test_pair_verify_raises_when_responding_host_unknown():
+    """An unknown/unadvertised responding host propagates without looping."""
+    conn = _make_secure_connection(["1.2.3.13"])
+
+    verify_attempts: list[str] = []
+
+    async def fake_tcp_connect(self, exclude_hosts=None):
+        # Simulate a responding host that is not one of the advertised hosts
+        # (e.g. IPv6 zone-id normalization), so it can never be excluded.
+        self.connected_host = "fe80::1%eth0"
+        self.transport = mock.Mock()
+        self.protocol = mock.Mock()
+
+    async def fake_pair_verify(self):
+        verify_attempts.append(self.connected_host)
+        raise IncorrectPairingIdError("step 3")
+
+    with (
+        mock.patch.object(HomeKitConnection, "_connect_once", fake_tcp_connect),
+        mock.patch.object(SecureHomeKitConnection, "_pair_verify", fake_pair_verify),
+    ):
+        with pytest.raises(IncorrectPairingIdError):
+            await conn._connect_once()
+
+    # The error surfaces after a single attempt rather than looping forever.
+    assert verify_attempts == ["fe80::1%eth0"]
+    assert conn.is_secure is False
