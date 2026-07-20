@@ -338,7 +338,9 @@ class CharacteristicsTypes:
     # Writing: set a timed hold end time. Must be written BEFORE SET_HOLD_SCHEDULE in a
     # separate HAP request; combined writes cause ecobee to ignore TIMESTAMP and default
     # to permanent hold. Write format: ISO-8601 with local offset + trailing suffix,
-    # e.g. "2024-01-01T12:00:00-05:00T".
+    # e.g. "2024-01-01T12:00:00-05:00T". (Write behavior observed on current firmware
+    # in 2026, see PR #548; supersedes the suggestion in PR #384 to write without an
+    # offset.)
     VENDOR_ECOBEE_NEXT_SCHEDULED_CHANGE_TIME = "1621F556-1367-443C-AF19-82AF018E99DE"
     VENDOR_ECOBEE_TIMESTAMP = "1621F556-1367-443C-AF19-82AF018E99DE"
     # w/o, bool - true to clear hold mode, false does nothing
@@ -351,6 +353,9 @@ class CharacteristicsTypes:
     # r/o, string - Alert/reminder text, such as filter replacement/maintainence reminders
     # If no current alerts this will usually have text like "The Hive is humming along. You have no pending alerts or reminders."
     VENDOR_ECOBEE_ALERT_TEXT = "1B1515F2-CC45-409F-991F-C480987F92C3"
+    # The three characteristics below appear with these formats/perms/ranges in dumps
+    # from fw 4.2.394 onward; the value meanings are observed on a single unit
+    # (PR #548) and not yet independently confirmed.
     # r/o, uint8 - equipment currently running: 0=idle, 1=heat, 2=cool, 3=fan, 4=aux
     VENDOR_ECOBEE_EQUIPMENT_RUNNING = "4A6AE4F6-036C-495D-87CC-B3702B437741"
     # r/o, uint8 - thermostat status code: 0=ok, 1=service, 2=alert, 3=error
