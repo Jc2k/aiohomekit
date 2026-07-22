@@ -1,14 +1,38 @@
 import asyncio
+from collections.abc import Generator
 from datetime import timedelta
 from typing import Any
 from unittest import mock
 
 import pytest
 
+from aiohomekit.controller.ip.connection import HomeKitConnection, _normalize_host
 from aiohomekit.controller.ip.pairing import IpPairing
-from aiohomekit.exceptions import AccessoryDisconnectedError
+from aiohomekit.exceptions import AccessoryDisconnectedError, IncorrectPairingIdError
 from aiohomekit.model import Transport
+from aiohomekit.model.categories import Categories
+from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.statuscodes import HapStatusCode
+from aiohomekit.zeroconf import HomeKitService
+
+
+def wrong_accessory_get_session_keys(
+    pairing_data: dict[str, str | int | list[Any]],
+) -> Generator[Any, Any, None]:
+    """Return a pair-verify state machine that reports the wrong accessory.
+
+    The first exchange is delegated to the real state machine so a valid
+    start request goes out on the wire, then the response is answered
+    with the error a mismatched accessory would produce.
+    """
+    real_state_machine = get_session_keys(pairing_data)
+    first_request = real_state_machine.send(None)
+
+    def state_machine() -> Generator[Any, Any, None]:
+        yield first_request
+        raise IncorrectPairingIdError("step 3")
+
+    return state_machine()
 
 
 async def test_list_accessories(pairing: IpPairing):
@@ -137,6 +161,127 @@ async def test_reconnect_soon_on_device_reboot(pairing: IpPairing):
     characteristics = await pairing.get_characteristics([(1, 9)])
 
     assert characteristics[(1, 9)] == {"value": False}
+
+
+async def test_get_connect_hosts_filters_failed_hosts():
+    connection = HomeKitConnection(None, ["192.168.2.13", "192.168.2.10"], 5001)
+
+    assert connection._get_connect_hosts() == ["192.168.2.13", "192.168.2.10"]
+
+    connection._pair_verify_failed_hosts.add("192.168.2.13")
+    assert connection._get_connect_hosts() == ["192.168.2.10"]
+
+    # Once every host has failed pair-verify the exclusions are
+    # reset so the accessory can never become permanently unreachable
+    connection._pair_verify_failed_hosts.add("192.168.2.10")
+    assert connection._get_connect_hosts() == ["192.168.2.13", "192.168.2.10"]
+    assert not connection._pair_verify_failed_hosts
+
+
+async def test_get_connect_hosts_normalizes_addresses():
+    connection = HomeKitConnection(None, ["2001:db8::1", "192.168.2.10"], 5001)
+
+    # The peer address of the failed connection may format the same
+    # IPv6 address differently than the advertised address
+    connection._pair_verify_failed_hosts.add(_normalize_host("2001:0db8:0000:0000:0000:0000:0000:0001%eth0"))
+    assert connection._get_connect_hosts() == ["192.168.2.10"]
+
+
+async def test_pair_verify_wrong_accessory_marks_host_failed(pairing: IpPairing):
+    connection = pairing.connection
+
+    with mock.patch(
+        "aiohomekit.controller.ip.connection.get_session_keys",
+        side_effect=wrong_accessory_get_session_keys,
+    ):
+        with pytest.raises(IncorrectPairingIdError):
+            await connection._connect_once()
+
+    assert connection._pair_verify_failed_hosts == {"127.0.0.1"}
+    assert connection.transport is None
+    assert connection.protocol is None
+    assert not connection.is_connected
+
+
+async def test_pair_verify_wrong_accessory_recovers(pairing: IpPairing):
+    connection = pairing.connection
+    calls = []
+
+    def flaky_get_session_keys(pairing_data):
+        calls.append(pairing_data)
+        if len(calls) == 1:
+            return wrong_accessory_get_session_keys(pairing_data)
+        return get_session_keys(pairing_data)
+
+    with (
+        mock.patch(
+            "aiohomekit.controller.ip.connection.get_session_keys",
+            side_effect=flaky_get_session_keys,
+        ),
+        # Skip the reconnect backoff so the test does not spend wall
+        # clock time sleeping; a single host means no immediate retry
+        mock.patch("asyncio.sleep", mock.AsyncMock()),
+    ):
+        await asyncio.wait_for(connection.ensure_connection(), timeout=5)
+
+    assert len(calls) == 2
+    assert connection.is_connected
+    assert connection.is_secure
+    assert connection.last_connector_error is None
+    assert not connection._pair_verify_failed_hosts
+
+    characteristics = await pairing.get_characteristics([(1, 9)])
+    assert characteristics[(1, 9)] == {"value": False}
+
+
+async def test_incorrect_pairing_id_retries_next_address_without_backoff():
+    connection = HomeKitConnection(None, ["192.168.2.13", "192.168.2.10"], 5001)
+    attempts = []
+
+    async def fake_connect_once():
+        attempts.append(connection._get_connect_hosts())
+        if len(attempts) == 1:
+            connection._pair_verify_failed_hosts.add("192.168.2.13")
+            raise IncorrectPairingIdError("step 3")
+
+    with mock.patch.object(connection, "_connect_once", fake_connect_once):
+        # Without the immediate retry the backoff sleep would exceed the timeout
+        await asyncio.wait_for(connection._reconnect(), timeout=0.5)
+
+    assert attempts == [
+        ["192.168.2.13", "192.168.2.10"],
+        ["192.168.2.10"],
+    ]
+
+
+async def test_host_change_clears_failed_hosts(pairing: IpPairing):
+    connection = pairing.connection
+    port = pairing.pairing_data["AccessoryPort"]
+
+    pairing.description = HomeKitService(
+        name="unittestLight",
+        id="12:34:56:00:01:0a",
+        model="Demoserver",
+        feature_flags=0,
+        status_flags=0,
+        config_num=1,
+        state_num=0,
+        category=Categories.LIGHTBULB,
+        protocol_version="1.0",
+        type="_hap._tcp.local",
+        address="127.0.0.1",
+        addresses=["127.0.0.1"],
+        port=port,
+    )
+    connection.hosts = ["192.0.2.1"]
+    connection._pair_verify_failed_hosts = {"192.0.2.1"}
+
+    await connection._connect_once()
+
+    assert connection.hosts == ["127.0.0.1"]
+    assert not connection._pair_verify_failed_hosts
+    assert connection.is_connected
+    assert connection.is_secure
 
 
 async def test_put_characteristics(pairing: IpPairing):
