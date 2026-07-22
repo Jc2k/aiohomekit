@@ -39,6 +39,7 @@ from aiohomekit.exceptions import (
     ConnectionError,
     HomeKitException,
     HttpErrorResponse,
+    IncorrectPairingIdError,
     TimeoutError,
 )
 from aiohomekit.http import HttpContentTypes
@@ -268,6 +269,7 @@ class HomeKitConnection:
         self._last_connector_error: Exception | None = None
         self.connected_host: str | None = None
         self.host_header: str | None = None
+        self._pair_verify_failed_hosts: set[str] = set()
 
     @property
     def name(self) -> str:
@@ -560,13 +562,29 @@ class HomeKitConnection:
         else:
             self._start_connector()
 
+    def _get_connect_hosts(self) -> list[str]:
+        """Return the hosts to try for the next connection attempt.
+
+        Hosts that previously connected but failed pair-verify with the
+        wrong pairing id belong to a different accessory and are skipped.
+        If every host has been marked as failed, start over with the full
+        list so a stale exclusion can never make the accessory unreachable.
+        """
+        hosts = [host for host in self.hosts if host not in self._pair_verify_failed_hosts]
+        if not hosts:
+            self._pair_verify_failed_hosts.clear()
+            return list(self.hosts)
+        return hosts
+
     async def _connect_once(self) -> None:
         """_connect_once must only ever be called from _reconnect to ensure its done with a lock."""
         loop = asyncio.get_running_loop()
 
-        logger.debug("Attempting connection to %s:%s", self.hosts, self.port)
+        hosts = self._get_connect_hosts()
 
-        addr_infos = _convert_hosts_to_addr_infos(self.hosts, self.port)
+        logger.debug("Attempting connection to %s:%s", hosts, self.port)
+
+        addr_infos = _convert_hosts_to_addr_infos(hosts, self.port)
 
         last_exception: Exception | None = None
         sock: socket.socket | None = None
@@ -632,6 +650,7 @@ class HomeKitConnection:
 
             while not self.closing:
                 self._last_connector_error = None
+                failed_host_count = len(self._pair_verify_failed_hosts)
                 try:
                     return await self._connect_once()
 
@@ -642,6 +661,21 @@ class HomeKitConnection:
 
                 except HomeKitException as ex:
                     self._last_connector_error = ex
+                    if (
+                        isinstance(ex, IncorrectPairingIdError)
+                        and len(self._pair_verify_failed_hosts) > failed_host_count
+                        and any(host not in self._pair_verify_failed_hosts for host in self.hosts)
+                    ):
+                        # The accessory we reached is not the one we paired with
+                        # and there are other advertised addresses left to try.
+                        # Only skip the backoff when a new address was marked as
+                        # failed so a repeated failure cannot retry in a tight loop.
+                        logger.debug(
+                            "%s: Connecting to accessory failed: %s; Retrying with next address",
+                            self.name,
+                            ex,
+                        )
+                        continue
                     logger.debug(
                         "%s: Connecting to accessory failed: %s; Retrying in %i seconds",
                         self.name,
@@ -717,6 +751,10 @@ class SecureHomeKitConnection(HomeKitConnection):
                         pairing.description.addresses,
                     )
                     self.hosts = pairing.description.addresses
+                    # The addresses may have been reassigned so any hosts
+                    # previously marked as belonging to another accessory
+                    # need to be tried again.
+                    self._pair_verify_failed_hosts.clear()
 
                 if self.port != pairing.description.port:
                     logger.debug(
@@ -731,23 +769,41 @@ class SecureHomeKitConnection(HomeKitConnection):
 
         await super()._connect_once()
 
-        state_machine = get_session_keys(self.pairing_data)
+        try:
+            state_machine = get_session_keys(self.pairing_data)
 
-        request, expected = state_machine.send(None)
-        while True:
-            try:
-                response = await self.post_tlv(
-                    "/pair-verify",
-                    body=request,
-                    expected=expected,
-                )
-                request, expected = state_machine.send(response)
-            except StopIteration as result:
-                # If the state machine raises a StopIteration then we have session keys
-                _, derive = result.value
-                c2a_key = derive(b"Control-Salt", b"Control-Write-Encryption-Key")
-                a2c_key = derive(b"Control-Salt", b"Control-Read-Encryption-Key")
-                break
+            request, expected = state_machine.send(None)
+            while True:
+                try:
+                    response = await self.post_tlv(
+                        "/pair-verify",
+                        body=request,
+                        expected=expected,
+                    )
+                    request, expected = state_machine.send(response)
+                except StopIteration as result:
+                    # If the state machine raises a StopIteration then we have session keys
+                    _, derive = result.value
+                    c2a_key = derive(b"Control-Salt", b"Control-Write-Encryption-Key")
+                    a2c_key = derive(b"Control-Salt", b"Control-Read-Encryption-Key")
+                    break
+        except IncorrectPairingIdError:
+            # Some buggy accessories advertise addresses that belong to other
+            # devices on the network. The device we reached is not the one we
+            # paired with so remember the address and skip it next attempt.
+            logger.debug(
+                "%s: Accessory at %s returned an unexpected pairing id; "
+                "marking address as failed and trying remaining addresses",
+                self.name,
+                self.connected_host,
+            )
+            if self.connected_host:
+                self._pair_verify_failed_hosts.add(self.connected_host)
+            if self.transport:
+                self.transport.close()
+            self.transport = None
+            self.protocol = None
+            raise
 
         # Secure session has been negotiated - switch protocol so all future messages are encrypted
         self.protocol = SecureHomeKitProtocol(
