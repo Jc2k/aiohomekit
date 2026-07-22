@@ -111,6 +111,8 @@ class BleController(AbstractController):
         self.discoveries[data.id] = BleDiscovery(self, device, data, advertisement_data)
 
     async def async_start(self) -> None:
+        if self._scanner:
+            return
         try:
             self._scanner = BleakScanner(detection_callback=self._device_detected)
         except (FileNotFoundError, BleakDBusError, BleakError) as e:

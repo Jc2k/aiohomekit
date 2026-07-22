@@ -102,6 +102,18 @@ async def test_async_start_and_stop(ble_controller: BleController) -> None:
     assert ble_controller._scanner is None
 
 
+async def test_async_start_already_started(ble_controller: BleController) -> None:
+    """A second async_start does not replace the running scanner."""
+    scanner = AsyncMock()
+    with patch("aiohomekit.controller.ble.controller.BleakScanner", return_value=scanner) as scanner_class:
+        await ble_controller.async_start()
+        await ble_controller.async_start()
+
+    scanner_class.assert_called_once()
+    scanner.start.assert_awaited_once()
+    assert ble_controller._scanner is scanner
+
+
 async def test_async_start_scanner_init_fails(ble_controller: BleController) -> None:
     """HAP-BLE is unavailable when the scanner cannot be constructed."""
     with patch(
