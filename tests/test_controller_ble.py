@@ -10,6 +10,13 @@ import pytest
 
 from aiohomekit.characteristic_cache import CharacteristicCacheMemory
 from aiohomekit.controller.ble.controller import BleController
+from aiohomekit.controller.ble.pairing import BlePairing
+
+BLE_PAIRING_DATA = {
+    "AccessoryPairingID": "aa:bb:cc:dd:ee:ff",
+    "AccessoryAddress": "AA:BB:CC:DD:EE:FF",
+    "Connection": "BLE",
+}
 
 ADVERTISEMENT_DATA_DEFAULTS = {
     "local_name": "",
@@ -133,3 +140,38 @@ async def test_async_start_scanner_start_fails(ble_controller: BleController) ->
         await ble_controller.async_start()
 
     assert ble_controller._scanner is None
+
+
+@pytest.fixture
+def ble_pairing(ble_controller: BleController) -> BlePairing:
+    return BlePairing(ble_controller, dict(BLE_PAIRING_DATA))
+
+
+async def test_close_clears_client_when_dbus_connection_died(ble_pairing: BlePairing) -> None:
+    """An EOFError from a dead dbus socket must not leave a stale client behind.
+
+    If the client is not cleared its is_connected can report a stale True
+    forever, and the connection would never be reestablished.
+    """
+    client = AsyncMock()
+    client.is_connected = True
+    client.disconnect.side_effect = EOFError("dbus connection died")
+    ble_pairing.client = client
+
+    await ble_pairing.close()
+
+    client.disconnect.assert_awaited_once()
+    assert ble_pairing.client is None
+
+
+async def test_close_clears_client_on_bleak_error(ble_pairing: BlePairing) -> None:
+    """A BleakError from disconnect still results in the client being cleared."""
+    client = AsyncMock()
+    client.is_connected = True
+    client.disconnect.side_effect = BleakError("Disconnected mid flight")
+    ble_pairing.client = client
+
+    await ble_pairing.close()
+
+    client.disconnect.assert_awaited_once()
+    assert ble_pairing.client is None

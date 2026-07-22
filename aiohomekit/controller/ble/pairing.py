@@ -903,7 +903,10 @@ class BlePairing(AbstractPairing):
             return
         try:
             await self.client.disconnect()
-        except BleakError:
+        except BLEAK_EXCEPTIONS:
+            # A dead D-Bus socket raises EOFError, so catch the broad retry
+            # set; the client must always be cleared or is_connected stays
+            # a stale True and the connection is never reestablished.
             logger.debug(
                 "%s: Failed to close connection, client may have already closed it; rssi=%s",
                 self.name,
