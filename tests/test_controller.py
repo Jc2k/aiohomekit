@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -23,21 +23,21 @@ async def test_remove_pairing(controller_and_paired_accessory):
         await pairing.get_characteristics([(1, 9)])
 
 
-async def test_passing_in_bleak_to_controller():
-    """Test we can pass in a bleak scanner instance to the controller.
-
-    Passing in the instance should enable BLE scanning.
-    """
+async def test_ble_transport_registered_when_supported() -> None:
+    """Test the BLE transport starts with an internally constructed scanner."""
+    scanner = AsyncMock()
     with (
-        patch.object(controller_module, "BLE_TRANSPORT_SUPPORTED", False),
+        patch.object(controller_module, "BLE_TRANSPORT_SUPPORTED", True),
         patch.object(controller_module, "COAP_TRANSPORT_SUPPORTED", False),
         patch.object(controller_module, "IP_TRANSPORT_SUPPORTED", False),
+        patch("aiohomekit.controller.ble.controller.BleakScanner", return_value=scanner),
     ):
-        controller = Controller(bleak_scanner_instance=AsyncMock(register_detection_callback=MagicMock()))
+        controller = Controller()
         await controller.async_start()
 
     assert len(controller.transports) == 1
     assert isinstance(controller.transports[TransportType.BLE], BleController)
+    scanner.start.assert_awaited_once()
 
 
 async def test_passing_in_async_zeroconf(mock_asynczeroconf):
