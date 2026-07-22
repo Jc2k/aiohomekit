@@ -1,6 +1,6 @@
 import asyncio
+from collections.abc import Generator
 from datetime import timedelta
-from types import SimpleNamespace
 from typing import Any
 from unittest import mock
 
@@ -10,8 +10,29 @@ from aiohomekit.controller.ip.connection import HomeKitConnection
 from aiohomekit.controller.ip.pairing import IpPairing
 from aiohomekit.exceptions import AccessoryDisconnectedError, IncorrectPairingIdError
 from aiohomekit.model import Transport
+from aiohomekit.model.categories import Categories
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.statuscodes import HapStatusCode
+from aiohomekit.zeroconf import HomeKitService
+
+
+def wrong_accessory_get_session_keys(
+    pairing_data: dict[str, str | int | list[Any]],
+) -> Generator[Any, Any, None]:
+    """Return a pair-verify state machine that reports the wrong accessory.
+
+    The first exchange is delegated to the real state machine so a valid
+    start request goes out on the wire, then the response is answered
+    with the error a mismatched accessory would produce.
+    """
+    real_state_machine = get_session_keys(pairing_data)
+    first_request = real_state_machine.send(None)
+
+    def state_machine() -> Generator[Any, Any, None]:
+        yield first_request
+        raise IncorrectPairingIdError("step 3")
+
+    return state_machine()
 
 
 async def test_list_accessories(pairing: IpPairing):
@@ -162,7 +183,7 @@ async def test_pair_verify_wrong_accessory_marks_host_failed(pairing: IpPairing)
 
     with mock.patch(
         "aiohomekit.controller.ip.connection.get_session_keys",
-        side_effect=IncorrectPairingIdError("step 3"),
+        side_effect=wrong_accessory_get_session_keys,
     ):
         with pytest.raises(IncorrectPairingIdError):
             await connection._connect_once()
@@ -180,12 +201,17 @@ async def test_pair_verify_wrong_accessory_recovers(pairing: IpPairing):
     def flaky_get_session_keys(pairing_data):
         calls.append(pairing_data)
         if len(calls) == 1:
-            raise IncorrectPairingIdError("step 3")
+            return wrong_accessory_get_session_keys(pairing_data)
         return get_session_keys(pairing_data)
 
-    with mock.patch(
-        "aiohomekit.controller.ip.connection.get_session_keys",
-        side_effect=flaky_get_session_keys,
+    with (
+        mock.patch(
+            "aiohomekit.controller.ip.connection.get_session_keys",
+            side_effect=flaky_get_session_keys,
+        ),
+        # Skip the reconnect backoff so the test does not spend wall
+        # clock time sleeping; a single host means no immediate retry
+        mock.patch("asyncio.sleep", mock.AsyncMock()),
     ):
         await asyncio.wait_for(connection.ensure_connection(), timeout=5)
 
@@ -209,7 +235,7 @@ async def test_incorrect_pairing_id_retries_next_address_without_backoff():
             connection._pair_verify_failed_hosts.add("192.168.2.13")
             raise IncorrectPairingIdError("step 3")
 
-    with mock.patch.object(connection, "_connect_once", mock.AsyncMock(side_effect=fake_connect_once)):
+    with mock.patch.object(connection, "_connect_once", fake_connect_once):
         # Without the immediate retry the backoff sleep would exceed the timeout
         await asyncio.wait_for(connection._reconnect(), timeout=0.5)
 
@@ -223,7 +249,21 @@ async def test_host_change_clears_failed_hosts(pairing: IpPairing):
     connection = pairing.connection
     port = pairing.pairing_data["AccessoryPort"]
 
-    pairing.description = SimpleNamespace(name="unittestLight", addresses=["127.0.0.1"], port=port)
+    pairing.description = HomeKitService(
+        name="unittestLight",
+        id="12:34:56:00:01:0a",
+        model="Demoserver",
+        feature_flags=0,
+        status_flags=0,
+        config_num=1,
+        state_num=0,
+        category=Categories.LIGHTBULB,
+        protocol_version="1.0",
+        type="_hap._tcp.local",
+        address="127.0.0.1",
+        addresses=["127.0.0.1"],
+        port=port,
+    )
     connection.hosts = ["192.0.2.1"]
     connection._pair_verify_failed_hosts = {"192.0.2.1"}
 

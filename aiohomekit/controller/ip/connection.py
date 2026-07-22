@@ -659,12 +659,10 @@ class HomeKitConnection:
                     # Authentication errors should bubble up because auto-reconnect is unlikely to help
                     raise
 
-                except HomeKitException as ex:
+                except IncorrectPairingIdError as ex:
                     self._last_connector_error = ex
-                    if (
-                        isinstance(ex, IncorrectPairingIdError)
-                        and len(self._pair_verify_failed_hosts) > failed_host_count
-                        and any(host not in self._pair_verify_failed_hosts for host in self.hosts)
+                    if len(self._pair_verify_failed_hosts) > failed_host_count and any(
+                        host not in self._pair_verify_failed_hosts for host in self.hosts
                     ):
                         # The accessory we reached is not the one we paired with
                         # and there are other advertised addresses left to try.
@@ -676,6 +674,15 @@ class HomeKitConnection:
                             ex,
                         )
                         continue
+                    logger.debug(
+                        "%s: Connecting to accessory failed: %s; Retrying in %i seconds",
+                        self.name,
+                        ex,
+                        interval,
+                    )
+
+                except HomeKitException as ex:
+                    self._last_connector_error = ex
                     logger.debug(
                         "%s: Connecting to accessory failed: %s; Retrying in %i seconds",
                         self.name,
@@ -769,41 +776,40 @@ class SecureHomeKitConnection(HomeKitConnection):
 
         await super()._connect_once()
 
-        try:
-            state_machine = get_session_keys(self.pairing_data)
+        state_machine = get_session_keys(self.pairing_data)
 
-            request, expected = state_machine.send(None)
-            while True:
-                try:
-                    response = await self.post_tlv(
-                        "/pair-verify",
-                        body=request,
-                        expected=expected,
-                    )
-                    request, expected = state_machine.send(response)
-                except StopIteration as result:
-                    # If the state machine raises a StopIteration then we have session keys
-                    _, derive = result.value
-                    c2a_key = derive(b"Control-Salt", b"Control-Write-Encryption-Key")
-                    a2c_key = derive(b"Control-Salt", b"Control-Read-Encryption-Key")
-                    break
-        except IncorrectPairingIdError:
-            # Some buggy accessories advertise addresses that belong to other
-            # devices on the network. The device we reached is not the one we
-            # paired with so remember the address and skip it next attempt.
-            logger.debug(
-                "%s: Accessory at %s returned an unexpected pairing id; "
-                "marking address as failed and trying remaining addresses",
-                self.name,
-                self.connected_host,
-            )
-            if self.connected_host:
-                self._pair_verify_failed_hosts.add(self.connected_host)
-            if self.transport:
-                self.transport.close()
-            self.transport = None
-            self.protocol = None
-            raise
+        request, expected = state_machine.send(None)
+        while True:
+            try:
+                response = await self.post_tlv(
+                    "/pair-verify",
+                    body=request,
+                    expected=expected,
+                )
+                request, expected = state_machine.send(response)
+            except StopIteration as result:
+                # If the state machine raises a StopIteration then we have session keys
+                _, derive = result.value
+                c2a_key = derive(b"Control-Salt", b"Control-Write-Encryption-Key")
+                a2c_key = derive(b"Control-Salt", b"Control-Read-Encryption-Key")
+                break
+            except IncorrectPairingIdError:
+                # Some buggy accessories advertise addresses that belong to other
+                # devices on the network. The device we reached is not the one we
+                # paired with so remember the address and skip it next attempt.
+                logger.debug(
+                    "%s: Accessory at %s returned an unexpected pairing id; "
+                    "marking address as failed and trying remaining addresses",
+                    self.name,
+                    self.connected_host,
+                )
+                if self.connected_host:
+                    self._pair_verify_failed_hosts.add(self.connected_host)
+                if self.transport:
+                    self.transport.close()
+                self.transport = None
+                self.protocol = None
+                raise
 
         # Secure session has been negotiated - switch protocol so all future messages are encrypted
         self.protocol = SecureHomeKitProtocol(
