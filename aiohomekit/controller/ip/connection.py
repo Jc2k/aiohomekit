@@ -532,6 +532,17 @@ class HomeKitConnection:
 
         return resp
 
+    def _drop_transport(self) -> None:
+        """Close the transport if open and forget the transport and protocol.
+
+        The references are cleared right away as otherwise _start_connector
+        and is_connected would see them and think we are still connected.
+        """
+        if self.transport:
+            self.transport.close()
+        self.transport = None
+        self.protocol = None
+
     async def close(self) -> None:
         """
         Close the connection transport.
@@ -540,11 +551,7 @@ class HomeKitConnection:
 
         await self._stop_connector()
 
-        if self.transport:
-            self.transport.close()
-
-        self.protocol = None
-        self.transport = None
+        self._drop_transport()
         self.is_secure = None
 
     def _connection_lost(self, exception: Exception) -> None:
@@ -552,11 +559,7 @@ class HomeKitConnection:
         Called by a Protocol instance when eof_received happens.
         """
         logger.debug("Connection lost to %r: %s", self, exception)
-        # Clear the transport and protocol right away
-        # as otherwise _start_connector will see them and
-        # think we are still connected.
-        self.transport = None
-        self.protocol = None
+        self._drop_transport()
         if self.closing:
             self.closed = True
         else:
@@ -805,10 +808,7 @@ class SecureHomeKitConnection(HomeKitConnection):
                 )
                 if self.connected_host:
                     self._pair_verify_failed_hosts.add(self.connected_host)
-                if self.transport:
-                    self.transport.close()
-                self.transport = None
-                self.protocol = None
+                self._drop_transport()
                 raise
 
         # Secure session has been negotiated - switch protocol so all future messages are encrypted
