@@ -32,7 +32,7 @@ aiocoap = ">=0.4.5"
 bleak = "<3"
 chacha20poly1305-reuseable = ">=0.12.1"
 bleak-retry-connector = ">=4.6.0"
-orjson = ">=3.7.8"
+orjson = ">=3.11.6"
 async-timeout = {version = ">=4.0.2", python = "<3.11"}
 chacha20poly1305 = "^0.0.3"
 async-interrupt = ">=1.1.1"
