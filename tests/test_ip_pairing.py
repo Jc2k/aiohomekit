@@ -163,7 +163,7 @@ async def test_reconnect_soon_on_device_reboot(pairing: IpPairing):
     assert characteristics[(1, 9)] == {"value": False}
 
 
-async def test_get_connect_hosts_filters_failed_hosts():
+async def test_get_connect_hosts_filters_failed_hosts() -> None:
     connection = HomeKitConnection(None, ["192.168.2.13", "192.168.2.10"], 5001)
 
     assert connection._get_connect_hosts() == ["192.168.2.13", "192.168.2.10"]
@@ -178,7 +178,15 @@ async def test_get_connect_hosts_filters_failed_hosts():
     assert not connection._pair_verify_failed_hosts
 
 
-async def test_get_connect_hosts_normalizes_addresses():
+async def test_get_connect_hosts_with_hostname() -> None:
+    """A host that is not an IP address is compared as given."""
+    connection = HomeKitConnection(None, ["device.local", "192.168.2.10"], 5001)
+
+    connection._pair_verify_failed_hosts.add(_normalize_host("device.local"))
+    assert connection._get_connect_hosts() == ["192.168.2.10"]
+
+
+async def test_get_connect_hosts_normalizes_addresses() -> None:
     connection = HomeKitConnection(None, ["2001:db8::1", "192.168.2.10"], 5001)
 
     # The peer address of the failed connection may format the same
@@ -187,7 +195,7 @@ async def test_get_connect_hosts_normalizes_addresses():
     assert connection._get_connect_hosts() == ["192.168.2.10"]
 
 
-async def test_pair_verify_wrong_accessory_marks_host_failed(pairing: IpPairing):
+async def test_pair_verify_wrong_accessory_marks_host_failed(pairing: IpPairing) -> None:
     connection = pairing.connection
 
     with mock.patch(
@@ -203,7 +211,7 @@ async def test_pair_verify_wrong_accessory_marks_host_failed(pairing: IpPairing)
     assert not connection.is_connected
 
 
-async def test_pair_verify_wrong_accessory_recovers(pairing: IpPairing):
+async def test_pair_verify_wrong_accessory_recovers(pairing: IpPairing) -> None:
     connection = pairing.connection
     calls = []
 
@@ -234,7 +242,7 @@ async def test_pair_verify_wrong_accessory_recovers(pairing: IpPairing):
     assert characteristics[(1, 9)] == {"value": False}
 
 
-async def test_incorrect_pairing_id_retries_next_address_without_backoff():
+async def test_incorrect_pairing_id_retries_next_address_without_backoff() -> None:
     connection = HomeKitConnection(None, ["192.168.2.13", "192.168.2.10"], 5001)
     attempts = []
 
@@ -254,7 +262,7 @@ async def test_incorrect_pairing_id_retries_next_address_without_backoff():
     ]
 
 
-async def test_host_change_clears_failed_hosts(pairing: IpPairing):
+async def test_host_change_clears_failed_hosts(pairing: IpPairing) -> None:
     connection = pairing.connection
     port = pairing.pairing_data["AccessoryPort"]
 
