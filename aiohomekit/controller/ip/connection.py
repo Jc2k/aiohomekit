@@ -19,6 +19,7 @@ import asyncio
 import logging
 import socket
 from collections.abc import Iterable
+from ipaddress import ip_address
 from struct import Struct
 from typing import TYPE_CHECKING, Any
 
@@ -72,6 +73,19 @@ def _convert_hosts_to_addr_infos(hosts: list[str], port: int) -> list[aiohappyey
         addr = (host, port, 0, 0) if is_ipv6 else (host, port)
         addr_infos.append((family, socket.SOCK_STREAM, socket.IPPROTO_TCP, host, addr))
     return addr_infos
+
+
+def _normalize_host(host: str) -> str:
+    """Return the canonical form of an IP address for host comparisons.
+
+    The advertised addresses and the connected peer address may format
+    the same IPv6 address differently; strip any scope id and normalize
+    the zero compression so they compare equal.
+    """
+    try:
+        return str(ip_address(host.partition("%")[0]))
+    except ValueError:
+        return host
 
 
 class ConnectionReady(Exception):
@@ -573,7 +587,7 @@ class HomeKitConnection:
         If every host has been marked as failed, start over with the full
         list so a stale exclusion can never make the accessory unreachable.
         """
-        hosts = [host for host in self.hosts if host not in self._pair_verify_failed_hosts]
+        hosts = [host for host in self.hosts if _normalize_host(host) not in self._pair_verify_failed_hosts]
         if not hosts:
             self._pair_verify_failed_hosts.clear()
             return list(self.hosts)
@@ -665,7 +679,7 @@ class HomeKitConnection:
                 except IncorrectPairingIdError as ex:
                     self._last_connector_error = ex
                     if len(self._pair_verify_failed_hosts) > failed_host_count and any(
-                        host not in self._pair_verify_failed_hosts for host in self.hosts
+                        _normalize_host(host) not in self._pair_verify_failed_hosts for host in self.hosts
                     ):
                         # The accessory we reached is not the one we paired with
                         # and there are other advertised addresses left to try.
@@ -801,7 +815,7 @@ class SecureHomeKitConnection(HomeKitConnection):
                     self.connected_host,
                 )
                 if self.connected_host:
-                    self._pair_verify_failed_hosts.add(self.connected_host)
+                    self._pair_verify_failed_hosts.add(_normalize_host(self.connected_host))
                 self._drop_transport()
                 raise
 

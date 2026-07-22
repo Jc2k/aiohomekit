@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 
-from aiohomekit.controller.ip.connection import HomeKitConnection
+from aiohomekit.controller.ip.connection import HomeKitConnection, _normalize_host
 from aiohomekit.controller.ip.pairing import IpPairing
 from aiohomekit.exceptions import AccessoryDisconnectedError, IncorrectPairingIdError
 from aiohomekit.model import Transport
@@ -176,6 +176,15 @@ async def test_get_connect_hosts_filters_failed_hosts():
     connection._pair_verify_failed_hosts.add("192.168.2.10")
     assert connection._get_connect_hosts() == ["192.168.2.13", "192.168.2.10"]
     assert not connection._pair_verify_failed_hosts
+
+
+async def test_get_connect_hosts_normalizes_addresses():
+    connection = HomeKitConnection(None, ["2001:db8::1", "192.168.2.10"], 5001)
+
+    # The peer address of the failed connection may format the same
+    # IPv6 address differently than the advertised address
+    connection._pair_verify_failed_hosts.add(_normalize_host("2001:0db8:0000:0000:0000:0000:0000:0001%eth0"))
+    assert connection._get_connect_hosts() == ["192.168.2.10"]
 
 
 async def test_pair_verify_wrong_accessory_marks_host_failed(pairing: IpPairing):
