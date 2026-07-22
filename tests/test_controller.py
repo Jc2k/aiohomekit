@@ -23,7 +23,7 @@ async def test_remove_pairing(controller_and_paired_accessory):
         await pairing.get_characteristics([(1, 9)])
 
 
-async def test_ble_transport_registered_when_supported():
+async def test_ble_transport_registered_when_supported() -> None:
     """Test the BLE transport starts with an internally constructed scanner."""
     scanner = AsyncMock()
     with (
