@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
+from bleak.exc import BleakError
 import pytest
 
 from aiohomekit.characteristic_cache import CharacteristicCacheMemory
@@ -83,3 +85,39 @@ def test_discovery_with_none_name(ble_controller: BleController) -> None:
     assert ble_controller.discoveries["80:e7:14:6a:37:34"].name == "Name in Full (00:00:00:00:00:00)"
     ble_controller._device_detected(ble_device_with_short_name, adv)
     assert ble_controller.discoveries["80:e7:14:6a:37:34"].name == "Name in Full (00:00:00:00:00:00)"
+
+
+async def test_async_start_and_stop(ble_controller: BleController) -> None:
+    """The scanner is constructed with the detection callback and started."""
+    scanner = AsyncMock()
+    with patch("aiohomekit.controller.ble.controller.BleakScanner", return_value=scanner) as scanner_class:
+        await ble_controller.async_start()
+
+    scanner_class.assert_called_once_with(detection_callback=ble_controller._device_detected)
+    scanner.start.assert_awaited_once()
+    assert ble_controller._scanner is scanner
+
+    await ble_controller.async_stop()
+    scanner.stop.assert_awaited_once()
+    assert ble_controller._scanner is None
+
+
+async def test_async_start_scanner_init_fails(ble_controller: BleController) -> None:
+    """HAP-BLE is unavailable when the scanner cannot be constructed."""
+    with patch(
+        "aiohomekit.controller.ble.controller.BleakScanner",
+        side_effect=BleakError("No powered adapter"),
+    ):
+        await ble_controller.async_start()
+
+    assert ble_controller._scanner is None
+
+
+async def test_async_start_scanner_start_fails(ble_controller: BleController) -> None:
+    """HAP-BLE is unavailable when the scanner fails to start."""
+    scanner = AsyncMock()
+    scanner.start.side_effect = BleakError("No powered adapter")
+    with patch("aiohomekit.controller.ble.controller.BleakScanner", return_value=scanner):
+        await ble_controller.async_start()
+
+    assert ble_controller._scanner is None
