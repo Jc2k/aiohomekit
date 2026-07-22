@@ -677,21 +677,9 @@ class HomeKitConnection:
                             ex,
                         )
                         continue
-                    logger.debug(
-                        "%s: Connecting to accessory failed: %s; Retrying in %i seconds",
-                        self.name,
-                        ex,
-                        interval,
-                    )
 
                 except HomeKitException as ex:
                     self._last_connector_error = ex
-                    logger.debug(
-                        "%s: Connecting to accessory failed: %s; Retrying in %i seconds",
-                        self.name,
-                        ex,
-                        interval,
-                    )
 
                 except Exception as ex:
                     self._last_connector_error = ex
@@ -700,6 +688,12 @@ class HomeKitConnection:
                         self.name,
                     )
 
+                logger.debug(
+                    "%s: Connecting to accessory failed: %s; Retrying in %i seconds",
+                    self.name,
+                    self._last_connector_error,
+                    interval,
+                )
                 interval = min(60, 1.5 * interval)
                 self._reconnect_future = self._loop.create_future()
                 try:
