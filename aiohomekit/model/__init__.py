@@ -304,13 +304,18 @@ class Accessory:
                     char.set_value(char_data["value"])
 
         for service_data in data["services"]:
-            for linked_service in service_data.get("linked", []):
+            if not (linked_iids := service_data.get("linked")):
+                continue
+            service = accessory.services.iid(service_data["iid"])
+            for linked_service in linked_iids:
                 # https://github.com/home-assistant/core/issues/100160
                 # The Schlage Encode Plus can contain a 0 in this list which we have to ignore
-                if linked_service:
-                    accessory.services.iid(service_data["iid"]).add_linked_service(
-                        accessory.services.iid(linked_service)
-                    )
+                #
+                # https://github.com/home-assistant/core/issues/175416
+                # The Yeelight Pro Gateway references linked service iids that
+                # do not exist; skip them so the accessory still parses
+                if linked_service and (linked := accessory.services.iid_or_none(linked_service)):
+                    service.add_linked_service(linked)
 
         return accessory
 
