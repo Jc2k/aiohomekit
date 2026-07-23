@@ -9,8 +9,14 @@ from bleak.exc import BleakError
 import pytest
 
 from aiohomekit.characteristic_cache import CharacteristicCacheMemory
+from aiohomekit.controller.ble.const import AdditionalParameterTypes
 from aiohomekit.controller.ble.controller import BleController
 from aiohomekit.controller.ble.pairing import BlePairing
+from aiohomekit.model import Accessory
+from aiohomekit.model.characteristics import Characteristic, CharacteristicsTypes
+from aiohomekit.model.services import ServicesTypes
+from aiohomekit.pdu import OpCode
+from aiohomekit.protocol.tlv import TLV
 
 BLE_PAIRING_DATA = {
     "AccessoryPairingID": "aa:bb:cc:dd:ee:ff",
@@ -175,3 +181,33 @@ async def test_close_clears_client_on_bleak_error(ble_pairing: BlePairing) -> No
 
     client.disconnect.assert_awaited_once()
     assert ble_pairing.client is None
+
+
+async def test_get_characteristics_skips_missing_value_response(
+    ble_pairing: BlePairing,
+) -> None:
+    """A success PDU without a value TLV must not fail the whole read.
+
+    Some accessories, such as the UltraLoq Bolt, return a success PDU
+    without a value for some characteristics; they are skipped so the
+    rest of the accessory still works.
+    """
+    accessory = Accessory.create_with_info(
+        "00:00:00:00:00:01", "Bolt", "UltraLoq", "Bolt Fingerprint", "0001", "0.1"
+    )
+    service = accessory.add_service(ServicesTypes.LIGHTBULB)
+    good_char = service.add_char(CharacteristicsTypes.ON)
+    bad_char = service.add_char(CharacteristicsTypes.BRIGHTNESS)
+
+    async def fake_request_under_lock(
+        opcode: OpCode, char: Characteristic, data: bytes | None = None
+    ) -> bytes:
+        if char is good_char:
+            return TLV.encode_list([(AdditionalParameterTypes.Value.value, b"\x01")])
+        return b""
+
+    with patch.object(ble_pairing, "_async_request_under_lock", fake_request_under_lock):
+        async with ble_pairing._operation_lock:
+            results = await ble_pairing._get_characteristics_while_connected([good_char, bad_char])
+
+    assert results == {(1, good_char.iid): {"value": True}}
