@@ -13,7 +13,7 @@ jobs:
       tag: ${{ steps.tag.outputs.tag }}
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
       - name: Get tag
         id: tag
         run: |
@@ -21,7 +21,7 @@ jobs:
       - name: Install poetry
         run: pipx install poetry
       - name: Set up Python 3.11
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v5
         with:
           python-version: 3.11
           cache: "poetry"
@@ -52,7 +52,7 @@ jobs:
           name: python-package-distributions
           path: dist/
       - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
 
   deploy_github:
     runs-on: ubuntu-latest
@@ -75,14 +75,14 @@ jobs:
         run: |
           tree dist
       - name: Sign the dists with Sigstore
-        uses: sigstore/gh-action-sigstore-python@5b79a39c381910c090341a2c9b0bf022c8b387e1 # v3.4.0
+        uses: sigstore/gh-action-sigstore-python@790bc6befb9d733738f18d8f895854b453640ec9 # v3.5.0
         with:
           inputs: >-
             ./dist/*.tar.gz
             ./dist/*.whl
 
       - name: GitHub Release
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v2
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v2
         with:
           tag_name: ${{ needs.build.outputs.tag }}
           files: dist/**
