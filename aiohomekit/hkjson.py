@@ -16,24 +16,30 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
-import commentjson
 import orjson
-from lark.exceptions import LarkError
 
 JSON_ENCODE_EXCEPTIONS = (TypeError, ValueError)
 JSON_DECODE_EXCEPTIONS = (json.JSONDecodeError, orjson.JSONDecodeError, ValueError)
 
+_TRAILING_COMMA_RE = re.compile(r'("(?:\\.|[^"\\])*")|,(?=\s*[}\]])')
+
+
+def _strip_trailing_commas(text: str) -> str:
+    """Remove trailing commas before } or ], ignoring commas inside strings."""
+    return _TRAILING_COMMA_RE.sub(lambda match: match.group(1) or "", text)
+
 
 def loads(s: str | bytes | bytearray | memoryview) -> Any:
-    """Load json or fallback to commentjson.
+    """Load json or fallback to stripping trailing commas.
 
-    We try to load the json with built-in json, and
-    if it fails with JSONDecodeError we fallback to
-    the slower but more tolerant commentjson to
-    accomodate devices that use trailing commas
-    in their json since iOS allows it.
+    We try to load the json with orjson, and if it
+    fails with JSONDecodeError we strip any trailing
+    commas and try again to accomodate devices that
+    use trailing commas in their json since iOS
+    allows it.
 
     This approach ensures only devices that produce
     the technically invalid json have to pay the
@@ -43,8 +49,9 @@ def loads(s: str | bytes | bytearray | memoryview) -> Any:
         return orjson.loads(s)
     except orjson.JSONDecodeError:
         try:
-            return commentjson.loads(s)
-        except LarkError as ex:
+            text = s if isinstance(s, str) else bytes(s).decode("utf-8")
+            return orjson.loads(_strip_trailing_commas(text))
+        except (orjson.JSONDecodeError, UnicodeDecodeError) as ex:
             raise ValueError(f"Failed to parse JSON: {ex}") from ex
 
 
