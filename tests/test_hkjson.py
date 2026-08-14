@@ -97,6 +97,12 @@ def test_loads_garbage_raises() -> None:
         hkjson.loads("not json at all")
 
 
+def test_loads_comments_rejected() -> None:
+    """Test json with comments is no longer accepted."""
+    with pytest.raises(ValueError, match="Failed to parse JSON"):
+        hkjson.loads('{"a": 1} // note')
+
+
 def test_loads_invalid_utf8_raises() -> None:
     """Test invalid utf-8 bytes raise ValueError."""
     with pytest.raises(ValueError, match="Failed to parse JSON"):
