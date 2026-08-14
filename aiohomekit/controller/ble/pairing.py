@@ -75,6 +75,7 @@ from .client import (
     raise_for_pdu_status,
 )
 from .connection import establish_connection
+from .const import AdditionalParameterTypes
 from .key import BroadcastDecryptionKey, DecryptionKey, EncryptionKey
 from .manufacturer_data import HomeKitAdvertisement, HomeKitEncryptedNotification
 from .structs import (
@@ -1360,7 +1361,20 @@ class BlePairing(AbstractPairing):
                     )
                     continue
 
-                decoded = dict(TLV.decode_bytes(data))[1]
+                decoded = dict(TLV.decode_bytes(data)).get(AdditionalParameterTypes.Value.value)
+                if decoded is None:
+                    # Some accessories, such as the UltraLoq Bolt, return a
+                    # success PDU without a value for some characteristics;
+                    # skip them so the rest of the accessory still works.
+                    logger.debug(
+                        "%s: Reading characteristic %s (%s) with iid %s returned no value, data=%s (skipped)",
+                        self.name,
+                        char.description,
+                        char.type,
+                        char.iid,
+                        data,
+                    )
+                    continue
 
                 logger.debug(
                     "%s: Read characteristic %s (%s) with iid %s got data, expected format is %s: data=%s decoded=%s",

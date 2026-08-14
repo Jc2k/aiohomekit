@@ -94,6 +94,40 @@ def test_linked_services():
     assert service.linked[0].type == "000000CC-0000-1000-8000-0026BB765291"
 
 
+def test_linked_service_missing_iid_is_skipped() -> None:
+    """Linked service iids that do not exist are dropped instead of raising.
+
+    The Yeelight Pro Gateway references linked service iids that are not
+    present in the accessory, and the Schlage Encode Plus lists iid 0;
+    both must not prevent the accessory from parsing.
+    """
+    accessories = Accessories.from_list(
+        [
+            {
+                "aid": 28,
+                "services": [
+                    {
+                        "iid": 80,
+                        "type": ServicesTypes.SERVICE_LABEL,
+                        "characteristics": [],
+                        "linked": [0, 82, 88],
+                    },
+                    {
+                        "iid": 82,
+                        "type": ServicesTypes.STATELESS_PROGRAMMABLE_SWITCH,
+                        "characteristics": [],
+                    },
+                ],
+            }
+        ]
+    )
+
+    service = accessories.aid(28).services.iid(80)
+    assert [linked.iid for linked in service.linked] == [82]
+    serialized = accessories.serialize()
+    assert serialized[0]["services"][0]["linked"] == [82]
+
+
 def test_get_by_name():
     name = "Hue dimmer switch button 3"
     a = Accessories.from_file("tests/fixtures/hue_bridge.json").aid(6623462389072572)
