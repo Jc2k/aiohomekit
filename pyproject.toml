@@ -1,6 +1,6 @@
 [project]
 name = "aiohomekit"
-version = "4.0.0"
+version = "4.0.1"
 description = "An asyncio HomeKit client"
 authors = [{ name = "John Carr", email = "john.carr@unrouted.co.uk" }]
 license = "Apache-2.0"
