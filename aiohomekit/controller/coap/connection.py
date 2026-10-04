@@ -92,18 +92,18 @@ class EncryptionContext:
 
     def decrypt(self, enc_data: bytes) -> bytes:
         logger.debug("DECRYPT counter=%d" % (self.recv_ctr,))
-        dec_data = self.recv_ctx.decrypt(struct.pack("=4xQ", self.recv_ctr), enc_data, b"")
+        dec_data = self.recv_ctx.decrypt(struct.pack("<4xQ", self.recv_ctr), enc_data, b"")
         self.recv_ctr += 1
         return dec_data
 
     def decrypt_event(self, enc_data: bytes) -> bytes:
-        dec_data = self.event_ctx.decrypt(struct.pack("=4xQ", self.event_ctr), enc_data, b"")
+        dec_data = self.event_ctx.decrypt(struct.pack("<4xQ", self.event_ctr), enc_data, b"")
         self.event_ctr += 1
         return dec_data
 
     def encrypt(self, dec_data: bytes) -> bytes:
         logger.debug("ENCRYPT counter=%d" % (self.send_ctr,))
-        enc_data = self.send_ctx.encrypt(struct.pack("=4xQ", self.send_ctr), dec_data, b"")
+        enc_data = self.send_ctx.encrypt(struct.pack("<4xQ", self.send_ctr), dec_data, b"")
         self.send_ctr += 1
         return enc_data
 
