@@ -89,7 +89,12 @@ class CoAPPairing(ZeroconfPairing):
             # if there isn't a connection in progress, we're in the driver's seat
             if self.connection_future is None:
                 # start a connection but don't await it here
-                self.connection_future = self.connection.connect(self.pairing_data)
+                addresses = (
+                    [f"[{address}]:{self.description.port}" for address in self.description.addresses]
+                    if self.description
+                    else None
+                )
+                self.connection_future = self.connection.connect(self.pairing_data, addresses)
             else:
                 # we'll wait on the primary coroutine & copy how it returns
                 # this drops the lock and reacquires it when we're notified
