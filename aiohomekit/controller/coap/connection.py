@@ -323,9 +323,12 @@ class CoAPHomeKitConnection:
             await self.enc_ctx.coap_ctx.shutdown()
             self.enc_ctx = None
 
+        # Discovery may change self.address while this handshake awaits IO.
+        # Keep this handshake and its encrypted session on the selected endpoint.
+        address = self.address
         root = resource.Site()
         coap_client = await Context.create_server_context(root, bind=("::", 0))
-        uri = "coap://%s/2" % (self.address)
+        uri = f"coap://{address}/2"
         logger.debug(f"Pair verify uri={uri}")
 
         state_machine = get_session_keys(pairing_data)
@@ -358,11 +361,11 @@ class CoAPHomeKitConnection:
         event_key = derive(b"Event-Salt", b"Event-Read-Encryption-Key")
         event_ctx = ChaCha20Poly1305(event_key)
 
-        uri = "coap://%s/" % (self.address)
+        uri = f"coap://{address}/"
 
         self.enc_ctx = EncryptionContext(recv_ctx, send_ctx, event_ctx, uri, coap_client)
 
-        logger.debug(f"Connected to CoAP HAP accessory at {self.address}!")
+        logger.debug("Connected to CoAP HAP accessory at %s!", address)
         root.add_resource([], EventResource(self))
 
         return True
