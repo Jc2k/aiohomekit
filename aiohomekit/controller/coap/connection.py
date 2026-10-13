@@ -25,6 +25,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from aiocoap import Context, Message, resource
+from aiocoap import defaults as aiocoap_defaults
 from aiocoap.error import NetworkError
 from aiocoap.numbers.codes import Code
 from cryptography.exceptions import InvalidTag
@@ -55,6 +56,29 @@ from .pdu import (
 from .structs import Pdu09Database
 
 logger = logging.getLogger(__name__)
+
+
+def _preload_aiocoap_transport_dependencies() -> None:
+    """Run aiocoap's transport selection once, at import time.
+
+    aiocoap selects its transports, and lazily imports their optional
+    dependencies (e.g. ``filelock`` for OSCORE), the first time a client or
+    server context is created. ``filelock`` creates and removes a temporary
+    directory while it is being imported, so doing that from inside
+    ``Context.create_client_context()`` blocks the event loop.
+
+    Running the same selection here moves that work to wherever this module is
+    imported, e.g. the import executor of Home Assistant.
+    """
+    for transports in (
+        aiocoap_defaults.get_default_clienttransports(),
+        aiocoap_defaults.get_default_servertransports(),
+    ):
+        for _transport in transports:
+            pass
+
+
+_preload_aiocoap_transport_dependencies()
 
 
 def decode_pdu_03(buf):
