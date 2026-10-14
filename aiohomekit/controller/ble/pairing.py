@@ -331,8 +331,9 @@ class BlePairing(AbstractPairing):
         self._notifications: set[int] = set()
         self._broadcast_notifications: set[int] = set()
 
-        # Only allow one attempt to aquire the connection at a time
+        # Coordinate client operations and lifecycle within the same task.
         self._client_lock = _ClientLock()
+        # Only allow one attempt to acquire the connection at a time.
         self._connection_lock = asyncio.Lock()
         # We don't want to read/write from characteristics in parallel
         # * If 2 coroutines read from the same char at the same time there
@@ -982,8 +983,9 @@ class BlePairing(AbstractPairing):
         try:
             await client.disconnect()
         except BLEAK_EXCEPTIONS:
-            # Bleak owns its resource teardown, including error paths.
-            # Preserve expected-error handling in aiohomekit without a cleanup registry.
+            # A dead D-Bus socket can raise EOFError rather than BleakError.
+            # Clear stale client state after expected disconnect errors (#581).
+            # Transport cleanup belongs to Bleak and can fail independently.
             logger.debug(
                 "%s: Failed to close connection, client may have already closed it; rssi=%s",
                 self.name,

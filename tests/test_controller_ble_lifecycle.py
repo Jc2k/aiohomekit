@@ -589,3 +589,42 @@ async def test_discovery_cache_error_preserves_existing_behavior():
         await disconnect_on_missing_services(missing)(discovery)
     client.clear_cache.assert_awaited_once()
     client.disconnect.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_disconnect_during_establish_rejects_request_then_reconnects(pairing, monkeypatch):
+    old = pairing.client
+    remote_disconnect(old)
+    created = []
+
+    async def establish(*args, **kwargs):
+        new = attach_client(pairing)
+        created.append(new)
+        if len(created) == 1:
+            # Fire the real backend callback before establish returns the client.
+            remote_disconnect(new)
+        return new
+
+    monkeypatch.setattr(module, "establish_connection", establish)
+    async with pairing._config_lock:
+        await pairing._ensure_connected()
+    disconnected = created[0]
+    assert old.test_bus.closed
+    assert pairing.client is disconnected
+    assert not disconnected.is_connected
+    with pytest.raises(AccessoryDisconnectedError):
+        await request(pairing)
+    assert disconnected.test_bus.tid is None
+
+    async with pairing._config_lock:
+        await pairing._ensure_connected()
+    assert disconnected.test_bus.closed
+    assert pairing.client is created[1]
+    assert pairing.client.is_connected
+    await request(pairing)
+    pairing._async_disconnected(disconnected)
+    assert pairing.client is created[1]
+    assert pairing.client.is_connected
+    await pairing.close()
+    assert pairing.client is None
+    assert created[1].test_bus.closed
