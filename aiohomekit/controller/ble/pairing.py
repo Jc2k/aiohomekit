@@ -70,9 +70,11 @@ from .bleak import AIOHomeKitBleakClient
 from .client import (
     PDUStatusError,
     ble_request,
-    disconnect_on_missing_services,
     drive_pairing_state_machine,
     raise_for_pdu_status,
+)
+from .client import (
+    disconnect_on_missing_services as _disconnect_on_missing_services,
 )
 from .connection import establish_connection
 from .const import AdditionalParameterTypes
@@ -189,11 +191,56 @@ CHAR_FETCH_PRIORITY = {
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 
+class _ClientLock:
+    """Serialize client lifecycle/GATT work, allowing nesting by the same task.
+
+    Acquire before operation/config/request/connection locks. Child tasks do not
+    inherit ownership. No background teardown or private Bleak API is used.
+    """
+
+    def __init__(self) -> None:
+        self._lock = asyncio.Lock()
+        self._owner: asyncio.Task[Any] | None = None
+        self._depth = 0
+
+    async def __aenter__(self) -> None:
+        task = asyncio.current_task()
+        if task is None:
+            raise RuntimeError("Client lock requires an asyncio task")
+        if self._owner is not task:
+            await self._lock.acquire()
+            self._owner = task
+        self._depth += 1
+
+    async def __aexit__(self, *args: Any) -> None:
+        if self._owner is not asyncio.current_task():
+            raise RuntimeError("Client lock released by another task")
+        self._depth -= 1
+        if not self._depth:
+            self._owner = None
+            self._lock.release()
+
+
+def client_lock(func: WrapFuncType) -> WrapFuncType:
+    """Acquire the client lifecycle gate before entering an internal operation."""
+
+    async def _async_client_lock_wrap(self: BlePairing, *args: Any, **kwargs: Any) -> Any:
+        async with self._client_lock:
+            return await func(self, *args, **kwargs)
+
+    return cast(WrapFuncType, _async_client_lock_wrap)
+
+
+def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
+    """Gate the pairing-only use without changing discovery's decorator."""
+    return client_lock(_disconnect_on_missing_services(func, close_pairing=True))
+
+
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
 
     async def _async_operation_lock_wrap(self: BlePairing, *args: Any, **kwargs: Any) -> None:
-        async with self._operation_lock:
+        async with self._client_lock, self._operation_lock:
             return await func(self, *args, **kwargs)
 
     return cast(WrapFuncType, _async_operation_lock_wrap)
@@ -227,8 +274,7 @@ def force_fresh_connection(func: WrapFuncType) -> WrapFuncType:
 
     async def _async_force_fresh_connection(self: BlePairing, *args: Any, **kwargs: Any) -> None:
         """Force a fresh connection."""
-        if self.client:
-            await self.client.disconnect()
+        await self.close()
         return await func(self, *args, **kwargs)
 
     return cast(WrapFuncType, _async_force_fresh_connection)
@@ -286,6 +332,7 @@ class BlePairing(AbstractPairing):
         self._broadcast_notifications: set[int] = set()
 
         # Only allow one attempt to aquire the connection at a time
+        self._client_lock = _ClientLock()
         self._connection_lock = asyncio.Lock()
         # We don't want to read/write from characteristics in parallel
         # * If 2 coroutines read from the same char at the same time there
@@ -387,6 +434,7 @@ class BlePairing(AbstractPairing):
         super()._async_description_update(description)
         self._update_cached_state_num(description.state_num)
 
+    @client_lock
     async def _async_request(
         self,
         opcode: OpCode,
@@ -397,6 +445,7 @@ class BlePairing(AbstractPairing):
         async with self._ble_request_lock:
             return await self._async_request_under_lock(opcode, char, data, iid)
 
+    @client_lock
     async def _async_request_under_lock(
         self,
         opcode: OpCode,
@@ -409,12 +458,15 @@ class BlePairing(AbstractPairing):
             logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
             raise AccessoryDisconnectedError(f"{self.name} is not connected")
 
+        client = self.client
         endpoint_iid = iid if iid is not None else char.iid
-        endpoint = await self.client.get_characteristic(char.service.type, char.type, endpoint_iid)
+        endpoint = await client.get_characteristic(char.service.type, char.type, endpoint_iid)
+        if self.client is not client or not client.is_connected:
+            raise AccessoryDisconnectedError(f"{self.name} is not connected")
 
         try:
             pdu_status, result_data = await ble_request(
-                self.client,
+                client,
                 self._encryption_key,
                 self._decryption_key,
                 opcode,
@@ -427,7 +479,8 @@ class BlePairing(AbstractPairing):
             # cancellation), we need to close the connection
             # otherwise the encryption counters will be out of sync
             try:
-                await self._close_while_locked()
+                if self.client is client:
+                    await self._close_while_locked()
             except Exception as exc:
                 logger.debug(
                     "%s: Failed to close connection after exception: %s",
@@ -438,15 +491,17 @@ class BlePairing(AbstractPairing):
             # especially if it was a cancellation
             raise ex
 
-        if not self.client or not self.client.is_connected:
+        if self.client is not client or not client.is_connected:
             logger.debug("%s: Client not connected; rssi=%s", self.name, self.rssi)
             raise AccessoryDisconnectedError(f"{self.name} is not connected")
 
-        raise_for_pdu_status(self.client, pdu_status)
+        raise_for_pdu_status(client, pdu_status)
         return result_data
 
     def _async_disconnected(self, client: AIOHomeKitBleakClient) -> None:
         """Called when bleak disconnects from the accessory closed the connection."""
+        if client is not self.client:
+            return
         logger.debug("%s: Session closed callback: rssi=%s", self.name, self.rssi)
         self._async_reset_connection_state()
 
@@ -460,6 +515,7 @@ class BlePairing(AbstractPairing):
         self._fetched_gsn_this_session = False
         self._had_notify_this_session = False
 
+    @client_lock
     async def _ensure_connected(self, attempts: int | None = None) -> bool | None:
         """Ensure that we are connected to the accessory.
 
@@ -479,6 +535,8 @@ class BlePairing(AbstractPairing):
                 self.description = discovery.description
             elif not self.device:
                 raise AccessoryNotFoundError(f"{self.name}: Could not find {self.id}")
+            if self.client is not None:
+                await self._close_while_locked()
             self.client = await establish_connection(
                 self.device,
                 self.name,
@@ -487,14 +545,23 @@ class BlePairing(AbstractPairing):
                 ble_device_callback=lambda: self.device,
                 max_attempts=attempts,
             )
+            if self._shutdown:
+                await self._close_while_locked()
+                return False
             return True
 
+    @client_lock
     async def _async_start_notify(self, iid: int) -> None:
         assert self._operation_lock.locked(), "_operation_lock should be locked"
+        client = self.client
+        if client is None or not client.is_connected:
+            raise AccessoryDisconnectedError(f"{self.name} is not connected")
         char = self.accessories.aid(BLE_AID).characteristics.iid(iid)
 
         # Find the GATT Characteristic object for this iid
-        endpoint = await self.client.get_characteristic(char.service.type, char.type, iid)
+        endpoint = await client.get_characteristic(char.service.type, char.type, iid)
+        if self.client is not client or not client.is_connected:
+            raise AccessoryDisconnectedError(f"{self.name} is not connected")
 
         # We only want to allow one in flight read
         # and one pending read at a time since there
@@ -507,10 +574,12 @@ class BlePairing(AbstractPairing):
                 # Already one being read now, and one pending
                 return
             async with max_callback_enforcer:
-                if not self.client or not self.client.is_connected:
+                if self.client is not client or not client.is_connected:
                     # Client disconnected
                     return
-                async with self._operation_lock:
+                async with self._client_lock, self._operation_lock:
+                    if self.client is not client or not client.is_connected:
+                        return
                     logger.debug("%s: Retrieving event for iid: %s", self.name, iid)
                     await self._get_characteristics_while_connected(
                         [char],
@@ -546,6 +615,8 @@ class BlePairing(AbstractPairing):
                         self._update_state_num(new_state_num)
 
         def _callback(id: int, data: bytes) -> None:
+            if self.client is not client or not client.is_connected:
+                return
             logger.debug("%s: Received event for iid=%s: %s", self.name, iid, data)
             if data != b"":
                 # We should only poll on empty messages, otherwise we may poll
@@ -557,9 +628,10 @@ class BlePairing(AbstractPairing):
             async_create_task(_async_callback())
 
         logger.debug("%s: Subscribing to gatt notify for iid: %s", self.name, iid)
-        await self.client.start_notify(endpoint, _callback)
+        await client.start_notify(endpoint, _callback)
         self._notifications.add(iid)
 
+    @client_lock
     async def _async_pair_verify(self) -> None:
         async with self._ble_request_lock:
             session_id, derive = await drive_pairing_state_machine(
@@ -738,6 +810,7 @@ class BlePairing(AbstractPairing):
             return None
         return info[CharacteristicsTypes.SERVICE_SIGNATURE]
 
+    @client_lock
     async def _async_set_broadcast_encryption_key(self) -> None:
         """Get the broadcast key for the accessory."""
         assert self._operation_lock.locked(), "_operation_lock should be locked"
@@ -777,6 +850,7 @@ class BlePairing(AbstractPairing):
             self._accessories_state.broadcast_key = broadcast_key_bytes
             self._callback_and_save_config_changed(self.config_num)
 
+    @client_lock
     async def _read_signature(
         self,
         char: BleakGATTCharacteristic,
@@ -801,6 +875,7 @@ class BlePairing(AbstractPairing):
 
         return tlv_struct.decode(signature).to_dict()
 
+    @client_lock
     async def _async_fetch_gatt_database(self) -> Accessories:
         logger.debug("%s: Fetching GATT database; rssi=%s", self.name, self.rssi)
         accessory = Accessory(1)
@@ -896,23 +971,26 @@ class BlePairing(AbstractPairing):
         await self.close()
 
     async def close(self) -> None:
-        async with self._connection_lock:
+        async with self._client_lock, self._connection_lock:
             await self._close_while_locked()
 
+    @client_lock
     async def _close_while_locked(self) -> None:
-        if not self.client or not self.client.is_connected:
+        client = self.client
+        if client is None:
             return
         try:
-            await self.client.disconnect()
+            await client.disconnect()
         except BLEAK_EXCEPTIONS:
-            # A dead D-Bus socket raises EOFError, so catch the broad retry
-            # set; the client must always be cleared or is_connected stays
-            # a stale True and the connection is never reestablished.
+            # Bleak owns its resource teardown, including error paths.
+            # Preserve expected-error handling in aiohomekit without a cleanup registry.
             logger.debug(
                 "%s: Failed to close connection, client may have already closed it; rssi=%s",
                 self.name,
                 self.rssi,
             )
+        if self.client is not client:
+            return
         self.client = None
         self._async_reset_connection_state()
         logger.debug("%s: Connection closed from close call; rssi=%s", self.name, self.rssi)
@@ -1045,6 +1123,7 @@ class BlePairing(AbstractPairing):
         if self._restore_pending:
             await self._async_restore_subscriptions()
 
+    @client_lock
     async def _populate_accessories_and_characteristics(
         self, force_update: bool = False, attempts: int | None = None
     ) -> None:
@@ -1060,6 +1139,9 @@ class BlePairing(AbstractPairing):
                 # attempt is complete so we don't try to process disconnected
                 # events while we are still trying to connect.
                 self._tried_to_connect_once = True
+
+            if self._shutdown:
+                return
 
             logger.debug(
                 "%s: Populating accessories and characteristics: made_connection=%s restore_pending=%s",
@@ -1101,6 +1183,7 @@ class BlePairing(AbstractPairing):
             if config_changed:
                 self._callback_and_save_config_changed(self.config_num)
 
+    @client_lock
     async def _async_subscribe_broadcast_events(self, subscriptions: list[tuple[int, int]]) -> None:
         """Subscribe to broadcast events."""
         accessory_chars = self.accessories.aid(BLE_AID).characteristics
@@ -1296,6 +1379,7 @@ class BlePairing(AbstractPairing):
             [accessory_chars.iid(iid) for _, iid in characteristics], notify_listeners
         )
 
+    @client_lock
     async def _get_characteristics_while_connected(
         self,
         unordered_characteristics: list[Characteristic],
