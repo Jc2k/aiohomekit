@@ -8,7 +8,11 @@ import pytest
 
 from aiohomekit.controller.ip.connection import HomeKitConnection, _normalize_host
 from aiohomekit.controller.ip.pairing import IpPairing
-from aiohomekit.exceptions import AccessoryDisconnectedError, IncorrectPairingIdError
+from aiohomekit.exceptions import (
+    AccessoryDisconnectedError,
+    AuthenticationError,
+    IncorrectPairingIdError,
+)
 from aiohomekit.model import Transport
 from aiohomekit.model.categories import Categories
 from aiohomekit.protocol import get_session_keys
@@ -240,6 +244,98 @@ async def test_pair_verify_wrong_accessory_recovers(pairing: IpPairing) -> None:
 
     characteristics = await pairing.get_characteristics([(1, 9)])
     assert characteristics[(1, 9)] == {"value": False}
+
+
+def refused_get_session_keys(
+    pairing_data: dict[str, str | int | list[Any]],
+) -> Generator[Any, Any, None]:
+    """Return a pair-verify state machine that the accessory refuses.
+
+    This is what an accessory answers once another admin controller has
+    removed our pairing from it.
+    """
+    real_state_machine = get_session_keys(pairing_data)
+    first_request = real_state_machine.send(None)
+
+    def state_machine() -> Generator[Any, Any, None]:
+        yield first_request
+        raise AuthenticationError("step 4")
+
+    return state_machine()
+
+
+async def test_pair_verify_refused_closes_the_connection(pairing: IpPairing) -> None:
+    connection = pairing.connection
+    transports = []
+
+    def refused(pairing_data):
+        transports.append(connection.transport)
+        return refused_get_session_keys(pairing_data)
+
+    with (
+        mock.patch(
+            "aiohomekit.controller.ip.connection.get_session_keys",
+            side_effect=refused,
+        ),
+        pytest.raises(AuthenticationError),
+    ):
+        await connection._connect_once()
+
+    assert len(transports) == 1
+    assert transports[0].is_closing()
+    assert connection.transport is None
+    assert connection.protocol is None
+
+
+async def test_pair_verify_refused_leaves_no_connection_and_no_retry_loop(
+    pairing: IpPairing,
+) -> None:
+    """Each refused attempt used to leave its socket open, and closing it must
+    not start another attempt by itself: that would retry in a tight loop."""
+    connection = pairing.connection
+    transports = []
+
+    def refused(pairing_data):
+        transports.append(connection.transport)
+        return refused_get_session_keys(pairing_data)
+
+    with mock.patch(
+        "aiohomekit.controller.ip.connection.get_session_keys",
+        side_effect=refused,
+    ):
+        for _ in range(3):
+            with pytest.raises(AuthenticationError):
+                await asyncio.wait_for(connection.ensure_connection(), timeout=5)
+        await asyncio.sleep(0.1)
+
+    assert len(transports) == 3
+    assert all(transport.is_closing() for transport in transports)
+    assert not connection.is_connected
+
+    # Once the accessory accepts our pairing again, the next attempt connects.
+    await asyncio.wait_for(connection.ensure_connection(), timeout=5)
+    assert connection.is_connected
+
+
+async def test_cancelled_pair_verify_closes_the_connection(pairing: IpPairing) -> None:
+    connection = pairing.connection
+    transports = []
+    started = asyncio.Event()
+
+    async def never_answers(*args: Any, **kwargs: Any) -> None:
+        transports.append(connection.transport)
+        started.set()
+        await asyncio.Event().wait()
+
+    with mock.patch.object(connection, "post_tlv", new=never_answers):
+        task = asyncio.create_task(connection._connect_once())
+        await started.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    assert transports[0].is_closing()
+    assert connection.transport is None
 
 
 async def test_incorrect_pairing_id_retries_next_address_without_backoff() -> None:
