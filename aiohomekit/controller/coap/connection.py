@@ -17,6 +17,8 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import ipaddress
 import logging
 import random
 import struct
@@ -64,6 +66,13 @@ def decode_pdu_03(buf):
 def decode_list_pairings_response(buf):
     inner_bytes = decode_pdu_03(buf)
     return TLV.decode_bytes(inner_bytes)
+
+
+def format_coap_address(host: str, port: int) -> str:
+    """Format an endpoint so equivalent IP literals compare equal."""
+    with contextlib.suppress(ValueError):
+        host = str(ipaddress.ip_address(host))
+    return f"[{host}]:{int(port)}"
 
 
 class EncryptionContext:
@@ -236,7 +245,7 @@ class EventResource(resource.Resource):
 
 class CoAPHomeKitConnection:
     def __init__(self, owner, host, port):
-        self.address = f"[{host}]:{port}"
+        self.address = format_coap_address(host, port)
         self.connection_lock = asyncio.Lock()
         self.enc_ctx = None
         self.owner = owner
