@@ -243,7 +243,9 @@ class CoAPHomeKitConnection:
         self.pair_setup_client = None
 
     async def reconnect_soon(self):
-        if not self.enc_ctx:
+        if not self.is_connected:
+            # post_bytes() drops coap_ctx when the session ends, leaving enc_ctx behind.
+            self.enc_ctx = None
             return
         await self.enc_ctx.coap_ctx.shutdown()
         self.enc_ctx = None
