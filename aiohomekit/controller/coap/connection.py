@@ -344,8 +344,8 @@ class CoAPHomeKitConnection:
             except StopIteration as result:
                 _, derive = result.value
                 break
-            except Exception:
-                # clean up coap context
+            except BaseException:
+                # clean up coap context, including when we are cancelled
                 await coap_client.shutdown()
                 coap_client = None
                 # re-raise any exception
