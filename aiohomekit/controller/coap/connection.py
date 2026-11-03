@@ -239,6 +239,7 @@ class CoAPHomeKitConnection:
         self.address = f"[{host}]:{port}"
         self.connection_lock = asyncio.Lock()
         self.enc_ctx = None
+        self.info = None
         self.owner = owner
         self.pair_setup_client = None
 
