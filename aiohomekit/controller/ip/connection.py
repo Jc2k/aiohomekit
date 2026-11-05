@@ -546,6 +546,18 @@ class HomeKitConnection:
 
         return resp
 
+    def _close_unverified_transport(self) -> None:
+        """Close a connection that never became secure.
+
+        Closing it calls the protocol's connection_lost, which would start
+        another connection attempt at once: against an accessory that refuses
+        our pairing that is a tight loop. A bare protocol ignores the close, so
+        the next attempt is left to the caller or the reconnect backoff.
+        """
+        if self.transport:
+            self.transport.set_protocol(asyncio.Protocol())
+        self._drop_transport()
+
     def _drop_transport(self) -> None:
         """Close the transport if open and forget the transport and protocol.
 
@@ -787,37 +799,43 @@ class SecureHomeKitConnection(HomeKitConnection):
 
         await super()._connect_once()
 
-        state_machine = get_session_keys(self.pairing_data)
+        try:
+            state_machine = get_session_keys(self.pairing_data)
 
-        request, expected = state_machine.send(None)
-        while True:
-            try:
-                response = await self.post_tlv(
-                    "/pair-verify",
-                    body=request,
-                    expected=expected,
-                )
-                request, expected = state_machine.send(response)
-            except StopIteration as result:
-                # If the state machine raises a StopIteration then we have session keys
-                _, derive = result.value
-                c2a_key = derive(b"Control-Salt", b"Control-Write-Encryption-Key")
-                a2c_key = derive(b"Control-Salt", b"Control-Read-Encryption-Key")
-                break
-            except IncorrectPairingIdError:
-                # Some buggy accessories advertise addresses that belong to other
-                # devices on the network. The device we reached is not the one we
-                # paired with so remember the address and skip it next attempt.
-                logger.debug(
-                    "%s: Accessory at %s returned an unexpected pairing id; "
-                    "marking address as failed and trying remaining addresses",
-                    self.name,
-                    self.connected_host,
-                )
-                if self.connected_host:
-                    self._pair_verify_failed_hosts.add(_normalize_host(self.connected_host))
-                self._drop_transport()
-                raise
+            request, expected = state_machine.send(None)
+            while True:
+                try:
+                    response = await self.post_tlv(
+                        "/pair-verify",
+                        body=request,
+                        expected=expected,
+                    )
+                    request, expected = state_machine.send(response)
+                except StopIteration as result:
+                    # If the state machine raises a StopIteration then we have session keys
+                    _, derive = result.value
+                    c2a_key = derive(b"Control-Salt", b"Control-Write-Encryption-Key")
+                    a2c_key = derive(b"Control-Salt", b"Control-Read-Encryption-Key")
+                    break
+                except IncorrectPairingIdError:
+                    # Some buggy accessories advertise addresses that belong to other
+                    # devices on the network. The device we reached is not the one we
+                    # paired with so remember the address and skip it next attempt.
+                    logger.debug(
+                        "%s: Accessory at %s returned an unexpected pairing id; "
+                        "marking address as failed and trying remaining addresses",
+                        self.name,
+                        self.connected_host,
+                    )
+                    if self.connected_host:
+                        self._pair_verify_failed_hosts.add(_normalize_host(self.connected_host))
+                    raise
+        except BaseException:
+            # Whatever ended Pair Verify (the accessory refusing our pairing, the
+            # wrong accessory, a timeout or a cancellation), the connection is of
+            # no use: close it, or every later attempt leaves another socket open.
+            self._close_unverified_transport()
+            raise
 
         # Secure session has been negotiated - switch protocol so all future messages are encrypted
         self.protocol = SecureHomeKitProtocol(
