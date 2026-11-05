@@ -152,28 +152,32 @@ class EncryptionContext:
 
     async def post_bytes(self, payload: bytes, timeout: int = 16.0):
         async with self.lock:
-            payload = self.encrypt(payload)
+            return await self._post_bytes_under_lock(payload, timeout)
 
-            try:
-                request = Message(code=Code.POST, payload=payload, uri=self.uri)
-                async with asyncio_timeout(timeout):
-                    response = await self.coap_ctx.request(request).response
-            except (NetworkError, asyncio.TimeoutError):
-                logger.debug("%s: Did not receive a reply; end of session.", self.uri)
-                if self.coap_ctx:
-                    await self.coap_ctx.shutdown()
-                    self.coap_ctx = None
-                raise AccessoryDisconnectedError("Request timeout")
+    async def _post_bytes_under_lock(self, payload: bytes, timeout: int = 16.0):
+        """Send a request while the caller holds the session lock."""
+        payload = self.encrypt(payload)
 
-            if response.code == Code.NOT_FOUND:
-                # maybe the accessory lost power or was otherwise rebooted
-                logger.debug("CoAP POST returned 404, our session is gone.")
+        try:
+            request = Message(code=Code.POST, payload=payload, uri=self.uri)
+            async with asyncio_timeout(timeout):
+                response = await self.coap_ctx.request(request).response
+        except (NetworkError, asyncio.TimeoutError):
+            logger.debug("%s: Did not receive a reply; end of session.", self.uri)
+            if self.coap_ctx:
                 await self.coap_ctx.shutdown()
                 self.coap_ctx = None
-            elif response.code != Code.CHANGED:
-                logger.warning(f"CoAP POST returned unexpected code {response}")
+            raise AccessoryDisconnectedError("Request timeout")
 
-            return await self._decrypt_response(response)
+        if response.code == Code.NOT_FOUND:
+            # maybe the accessory lost power or was otherwise rebooted
+            logger.debug("CoAP POST returned 404, our session is gone.")
+            await self.coap_ctx.shutdown()
+            self.coap_ctx = None
+        elif response.code != Code.CHANGED:
+            logger.warning(f"CoAP POST returned unexpected code {response}")
+
+        return await self._decrypt_response(response)
 
     async def post(self, opcode: OpCode, iid: int, data: bytes) -> tuple[int, bytes | PDUStatus]:
         tid = random.randint(1, 254)
@@ -185,6 +189,18 @@ class EncryptionContext:
         req_pdu = encode_all_pdus(opcode, iids, data)
         res_pdu = await self.post_bytes(req_pdu)
         return decode_all_pdus(0, res_pdu)
+
+    async def post_timed_write(self, iid: int, data: bytes) -> bytes | PDUStatus:
+        """Prepare and execute a timed write without interleaving other requests."""
+        async with self.lock:
+            request = encode_pdu(OpCode.CHAR_TIMED_WRITE, 0, iid, data)
+            _, result = decode_pdu(0, await self._post_bytes_under_lock(request))
+            if isinstance(result, PDUStatus):
+                return result
+
+            request = encode_pdu(OpCode.CHAR_EXEC_WRITE, 0, iid, b"")
+            _, result = decode_pdu(0, await self._post_bytes_under_lock(request))
+            return result
 
 
 class EventResource(resource.Resource):
@@ -496,7 +512,9 @@ class CoAPHomeKitConnection:
         pdu_results = await self.enc_ctx.post_all(OpCode.CHAR_READ, iids, data)
         return self._read_characteristics_exit(ids, pdu_results)
 
-    def _write_characteristics_enter(self, ids_values: list[tuple[int, int, Any]]) -> list[bytearray]:
+    def _write_characteristics_enter(
+        self, ids_values: list[tuple[int, int, Any]], *, timed_write: bool = False
+    ) -> list[bytes | bytearray]:
         # convert provided values to appropriate binary format for each characteristic
         tlv_values = []
         for _, aid_iid_value in enumerate(ids_values):
@@ -509,7 +527,13 @@ class CoAPHomeKitConnection:
             # get the converted value
             value = characteristic.raw_value
             # encode into TLV
-            value_tlv = TLV.encode_list([(HAP_TLV.kTLVHAPParamValue, value)])
+            tlv = [(HAP_TLV.kTLVHAPParamValue, value)]
+            if timed_write:
+                # Use the same 3.0s TTL and inner body length as the BLE transport.
+                tlv.append((HAP_TLV.kTLVHAPParamTTL, b"\x1e"))
+            value_tlv = TLV.encode_list(tlv)
+            if timed_write:
+                value_tlv = len(value_tlv).to_bytes(2, "little") + value_tlv
             # add to list
             tlv_values.append(value_tlv)
 
@@ -542,7 +566,7 @@ class CoAPHomeKitConnection:
 
         return results
 
-    async def write_characteristics(self, ids_values: list[tuple[int, int, Any]]):
+    async def _write_normal_characteristics(self, ids_values: list[tuple[int, int, Any]]):
         tlv_values = self._write_characteristics_enter(ids_values)
 
         # batch write
@@ -553,6 +577,29 @@ class CoAPHomeKitConnection:
         )
 
         return self._write_characteristics_exit(ids_values, pdu_results)
+
+    async def write_characteristics(self, ids_values: list[tuple[int, int, Any]]):
+        """Write characteristics using the procedure required by their permissions."""
+        results = {}
+        normal_writes = []
+        for aid, iid, value in ids_values:
+            characteristic = self.info.find_characteristic_by_aid_iid(int(aid), int(iid))
+            if not characteristic.requires_hap_characteristic_timed_write_procedure:
+                normal_writes.append((aid, iid, value))
+                continue
+
+            if normal_writes:
+                results.update(await self._write_normal_characteristics(normal_writes))
+                normal_writes.clear()
+
+            timed_write = [(aid, iid, value)]
+            payload = self._write_characteristics_enter(timed_write, timed_write=True)[0]
+            result = await self.enc_ctx.post_timed_write(int(iid), payload)
+            results.update(self._write_characteristics_exit(timed_write, [result]))
+
+        if normal_writes:
+            results.update(await self._write_normal_characteristics(normal_writes))
+        return results
 
     def _subscribe_to_exit(self, ids: list[tuple[int, int]], pdu_results: list[bytes | PDUStatus]) -> dict:
         results = {}
