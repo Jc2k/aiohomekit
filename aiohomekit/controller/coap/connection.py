@@ -152,6 +152,8 @@ class EncryptionContext:
 
     async def post_bytes(self, payload: bytes, timeout: int = 16.0):
         async with self.lock:
+            if self.coap_ctx is None:
+                raise AccessoryDisconnectedError("CoAP session is closed")
             payload = self.encrypt(payload)
 
             try:
