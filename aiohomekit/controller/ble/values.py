@@ -19,16 +19,16 @@ def from_bytes(char: Characteristic, value: bytes) -> bool | str | float | int |
     if char.format == CharacteristicFormats.uint8:
         return struct.unpack_from("B", value)[0]
     if char.format == CharacteristicFormats.uint16:
-        return struct.unpack_from("H", value)[0]
+        return struct.unpack_from("<H", value)[0]
     if char.format == CharacteristicFormats.uint32:
-        return struct.unpack_from("I", value)[0]
+        return struct.unpack_from("<I", value)[0]
     if char.format == CharacteristicFormats.uint64:
-        return struct.unpack_from("Q", value)[0]
+        return struct.unpack_from("<Q", value)[0]
     if char.format == CharacteristicFormats.int:
-        return struct.unpack_from("i", value)[0]
+        return struct.unpack_from("<i", value)[0]
     if char.format == CharacteristicFormats.float:
         # FOR BLE float is 32 bit
-        return struct.unpack_from("f", value)[0]
+        return struct.unpack_from("<f", value)[0]
     if char.format == CharacteristicFormats.string:
         return value.decode("utf-8")
 
@@ -41,16 +41,16 @@ def to_bytes(char: Characteristic, value: bool | str | float | int | bytes) -> b
     elif char.format == CharacteristicFormats.uint8:
         value = struct.pack("B", value)
     elif char.format == CharacteristicFormats.uint16:
-        value = struct.pack("H", value)
+        value = struct.pack("<H", value)
     elif char.format == CharacteristicFormats.uint32:
-        value = struct.pack("I", value)
+        value = struct.pack("<I", value)
     elif char.format == CharacteristicFormats.uint64:
-        value = struct.pack("Q", value)
+        value = struct.pack("<Q", value)
     elif char.format == CharacteristicFormats.int:
-        value = struct.pack("i", value)
+        value = struct.pack("<i", value)
     elif char.format == CharacteristicFormats.float:
         # FOR BLE float is 32 bit
-        value = struct.pack("f", value)
+        value = struct.pack("<f", value)
     elif char.format == CharacteristicFormats.string:
         value = value.encode("utf-8")
 
