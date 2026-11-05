@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+from asyncio import timeout as asyncio_timeout  # noqa: F401
 import enum
 import logging
 import re
-import sys
 from collections.abc import Awaitable
 from typing import Any, TypeVar
 
@@ -16,11 +16,6 @@ from aiohomekit.model.feature_flags import FeatureFlags
 _LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T")
-
-if sys.version_info[:2] < (3, 11):
-    from async_timeout import timeout as asyncio_timeout
-else:
-    from asyncio import timeout as asyncio_timeout  # noqa: F401
 
 _BACKGROUND_TASKS = set()
 
