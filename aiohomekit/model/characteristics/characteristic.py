@@ -382,6 +382,12 @@ def check_convert_value(val: str, char: Characteristic) -> Any:
         else:
             val = float(val)
 
+    if char.format in (CharacteristicFormats.data, CharacteristicFormats.tlv8) and isinstance(
+        val, (bytes, bytearray)
+    ):
+        # Raw bytes are encoded by each transport when written
+        return bytes(val)
+
     if char.format == CharacteristicFormats.data:
         try:
             base64.decodebytes(val.encode())
