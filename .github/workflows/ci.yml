@@ -19,7 +19,7 @@ jobs:
         run: pipx install poetry
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v5
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v5
         with:
           python-version: 3.11
           cache: "poetry"
@@ -59,7 +59,7 @@ jobs:
         run: pipx install poetry
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v5
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: "poetry"
@@ -77,6 +77,6 @@ jobs:
         shell: bash
         run: poetry run python -m pytest --cov=. --cov-report=xml
 
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v5
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
