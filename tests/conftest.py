@@ -1,4 +1,5 @@
 import asyncio
+import errno
 import logging
 import os
 import socket
@@ -20,6 +21,15 @@ from aiohomekit.model.services import ServicesTypes
 from tests.accessoryserver import AccessoryServer
 
 
+# In use, or (on Windows) inside a reserved port range
+_PORT_BUSY_ERRNOS = {
+    errno.EADDRINUSE,
+    errno.EACCES,
+    getattr(errno, "WSAEADDRINUSE", errno.EADDRINUSE),
+    getattr(errno, "WSAEACCES", errno.EACCES),
+}
+
+
 def port_ready(port: int) -> bool:
     """Return True if something is already bound to the port."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as test_socket:
@@ -29,9 +39,10 @@ def port_ready(port: int) -> bool:
             test_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             test_socket.bind(("127.0.0.1", port))
-        except OSError:
-            # EADDRINUSE, WSAEADDRINUSE, or a port Windows has reserved
-            return True
+        except OSError as err:
+            if err.errno in _PORT_BUSY_ERRNOS:
+                return True
+            raise
     return False
 
 
@@ -44,10 +55,11 @@ def next_available_port() -> int:
 
 
 async def wait_for_server_online(port: int) -> None:
-    for i in range(100):
+    for _ in range(100):
         if port_ready(port):
-            break
+            return
         await asyncio.sleep(0.025)
+    raise TimeoutError(f"Accessory server did not bind port {port}")
 
 
 class AsyncServiceBrowserStub:
