@@ -1,8 +1,13 @@
 name: Dependabot auto-merge
 
-# Turns on auto-merge (squash) for Dependabot pull requests, so a bump
-# merges once the branch's required checks pass. Semver-major bumps are
-# left for a human. Based on aiohttp's workflow.
+# Squash-merges Dependabot pull requests once CI has passed on the PR's head
+# commit. Semver-major bumps are left for a human. Based on aiohttp's
+# workflow.
+#
+# main has no required status checks, so `gh pr merge --auto` would have
+# nothing to wait for and would merge straight away. Instead this job waits
+# for the CI run on the exact head commit and merges only if it succeeded,
+# with --match-head-commit so a newer push can never be merged untested.
 #
 # GITHUB_TOKEN on purpose: Dependabot secrets reach every workflow a
 # Dependabot PR triggers, including CI that installs the bumped package, so
@@ -11,13 +16,20 @@ name: Dependabot auto-merge
 
 on: pull_request_target
 
+# A new push to the PR replaces the older waiter.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 permissions:
+  actions: read
   contents: write
   pull-requests: write
 
 jobs:
   dependabot:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     if: >-
       github.event.pull_request.user.login == 'dependabot[bot]'
       && github.repository == github.event.pull_request.head.repo.full_name
@@ -27,9 +39,35 @@ jobs:
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
-      - name: Enable auto-merge for Dependabot PRs
+
+      - name: Wait for CI on the head commit
         if: steps.metadata.outputs.update-type != 'version-update:semver-major'
-        run: gh pr merge --auto --squash "$PR_URL"
         env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          run_id=""
+          for _ in $(seq 60); do
+            run_id="$(gh run list --workflow CI --commit "$HEAD_SHA" --event pull_request \
+              --json databaseId --jq '.[0].databaseId // empty')"
+            [ -n "$run_id" ] && break
+            sleep 10
+          done
+          if [ -z "$run_id" ]; then
+            echo "::error::No CI run found for $HEAD_SHA"
+            exit 1
+          fi
+          echo "Waiting for CI run $run_id"
+          gh run watch "$run_id" --interval 30 --exit-status > /dev/null
+          conclusion="$(gh run view "$run_id" --json conclusion --jq .conclusion)"
+          echo "CI run $run_id concluded: $conclusion"
+          [ "$conclusion" = "success" ]
+
+      - name: Merge
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --squash --match-head-commit "$HEAD_SHA" "$PR_URL"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
