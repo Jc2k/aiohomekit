@@ -28,7 +28,7 @@ include = ["aiohomekit/py.typed"]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.16"
-cryptography = ">=48.0.1"
+cryptography = ">=50.0.2"
 zeroconf = ">=0.153.0"
 aiocoap = ">=0.4.5"
 bleak = ">=2"
