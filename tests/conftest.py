@@ -21,13 +21,12 @@ from aiohomekit.model.services import ServicesTypes
 from tests.accessoryserver import AccessoryServer
 
 
-# In use, or (on Windows) inside a reserved port range
-_PORT_BUSY_ERRNOS = {
-    errno.EADDRINUSE,
-    errno.EACCES,
-    getattr(errno, "WSAEADDRINUSE", errno.EADDRINUSE),
-    getattr(errno, "WSAEACCES", errno.EACCES),
-}
+# In use, or on Windows inside a reserved (excluded) port range
+_PORT_BUSY_ERRNOS = (
+    {errno.EADDRINUSE, errno.WSAEADDRINUSE, errno.WSAEACCES}
+    if sys.platform == "win32"
+    else {errno.EADDRINUSE}
+)
 
 
 def port_ready(port: int) -> bool:
@@ -55,17 +54,18 @@ def next_available_port() -> int:
 
 
 def ensure_server_bound(httpd: AccessoryServer, port: int, config_path: str) -> None:
-    """Fail the fixture if the server is not bound, before its thread starts.
+    """Fail the fixture if the server is not on the expected port.
 
-    HTTPServer binds and listens in its constructor, so the port must already
-    be busy. Checking before serve_forever starts means a failure leaves no
-    thread behind to hang the session.
+    HTTPServer binds and listens in its constructor, so its socket already
+    knows its port. Checking before serve_forever starts means a failure
+    leaves no thread behind to hang the session.
     """
-    if port_ready(port):
+    bound_port = httpd.socket.getsockname()[1]
+    if bound_port == port:
         return
     httpd.server_close()
     os.unlink(config_path)
-    raise RuntimeError(f"Accessory server did not bind port {port}")
+    raise RuntimeError(f"Accessory server bound port {bound_port}, expected {port}")
 
 
 class AsyncServiceBrowserStub:
