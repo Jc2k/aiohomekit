@@ -54,12 +54,18 @@ def next_available_port() -> int:
     raise RuntimeError("No available ports")
 
 
-async def wait_for_server_online(port: int) -> None:
-    for _ in range(100):
-        if port_ready(port):
-            return
-        await asyncio.sleep(0.025)
-    raise TimeoutError(f"Accessory server did not bind port {port}")
+def ensure_server_bound(httpd: AccessoryServer, port: int, config_path: str) -> None:
+    """Fail the fixture if the server is not bound, before its thread starts.
+
+    HTTPServer binds and listens in its constructor, so the port must already
+    be busy. Checking before serve_forever starts means a failure leaves no
+    thread behind to hang the session.
+    """
+    if port_ready(port):
+        return
+    httpd.server_close()
+    os.unlink(config_path)
+    raise RuntimeError(f"Accessory server did not bind port {port}")
 
 
 class AsyncServiceBrowserStub:
@@ -119,10 +125,9 @@ async def controller_and_unpaired_accessory(request, mock_asynczeroconf, id_fact
     lightBulbService.add_char(CharacteristicsTypes.ON, value=False)
     httpd.add_accessory(accessory)
 
+    ensure_server_bound(httpd, available_port, config_file.name)
     t = threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.01})
     t.start()
-
-    await wait_for_server_online(available_port)
 
     controller = Controller(async_zeroconf_instance=mock_asynczeroconf)
 
@@ -176,10 +181,9 @@ async def controller_and_paired_accessory(request, mock_asynczeroconf, id_factor
     lightBulbService.add_char(CharacteristicsTypes.ON, value=False)
     httpd.add_accessory(accessory)
 
+    ensure_server_bound(httpd, available_port, config_file.name)
     t = threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.01})
     t.start()
-
-    await wait_for_server_online(available_port)
 
     controller_file = tempfile.NamedTemporaryFile(delete=False)
     controller_file.write(
