@@ -33,7 +33,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install poetry
-        run: uv tool install poetry
+        run: uv tool install --python 3.13 poetry
 
       - name: Cache poetry venv
         id: cache-venv
@@ -64,6 +64,7 @@ jobs:
     runs-on: ${{ matrix.os }}-latest
 
     strategy:
+      fail-fast: false
       matrix:
         os: [Ubuntu, MacOS, Windows]
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
@@ -83,9 +84,11 @@ jobs:
           uv-version: ${{ env.UV_VERSION }}
           python-version: ${{ matrix.python-version }}
 
+      # Run poetry itself on a stable Python; setup-uv exports UV_PYTHON, and
+      # poetry segfaults on 3.15. The project venv still uses the matrix Python.
       - name: Install poetry
         shell: bash
-        run: uv tool install poetry
+        run: uv tool install --python 3.13 poetry
 
       # Keyed on the lock, so packages without wheels for new Pythons
       # (built from source) are only built once per lock change
