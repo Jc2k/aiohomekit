@@ -101,7 +101,25 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .venv
-          key: venv-v1-${{ runner.os }}-${{ matrix.python-version }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', 'pyproject.toml') }}
+          key: venv-v2-${{ runner.os }}-${{ matrix.python-version }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', 'pyproject.toml') }}
+
+      # Poetry keeps wheels it builds from sdists in its artifact cache. On a
+      # lock change, restoring the previous one means only the packages that
+      # changed are built again (winrt-* and zeroconf take minutes on Windows).
+      - name: Find poetry artifact cache
+        id: poetry-cache
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+        shell: bash
+        run: echo "dir=$(poetry config cache-dir)/artifacts" >> "$GITHUB_OUTPUT"
+
+      - name: Cache poetry artifacts
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.poetry-cache.outputs.dir }}
+          key: poetry-artifacts-v1-${{ runner.os }}-${{ matrix.python-version }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            poetry-artifacts-v1-${{ runner.os }}-${{ matrix.python-version }}-py${{ steps.python.outputs.python-version }}-
 
       - name: Install dependencies
         if: steps.cache-venv.outputs.cache-hit != 'true'
