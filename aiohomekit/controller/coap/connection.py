@@ -57,6 +57,11 @@ from .structs import Pdu09Database
 logger = logging.getLogger(__name__)
 
 
+def format_endpoint(host: str, port: int) -> str:
+    """Format a CoAP endpoint consistently for connection and discovery."""
+    return f"[{host}]:{port}"
+
+
 def decode_pdu_03(buf):
     return bytes(dict(TLV.decode_bytes(buf)).get(HAP_TLV.kTLVHAPParamValue))
 
@@ -236,7 +241,7 @@ class EventResource(resource.Resource):
 
 class CoAPHomeKitConnection:
     def __init__(self, owner, host, port):
-        self.address = f"[{host}]:{port}"
+        self.address = format_endpoint(host, port)
         self.connection_lock = asyncio.Lock()
         self.enc_ctx = None
         self.owner = owner

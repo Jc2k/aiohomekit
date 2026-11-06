@@ -30,7 +30,7 @@ from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 from aiohomekit.zeroconf import ZeroconfPairing
 
-from .connection import CoAPHomeKitConnection
+from .connection import CoAPHomeKitConnection, format_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class CoAPPairing(ZeroconfPairing):
 
     def _async_endpoint_changed(self) -> None:
         """The IP/Port has changed, so close connection if active then reconnect."""
-        self.connection.address = f"[{self.description.address}]:{self.description.port}"
+        self.connection.address = format_endpoint(self.description.address, self.description.port)
         async_create_task(self.connection.reconnect_soon())
 
     @property
@@ -90,7 +90,10 @@ class CoAPPairing(ZeroconfPairing):
             if self.connection_future is None:
                 # start a connection but don't await it here
                 addresses = (
-                    [f"[{address}]:{self.description.port}" for address in self.description.addresses]
+                    [
+                        format_endpoint(address, self.description.port)
+                        for address in self.description.addresses
+                    ]
                     if self.description
                     else None
                 )
