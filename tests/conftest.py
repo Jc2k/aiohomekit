@@ -1,8 +1,8 @@
 import asyncio
-import errno
 import logging
 import os
 import socket
+import sys
 import tempfile
 import threading
 from unittest import mock
@@ -20,21 +20,18 @@ from aiohomekit.model.services import ServicesTypes
 from tests.accessoryserver import AccessoryServer
 
 
-def _get_test_socket() -> socket.socket:
-    """Create a socket to test binding ports."""
-    test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    test_socket.setblocking(False)
-    test_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    return test_socket
-
-
 def port_ready(port: int) -> bool:
-    try:
-        _get_test_socket().bind(("127.0.0.1", port))
-    except OSError as e:
-        if e.errno == errno.EADDRINUSE:
+    """Return True if something is already bound to the port."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as test_socket:
+        # On Windows SO_REUSEADDR lets a socket bind over a listening one,
+        # which would make every port look free
+        if sys.platform != "win32":
+            test_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            test_socket.bind(("127.0.0.1", port))
+        except OSError:
+            # EADDRINUSE, WSAEADDRINUSE, or a port Windows has reserved
             return True
-
     return False
 
 
@@ -46,7 +43,7 @@ def next_available_port() -> int:
     raise RuntimeError("No available ports")
 
 
-async def wait_for_server_online(port: int):
+async def wait_for_server_online(port: int) -> None:
     for i in range(100):
         if port_ready(port):
             break
