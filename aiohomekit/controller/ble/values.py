@@ -53,8 +53,5 @@ def to_bytes(char: Characteristic, value: bool | str | float | int | bytes) -> b
         value = struct.pack("f", value)
     elif char.format == CharacteristicFormats.string:
         value = value.encode("utf-8")
-    elif char.format == CharacteristicFormats.data and isinstance(value, str):
-        # data: accept the hex string used when reading, as well as raw bytes
-        value = bytes.fromhex(value)
 
     return bytes(value)

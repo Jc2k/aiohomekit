@@ -385,7 +385,8 @@ def check_convert_value(val: str, char: Characteristic) -> Any:
     if char.format in (CharacteristicFormats.data, CharacteristicFormats.tlv8) and isinstance(
         val, (bytes, bytearray)
     ):
-        # Raw bytes are encoded by each transport when written
+        # bytes is the transport-neutral input, encoded by each transport on write.
+        # A str is passed through in the transport's own encoding and is not normalised.
         return bytes(val)
 
     if char.format == CharacteristicFormats.data:
