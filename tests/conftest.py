@@ -110,7 +110,7 @@ async def controller_and_unpaired_accessory(request, mock_asynczeroconf, id_fact
     lightBulbService.add_char(CharacteristicsTypes.ON, value=False)
     httpd.add_accessory(accessory)
 
-    t = threading.Thread(target=httpd.serve_forever)
+    t = threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.01})
     t.start()
 
     await wait_for_server_online(available_port)
@@ -167,7 +167,7 @@ async def controller_and_paired_accessory(request, mock_asynczeroconf, id_factor
     lightBulbService.add_char(CharacteristicsTypes.ON, value=False)
     httpd.add_accessory(accessory)
 
-    t = threading.Thread(target=httpd.serve_forever)
+    t = threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.01})
     t.start()
 
     await wait_for_server_online(available_port)
