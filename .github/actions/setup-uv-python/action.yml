@@ -1,0 +1,70 @@
+name: Set up uv and managed Python
+description: >-
+  Pins uv and proactively installs the requested Python so cached venvs
+  resolve their interpreter symlinks in jobs that only restore the venv.
+  setup-uv alone only sets UV_PYTHON, it does not actually fetch the
+  interpreter until uv first uses it, so jobs that just activate a cached
+  venv blow up with broken symlinks on cache hit. setup-uv v8.1.0 also
+  fetches its version manifest from raw.githubusercontent.com on every run
+  even when version is pinned, so the setup step is retried a couple of
+  times to ride out raw.githubusercontent.com flakes.
+
+inputs:
+  python-version:
+    description: The Python version uv should install and use.
+    required: true
+  uv-version:
+    description: The uv version setup-uv should install.
+    required: true
+
+outputs:
+  python-version:
+    description: The Python version uv reports as installed.
+    value: ${{ steps.uv3.outputs.python-version || steps.uv2.outputs.python-version || steps.uv1.outputs.python-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up uv (attempt 1)
+      id: uv1
+      continue-on-error: true
+      uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+      with:
+        version: ${{ inputs.uv-version }}
+        python-version: ${{ inputs.python-version }}
+        # Persist astral's managed Python across jobs so 'uv venv' / poetry
+        # env use below is fast on the second job onwards.
+        cache-python: true
+        # Jobs that only configure the toolchain (no deps to cache) would
+        # otherwise abort with "Nothing to cache" on the post step.
+        ignore-nothing-to-cache: true
+    - name: Set up uv (attempt 2)
+      id: uv2
+      if: steps.uv1.outcome == 'failure'
+      continue-on-error: true
+      uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+      with:
+        version: ${{ inputs.uv-version }}
+        python-version: ${{ inputs.python-version }}
+        cache-python: true
+        ignore-nothing-to-cache: true
+    - name: Set up uv (attempt 3)
+      id: uv3
+      if: steps.uv1.outcome == 'failure' && steps.uv2.outcome == 'failure'
+      uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+      with:
+        version: ${{ inputs.uv-version }}
+        python-version: ${{ inputs.python-version }}
+        cache-python: true
+        ignore-nothing-to-cache: true
+    - name: Install Python interpreter
+      shell: bash
+      env:
+        PYTHON_VERSION: ${{ inputs.python-version }}
+      # 'uv python install' on Windows blows up with a reparse-point tag
+      # mismatch (os error 4394) when cache-python: true already restored
+      # the install dir, so only install when find says we have nothing yet.
+      run: |
+        if ! uv python find "${PYTHON_VERSION}" >/dev/null 2>&1; then
+          uv python install "${PYTHON_VERSION}"
+        fi
