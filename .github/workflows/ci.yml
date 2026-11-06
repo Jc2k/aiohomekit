@@ -6,6 +6,16 @@ on:
       - main
   pull_request: ~
 
+# A new push to a PR cancels its older run; pushes to main never share a group.
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  POETRY_VIRTUALENVS_IN_PROJECT: "true"
+  UV_PYTHON_PREFERENCE: only-managed
+  UV_VERSION: "0.11.16"
+
 jobs:
   lint:
     name: lint
@@ -15,18 +25,29 @@ jobs:
       - name: Check out code from GitHub
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v5
+      - name: Set up uv and Python 3.11
+        id: python
+        uses: ./.github/actions/setup-uv-python
         with:
-          python-version: 3.11
-          cache: "poetry"
+          uv-version: ${{ env.UV_VERSION }}
+          python-version: "3.11"
+
+      - name: Install poetry
+        run: uv tool install poetry
+
+      - name: Cache poetry venv
+        id: cache-venv
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .venv
+          key: venv-v1-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', 'pyproject.toml') }}
 
       - name: Install dependencies
+        if: steps.cache-venv.outputs.cache-hit != 'true'
         shell: bash
-        run: poetry install
+        run: |
+          poetry env use "$(uv python find 3.11)"
+          poetry install
 
       - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
 
@@ -55,27 +76,38 @@ jobs:
       - name: Check out code from GitHub
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v5
+      - name: Set up uv and Python ${{ matrix.python-version }}
+        id: python
+        uses: ./.github/actions/setup-uv-python
         with:
+          uv-version: ${{ env.UV_VERSION }}
           python-version: ${{ matrix.python-version }}
-          cache: "poetry"
 
-      - name: Get full Python version
-        id: full-python-version
+      - name: Install poetry
         shell: bash
-        run: echo ::set-output name=version::$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))")
+        run: uv tool install poetry
+
+      # Keyed on the lock, so packages without wheels for new Pythons
+      # (built from source) are only built once per lock change
+      - name: Cache poetry venv
+        id: cache-venv
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .venv
+          key: venv-v1-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', 'pyproject.toml') }}
 
       - name: Install dependencies
+        if: steps.cache-venv.outputs.cache-hit != 'true'
         shell: bash
-        run: poetry install
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: |
+          poetry env use "$(uv python find "${PYTHON_VERSION}")"
+          poetry install
 
       - name: Run pytest
         shell: bash
-        run: poetry run python -m pytest --cov=. --cov-report=xml
+        run: poetry run python -m pytest --cov=. --cov-report=xml --durations=20
 
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v5
         env:
