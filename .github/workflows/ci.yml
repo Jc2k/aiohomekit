@@ -101,7 +101,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .venv
-          key: venv-v2-${{ runner.os }}-${{ matrix.python-version }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', 'pyproject.toml') }}
+          key: venv-v3-${{ runner.os }}-${{ matrix.python-version }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', 'pyproject.toml') }}
 
       # Poetry keeps wheels it builds from sdists in its artifact cache. On a
       # lock change, restoring the previous one means only the packages that
@@ -129,6 +129,22 @@ jobs:
         run: |
           poetry env use "$(uv python find "${PYTHON_VERSION}")"
           poetry install
+
+      # Keep only wheels poetry built from an sdist (they sit next to it), so
+      # the cache does not grow with every downloaded wheel across lock changes
+      - name: Prune poetry artifacts to built wheels
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+        shell: bash
+        env:
+          ARTIFACTS: ${{ steps.poetry-cache.outputs.dir }}
+        run: |
+          find "$ARTIFACTS" -type f -name '*.whl' | while read -r whl; do
+            d="$(dirname "$whl")"
+            if [ -z "$(find "$d" -maxdepth 1 \( -name '*.tar.gz' -o -name '*.zip' \) -print -quit)" ]; then
+              rm -f "$whl"
+            fi
+          done
+          du -sh "$ARTIFACTS"
 
       - name: Run pytest
         shell: bash
