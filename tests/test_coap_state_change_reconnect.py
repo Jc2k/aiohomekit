@@ -369,6 +369,71 @@ async def test_joined_attempt_with_unreadable_database_passes_nothing_on(
 
     # the database left over from before the outage must not be passed on
     pairing.events.assert_not_called()
+    # and the session, which never resubscribed, is ended
+    assert not pairing.is_connected
+
+
+async def test_reconnect_with_unreadable_database_ends_the_session(
+    pairing: CoAPPairing, accessory: FakeAccessory
+):
+    pairing.subscriptions.add(ON)
+    accessory.database = b"\xff\xff"
+
+    pairing._async_description_update(_description(2))
+    await pairing._reconnect_task
+
+    assert not pairing.is_connected
+    pairing.connection.subscribe_to.assert_not_called()
+    pairing.availability.assert_not_called()
+    pairing.events.assert_not_called()
+
+
+async def test_poll_with_failed_resubscribe_ends_the_session(pairing: CoAPPairing):
+    pairing.subscriptions.add(ON)
+    pairing.connection.subscribe_to = AsyncMock(side_effect=AccessoryDisconnectedError("Request timeout"))
+
+    with pytest.raises(AccessoryDisconnectedError):
+        await pairing.get_characteristics([ON])
+
+    assert not pairing.is_connected
+    pairing.availability.assert_not_called()
+
+
+async def test_request_joined_to_a_failed_attempt_does_not_use_the_session(
+    pairing: CoAPPairing, accessory: FakeAccessory
+):
+    pairing.subscriptions.add(ON)
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def slow_pair_verify(pairing_data):
+        started.set()
+        await release.wait()
+        pairing.connection.enc_ctx = FakeSession(accessory)
+
+    pairing.connection.do_pair_verify.side_effect = slow_pair_verify
+    pairing.connection.subscribe_to = AsyncMock(side_effect=AccessoryDisconnectedError("Request timeout"))
+    joined = asyncio.Event()
+    wait = pairing.connection_lock.wait
+
+    async def wait_and_record():
+        joined.set()
+        return await wait()
+
+    pairing.connection_lock.wait = wait_and_record
+
+    pairing._async_description_update(_description(2))
+    await started.wait()
+    poll = asyncio.create_task(pairing.get_characteristics([ON]))
+    await joined.wait()
+    release.set()
+    await pairing._reconnect_task
+    reads = accessory.reads
+
+    with pytest.raises(AccessoryDisconnectedError):
+        await poll
+    assert accessory.reads == reads
+    assert not pairing.is_connected
 
 
 async def test_retry_is_decided_when_the_reconnect_is_scheduled(
@@ -404,7 +469,7 @@ async def test_retry_is_decided_when_the_reconnect_is_scheduled(
         LibraryShutdown(),
     ],
 )
-async def test_failed_resubscribe_is_ignored(pairing: CoAPPairing, error: Exception):
+async def test_failed_resubscribe_ends_the_session(pairing: CoAPPairing, error: Exception):
     pairing.subscriptions.add(ON)
     pairing.connection.subscribe_to = AsyncMock(side_effect=error)
 
@@ -412,6 +477,7 @@ async def test_failed_resubscribe_is_ignored(pairing: CoAPPairing, error: Except
     await pairing._reconnect_task
 
     assert pairing._reconnect_task.exception() is None
+    assert not pairing.is_connected
     pairing.availability.assert_not_called()
     pairing.events.assert_not_called()
 

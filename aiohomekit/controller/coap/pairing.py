@@ -102,6 +102,7 @@ class CoAPPairing(ZeroconfPairing):
                     raise AccessoryDisconnectedError("primary coroutine failed to connect")
                 return
 
+        connected = False
         try:
             # await the connection outside of the lock
             # this allows other coroutines to show up & wait
@@ -119,11 +120,18 @@ class CoAPPairing(ZeroconfPairing):
                     % (len(self.subscriptions), self.subscriptions)
                 )
                 await self.connection.subscribe_to(list(self.subscriptions))
+            connected = True
             self._callback_availability_changed(True)
         finally:
             # until we re-acquire the lock & clear connection_future,
             # other coroutines that show up will all hit the .wait() path.
             async with self.connection_lock:
+                if not connected and self.connection.is_connected:
+                    # we stopped after pair verify (e.g. reading the accessory
+                    # database or resubscribing failed, or we were cancelled part-way
+                    # through a request), so end the session rather than keep one
+                    # that sends no events or whose counters may be out of step
+                    await self.connection.reconnect_soon()
                 # clear the flag indicating a connection is in progress
                 self.connection_future = None
                 # wake up any coroutines that showed up while we were connecting
@@ -133,13 +141,10 @@ class CoAPPairing(ZeroconfPairing):
 
     async def close(self) -> None:
         if self._reconnect_task and not self._reconnect_task.done():
+            # if this stops it part-way through connecting, _ensure_connected ends
+            # the session, which also drops its subscriptions
             self._reconnect_task.cancel()
             await asyncio.wait([self._reconnect_task])
-            # it may have stopped part-way through a request, leaving the session's
-            # counters out of step, so end the session (which also drops its
-            # subscriptions) rather than sending anything more over it
-            if self.connection.is_connected:
-                await self.connection.reconnect_soon()
             return
         if self.connection.is_connected:
             await self.unsubscribe(list(self.subscriptions))
