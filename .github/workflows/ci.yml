@@ -112,6 +112,9 @@ jobs:
         shell: bash
         run: echo "dir=$(poetry config cache-dir)/artifacts" >> "$GITHUB_OUTPUT"
 
+      # Wheels built for superseded versions carry over through restore-keys,
+      # so the entry grows a little with each bump; if the prune step's du -sh
+      # shows it getting large (tens of MB), bump poetry-artifacts-v1 to reset.
       - name: Cache poetry artifacts
         if: steps.cache-venv.outputs.cache-hit != 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
