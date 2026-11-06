@@ -196,12 +196,13 @@ class CoAPPairing(ZeroconfPairing):
             return
         if self._reconnect_task and not self._reconnect_task.done():
             return
-        self._reconnect_task = async_create_task(self._async_reconnect())
-
-    async def _async_reconnect(self) -> None:
         # a connection attempt already in progress may have started before the
         # accessory came back, so if we join one and it fails, try once more
-        attempts = 2 if self.connection_future is not None else 1
+        retry = self.connection_future is not None
+        self._reconnect_task = async_create_task(self._async_reconnect(retry))
+
+    async def _async_reconnect(self, retry: bool) -> None:
+        attempts = 2 if retry else 1
         info_before = self.connection.info
         for attempt in range(1, attempts + 1):
             try:

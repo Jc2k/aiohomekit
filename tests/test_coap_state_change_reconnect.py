@@ -371,6 +371,31 @@ async def test_joined_attempt_with_unreadable_database_passes_nothing_on(
     pairing.events.assert_not_called()
 
 
+async def test_retry_is_decided_when_the_reconnect_is_scheduled(
+    pairing: CoAPPairing, accessory: FakeAccessory
+):
+    attempts = 0
+
+    async def pair_verify(pairing_data):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise asyncio.TimeoutError
+        pairing.connection.enc_ctx = FakeSession(accessory)
+
+    pairing.connection.do_pair_verify.side_effect = pair_verify
+
+    # an attempt is in progress when the bulb advertises, and fails before the
+    # reconnect starts, so the reconnect's own first attempt may also be too early
+    pairing.connection_future = asyncio.get_running_loop().create_future()
+    pairing._async_description_update(_description(2))
+    pairing.connection_future = None
+    await pairing._reconnect_task
+
+    assert attempts == 2
+    assert pairing.is_connected
+
+
 @pytest.mark.parametrize(
     "error",
     [
