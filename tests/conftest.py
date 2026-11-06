@@ -1,4 +1,5 @@
 import asyncio
+import errno
 import logging
 import os
 import socket
@@ -20,6 +21,14 @@ from aiohomekit.model.services import ServicesTypes
 from tests.accessoryserver import AccessoryServer
 
 
+# In use, or on Windows inside a reserved (excluded) port range
+_PORT_BUSY_ERRNOS = (
+    {errno.EADDRINUSE, errno.WSAEADDRINUSE, errno.WSAEACCES}
+    if sys.platform == "win32"
+    else {errno.EADDRINUSE}
+)
+
+
 def port_ready(port: int) -> bool:
     """Return True if something is already bound to the port."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as test_socket:
@@ -29,9 +38,10 @@ def port_ready(port: int) -> bool:
             test_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             test_socket.bind(("127.0.0.1", port))
-        except OSError:
-            # EADDRINUSE, WSAEADDRINUSE, or a port Windows has reserved
-            return True
+        except OSError as err:
+            if err.errno in _PORT_BUSY_ERRNOS:
+                return True
+            raise
     return False
 
 
@@ -43,11 +53,19 @@ def next_available_port() -> int:
     raise RuntimeError("No available ports")
 
 
-async def wait_for_server_online(port: int) -> None:
-    for i in range(100):
-        if port_ready(port):
-            break
-        await asyncio.sleep(0.025)
+def ensure_server_bound(httpd: AccessoryServer, port: int, config_path: str) -> None:
+    """Fail the fixture if the server is not on the expected port.
+
+    HTTPServer binds and listens in its constructor, so its socket already
+    knows its port. Checking before serve_forever starts means a failure
+    leaves no thread behind to hang the session.
+    """
+    bound_port = httpd.socket.getsockname()[1]
+    if bound_port == port:
+        return
+    httpd.server_close()
+    os.unlink(config_path)
+    raise RuntimeError(f"Accessory server bound port {bound_port}, expected {port}")
 
 
 class AsyncServiceBrowserStub:
@@ -107,10 +125,9 @@ async def controller_and_unpaired_accessory(request, mock_asynczeroconf, id_fact
     lightBulbService.add_char(CharacteristicsTypes.ON, value=False)
     httpd.add_accessory(accessory)
 
+    ensure_server_bound(httpd, available_port, config_file.name)
     t = threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.01})
     t.start()
-
-    await wait_for_server_online(available_port)
 
     controller = Controller(async_zeroconf_instance=mock_asynczeroconf)
 
@@ -164,10 +181,9 @@ async def controller_and_paired_accessory(request, mock_asynczeroconf, id_factor
     lightBulbService.add_char(CharacteristicsTypes.ON, value=False)
     httpd.add_accessory(accessory)
 
+    ensure_server_bound(httpd, available_port, config_file.name)
     t = threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.01})
     t.start()
-
-    await wait_for_server_online(available_port)
 
     controller_file = tempfile.NamedTemporaryFile(delete=False)
     controller_file.write(
