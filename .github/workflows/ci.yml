@@ -8,45 +8,51 @@ on:
 
 # A new push to a PR cancels its older run; pushes to main never share a group.
 concurrency:
-  group: ${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 env:
   POETRY_VIRTUALENVS_IN_PROJECT: "true"
   UV_PYTHON_PREFERENCE: only-managed
   UV_VERSION: "0.13.4"
+  # Poetry itself runs on this Python, not the matrix one that setup-uv
+  # exports as UV_PYTHON; the project venv still uses the matrix Python.
+  POETRY_PYTHON: "3.13"
 
 jobs:
   lint:
     name: lint
     runs-on: ubuntu-latest
 
+    env:
+      PYTHON_VERSION: "3.11"
+
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
 
-      - name: Set up uv and Python 3.11
+      - name: Set up uv and Python ${{ env.PYTHON_VERSION }}
         id: python
         uses: ./.github/actions/setup-uv-python
         with:
           uv-version: ${{ env.UV_VERSION }}
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install poetry
-        run: uv tool install --python 3.13 poetry
+        run: uv tool install --python "$POETRY_PYTHON" poetry
 
       - name: Cache poetry venv
         id: cache-venv
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .venv
-          key: venv-v1-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', 'pyproject.toml') }}
+          key: venv-v1-${{ runner.os }}-${{ env.PYTHON_VERSION }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', 'pyproject.toml') }}
 
       - name: Install dependencies
         if: steps.cache-venv.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          poetry env use "$(uv python find 3.11)"
+          poetry env use "$(uv python find "${PYTHON_VERSION}")"
           poetry install
 
       - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
@@ -84,11 +90,9 @@ jobs:
           uv-version: ${{ env.UV_VERSION }}
           python-version: ${{ matrix.python-version }}
 
-      # Run poetry itself on a fixed Python, not the matrix one that setup-uv
-      # exports as UV_PYTHON; the project venv still uses the matrix Python.
       - name: Install poetry
         shell: bash
-        run: uv tool install --python 3.13 poetry
+        run: uv tool install --python "$POETRY_PYTHON" poetry
 
       # Keyed on the lock, so packages without wheels for new Pythons
       # (built from source) are only built once per lock change
@@ -97,7 +101,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .venv
-          key: venv-v1-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', 'pyproject.toml') }}
+          key: venv-v1-${{ runner.os }}-${{ matrix.python-version }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock', 'pyproject.toml') }}
 
       - name: Install dependencies
         if: steps.cache-venv.outputs.cache-hit != 'true'
