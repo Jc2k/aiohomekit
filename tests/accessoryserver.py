@@ -1221,16 +1221,10 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             # 4) 5) 7) Create in SRP Session, set username and password
             server = SrpServer("Pair-Setup", self.server.data.setup_code)
 
-            # 6) create salt
-            salt = server.get_salt()
-
             # 8) show setup code to user
             sc = self.server.data.setup_code
             sc_str = "Setup Code\n┌─" + "─" * len(sc) + "─┐\n│ " + sc + " │\n└─" + "─" * len(sc) + "─┘"
             self.log_message(sc_str)
-
-            # 9) create public key
-            public_key = server.get_public_key()
 
             # 10) create response tlv and send response
             d_res.append(
@@ -1242,13 +1236,13 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             d_res.append(
                 (
                     TLV.kTLVType_PublicKey,
-                    SrpServer.to_byte_array(public_key),
+                    server.get_public_key_bytes(),
                 )
             )
             d_res.append(
                 (
                     TLV.kTLVType_Salt,
-                    SrpServer.to_byte_array(salt),
+                    server.salt_b,
                 )
             )
             self._send_response_tlv(d_res)
@@ -1268,7 +1262,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             server.set_client_public_key(ios_pub_key)
 
             session_key = hkdf_derive(
-                SrpServer.to_byte_array(server.get_session_key()),
+                server.get_session_key_bytes(),
                 b"Pair-Setup-Encrypt-Salt",
                 b"Pair-Setup-Encrypt-Info",
             )
@@ -1357,10 +1351,10 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
             d_req_2 = TLV.decode_bytearray(bytearray(decrypted_data))
 
             # 3) Derive ios_device_x
-            shared_secret = self.server.sessions[self.session_id]["srp"].get_session_key()
+            shared_secret = self.server.sessions[self.session_id]["srp"].get_session_key_bytes()
 
             ios_device_x = hkdf_derive(
-                SrpServer.to_byte_array(shared_secret),
+                shared_secret,
                 b"Pair-Setup-Controller-Sign-Salt",
                 b"Pair-Setup-Controller-Sign-Info",
             )
@@ -1409,7 +1403,7 @@ class AccessoryRequestHandler(BaseHTTPRequestHandler):
 
             # 2) derive AccessoryX
             accessory_x = hkdf_derive(
-                SrpServer.to_byte_array(shared_secret),
+                shared_secret,
                 b"Pair-Setup-Accessory-Sign-Salt",
                 b"Pair-Setup-Accessory-Sign-Info",
             )

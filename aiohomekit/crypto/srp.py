@@ -183,7 +183,8 @@ class SrpClient(Srp):
 
     def set_server_public_key(self, B_b: bytearray | bytes) -> None:
         assert isinstance(B_b, (bytes, bytearray)), "The public key must be a bytes"
-        self.B_b = B_b
+        # Accessories may strip leading zero bytes; u and M hash the padded value
+        self.B_b = pad_left(B_b, HK_KEY_LENGTH)
         self.B = int.from_bytes(B_b, "big")
 
     def get_shared_secret(self) -> int:

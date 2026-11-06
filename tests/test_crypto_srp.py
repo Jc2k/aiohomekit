@@ -92,3 +92,28 @@ def test_1(server_cls, client_cls):
     assert client.verify_servers_proof_bytes(servers_proof) is True, (
         f"proof mismatch: server_key:{server.b} client_key:{client.a} server_salt:{server.salt}"
     )
+
+
+class LeadingZeroPublicKeySrpServer(ZeroSaltSrpServer):
+    """Zero salt plus this private key gives a public key B with a leading zero byte."""
+
+    def generate_private_key(self) -> int:
+        return 1336
+
+
+def test_server_public_key_with_stripped_leading_zero() -> None:
+    """A server that sends B without its leading zero byte must still pair."""
+    setup_code = "123-45-678"
+    server = LeadingZeroPublicKeySrpServer("Pair-Setup", setup_code)
+    stripped_pub_key = SrpServer.to_byte_array(server.get_public_key())
+    assert len(stripped_pub_key) == 383
+
+    client = SrpClient("Pair-Setup", setup_code)
+    client.set_salt(server.get_salt())
+    client.set_server_public_key(stripped_pub_key)
+    assert client.B_b == server.get_public_key_bytes()
+
+    server.set_client_public_key(client.get_public_key_bytes())
+    clients_proof_bytes = client.get_proof_bytes()
+    assert server.verify_clients_proof_bytes(clients_proof_bytes) is True
+    assert client.verify_servers_proof_bytes(server.get_proof_bytes(clients_proof_bytes)) is True
