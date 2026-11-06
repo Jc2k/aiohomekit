@@ -30,7 +30,7 @@ from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
 from aiohomekit.zeroconf import ZeroconfPairing
 
-from .connection import CoAPHomeKitConnection
+from .connection import CoAPHomeKitConnection, format_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class CoAPPairing(ZeroconfPairing):
 
     def _async_endpoint_changed(self) -> None:
         """The IP/Port has changed, so close connection if active then reconnect."""
-        self.connection.address = f"[{self.description.address}]:{self.description.port}"
+        self.connection.address = format_endpoint(self.description.address, self.description.port)
         async_create_task(self.connection.reconnect_soon())
 
     @property
@@ -89,7 +89,15 @@ class CoAPPairing(ZeroconfPairing):
             # if there isn't a connection in progress, we're in the driver's seat
             if self.connection_future is None:
                 # start a connection but don't await it here
-                self.connection_future = self.connection.connect(self.pairing_data)
+                addresses = (
+                    [
+                        format_endpoint(address, self.description.port)
+                        for address in self.description.addresses
+                    ]
+                    if self.description
+                    else None
+                )
+                self.connection_future = self.connection.connect(self.pairing_data, addresses)
             else:
                 # we'll wait on the primary coroutine & copy how it returns
                 # this drops the lock and reacquires it when we're notified

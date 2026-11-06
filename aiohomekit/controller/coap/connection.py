@@ -57,6 +57,11 @@ from .structs import Pdu09Database
 logger = logging.getLogger(__name__)
 
 
+def format_endpoint(host: str, port: int) -> str:
+    """Format a CoAP endpoint consistently for connection and discovery."""
+    return f"[{host}]:{port}"
+
+
 def decode_pdu_03(buf):
     return bytes(dict(TLV.decode_bytes(buf)).get(HAP_TLV.kTLVHAPParamValue))
 
@@ -236,7 +241,7 @@ class EventResource(resource.Resource):
 
 class CoAPHomeKitConnection:
     def __init__(self, owner, host, port):
-        self.address = f"[{host}]:{port}"
+        self.address = format_endpoint(host, port)
         self.connection_lock = asyncio.Lock()
         self.enc_ctx = None
         self.owner = owner
@@ -369,20 +374,32 @@ class CoAPHomeKitConnection:
 
         return True
 
-    async def connect(self, pairing_data):
+    async def connect(self, pairing_data, addresses: list[str] | None = None):
         async with self.connection_lock:
             if self.is_connected:
                 logger.debug("Already connected")
                 return
 
-            try:
-                await self.do_pair_verify(pairing_data)
-            except asyncio.TimeoutError:
-                logger.debug("Pair verify timed out")
-                raise AccessoryDisconnectedError("Pair verify timed out")
-            except Exception as exc:
-                logger.debug("Pair verify failed", exc_info=exc)
-                raise AccessoryDisconnectedError("Pair verify failed")
+            # Prefer the current endpoint if it is still advertised. This also
+            # retains a successful fallback until discovery changes the endpoint.
+            # Try every advertised endpoint at most once; never retry writes.
+            candidates = list(dict.fromkeys(addresses or [self.address]))
+            if self.address in candidates:
+                candidates.remove(self.address)
+                candidates.insert(0, self.address)
+            for index, address in enumerate(candidates):
+                self.address = address
+                try:
+                    await self.do_pair_verify(pairing_data)
+                except (asyncio.TimeoutError, NetworkError) as exc:
+                    logger.debug("Pair verify could not reach %s", address, exc_info=exc)
+                    if index == len(candidates) - 1:
+                        raise AccessoryDisconnectedError("Pair verify could not reach accessory") from exc
+                except Exception as exc:
+                    logger.debug("Pair verify failed", exc_info=exc)
+                    raise AccessoryDisconnectedError("Pair verify failed") from exc
+                else:
+                    break
 
             # we need the info this provides to be able to read/write characteristics
             await self.get_accessory_info()
