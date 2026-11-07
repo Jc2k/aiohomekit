@@ -715,6 +715,20 @@ class BlePairing(AbstractPairing):
             logger.debug("%s: Received notification: results = %s", self.name, results)
 
             self._callback_listeners(results)
+
+            if state_num != start_state_num + 1:
+                # The GSN moved by more than one, so other characteristics
+                # changed without a notification reaching us. Some
+                # accessories (e.g. Tedee locks) bump the GSN for both the
+                # lock current and target state but only broadcast the
+                # last change. Poll to catch up on the values we missed.
+                logger.debug(
+                    "%s: GSN jumped from %s to %s, polling for missed changes",
+                    self.name,
+                    start_state_num,
+                    gsn,
+                )
+                self._process_disconnected_events()
             return
 
         logger.warning(
