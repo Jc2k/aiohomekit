@@ -716,12 +716,9 @@ class BlePairing(AbstractPairing):
 
             self._callback_listeners(results)
 
-            if state_num != start_state_num + 1:
-                # The GSN moved by more than one, so other characteristics
-                # changed without a notification reaching us. Some
-                # accessories (e.g. Tedee locks) bump the GSN for both the
-                # lock current and target state but only broadcast the
-                # last change. Poll to catch up on the values we missed.
+            if gsn != start_state_num + 1:
+                # The GSN skipped ahead, so some changes were never notified
+                # (Tedee locks bump it twice per lock but notify once); poll.
                 logger.debug(
                     "%s: GSN jumped from %s to %s, polling for missed changes",
                     self.name,

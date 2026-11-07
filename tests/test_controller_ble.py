@@ -11,9 +11,9 @@ import pytest
 from aiohomekit.characteristic_cache import CharacteristicCacheMemory
 from aiohomekit.controller.ble.const import AdditionalParameterTypes
 from aiohomekit.controller.ble.controller import BleController
-from aiohomekit.controller.ble.manufacturer_data import HomeKitEncryptedNotification
+from aiohomekit.controller.ble.manufacturer_data import HomeKitAdvertisement, HomeKitEncryptedNotification
 from aiohomekit.controller.ble.pairing import BlePairing
-from aiohomekit.model import Accessories, AccessoriesState, Accessory
+from aiohomekit.model import Accessories, Accessory
 from aiohomekit.model.characteristics import Characteristic, CharacteristicsTypes
 from aiohomekit.model.services import ServicesTypes
 from aiohomekit.pdu import OpCode
@@ -214,18 +214,23 @@ async def test_get_characteristics_skips_missing_value_response(
     assert results == {(1, good_char.iid): {"value": True}}
 
 
-def _setup_lock_for_notifications(ble_pairing: BlePairing, state_num: int) -> Characteristic:
-    """Give the pairing a lock accessory, a description and a broadcast key."""
+def _setup_lock_for_notifications(
+    ble_pairing: BlePairing, state_num: int
+) -> tuple[Characteristic, MagicMock]:
+    """Give the pairing a lock accessory, a description, a broadcast key and a listener."""
     accessory = Accessory.create_with_info(1, "Lock", "Tedee", "TLV1.0", "0001", "0.1")
     service = accessory.add_service(ServicesTypes.LOCK_MECHANISM)
-    service.add_char(CharacteristicsTypes.LOCK_MECHANISM_CURRENT_STATE)
     target_char = service.add_char(CharacteristicsTypes.LOCK_MECHANISM_TARGET_STATE)
     accessories = Accessories()
     accessories.add_accessory(accessory)
-    ble_pairing._accessories_state = AccessoriesState(accessories, 1, None, state_num)
-    ble_pairing.description = MagicMock(state_num=state_num)
+    ble_pairing.restore_accessories_state(accessories.serialize(), 1, None, state_num)
+    ble_pairing.description = HomeKitAdvertisement.from_cache(
+        BLE_PAIRING_DATA["AccessoryAddress"], BLE_PAIRING_DATA["AccessoryPairingID"], 1, state_num
+    )
     ble_pairing._broadcast_decryption_key = MagicMock()
-    return target_char
+    listener = MagicMock()
+    ble_pairing.listeners.add(listener)
+    return target_char, listener
 
 
 def _notification_for(
@@ -238,43 +243,22 @@ def _notification_for(
     )
     return HomeKitEncryptedNotification(
         name="Lock",
-        address="AA:BB:CC:DD:EE:FF",
-        id="aa:bb:cc:dd:ee:ff",
+        address=BLE_PAIRING_DATA["AccessoryAddress"],
+        id=BLE_PAIRING_DATA["AccessoryPairingID"],
         advertising_identifier=b"\xaa\xbb\xcc\xdd\xee\xff",
         encrypted_payload=b"\x00" * 16,
     )
 
 
-def test_encrypted_notification_with_next_gsn_does_not_poll(ble_pairing: BlePairing) -> None:
-    """A notification with the expected next GSN is applied without polling."""
-    target_char = _setup_lock_for_notifications(ble_pairing, 738)
-    listener = MagicMock()
-    ble_pairing.listeners.add(listener)
-    notification = _notification_for(ble_pairing, target_char, 739, 1)
+@pytest.mark.parametrize(("gsn", "polls"), [(739, False), (740, True)])
+def test_encrypted_notification_polls_on_gsn_gap(ble_pairing: BlePairing, gsn: int, polls: bool) -> None:
+    """A notification is always applied; a GSN that skipped ahead also polls for the missed changes."""
+    target_char, listener = _setup_lock_for_notifications(ble_pairing, 738)
+    notification = _notification_for(ble_pairing, target_char, gsn, 1)
 
     with patch.object(ble_pairing, "_process_disconnected_events") as process_disconnected:
         ble_pairing._async_notification(notification)
 
     listener.assert_called_once_with({(1, target_char.iid): {"value": 1}})
-    assert ble_pairing.description.state_num == 739
-    process_disconnected.assert_not_called()
-
-
-def test_encrypted_notification_with_gsn_gap_polls(ble_pairing: BlePairing) -> None:
-    """A GSN that skipped ahead means changes were missed, so we poll.
-
-    Tedee locks bump the GSN for both the lock current and target state
-    but only broadcast the target state, so the current state change
-    is only seen as a GSN gap.
-    """
-    target_char = _setup_lock_for_notifications(ble_pairing, 738)
-    listener = MagicMock()
-    ble_pairing.listeners.add(listener)
-    notification = _notification_for(ble_pairing, target_char, 740, 1)
-
-    with patch.object(ble_pairing, "_process_disconnected_events") as process_disconnected:
-        ble_pairing._async_notification(notification)
-
-    listener.assert_called_once_with({(1, target_char.iid): {"value": 1}})
-    assert ble_pairing.description.state_num == 740
-    process_disconnected.assert_called_once_with()
+    assert ble_pairing.description.state_num == gsn
+    assert process_disconnected.call_count == polls
