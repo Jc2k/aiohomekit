@@ -1,3 +1,5 @@
+import asyncio
+import importlib
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -55,3 +57,20 @@ async def test_passing_in_async_zeroconf(mock_asynczeroconf):
 
     assert len(controller.transports) == 1
     assert isinstance(controller.transports[TransportType.IP], IpController)
+
+
+async def test_coap_backend_imported_in_executor() -> None:
+    """The CoAP backend is imported off the event loop, since its import touches the disk."""
+    loop = asyncio.get_running_loop()
+    with (
+        patch.object(controller_module, "BLE_TRANSPORT_SUPPORTED", False),
+        patch.object(controller_module, "COAP_TRANSPORT_SUPPORTED", True),
+        patch.object(controller_module, "IP_TRANSPORT_SUPPORTED", False),
+        patch.object(Controller, "_async_register_backend", AsyncMock()),
+        patch.object(loop, "run_in_executor", wraps=loop.run_in_executor) as run_in_executor,
+    ):
+        await Controller().async_start()
+
+    run_in_executor.assert_called_once_with(
+        None, importlib.import_module, "aiohomekit.controller.coap.controller"
+    )
