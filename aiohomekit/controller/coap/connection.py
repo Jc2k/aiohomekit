@@ -58,27 +58,15 @@ from .structs import Pdu09Database
 logger = logging.getLogger(__name__)
 
 
-def _preload_aiocoap_transport_dependencies() -> None:
-    """Run aiocoap's transport selection once, at import time.
-
-    aiocoap selects its transports, and lazily imports their optional
-    dependencies (e.g. ``filelock`` for OSCORE), the first time a client or
-    server context is created. ``filelock`` creates and removes a temporary
-    directory while it is being imported, so doing that from inside
-    ``Context.create_client_context()`` blocks the event loop.
-
-    Running the same selection here moves that work to wherever this module is
-    imported, e.g. the import executor of Home Assistant.
-    """
-    for transports in (
-        aiocoap_defaults.get_default_clienttransports(),
-        aiocoap_defaults.get_default_servertransports(),
-    ):
-        for _transport in transports:
-            pass
-
-
-_preload_aiocoap_transport_dependencies()
+# aiocoap imports its optional transport dependencies the first time it picks
+# transports, and filelock touches the disk on import, which would block the
+# event loop inside create_client_context(). Pick them here instead; the
+# selector is a lazy generator, so list() is what runs the imports. Server
+# selection uses the same checks, so the client one covers both.
+try:
+    list(aiocoap_defaults.get_default_clienttransports())
+except Exception:  # best effort; aiocoap repeats this when a context is created
+    logger.debug("Failed to preload aiocoap transport dependencies", exc_info=True)
 
 
 def decode_pdu_03(buf):
