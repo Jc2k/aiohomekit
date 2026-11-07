@@ -25,6 +25,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from aiocoap import Context, Message, resource
+from aiocoap import defaults as aiocoap_defaults
 from aiocoap.error import NetworkError
 from aiocoap.numbers.codes import Code
 from cryptography.exceptions import InvalidTag
@@ -55,6 +56,17 @@ from .pdu import (
 from .structs import Pdu09Database
 
 logger = logging.getLogger(__name__)
+
+
+# aiocoap imports its optional transport dependencies the first time it picks
+# transports, and filelock touches the disk on import, which would block the
+# event loop inside create_client_context(). Pick them here instead; the
+# selector is a lazy generator, so list() is what runs the imports. Server
+# selection uses the same checks, so the client one covers both.
+try:
+    list(aiocoap_defaults.get_default_clienttransports())
+except Exception:  # best effort; aiocoap repeats this when a context is created
+    logger.debug("Failed to preload aiocoap transport dependencies", exc_info=True)
 
 
 def decode_pdu_03(buf):

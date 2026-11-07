@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 import pathlib
 from asyncio.log import logger
 from collections.abc import AsyncIterable
@@ -85,6 +86,11 @@ class Controller(AbstractController):
             )
 
         if COAP_TRANSPORT_SUPPORTED:
+            # Importing the CoAP backend preloads aiocoap's optional
+            # dependencies, which touches the disk, so keep it off the loop
+            await asyncio.get_running_loop().run_in_executor(
+                None, importlib.import_module, "aiohomekit.controller.coap.controller"
+            )
             from .coap.controller import (
                 CoAPController,  # pylint: disable=import-outside-toplevel
             )
