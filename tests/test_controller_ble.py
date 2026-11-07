@@ -250,8 +250,8 @@ def _notification_for(
     )
 
 
-@pytest.mark.parametrize(("gsn", "polls"), [(739, False), (740, True)])
-def test_encrypted_notification_polls_on_gsn_gap(ble_pairing: BlePairing, gsn: int, polls: bool) -> None:
+@pytest.mark.parametrize(("gsn", "polls"), [(739, 0), (740, 1)])
+def test_encrypted_notification_polls_on_gsn_gap(ble_pairing: BlePairing, gsn: int, polls: int) -> None:
     """A notification is always applied; a GSN that skipped ahead also polls for the missed changes."""
     target_char, listener = _setup_lock_for_notifications(ble_pairing, 738)
     notification = _notification_for(ble_pairing, target_char, gsn, 1)
@@ -262,3 +262,16 @@ def test_encrypted_notification_polls_on_gsn_gap(ble_pairing: BlePairing, gsn: i
     listener.assert_called_once_with({(1, target_char.iid): {"value": 1}})
     assert ble_pairing.description.state_num == gsn
     assert process_disconnected.call_count == polls
+
+
+def test_repeated_gap_notification_polls_once(ble_pairing: BlePairing) -> None:
+    """Accessories repeat a notification several times; only the first copy polls."""
+    target_char, listener = _setup_lock_for_notifications(ble_pairing, 738)
+    notification = _notification_for(ble_pairing, target_char, 740, 1)
+
+    with patch.object(ble_pairing, "_process_disconnected_events") as process_disconnected:
+        for _ in range(3):
+            ble_pairing._async_notification(notification)
+
+    listener.assert_called_once_with({(1, target_char.iid): {"value": 1}})
+    process_disconnected.assert_called_once_with()
