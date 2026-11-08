@@ -85,8 +85,8 @@ class CoAPPairing(ZeroconfPairing):
         async with self.connection_lock:
             if self._shutdown:
                 return
-            # are we already connected?
-            if self.connection.is_connected:
+            # are we already connected, and not still setting up the session?
+            if self.connection.is_connected and self.connection_future is None:
                 return
 
             # if there isn't a connection in progress, we're in the driver's seat
@@ -187,8 +187,9 @@ class CoAPPairing(ZeroconfPairing):
         While a session is up there is nothing to do. If the session has ended
         (for example the accessory lost power) a new state number means the
         accessory is back, so reconnect now rather than waiting for the next poll.
+        If a session is still being set up, join it, and retry if it fails.
         """
-        if self.connection.is_connected:
+        if self.connection.is_connected and self.connection_future is None:
             return
         if not self.availability_listeners:
             # nobody would hear that the accessory is back (e.g. Home Assistant
@@ -204,11 +205,13 @@ class CoAPPairing(ZeroconfPairing):
         # a connection attempt already in progress may have started before the
         # accessory came back, so if we join one and it fails, try once more
         retry = self.connection_future is not None
-        self._reconnect_task = async_create_task(self._async_reconnect(retry))
+        # note which accessory database we have, to tell whether connecting reads
+        # a new one; once pair verify has succeeded, any database it reads is new
+        info_before = None if self.connection.is_connected else self.connection.info
+        self._reconnect_task = async_create_task(self._async_reconnect(retry, info_before))
 
-    async def _async_reconnect(self, retry: bool) -> None:
+    async def _async_reconnect(self, retry: bool, info_before: Any) -> None:
         attempts = 2 if retry else 1
-        info_before = self.connection.info
         for attempt in range(1, attempts + 1):
             try:
                 await self._ensure_connected()
