@@ -705,3 +705,95 @@ async def test_reconnect_joining_an_attempt_being_set_up_passes_on_its_values(
 
     pairing.connection.do_pair_verify.assert_awaited_once()
     pairing.events.assert_called_once_with({ON: {"value": True}})
+
+
+async def test_failure_ending_the_session_does_not_hide_the_error(
+    pairing: CoAPPairing, accessory: FakeAccessory
+):
+    pairing.subscriptions.add(ON)
+
+    async def pair_verify(pairing_data):
+        session = FakeSession(accessory)
+        session.coap_ctx.shutdown.side_effect = OSError("socket already closed")
+        pairing.connection.enc_ctx = session
+
+    pairing.connection.do_pair_verify.side_effect = pair_verify
+    pairing.connection.subscribe_to = AsyncMock(side_effect=AccessoryDisconnectedError("Request timeout"))
+
+    with pytest.raises(AccessoryDisconnectedError):
+        await pairing.get_characteristics([ON])
+    assert not pairing.is_connected
+    assert pairing.connection_future is None
+
+    # and the next request can connect again
+    pairing.connection.subscribe_to = AsyncMock()
+    pairing.connection.do_pair_verify.side_effect = lambda _: setattr(
+        pairing.connection, "enc_ctx", FakeSession(accessory)
+    )
+    assert await pairing.get_characteristics([ON]) == {ON: {"value": False}}
+
+
+async def test_shutdown_while_ending_the_session_releases_waiting_requests(
+    pairing: CoAPPairing, accessory: FakeAccessory
+):
+    pairing.subscriptions.add(ON)
+    subscribing = asyncio.Event()
+    fail = asyncio.Event()
+    ending = asyncio.Event()
+
+    async def hanging_shutdown():
+        ending.set()
+        await asyncio.Event().wait()
+
+    async def pair_verify(pairing_data):
+        session = FakeSession(accessory)
+        session.coap_ctx.shutdown.side_effect = hanging_shutdown
+        pairing.connection.enc_ctx = session
+
+    async def failing_subscribe(ids):
+        subscribing.set()
+        await fail.wait()
+        raise AccessoryDisconnectedError("Request timeout")
+
+    pairing.connection.do_pair_verify.side_effect = pair_verify
+    pairing.connection.subscribe_to = AsyncMock(side_effect=failing_subscribe)
+    joined = _record_joins(pairing)
+
+    pairing._async_description_update(_description(2))
+    await subscribing.wait()
+    poll = asyncio.create_task(pairing.get_characteristics([ON]))
+    await joined.wait()
+    fail.set()
+    await ending.wait()
+    await pairing.shutdown()
+
+    assert pairing._reconnect_task.cancelled()
+    with pytest.raises(AccessoryDisconnectedError):
+        await asyncio.wait_for(poll, timeout=1)
+    assert not pairing.is_connected
+    assert pairing.connection_future is None
+
+
+async def test_failure_closing_a_cancelled_pair_verify_does_not_hide_the_cancellation(
+    pairing: CoAPPairing, monkeypatch
+):
+    coap_client = MagicMock(shutdown=AsyncMock(side_effect=OSError("socket already closed")))
+    coap_client.request.return_value.response = asyncio.get_running_loop().create_future()
+    monkeypatch.setattr(
+        "aiohomekit.controller.coap.connection.Context.create_server_context",
+        AsyncMock(return_value=coap_client),
+    )
+
+    def session_keys(pairing_data):
+        yield [(1, b"\x01")], []
+
+    monkeypatch.setattr("aiohomekit.controller.coap.connection.get_session_keys", session_keys)
+    pairing.connection.do_pair_verify = CoAPHomeKitConnection.do_pair_verify.__get__(pairing.connection)
+
+    pairing._async_description_update(_description(2))
+    while not coap_client.request.called:
+        await asyncio.sleep(0)
+    await pairing.shutdown()
+
+    assert pairing._reconnect_task.cancelled()
+    coap_client.shutdown.assert_awaited_once()

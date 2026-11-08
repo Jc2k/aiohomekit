@@ -246,8 +246,10 @@ class CoAPHomeKitConnection:
     async def reconnect_soon(self):
         if not self.enc_ctx:
             return
-        await self.enc_ctx.coap_ctx.shutdown()
-        self.enc_ctx = None
+        # mark the session as ended first, so it isn't still treated as connected
+        # if shutting it down fails or is cancelled
+        enc_ctx, self.enc_ctx = self.enc_ctx, None
+        await enc_ctx.coap_ctx.shutdown()
         # XXX can't .connect here w/o pairing_data
 
     async def do_identify(self):
@@ -347,7 +349,11 @@ class CoAPHomeKitConnection:
                 break
             except BaseException:
                 # clean up coap context, including when we are cancelled
-                await coap_client.shutdown()
+                try:
+                    await coap_client.shutdown()
+                except Exception as exc:
+                    # don't hide the original error (or cancellation)
+                    logger.debug("Failed to shut down pair verify context: %s", exc)
                 coap_client = None
                 # re-raise any exception
                 raise

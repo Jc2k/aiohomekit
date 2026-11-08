@@ -126,16 +126,25 @@ class CoAPPairing(ZeroconfPairing):
             # until we re-acquire the lock & clear connection_future,
             # other coroutines that show up will all hit the .wait() path.
             async with self.connection_lock:
-                if not connected and self.connection.is_connected:
-                    # we stopped after pair verify (e.g. reading the accessory
-                    # database or resubscribing failed, or we were cancelled part-way
-                    # through a request), so end the session rather than keep one
-                    # that sends no events or whose counters may be out of step
-                    await self.connection.reconnect_soon()
-                # clear the flag indicating a connection is in progress
-                self.connection_future = None
-                # wake up any coroutines that showed up while we were connecting
-                self.connection_lock.notify_all()
+                try:
+                    if not connected and self.connection.is_connected:
+                        # we stopped after pair verify (e.g. reading the accessory
+                        # database or resubscribing failed, or we were cancelled
+                        # part-way through a request), so end the session rather than
+                        # keep one that sends no events or whose counters may be out
+                        # of step
+                        await self.connection.reconnect_soon()
+                except Exception as exc:
+                    # the session is already marked as ended; don't hide the
+                    # original error
+                    logger.debug("%s: Failed to end the session: %s", self.name, exc)
+                finally:
+                    # even if ending the session is cancelled, clear the flag
+                    # indicating a connection is in progress
+                    self.connection_future = None
+                    # and wake up any coroutines that showed up while we were
+                    # connecting
+                    self.connection_lock.notify_all()
 
         return
 
