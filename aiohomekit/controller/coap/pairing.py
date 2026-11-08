@@ -154,7 +154,8 @@ class CoAPPairing(ZeroconfPairing):
             # the session, which also drops its subscriptions
             self._reconnect_task.cancel()
             await asyncio.wait([self._reconnect_task])
-            return
+        # the reconnect may have joined another caller's attempt, which carries on
+        # and may since have connected
         if self.connection.is_connected:
             await self.unsubscribe(list(self.subscriptions))
 

@@ -797,3 +797,32 @@ async def test_failure_closing_a_cancelled_pair_verify_does_not_hide_the_cancell
 
     assert pairing._reconnect_task.cancelled()
     coap_client.shutdown.assert_awaited_once()
+
+
+async def test_shutdown_after_joining_another_attempt_still_unsubscribes(
+    pairing: CoAPPairing, accessory: FakeAccessory
+):
+    pairing.subscriptions.add(ON)
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def slow_subscribe(ids):
+        started.set()
+        await release.wait()
+
+    pairing.connection.subscribe_to = AsyncMock(side_effect=slow_subscribe)
+    pairing.connection.unsubscribe_from = AsyncMock()
+    joined = _record_joins(pairing)
+    poll = asyncio.create_task(pairing.get_characteristics([ON]))
+    await started.wait()
+    pairing._async_description_update(_description(2))
+    await joined.wait()
+
+    await pairing.shutdown()
+    release.set()
+    await poll
+
+    assert pairing._reconnect_task.cancelled()
+    # the poll's session carries on, so the stopped pairing unsubscribes from it
+    pairing.connection.unsubscribe_from.assert_awaited_once_with([ON])
+    assert not pairing.subscriptions
