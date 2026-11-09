@@ -40,7 +40,7 @@ async-interrupt = ">=1.1.1"
 aiohappyeyeballs = ">=2.7.1"
 
 [tool.poetry.group.dev.dependencies]
-mypy = "^2.3"
+mypy = "^2.4"
 flake8 = ">=7.5.0,<8.0.0"
 pytest = ">=9.1.1,<10.0"
 coverage = ">=7.17.0,<8.0"
