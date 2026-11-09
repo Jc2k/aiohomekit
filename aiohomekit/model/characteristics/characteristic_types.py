@@ -286,6 +286,12 @@ class CharacteristicsTypes:
     # Valve position in %, r/o, uint8
     VENDOR_EVE_THERMO_VALVE_POSITION = "E863F12E-079E-48FF-8F27-9C2605A29F52"
 
+    # Eve "config" channel shared by many Eve accessories (Aqua, Energy, Water Guard...).
+    # Write-only TLV8 commands; the device reflects its settings in VENDOR_EVE_CONFIG_READ.
+    # The meaning of each TLV tag is device specific.
+    VENDOR_EVE_CONFIG_WRITE = "E863F11D-079E-48FF-8F27-9C2605A29F52"
+    VENDOR_EVE_CONFIG_READ = "E863F131-079E-48FF-8F27-9C2605A29F52"
+
     # HAA - Home Accessory Architect
     # https://github.com/RavenSystem/esp-homekit-devices
     VENDOR_HAA_SETUP = "F0000102-0218-2017-81BF-AF2B7C833922"

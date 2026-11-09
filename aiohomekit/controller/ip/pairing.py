@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import logging
 from collections.abc import Iterable
 from datetime import timedelta
@@ -37,6 +38,7 @@ from aiohomekit.exceptions import (
 from aiohomekit.http import HttpContentTypes
 from aiohomekit.model import Accessories, AccessoriesState, Transport
 from aiohomekit.model.characteristics import (
+    CharacteristicFormats,
     CharacteristicPermissions,
     CharacteristicsTypes,
 )
@@ -327,9 +329,15 @@ class IpPairing(ZeroconfPairing):
         listener_update: dict[tuple[int, int], dict[str, Any]] = {}
         for characteristic in characteristics:
             aid, iid, value = characteristic
-            char_payload.append({"aid": aid, "iid": iid, "value": value})
             accessory_chars = self.accessories.aid(aid).characteristics
             char = accessory_chars.iid(iid)
+            if isinstance(value, (bytes, bytearray)) and char.format in (
+                CharacteristicFormats.data,
+                CharacteristicFormats.tlv8,
+            ):
+                # HAP over IP carries data/tlv8 values as base64 in JSON
+                value = base64.b64encode(value).decode("ascii")
+            char_payload.append({"aid": aid, "iid": iid, "value": value})
             if CharacteristicPermissions.paired_read in char.perms:
                 listener_update[(aid, iid)] = {"value": value}
 
