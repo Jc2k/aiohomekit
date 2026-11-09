@@ -368,6 +368,22 @@ async def test_subscribe(pairing: IpPairing):
     assert characteristics == {(1, 9): {"value": False}}
 
 
+async def test_subscribe_disconnect_then_reconnect_resubscribes(pairing: IpPairing):
+    """A disconnect while subscribing must not disable push for later connections."""
+    with mock.patch.object(
+        pairing,
+        "_update_subscriptions",
+        side_effect=[AccessoryDisconnectedError("Tried to send while not connected"), {}],
+    ) as update_subscriptions:
+        assert await pairing.subscribe([(1, 9)]) == {}
+        assert update_subscriptions.call_count == 1
+
+        await pairing.connection_made(True)
+
+        assert update_subscriptions.call_count == 2
+    assert pairing.supports_subscribe is True
+
+
 async def test_unsubscribe(pairing: IpPairing):
     await pairing.subscribe([(1, 9)])
 
