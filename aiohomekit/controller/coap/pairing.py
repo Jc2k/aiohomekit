@@ -21,10 +21,12 @@ from collections.abc import Iterable
 from datetime import timedelta
 from typing import Any
 
+from aiocoap.error import Error as CoAPError
+
 from aiohomekit.controller.abstract import AbstractController, AbstractPairingData
-from aiohomekit.exceptions import AccessoryDisconnectedError
+from aiohomekit.exceptions import AccessoryDisconnectedError, EncryptionError
 from aiohomekit.model import Accessories, AccessoriesState, Transport
-from aiohomekit.model.characteristics import CharacteristicPermissions
+from aiohomekit.model.characteristics import EVENT_CHARACTERISTICS, CharacteristicPermissions
 from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.utils import async_create_task
 from aiohomekit.uuid import normalize_uuid
@@ -42,6 +44,7 @@ class CoAPPairing(ZeroconfPairing):
         )
         self.connection_future = None
         self.connection_lock = asyncio.Condition()
+        self._reconnect_task: asyncio.Task | None = None
         self.pairing_data = pairing_data
 
         super().__init__(controller, pairing_data)
@@ -82,8 +85,8 @@ class CoAPPairing(ZeroconfPairing):
         async with self.connection_lock:
             if self._shutdown:
                 return
-            # are we already connected?
-            if self.connection.is_connected:
+            # are we already connected, and not still setting up the session?
+            if self.connection.is_connected and self.connection_future is None:
                 return
 
             # if there isn't a connection in progress, we're in the driver's seat
@@ -99,10 +102,14 @@ class CoAPPairing(ZeroconfPairing):
                     raise AccessoryDisconnectedError("primary coroutine failed to connect")
                 return
 
+        connected = False
         try:
             # await the connection outside of the lock
             # this allows other coroutines to show up & wait
             await self.connection_future
+        except asyncio.CancelledError:
+            # let cancellation through (e.g. close() cancelling a reconnect)
+            raise
         except BaseException:
             raise AccessoryDisconnectedError("failed to connect")
         else:
@@ -113,19 +120,42 @@ class CoAPPairing(ZeroconfPairing):
                     % (len(self.subscriptions), self.subscriptions)
                 )
                 await self.connection.subscribe_to(list(self.subscriptions))
+            connected = True
             self._callback_availability_changed(True)
         finally:
             # until we re-acquire the lock & clear connection_future,
             # other coroutines that show up will all hit the .wait() path.
             async with self.connection_lock:
-                # clear the flag indicating a connection is in progress
-                self.connection_future = None
-                # wake up any coroutines that showed up while we were connecting
-                self.connection_lock.notify_all()
+                try:
+                    if not connected and self.connection.is_connected:
+                        # we stopped after pair verify (e.g. reading the accessory
+                        # database or resubscribing failed, or we were cancelled
+                        # part-way through a request), so end the session rather than
+                        # keep one that sends no events or whose counters may be out
+                        # of step
+                        await self.connection.reconnect_soon()
+                except Exception as exc:
+                    # the session is already marked as ended; don't hide the
+                    # original error
+                    logger.debug("%s: Failed to end the session: %s", self.name, exc)
+                finally:
+                    # even if ending the session is cancelled, clear the flag
+                    # indicating a connection is in progress
+                    self.connection_future = None
+                    # and wake up any coroutines that showed up while we were
+                    # connecting
+                    self.connection_lock.notify_all()
 
         return
 
     async def close(self) -> None:
+        if self._reconnect_task and not self._reconnect_task.done():
+            # if this stops it part-way through connecting, _ensure_connected ends
+            # the session, which also drops its subscriptions
+            self._reconnect_task.cancel()
+            await asyncio.wait([self._reconnect_task])
+        # the reconnect may have joined another caller's attempt, which carries on
+        # and may since have connected
         if self.connection.is_connected:
             await self.unsubscribe(list(self.subscriptions))
 
@@ -164,8 +194,75 @@ class CoAPPairing(ZeroconfPairing):
     def _process_disconnected_events(self):
         """Process any events that happened while we were disconnected.
 
-        We don't disconnect in COAP so there is no need to do anything here.
+        While a session is up there is nothing to do. If the session has ended
+        (for example the accessory lost power) a new state number means the
+        accessory is back, so reconnect now rather than waiting for the next poll.
+        If a session is still being set up, join it, and retry if it fails.
         """
+        if self.connection.is_connected and self.connection_future is None:
+            return
+        if not self.availability_listeners:
+            # nobody would hear that the accessory is back (e.g. Home Assistant
+            # closed this pairing after failing to set it up, and will retry with
+            # a new one), so reconnecting would only leave an unused session open
+            return
+        if not self.description:
+            # the caller stores the new description after calling us, so this is
+            # the first advertisement since startup rather than a state change
+            return
+        if self._reconnect_task and not self._reconnect_task.done():
+            return
+        # a connection attempt already in progress may have started before the
+        # accessory came back, so if we join one and it fails, try once more
+        retry = self.connection_future is not None
+        # note which accessory database we have, to tell whether connecting reads
+        # a new one; once pair verify has succeeded, any database it reads is new
+        info_before = None if self.connection.is_connected else self.connection.info
+        self._reconnect_task = async_create_task(self._async_reconnect(retry, info_before))
+
+    async def _async_reconnect(self, retry: bool, info_before: Any) -> None:
+        attempts = 2 if retry else 1
+        for attempt in range(1, attempts + 1):
+            try:
+                await self._ensure_connected()
+                break
+            except (AccessoryDisconnectedError, EncryptionError, CoAPError) as exc:
+                logger.debug(
+                    "%s: Reconnect after state change failed (attempt %d of %d): %s",
+                    self.name,
+                    attempt,
+                    attempts,
+                    exc,
+                )
+        else:
+            return
+        # only pass on values if the accessory database was read during this
+        # reconnect; otherwise they may be from before the accessory went away
+        if self.connection.info is info_before:
+            return
+        if values := self._subscribed_values():
+            self._callback_listeners(values)
+
+    def _subscribed_values(self) -> dict[tuple[int, int], dict[str, Any]]:
+        """Return the subscribed values that connecting has just read.
+
+        Values may have changed while we were disconnected (e.g. a bulb turning on
+        when power returns), and connect() reads every readable value, so this
+        catches up without sending the accessory any more requests.
+        """
+        values: dict[tuple[int, int], dict[str, Any]] = {}
+        if not (accessories := self.accessories):
+            return values
+        for aid, iid in self.subscriptions:
+            accessory = accessories.aid_or_none(aid)
+            char = accessory.characteristics.iid(iid) if accessory else None
+            # a button press read back now is stale and would fire a phantom trigger
+            if char is None or char.type in EVENT_CHARACTERISTICS:
+                continue
+            read = self.connection.info.find_characteristic_by_aid_iid(aid, iid)
+            if read is not None and read.value is not None:
+                values[(aid, iid)] = {"value": read.value}
+        return values
 
     async def async_populate_accessories_state(
         self, force_update: bool = False, attempts: int | None = None
