@@ -1832,23 +1832,23 @@ dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "requests
 
 [[package]]
 name = "pytest-aiohttp"
-version = "1.1.0"
+version = "1.1.1"
 description = "Pytest plugin for aiohttp support"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["dev"]
 files = [
-    {file = "pytest_aiohttp-1.1.0-py3-none-any.whl", hash = "sha256:f39a11693a0dce08dd6c542d241e199dd8047a6e6596b2bcfa60d373f143456d"},
-    {file = "pytest_aiohttp-1.1.0.tar.gz", hash = "sha256:147de8cb164f3fc9d7196967f109ab3c0b93ea3463ab50631e56438eab7b5adc"},
+    {file = "pytest_aiohttp-1.1.1-py3-none-any.whl", hash = "sha256:f293441ad4f8446a1e12257130c26c7de03a615c2a5572a8cb046e5b3b4e5211"},
+    {file = "pytest_aiohttp-1.1.1.tar.gz", hash = "sha256:3aa9c9fe26e543eaccc7eb0add381c685ba3ed3e2fed0af74540f63bcd31458d"},
 ]
 
 [package.dependencies]
-aiohttp = ">=3.11.0b0"
+aiohttp = ">=3.11.0"
 pytest = ">=6.1.0"
 pytest-asyncio = ">=0.17.2"
 
 [package.extras]
-testing = ["coverage (==6.2)", "mypy (==1.12.1)"]
+testing = ["coverage (==7.14.1)", "mypy (==2.1.0)"]
 
 [[package]]
 name = "pytest-asyncio"
@@ -2553,4 +2553,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.16"
-content-hash = "d6407e297da239643fb93ee8697b3b2d05799ee5e7d4e78434d6fe4473acf268"
+content-hash = "ddab2e1b4d6fc863ca8d7546eae581877abb75106c97f67c1586bd2c6b148ce1"
