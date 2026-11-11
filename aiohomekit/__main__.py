@@ -156,11 +156,12 @@ async def pair(args):
         pin = args.pin if args.pin else pin_from_keyboard()
 
         try:
-            await finish_pairing(pin)
+            pairing = await finish_pairing(pin)
         except HomeKitException as e:
             print(str(e))
             return False
 
+        controller.load_pairing(args.alias, pairing.pairing_data)
         controller.save_data(args.file)
 
         print(f'Pairing for "{args.alias}" was established.')
