@@ -1,7 +1,9 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 
 from aiohomekit.controller.coap.connection import CoAPHomeKitConnection
-from aiohomekit.controller.coap.pdu import PDUStatus
+from aiohomekit.controller.coap.pdu import OpCode, PDUStatus
 from aiohomekit.controller.coap.structs import Pdu09Database
 
 database_nanoleaf_bulb = bytes.fromhex(
@@ -166,3 +168,28 @@ def test_unsubscribe_from_single_failure(coap_controller: CoAPHomeKitConnection)
 
     assert len(results) == 1
     assert isinstance(results[(1, 51)], dict)
+
+
+async def test_skip_pairings_characteristic(coap_controller: CoAPHomeKitConnection):
+    coap_controller.enc_ctx = MagicMock(
+        post=AsyncMock(return_value=(len(database_nanoleaf_bulb), database_nanoleaf_bulb)),
+        post_all=AsyncMock(side_effect=lambda opcode, iids, data: [b""] * len(iids)),
+    )
+
+    await coap_controller.get_accessory_info()
+
+    read_batches = [call.args[1] for call in coap_controller.enc_ctx.post_all.await_args_list]
+    assert len(read_batches) == 5
+    assert all(iids and 37 not in iids for iids in read_batches)
+
+    coap_controller.info.find_characteristic_by_aid_iid(1, 56).type = 0x118
+    coap_controller.enc_ctx.post_all = AsyncMock(
+        return_value=[b"\x01\x01\x01", b"\x01\x02\x06\x02", b"\x01\x04\x64\x00\x00\x00"]
+    )
+    results = await coap_controller.read_characteristics((1, iid) for iid in (51, 37, 56, 52))
+    coap_controller.enc_ctx.post_all.assert_awaited_once_with(OpCode.CHAR_READ, [51, 56, 52], [b"", b"", b""])
+    assert results == {(1, 51): {"value": True}, (1, 56): {"value": "0602"}, (1, 52): {"value": 100}}
+
+    coap_controller.enc_ctx.post_all.reset_mock()
+    assert await coap_controller.read_characteristics([(1, 37)]) == {}
+    coap_controller.enc_ctx.post_all.assert_not_awaited()
