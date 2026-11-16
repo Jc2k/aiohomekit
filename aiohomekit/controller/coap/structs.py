@@ -191,7 +191,9 @@ class Pdu09Characteristic(TLVStruct):
         if self.pf_format == 0x19:
             return value.encode()
         if self.pf_format == 0x1B:
-            # ???
+            # bytes is the transport-neutral input; a str is already CoAP's hex encoding
+            if isinstance(value, (bytes, bytearray)):
+                return bytes(value)
             return bytes.fromhex(value)
         return value
 
