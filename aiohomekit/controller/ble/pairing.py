@@ -715,6 +715,17 @@ class BlePairing(AbstractPairing):
             logger.debug("%s: Received notification: results = %s", self.name, results)
 
             self._callback_listeners(results)
+
+            if gsn != start_state_num + 1:
+                # The GSN skipped ahead, so some changes were never notified
+                # (Tedee locks bump it twice per lock but notify once); poll.
+                logger.debug(
+                    "%s: GSN jumped from %s to %s, polling for missed changes",
+                    self.name,
+                    start_state_num,
+                    gsn,
+                )
+                self._process_disconnected_events()
             return
 
         logger.warning(
