@@ -385,7 +385,9 @@ class IpPairing(ZeroconfPairing):
         try:
             return await self._update_subscriptions(characteristics, True)
         except AccessoryDisconnectedError:
-            self.supports_subscribe = False
+            # A dropped connection says nothing about push support; the
+            # subscriptions are re-sent from connection_made on reconnect.
+            logger.debug("Connection lost while subscribing to characteristics")
             return {}
 
     async def unsubscribe(self, characteristics):
