@@ -158,7 +158,7 @@ def serialize_u8(value_type: type, value: int) -> bytes:
 
 
 def serialize_u16(value_type: type, value: int) -> bytes:
-    return struct.pack("H", value)
+    return struct.pack("<H", value)
 
 
 def serialize_bu16(value_type: type, value: int) -> bytes:
@@ -166,11 +166,11 @@ def serialize_bu16(value_type: type, value: int) -> bytes:
 
 
 def serialize_u32(value_type: type, value: int) -> bytes:
-    return struct.pack("I", value)
+    return struct.pack("<I", value)
 
 
 def serialize_u64(value_type: type, value: int) -> bytes:
-    return struct.pack("Q", value)
+    return struct.pack("<Q", value)
 
 
 def serialize_u128(value_type: type, value: int) -> bytes:
