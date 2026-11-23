@@ -251,6 +251,7 @@ class CoAPHomeKitConnection:
         self.address = f"[{host}]:{port}"
         self.connection_lock = asyncio.Lock()
         self.enc_ctx = None
+        self.info: Pdu09Database | None = None
         self.owner = owner
         self.pair_setup_client = None
 
@@ -419,8 +420,14 @@ class CoAPHomeKitConnection:
         for accessory in self.info.accessories:
             # one service at a time
             for service in accessory.services:
-                # first, collect all readable characteristics
-                readable = [char for char in service.characteristics if char.supports_secure_reads]
+                # Pairings is a command/response characteristic, not pollable state.
+                readable = [
+                    char
+                    for char in service.characteristics
+                    if char.supports_secure_reads and char.type != 0x50
+                ]
+                if not readable:
+                    continue
 
                 # get instance IDs
                 iids = [char.instance_id for char in readable]
@@ -501,11 +508,14 @@ class CoAPHomeKitConnection:
         self, characteristics: Iterable[tuple[int, int]]
     ) -> dict[tuple[int, int], dict[str, Any]]:
         """Read characteristics from the accessory."""
-        # _read_characteristics_exit expects a list of tuples
-        # as it does an ordered read so we need to convert
-        # to a list to preserve the order
-        ids = list(characteristics)
-        iids = [int(aid_iid[1]) for aid_iid in characteristics]
+        ids = []
+        for aid, iid in characteristics:
+            char = self.info.find_characteristic_by_aid_iid(int(aid), int(iid)) if self.info else None
+            if char is None or char.type != 0x50:
+                ids.append((aid, iid))
+        if not ids:
+            return {}
+        iids = [int(aid_iid[1]) for aid_iid in ids]
         data = [b""] * len(iids)
         pdu_results = await self.enc_ctx.post_all(OpCode.CHAR_READ, iids, data)
         return self._read_characteristics_exit(ids, pdu_results)
