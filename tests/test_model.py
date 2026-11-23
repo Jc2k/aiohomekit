@@ -16,8 +16,12 @@
 
 import base64
 
-from aiohomekit.model import Accessories
-from aiohomekit.model.characteristics import CharacteristicsTypes
+from aiohomekit.model import Accessories, Accessory
+from aiohomekit.model.characteristics import (
+    CharacteristicFormats,
+    CharacteristicPermissions,
+    CharacteristicsTypes,
+)
 from aiohomekit.model.characteristics.const import (
     AudioCodecValues,
     BitRateValues,
@@ -319,6 +323,19 @@ def test_build_update():
     payload = service.build_update({CharacteristicsTypes.NAME: "Fred"})
 
     assert payload == [(6623462389072572, 588410716196, "Fred")]
+
+
+def test_build_update_data_accepts_bytes():
+    service = Accessory(1).add_service(ServicesTypes.LEAK_SENSOR)
+    char = service.add_char(
+        CharacteristicsTypes.VENDOR_EVE_CONFIG_WRITE,
+        perms=[CharacteristicPermissions.paired_write],
+        format=CharacteristicFormats.data,
+    )
+
+    payload = service.build_update({CharacteristicsTypes.VENDOR_EVE_CONFIG_WRITE: b"\x4e\x01\x01"})
+
+    assert payload == [(1, char.iid, b"\x4e\x01\x01")]
 
 
 def test_build_update_minStep_clamping_lennox():

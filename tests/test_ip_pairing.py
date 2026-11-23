@@ -11,6 +11,12 @@ from aiohomekit.controller.ip.pairing import IpPairing
 from aiohomekit.exceptions import AccessoryDisconnectedError, IncorrectPairingIdError
 from aiohomekit.model import Transport
 from aiohomekit.model.categories import Categories
+from aiohomekit.model.characteristics import (
+    CharacteristicFormats,
+    CharacteristicPermissions,
+    CharacteristicsTypes,
+)
+from aiohomekit.model.services import ServicesTypes
 from aiohomekit.protocol import get_session_keys
 from aiohomekit.protocol.statuscodes import HapStatusCode
 from aiohomekit.zeroconf import HomeKitService
@@ -300,6 +306,26 @@ async def test_put_characteristics(pairing: IpPairing):
     characteristics = await pairing.get_characteristics([(1, 9)])
 
     assert characteristics[(1, 9)] == {"value": True}
+
+
+async def test_put_characteristics_data_bytes_sent_as_base64(pairing: IpPairing):
+    await pairing.list_accessories_and_characteristics()
+    service = pairing.accessories.aid(1).add_service(ServicesTypes.LEAK_SENSOR, iid=100)
+    char = service.add_char(
+        CharacteristicsTypes.VENDOR_EVE_CONFIG_WRITE,
+        iid=101,
+        perms=[CharacteristicPermissions.paired_write],
+        format=CharacteristicFormats.data,
+    )
+
+    with mock.patch.object(pairing.connection, "put_json", return_value=None) as put_json:
+        result = await pairing.put_characteristics([(1, char.iid, b"\x4e\x01\x01")])
+
+    assert result == {}
+    put_json.assert_awaited_once_with(
+        "/characteristics",
+        {"characteristics": [{"aid": 1, "iid": char.iid, "value": "TgEB"}]},
+    )
 
 
 async def test_put_characteristics_cancelled(pairing: IpPairing):

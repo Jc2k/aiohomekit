@@ -1028,3 +1028,20 @@ def test_coap_pdu09_decode_2():
             },
         ],
     }
+
+
+def test_data_characteristic_accepts_bytes_and_hex():
+    data_char = Pdu09Characteristic(
+        type=0,
+        instance_id=1,
+        properties=0,
+        presentation_format=b"\x1b\x00\x00\x27\x01\x00\x00",
+    )
+    assert data_char.data_type_str == "data"
+
+    data_char.value = b"\x4e\x01\x01"
+    assert data_char.raw_value == b"\x4e\x01\x01"
+
+    data_char.value = "4e0101"
+    assert data_char.raw_value == b"\x4e\x01\x01"
+    assert data_char.value == "4e0101"
