@@ -251,6 +251,7 @@ class CoAPHomeKitConnection:
         self.address = f"[{host}]:{port}"
         self.connection_lock = asyncio.Lock()
         self.enc_ctx = None
+        self.info = None
         self.owner = owner
         self.pair_setup_client = None
 
@@ -259,8 +260,10 @@ class CoAPHomeKitConnection:
             # post_bytes() drops coap_ctx when the session ends, leaving enc_ctx behind.
             self.enc_ctx = None
             return
-        await self.enc_ctx.coap_ctx.shutdown()
-        self.enc_ctx = None
+        # mark the session as ended first, so it isn't still treated as connected
+        # if shutting it down fails or is cancelled
+        enc_ctx, self.enc_ctx = self.enc_ctx, None
+        await enc_ctx.coap_ctx.shutdown()
         # XXX can't .connect here w/o pairing_data
 
     async def do_identify(self):
@@ -358,9 +361,13 @@ class CoAPHomeKitConnection:
             except StopIteration as result:
                 _, derive = result.value
                 break
-            except Exception:
-                # clean up coap context
-                await coap_client.shutdown()
+            except BaseException:
+                # clean up coap context, including when we are cancelled
+                try:
+                    await coap_client.shutdown()
+                except Exception as exc:
+                    # don't hide the original error (or cancellation)
+                    logger.debug("Failed to shut down pair verify context: %s", exc)
                 coap_client = None
                 # re-raise any exception
                 raise
