@@ -62,8 +62,10 @@ class PDUStatusError(Exception):
         self.status = status
 
 
-def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
+def disconnect_on_missing_services(func: WrapFuncType, *, close_pairing: bool = False) -> WrapFuncType:
     """Define a wrapper to disconnect on missing services and characteristics.
+
+    Set close_pairing to use the pairing lifecycle instead of direct disconnect.
 
     This must be placed after the retry_bluetooth_connection_error
     decorator.
@@ -79,8 +81,13 @@ def disconnect_on_missing_services(func: WrapFuncType) -> WrapFuncType:
                 ex,
             )
             if self.client:
-                await self.client.clear_cache()
-                await self.client.disconnect()
+                try:
+                    await self.client.clear_cache()
+                finally:
+                    if close_pairing:
+                        await self.close()
+                if not close_pairing:
+                    await self.client.disconnect()
             raise
 
     return cast(WrapFuncType, _async_disconnect_on_missing_services_wrap)
