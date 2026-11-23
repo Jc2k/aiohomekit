@@ -1902,14 +1902,14 @@ testing = ["process-tests", "pytest-xdist", "virtualenv"]
 
 [[package]]
 name = "pyupgrade"
-version = "3.21.2"
+version = "3.22.0"
 description = "A tool to automatically upgrade syntax for newer versions."
 optional = false
-python-versions = ">=3.10"
+python-versions = ">=3.11"
 groups = ["dev"]
 files = [
-    {file = "pyupgrade-3.21.2-py2.py3-none-any.whl", hash = "sha256:2ac7b95cbd176475041e4dfe8ef81298bd4654a244f957167bd68af37d52be9f"},
-    {file = "pyupgrade-3.21.2.tar.gz", hash = "sha256:1a361bea39deda78d1460f65d9dd548d3a36ff8171d2482298539b9dc11c9c06"},
+    {file = "pyupgrade-3.22.0-py2.py3-none-any.whl", hash = "sha256:98c87952345cca4dec6589436b9c1e4b2e8c09617f41aa1582fb448728201024"},
+    {file = "pyupgrade-3.22.0.tar.gz", hash = "sha256:6889a7be7f0d0ea3119789bc50086a008a91ed6c46005a030f8928b501550425"},
 ]
 
 [package.dependencies]
@@ -2567,4 +2567,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.16"
-content-hash = "01cba9155b4c9d1ff931796dbce35eb5be76cff079be5211a3a6493358a9c8b9"
+content-hash = "64924f1c22361eb8db73b00c8d3a5524cedd0365ee769ddee515833509af0638"
