@@ -360,7 +360,8 @@ class CharacteristicsTypes:
     VENDOR_ECOBEE_EQUIPMENT_RUNNING = "4A6AE4F6-036C-495D-87CC-B3702B437741"
     # r/o, uint8 - thermostat status code: 0=ok, 1=service, 2=alert, 3=error
     VENDOR_ECOBEE_STATUS_CODE = "DB7BF261-7042-4194-8BD1-3AA22830AEDD"
-    # r/o, bool - auxiliary heat currently active
+    # r/o, bool - accessory output active, e.g. a humidifier call (named aux heat active in #548)
+    VENDOR_ECOBEE_ACCESSORY_ACTIVE = "41935E3E-B54D-42E9-B8B9-D33C6319F0AF"
     VENDOR_ECOBEE_AUX_HEAT_ACTIVE = "41935E3E-B54D-42E9-B8B9-D33C6319F0AF"
 
     # Ecobee SmartSensor
